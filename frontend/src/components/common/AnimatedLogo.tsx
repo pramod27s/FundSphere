@@ -231,16 +231,7 @@ export default function AnimatedLogo({
 
           {/* Orbits / Swooshes */}
           <motion.g initial="hidden" animate={["visible", "float"]} style={{ transformOrigin: "center" }}>
-            {/* Top thin swoosh */}
-            <motion.path 
-              d="M 25 40 C 40 -5, 90 0, 105 35" 
-              fill="none" 
-              stroke="#115e59" 
-              strokeWidth="1.5" 
-              strokeLinecap="round"
-              custom={{ delay: 1.5, opacity: 0.6 }}
-              variants={orbitVariant}
-            />
+
             {/* Main dynamic front swoosh */}
             <motion.path 
               d="M 12 65 C 30 120, 95 110, 118 45" 
