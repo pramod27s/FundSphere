@@ -6,6 +6,7 @@ import AnimatedLogo from '../common/AnimatedLogo.tsx';
 
 export default function GrantDiscovery() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState("match");
 
   return (
     <div className="flex h-screen bg-brand-50 w-full overflow-hidden">
@@ -15,7 +16,7 @@ export default function GrantDiscovery() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-full overflow-hidden">
         {/* Top Search Header */}
-        <header className="px-8 py-6 bg-white border-b border-brand-100 flex-shrink-0 z-10">
+        <header className="px-8 py-6 bg-white border-b border-brand-100 shrink-0 z-10">
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center gap-3 mb-4">
               <AnimatedLogo className="w-10 h-10" />
@@ -68,11 +69,15 @@ export default function GrantDiscovery() {
               
               <div className="flex items-center gap-2">
                 <span className="text-sm text-brand-500">Sort by:</span>
-                <select className="bg-white border border-brand-200 text-brand-700 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2 outline-none">
-                  <option>Match Score (Highest)</option>
-                  <option>Deadline (Closing Soon)</option>
-                  <option>Funding Amount (Highest)</option>
-                  <option>Recently Added</option>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="bg-white border border-brand-200 text-brand-700 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2 outline-none"
+                >
+                  <option value="match">Match Score (Highest)</option>
+                  <option value="deadline">Deadline (Closing Soon)</option>
+                  <option value="funding">Funding Amount (Highest)</option>
+                  <option value="recent">Recently Added</option>
                 </select>
               </div>
             </div>
@@ -85,7 +90,7 @@ export default function GrantDiscovery() {
               <div>
                 <h4 className="font-medium text-primary-900 mb-1">AI Reasoning Summary</h4>
                 <p className="text-sm text-primary-800/80 leading-relaxed">
-                  We found grants strongly matching your background in <span className="font-semibold text-primary-900">Machine Learning</span> and <span className="font-semibold text-primary-900">Healthcare</span>. Specifically prioritizing grants welcoming Early Career Researchers in the United States.
+                  We found grants strongly matching your background in <span className="font-semibold text-primary-900">Machine Learning</span> and <span className="font-semibold text-primary-900">Healthcare</span>. Specifically prioritizing grants welcoming Early Career Researchers in India.
                 </p>
               </div>
             </div>

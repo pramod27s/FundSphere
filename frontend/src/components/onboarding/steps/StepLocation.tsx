@@ -25,11 +25,11 @@ export default function StepLocation({
           className={inputClass}
         >
           <option value="" disabled>Select your country</option>
+          <option value="India">India</option>
           <option value="United States">United States</option>
           <option value="United Kingdom">United Kingdom</option>
           <option value="Canada">Canada</option>
           <option value="Australia">Australia</option>
-          <option value="India">India</option>
           <option value="Germany">Germany</option>
           <option value="Other">Other</option>
         </select>
@@ -40,8 +40,8 @@ export default function StepLocation({
           <label className={labelClass}>State / Province</label>
           <input 
             type="text" 
-            placeholder="e.g. California"
-            value={state} 
+            placeholder="e.g. Maharashtra"
+            value={state}
             onChange={e => updateFields({ state: e.target.value })} 
             className={inputClass} 
           />
@@ -50,8 +50,8 @@ export default function StepLocation({
           <label className={labelClass}>City</label>
           <input 
             type="text" 
-            placeholder="e.g. San Francisco"
-            value={city} 
+            placeholder="e.g. Mumbai"
+            value={city}
             onChange={e => updateFields({ city: e.target.value })} 
             className={inputClass} 
           />

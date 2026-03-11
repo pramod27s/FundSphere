@@ -1,5 +1,5 @@
 
-import { DollarSign, Landmark, Plane, Users, Briefcase } from 'lucide-react';
+import { IndianRupee, Landmark, Plane, Users, Briefcase } from 'lucide-react';
 
 type StepProps = {
   minFunding: string;
@@ -13,7 +13,7 @@ const grantTypes = [
   { id: 'Travel grant', icon: Plane },
   { id: 'Fellowship', icon: Users },
   { id: 'Startup funding', icon: Briefcase },
-  { id: 'NGO funding', icon: DollarSign },
+  { id: 'NGO funding', icon: IndianRupee },
 ];
 
 export default function StepFundingPrefs({
@@ -21,6 +21,7 @@ export default function StepFundingPrefs({
 }: StepProps) {
   const inputClass = "w-full pl-8 pr-4 py-2.5 rounded-lg border border-brand-200 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-colors bg-white/50";
   const labelClass = "block text-sm font-medium text-brand-700 mb-1.5";
+  const fundingRangeInvalid = minFunding !== '' && maxFunding !== '' && Number(minFunding) > Number(maxFunding);
 
   return (
     <div className="flex flex-col gap-5">
@@ -30,30 +31,35 @@ export default function StepFundingPrefs({
         <div>
           <label className={labelClass}>Min Funding Amount</label>
           <div className="relative">
-            <DollarSign className="absolute left-2.5 top-3 w-4 h-4 text-brand-400" />
-            <input 
+            <IndianRupee className="absolute left-2.5 top-3 w-4 h-4 text-brand-400" />
+            <input
               type="number" 
-              placeholder="10,000"
-              value={minFunding} 
+              min="0"
+              placeholder="5,00,000"
+              value={minFunding}
               onChange={e => updateFields({ minFunding: e.target.value })} 
-              className={inputClass} 
+              className={`${inputClass} ${fundingRangeInvalid ? 'border-red-400 focus:ring-red-500/50 focus:border-red-500' : ''}`}
             />
           </div>
         </div>
         <div>
           <label className={labelClass}>Max Funding Amount</label>
           <div className="relative">
-            <DollarSign className="absolute left-2.5 top-3 w-4 h-4 text-brand-400" />
-            <input 
+            <IndianRupee className="absolute left-2.5 top-3 w-4 h-4 text-brand-400" />
+            <input
               type="number" 
-              placeholder="500,000"
-              value={maxFunding} 
+              min="0"
+              placeholder="50,00,000"
+              value={maxFunding}
               onChange={e => updateFields({ maxFunding: e.target.value })} 
-              className={inputClass} 
+              className={`${inputClass} ${fundingRangeInvalid ? 'border-red-400 focus:ring-red-500/50 focus:border-red-500' : ''}`}
             />
           </div>
         </div>
       </div>
+      {fundingRangeInvalid && (
+        <p className="text-xs text-red-500 -mt-3">Minimum funding cannot exceed maximum funding.</p>
+      )}
 
       <div className="mt-4">
         <label className={labelClass}>Preferred Grant Type *</label>

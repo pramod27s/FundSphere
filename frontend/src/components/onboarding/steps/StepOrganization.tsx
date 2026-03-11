@@ -12,7 +12,7 @@ const roles = [
   "Research Assistant",
   "Professor",
   "NGO Member",
-  "founder",
+  "Founder",
   "Other"
 ];
 
