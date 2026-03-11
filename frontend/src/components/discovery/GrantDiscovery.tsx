@@ -2,6 +2,7 @@ import { Search, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import GrantList from './GrantList';
 import FilterSidebar from './FilterSidebar';
+import AnimatedLogo from '../common/AnimatedLogo';
 
 export default function GrantDiscovery() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -16,10 +17,12 @@ export default function GrantDiscovery() {
         {/* Top Search Header */}
         <header className="px-8 py-6 bg-white border-b border-brand-100 flex-shrink-0 z-10">
           <div className="max-w-4xl mx-auto">
-            <h1 className="text-2xl font-bold text-brand-900 mb-4 items-center flex gap-2">
-              <Sparkles className="w-6 h-6 text-primary-500" />
-              Intelligent Grant Discovery
-            </h1>
+            <div className="flex items-center gap-3 mb-4">
+              <AnimatedLogo className="w-10 h-10" />
+              <h1 className="text-2xl font-bold text-brand-900">
+                Intelligent Grant Discovery
+              </h1>
+            </div>
             
             {/* Search Bar */}
             <div className="relative flex items-center w-full group">

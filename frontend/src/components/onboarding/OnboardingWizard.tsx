@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, ChevronLeft, Check, BookOpen } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Check } from 'lucide-react';
+import AnimatedLogo from '../common/AnimatedLogo';
 
 import StepAccountInfo from './steps/StepAccountInfo';
 import StepUserType from './steps/StepUserType';
@@ -118,10 +119,7 @@ export default function OnboardingWizard() {
       {/* Header / Progress bar */}
       <div className="bg-brand-50/50 border-b border-brand-100 px-8 py-6">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2 text-primary-600">
-            <BookOpen className="w-6 h-6" />
-            <h1 className="text-xl font-bold tracking-tight">FundSphere</h1>
-          </div>
+          <AnimatedLogo className="w-9 h-9" textClassName="text-xl" showText={true} />
           <span className="text-sm font-medium text-brand-500">
             Step {currentStep + 1} of {stepsConfig.length}
           </span>
