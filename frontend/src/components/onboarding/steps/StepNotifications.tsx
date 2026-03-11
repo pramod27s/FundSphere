@@ -1,4 +1,5 @@
 
+import type { LucideIcon } from 'lucide-react';
 import { Bell, Clock, Calendar } from 'lucide-react';
 
 type StepProps = {
@@ -8,11 +9,16 @@ type StepProps = {
   updateFields: (fields: Partial<StepProps>) => void;
 };
 
-export default function StepNotifications({
-  notifyNewGrants, notifyDeadlines, notifyWeekly, updateFields
-}: StepProps) {
-  
-  const ToggleSwitch = ({ checked, onChange, label, sublabel, icon: Icon }: any) => (
+type ToggleSwitchProps = {
+  checked: boolean;
+  onChange: () => void;
+  label: string;
+  sublabel: string;
+  icon: LucideIcon;
+};
+
+function ToggleSwitch({ checked, onChange, label, sublabel, icon: Icon }: ToggleSwitchProps) {
+  return (
     <div className="flex items-center justify-between p-4 rounded-xl border border-brand-200 bg-white hover:border-primary-300 transition-colors">
       <div className="flex gap-4 items-center">
         <div className="p-2 rounded-lg bg-brand-50 text-brand-500">
@@ -38,7 +44,11 @@ export default function StepNotifications({
       </button>
     </div>
   );
+}
 
+export default function StepNotifications({
+  notifyNewGrants, notifyDeadlines, notifyWeekly, updateFields
+}: StepProps) {
   return (
     <div className="flex flex-col gap-5">
       <p className="text-brand-500 mb-1">Stay updated with the latest funding matches.</p>

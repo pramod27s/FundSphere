@@ -66,7 +66,7 @@ const stepsConfig = [
   { title: "Notifications", component: StepNotifications },
 ];
 
-export default function OnboardingWizard() {
+export default function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<FormData>(initialData);
   const [direction, setDirection] = useState(0);
@@ -79,13 +79,42 @@ export default function OnboardingWizard() {
   const StepComponent = currentStepData.component;
   const isLastStep = currentStep === stepsConfig.length - 1;
 
+  const validateCurrentStep = (): boolean => {
+    switch (currentStep) {
+      case 0: // Account Info
+        if (!formData.fullName || !formData.email || !formData.password || !formData.confirmPassword) return false;
+        if (formData.password !== formData.confirmPassword) return false;
+        return true;
+      case 1: // User Type
+        return !!formData.userType;
+      case 2: // Organization
+        return !!formData.orgName && !!formData.role;
+      case 3: // Research Area
+        return !!formData.primaryField;
+      case 4: // Location
+        return !!formData.country;
+      case 5: // Funding Preferences
+        if (formData.minFunding && formData.maxFunding && Number(formData.minFunding) > Number(formData.maxFunding)) return false;
+        return !!formData.grantType;
+      case 6: // Experience
+        return true; // all optional
+      case 7: // Notifications
+        return true; // toggles have defaults
+      default:
+        return true;
+    }
+  };
+
+  const canProceed = validateCurrentStep();
+
   const handleNext = () => {
+    if (!canProceed) return;
     if (currentStep < stepsConfig.length - 1) {
       setDirection(1);
       setCurrentStep(prev => prev + 1);
     } else {
       console.log("Submit Form Data: ", formData);
-      alert("Onboarding complete! Check console for payload.");
+      onComplete();
     }
   };
 
@@ -180,7 +209,12 @@ export default function OnboardingWizard() {
 
         <button
           onClick={handleNext}
-          className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white shadow-md shadow-primary-500/20 transition-all active:scale-95 font-medium ml-auto"
+          disabled={!canProceed}
+          className={`flex items-center gap-2 px-6 py-2.5 rounded-lg shadow-md transition-all font-medium ml-auto ${
+            canProceed 
+              ? 'bg-primary-600 hover:bg-primary-700 text-white shadow-primary-500/20 active:scale-95' 
+              : 'bg-brand-200 text-brand-400 cursor-not-allowed shadow-none'
+          }`}
         >
           {isLastStep ? 'Complete Setup' : 'Continue'}
           {isLastStep ? <Check className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}

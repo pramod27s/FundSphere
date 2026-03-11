@@ -12,109 +12,105 @@ export default function AnimatedLogo({
   showText = false 
 }: AnimatedLogoProps) {
   return (
-    <div className={`flex items-center gap-3`}>
+    <div className="flex items-center gap-3">
       <div className={`relative shrink-0 ${className}`}>
-        <svg viewBox="0 0 120 120" className="w-full h-full drop-shadow-md">
+
+        {/* Stage 1: Glowing ring draws in behind the logo */}
+        <svg
+          viewBox="0 0 100 100"
+          className="absolute inset-0 w-full h-full"
+        >
           <defs>
-            <linearGradient id="blueGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <linearGradient id="logoRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#3b82f6" />
-              <stop offset="100%" stopColor="#1e3a8a" />
-            </linearGradient>
-            <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#fbbf24" />
-              <stop offset="100%" stopColor="#ea580c" />
-            </linearGradient>
-            <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#60a5fa" />
-              <stop offset="50%" stopColor="#ffffff" />
+              <stop offset="50%" stopColor="#8b5cf6" />
               <stop offset="100%" stopColor="#f59e0b" />
             </linearGradient>
           </defs>
-
-          {/* Left Brain Half */}
-          <motion.path
-            d="M 58 20 A 38 38 0 0 0 58 96 Z"
-            fill="url(#blueGrad)"
-            initial={{ x: -20, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-          />
-
-          {/* Right Dollar Half */}
-          <motion.path
-            d="M 62 20 A 38 38 0 0 1 62 96 Z"
-            fill="url(#orangeGrad)"
-            initial={{ x: 20, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-          />
-
-          {/* Circuit Nodes (Left) */}
-          <motion.g
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.8, duration: 0.6 }}
-            stroke="white" strokeWidth="2" fill="white"
-          >
-            {/* Top node */}
-            <circle cx="42" cy="40" r="3" />
-            <path d="M 42 40 L 58 40" />
-            
-            {/* Middle node */}
-            <circle cx="32" cy="58" r="4" />
-            <path d="M 32 58 L 58 58" />
-            
-            {/* Bottom node */}
-            <circle cx="42" cy="76" r="3" />
-            <path d="M 42 76 L 48 76 L 54 70 L 58 70" fill="none"/>
-          </motion.g>
-
-          {/* Dollar Sign (Right) */}
-          <motion.text
-            x="81" y="70"
-            fontSize="38"
-            fontWeight="bold"
-            fontFamily="sans-serif"
-            fill="white"
-            textAnchor="middle"
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.8, type: "spring", stiffness: 200 }}
-          >
-            $
-          </motion.text>
-
-          {/* Orbit Ring Front */}
-          <motion.path
-            d="M 12 65 Q 60 110 108 50"
+          <motion.circle
+            cx="50"
+            cy="50"
+            r="46"
             fill="none"
-            stroke="url(#ringGrad)"
-            strokeWidth="5"
+            stroke="url(#logoRingGrad)"
+            strokeWidth="2"
             strokeLinecap="round"
             initial={{ pathLength: 0, opacity: 0 }}
-            animate={{ pathLength: 1, opacity: 1 }}
-            transition={{ delay: 0.5, duration: 1.2, ease: "easeInOut" }}
-          />
-          {/* Orbit Ring Back */}
-          <motion.path
-            d="M 12 65 Q 60 20 108 50"
-            fill="none"
-            stroke="url(#ringGrad)"
-            strokeWidth="2"
-            strokeDasharray="4 4"
-            strokeLinecap="round"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.4 }}
-            transition={{ delay: 1.5, duration: 0.8, ease: "easeInOut" }}
+            animate={{ pathLength: 1, opacity: [0, 1, 1, 0] }}
+            transition={{
+              pathLength: { duration: 1, ease: "easeInOut" },
+              opacity: { duration: 2, times: [0, 0.2, 0.7, 1] },
+            }}
           />
         </svg>
+
+        {/* Stage 2: Burst particles that fly out on logo reveal */}
+        {[...Array(8)].map((_, i) => {
+          const angle = (i / 8) * 360;
+          const rad = (angle * Math.PI) / 180;
+          const x = Math.cos(rad) * 35;
+          const y = Math.sin(rad) * 35;
+          return (
+            <motion.div
+              key={i}
+              className="absolute left-1/2 top-1/2 w-1.5 h-1.5 rounded-full"
+              style={{
+                background: i % 2 === 0 ? '#3b82f6' : '#f59e0b',
+                marginLeft: '-3px',
+                marginTop: '-3px',
+              }}
+              initial={{ x: 0, y: 0, opacity: 0, scale: 0 }}
+              animate={{
+                x: [0, x, x],
+                y: [0, y, y],
+                opacity: [0, 1, 0],
+                scale: [0, 1.5, 0],
+              }}
+              transition={{
+                duration: 0.8,
+                delay: 0.6,
+                ease: "easeOut",
+                times: [0, 0.5, 1],
+              }}
+            />
+          );
+        })}
+
+        {/* Stage 3: The actual logo with spring scale-up */}
+        <motion.div
+          className="relative z-10 w-full h-full"
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{
+            type: "spring",
+            stiffness: 260,
+            damping: 20,
+            delay: 0.4,
+          }}
+        >
+          {/* Stage 4: Continuous subtle float */}
+          <motion.img
+            src="/logo1.png"
+            alt="FundSphere"
+            className="w-full h-full object-contain drop-shadow-lg"
+            animate={{
+              y: [0, -3, 0, 3, 0],
+            }}
+            transition={{
+              duration: 4,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+            draggable={false}
+          />
+        </motion.div>
       </div>
-      
+
       {showText && (
         <motion.div
-          initial={{ opacity: 0, x: -10 }}
+          initial={{ opacity: 0, x: -15 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 1.2, duration: 0.5 }}
+          transition={{ delay: 1, duration: 0.5, ease: "easeOut" }}
           className={`font-bold text-brand-900 tracking-tight ${textClassName}`}
         >
           Fund<span className="text-primary-600">Sphere</span>

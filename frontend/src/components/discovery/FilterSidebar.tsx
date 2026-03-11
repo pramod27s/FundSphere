@@ -1,32 +1,51 @@
+import type { ReactNode } from 'react';
+import { useState } from 'react';
 import { Filter, ChevronDown, Check } from 'lucide-react';
 
-export default function FilterSidebar() {
-  const Checkbox = ({ label, count }: { label: string, count: number }) => (
-    <label className="flex items-center justify-between group cursor-pointer py-1">
+function Checkbox({ label, count }: { label: string; count: number }) {
+  const [checked, setChecked] = useState(false);
+
+  return (
+    <label className="flex items-center justify-between group cursor-pointer py-1" onClick={() => setChecked(!checked)}>
       <div className="flex items-center gap-3">
-        <div className="w-4 h-4 rounded border border-brand-300 bg-white group-hover:border-primary-400 flex items-center justify-center transition-colors">
-          <Check className="w-3 h-3 text-primary-600 opacity-0 group-hover:opacity-100" />
+        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+          checked 
+            ? 'bg-primary-500 border-primary-500' 
+            : 'border-brand-300 bg-white group-hover:border-primary-400'
+        }`}>
+          <Check className={`w-3 h-3 text-white transition-opacity ${checked ? 'opacity-100' : 'opacity-0'}`} />
         </div>
         <span className="text-sm text-brand-700 group-hover:text-brand-900">{label}</span>
       </div>
       <span className="text-xs text-brand-400 group-hover:text-brand-500 font-medium">{count}</span>
     </label>
   );
+}
 
-  const FilterSection = ({ title, children }: { title: string, children: React.ReactNode }) => (
-    <div className="mb-6">
-      <button className="flex items-center justify-between w-full mb-3 group">
-        <h4 className="text-sm font-semibold text-brand-900 uppercase tracking-wider">{title}</h4>
-        <ChevronDown className="w-4 h-4 text-brand-400 group-hover:text-brand-600 transition-colors" />
-      </button>
-      <div className="flex flex-col gap-2">
-        {children}
-      </div>
-    </div>
-  );
+function FilterSection({ title, children }: { title: string; children: ReactNode }) {
+  const [isOpen, setIsOpen] = useState(true);
 
   return (
-    <aside className="w-72 bg-white border-r border-brand-100 h-full flex flex-col flex-shrink-0">
+    <div className="mb-6">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center justify-between w-full mb-3 group"
+      >
+        <h4 className="text-sm font-semibold text-brand-900 uppercase tracking-wider">{title}</h4>
+        <ChevronDown className={`w-4 h-4 text-brand-400 group-hover:text-brand-600 transition-all ${isOpen ? '' : '-rotate-90'}`} />
+      </button>
+      {isOpen && (
+        <div className="flex flex-col gap-2">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function FilterSidebar() {
+  return (
+    <aside className="w-72 bg-white border-r border-brand-100 h-full flex flex-col shrink-0">
       <div className="p-6 border-b border-brand-100 flex items-center gap-2 text-brand-800">
         <Filter className="w-5 h-5" />
         <h2 className="font-bold">Filters & Preferences</h2>
@@ -48,10 +67,10 @@ export default function FilterSidebar() {
         </FilterSection>
 
         <FilterSection title="Funding Amount">
-          <Checkbox label="< $10,000" count={104} />
-          <Checkbox label="$10k - $50k" count={341} />
-          <Checkbox label="$50k - $250k" count={121} />
-          <Checkbox label="> $250k" count={83} />
+          <Checkbox label="< ₹5 Lakh" count={104} />
+          <Checkbox label="₹5L - ₹25L" count={341} />
+          <Checkbox label="₹25L - ₹1 Cr" count={121} />
+          <Checkbox label="> ₹1 Cr" count={83} />
         </FilterSection>
 
         <FilterSection title="Deadline Timeline">

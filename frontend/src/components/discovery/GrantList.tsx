@@ -1,35 +1,35 @@
 
-import { ShieldAlert, Users, TrendingUp, Calendar, ChevronRight } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, Users, TrendingUp, Calendar, ChevronRight } from 'lucide-react';
 
 const mockGrants = [
   {
     id: 1,
     title: "AI & Global Health Postdoctoral Fellowship",
-    funder: "Gates Foundation",
+    funder: "DBT (Dept. of Biotechnology)",
     matchScore: 98,
-    amount: "$150,000",
+    amount: "₹12,00,000",
     deadline: "Dec 01, 2026",
     tags: ["Healthcare", "Machine Learning", "Postdoc"],
-    eligibility: "Eligible", // Or "Missing Constraint"
+    eligibility: "Eligible",
     rationale: "Perfect alignment with your PhD background and keywords: 'Machine Learning', 'Public Health'."
   },
   {
     id: 2,
-    title: "NSF Core Research: Information & Intelligent Systems",
-    funder: "National Science Foundation (NSF)",
+    title: "SERB Core Research: Information & Intelligent Systems",
+    funder: "Science & Engineering Research Board (SERB)",
     matchScore: 92,
-    amount: "$500,000",
+    amount: "₹40,00,000",
     deadline: "Jan 15, 2027",
     tags: ["Artificial Intelligence", "Robotics", "Core Research"],
     eligibility: "Warning",
-    rationale: "Strong thematic match, but requires co-PI from an EPSCoR jurisdiction which isn't in your profile."
+    rationale: "Strong thematic match, but requires co-PI from an ASPIRE jurisdiction which isn't in your profile."
   },
   {
     id: 3,
     title: "Climate Tech AI Accelerator Grant",
-    funder: "OpenAI & Y Combinator",
+    funder: "DST & Startup India",
     matchScore: 85,
-    amount: "$250,000",
+    amount: "₹20,00,000",
     deadline: "Oct 31, 2026",
     tags: ["Environment", "Startup", "AI"],
     eligibility: "Eligible",
@@ -62,7 +62,7 @@ export default function GrantList() {
                 {/* Eligibility Status */}
                 {grant.eligibility === 'Eligible' ? (
                   <div className="flex items-center gap-1 text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-md">
-                    <ShieldAlert className="w-3.5 h-3.5" /> Verified
+                    <ShieldCheck className="w-3.5 h-3.5" /> Verified
                   </div>
                 ) : (
                   <div className="flex items-center gap-1 text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-200/50">
@@ -74,6 +74,15 @@ export default function GrantList() {
               <h3 className="text-xl font-bold text-brand-900 group-hover:text-primary-600 transition-colors cursor-pointer line-clamp-2">
                 {grant.title}
               </h3>
+
+              {/* Tags */}
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {grant.tags.map(tag => (
+                  <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-brand-50 text-brand-600 border border-brand-200">
+                    {tag}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
 
