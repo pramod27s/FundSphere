@@ -142,22 +142,22 @@ export default function AnimatedLogo({
             <motion.path d="M 60 15 A 42 42 0 0 1 60 99 Z" fill="url(#dotPattern)" variants={patternVariant} />
             
             {/* Chart Bars */}
-            <motion.rect x="68" width="6" rx="1.5" fill="#ffffff" custom={{ y: 65, h: 20, delay: 0.6 }} variants={barVariant} />
-            <motion.rect x="78" width="6" rx="1.5" fill="#ffffff" custom={{ y: 50, h: 35, delay: 0.8 }} variants={barVariant} />
-            <motion.rect x="88" width="6" rx="1.5" fill="url(#chartGrad)" filter="url(#glow)" custom={{ y: 30, h: 55, delay: 1.0 }} variants={barVariant} />
+            <motion.rect x="67" width="5" rx="1" fill="#ffffff" custom={{ y: 68, h: 18, delay: 0.6 }} variants={barVariant} />
+            <motion.rect x="76" width="5" rx="1" fill="#ffffff" custom={{ y: 55, h: 31, delay: 0.8 }} variants={barVariant} />
+            <motion.rect x="85" width="5" rx="1" fill="url(#chartGrad)" filter="url(#glow)" custom={{ y: 38, h: 48, delay: 1.0 }} variants={barVariant} />
 
             {/* Growth Arrow */}
             <motion.path 
-              d="M 64 65 Q 80 50 93 28" 
+              d="M 64 68 Q 78 52 89 33" 
               fill="none" 
               stroke="#ffffff" 
-              strokeWidth="3.5" 
+              strokeWidth="3" 
               strokeLinecap="round"
               variants={arrowVariant}
               filter="url(#glow)"
             />
             <motion.polygon 
-              points="95,24 84,28 91,37" 
+              points="91,29 80,33 87,42" 
               fill="#ffffff" 
               variants={arrowHeadVariant}
               filter="url(#glow)"
