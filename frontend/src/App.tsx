@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import OnboardingWizard from './components/onboarding/OnboardingWizard';
-import GrantDiscovery from './components/discovery/GrantDiscovery';
-import SplashScreen from './components/common/SplashScreen';
+import OnboardingWizard from './components/onboarding/OnboardingWizard.tsx';
+import GrantDiscovery from './components/discovery/GrantDiscovery.tsx';
+import SplashScreen from './components/common/SplashScreen.tsx';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<'splash' | 'onboarding' | 'discovery'>('splash');

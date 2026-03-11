@@ -1,8 +1,8 @@
 import { Search, Sparkles } from 'lucide-react';
 import { useState } from 'react';
-import GrantList from './GrantList';
-import FilterSidebar from './FilterSidebar';
-import AnimatedLogo from '../common/AnimatedLogo';
+import GrantList from './GrantList.tsx';
+import FilterSidebar from './FilterSidebar.tsx';
+import AnimatedLogo from '../common/AnimatedLogo.tsx';
 
 export default function GrantDiscovery() {
   const [searchQuery, setSearchQuery] = useState("");
