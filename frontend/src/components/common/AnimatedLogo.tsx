@@ -148,7 +148,7 @@ export default function AnimatedLogo({
 
             {/* Growth Arrow */}
             <motion.path 
-              d="M 65 72 Q 78 58 88 44" 
+              d="M 64 68 L 88 40" 
               fill="none" 
               stroke="#ffffff" 
               strokeWidth="2.5" 
@@ -157,7 +157,7 @@ export default function AnimatedLogo({
               filter="url(#glow)"
             />
             <motion.polygon 
-              points="90,40 81,44 86,52" 
+              points="90,36 81,40 86,48" 
               fill="#ffffff" 
               variants={arrowHeadVariant}
               filter="url(#glow)"
@@ -182,7 +182,7 @@ export default function AnimatedLogo({
               "M 58 28 L 46 28 L 40 22",
               "M 58 42 L 40 42 L 34 48 L 28 48",
               "M 58 55 L 48 55 L 42 65 L 30 65",
-              "M 58 75 L 45 75 L 40 82",
+              "M 58 72 L 45 72 L 40 78",
               "M 58 88 L 45 88 L 36 82"
             ].map((d, i) => (
               <motion.path 
@@ -201,17 +201,17 @@ export default function AnimatedLogo({
               { cx: 40, cy: 22, r: 3.5 },
               { cx: 28, cy: 48, r: 3.5 },
               { cx: 30, cy: 65, r: 3.5 },
-              { cx: 40, cy: 82, r: 3.5 },
+              { cx: 40, cy: 78, r: 3.5 },
               { cx: 36, cy: 82, r: 3.5 },
               { cx: 46, cy: 28, r: 2.5 },
               { cx: 40, cy: 42, r: 2.5 },
               { cx: 48, cy: 55, r: 2.5 },
-              { cx: 45, cy: 75, r: 2.5 },
+              { cx: 45, cy: 72, r: 2.5 },
               { cx: 45, cy: 88, r: 2.5 },
               { cx: 58, cy: 28, r: 2 },
               { cx: 58, cy: 42, r: 2 },
               { cx: 58, cy: 55, r: 2 },
-              { cx: 58, cy: 75, r: 2 },
+              { cx: 58, cy: 72, r: 2 },
               { cx: 58, cy: 88, r: 2 },
             ].map((node, i) => (
               <motion.circle 
