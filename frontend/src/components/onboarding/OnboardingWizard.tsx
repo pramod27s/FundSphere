@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, ChevronLeft, Check } from 'lucide-react';
 import AnimatedLogo from '../common/AnimatedLogo';
 
-import StepAccountInfo from './steps/StepAccountInfo.tsx';
 import StepUserType from './steps/StepUserType.tsx';
 import StepOrganization from './steps/StepOrganization.tsx';
 import StepResearchArea from './steps/StepResearchArea.tsx';
@@ -56,7 +55,6 @@ const initialData: FormData = {
 };
 
 const stepsConfig = [
-  { title: "Account Info", component: StepAccountInfo },
   { title: "User Type", component: StepUserType },
   { title: "Organization", component: StepOrganization },
   { title: "Research Area", component: StepResearchArea },
@@ -81,24 +79,20 @@ export default function OnboardingWizard({ onComplete }: { onComplete: () => voi
 
   const validateCurrentStep = (): boolean => {
     switch (currentStep) {
-      case 0: // Account Info
-        if (!formData.fullName || !formData.email || !formData.password || !formData.confirmPassword) return false;
-        if (formData.password !== formData.confirmPassword) return false;
-        return true;
-      case 1: // User Type
+      case 0: // User Type
         return !!formData.userType;
-      case 2: // Organization
+      case 1: // Organization
         return !!formData.orgName && !!formData.role;
-      case 3: // Research Area
+      case 2: // Research Area
         return !!formData.primaryField;
-      case 4: // Location
+      case 3: // Location
         return !!formData.country;
-      case 5: // Funding Preferences
+      case 4: // Funding Preferences
         if (formData.minFunding && formData.maxFunding && Number(formData.minFunding) > Number(formData.maxFunding)) return false;
         return !!formData.grantType;
-      case 6: // Experience
+      case 5: // Experience
         return true; // all optional
-      case 7: // Notifications
+      case 6: // Notifications
         return true; // toggles have defaults
       default:
         return true;
