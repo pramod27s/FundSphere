@@ -1,0 +1,723 @@
+commit 91e1f8364b5b33697799ae1de44681143562d017
+Author: pramod27s <mrpramod3@gmail.com>
+Date:   Wed Mar 11 20:15:37 2026 +0530
+
+    api creation of grants info
+
+diff --git a/CoreBackend/src/main/java/org/pramod/corebackend/controller/GrantController.java b/CoreBackend/src/main/java/org/pramod/corebackend/controller/GrantController.java
+index 1327d73..1efabe2 100644
+--- a/CoreBackend/src/main/java/org/pramod/corebackend/controller/GrantController.java
++++ b/CoreBackend/src/main/java/org/pramod/corebackend/controller/GrantController.java
+@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.*;
+ 
+ import java.util.List;
+ import java.util.Map;
+-
+ @RestController
+ @RequestMapping("/api/grants")
+ @CrossOrigin(origins = "*")
+diff --git a/frontend/src/App.tsx b/frontend/src/App.tsx
+index f2f7bfd..c6f028c 100644
+--- a/frontend/src/App.tsx
++++ b/frontend/src/App.tsx
+@@ -15,26 +15,10 @@ function App() {
+           <SplashScreen key="splash" onComplete={() => setCurrentPage('onboarding')} />
+         )}
+       </AnimatePresence>
+-      
+-      {/* Temporary Navigation for Review Purposes */}
+-      <div className="fixed bottom-4 right-4 z-50 flex gap-2 bg-white p-2 rounded-xl shadow-lg border border-brand-200">
+-        <button 
+-          onClick={() => setCurrentPage('onboarding')}
+-          className={`px-3 py-1.5 text-xs font-semibold rounded-lg ${currentPage === 'onboarding' ? 'bg-primary-600 text-white' : 'bg-brand-50 text-brand-600 hover:bg-brand-100'}`}
+-        >
+-          View Onboarding
+-        </button>
+-        <button 
+-          onClick={() => setCurrentPage('discovery')}
+-          className={`px-3 py-1.5 text-xs font-semibold rounded-lg ${currentPage === 'discovery' ? 'bg-primary-600 text-white' : 'bg-brand-50 text-brand-600 hover:bg-brand-100'}`}
+-        >
+-          View Grant Discovery
+-        </button>
+-      </div>
+ 
+       {currentPage === 'onboarding' ? (
+         <div className="w-full max-w-3xl">
+-          <OnboardingWizard />
++          <OnboardingWizard onComplete={() => setCurrentPage('discovery')} />
+         </div>
+       ) : currentPage === 'discovery' ? (
+         <GrantDiscovery />
+diff --git a/frontend/src/components/common/AnimatedLogo.tsx b/frontend/src/components/common/AnimatedLogo.tsx
+index 2ba0c94..4092d65 100644
+--- a/frontend/src/components/common/AnimatedLogo.tsx
++++ b/frontend/src/components/common/AnimatedLogo.tsx
+@@ -12,109 +12,105 @@ export default function AnimatedLogo({
+   showText = false 
+ }: AnimatedLogoProps) {
+   return (
+-    <div className={`flex items-center gap-3`}>
++    <div className="flex items-center gap-3">
+       <div className={`relative shrink-0 ${className}`}>
+-        <svg viewBox="0 0 120 120" className="w-full h-full drop-shadow-md">
++
++        {/* Stage 1: Glowing ring draws in behind the logo */}
++        <svg
++          viewBox="0 0 100 100"
++          className="absolute inset-0 w-full h-full"
++        >
+           <defs>
+-            <linearGradient id="blueGrad" x1="0%" y1="0%" x2="0%" y2="100%">
++            <linearGradient id="logoRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+               <stop offset="0%" stopColor="#3b82f6" />
+-              <stop offset="100%" stopColor="#1e3a8a" />
+-            </linearGradient>
+-            <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+-              <stop offset="0%" stopColor="#fbbf24" />
+-              <stop offset="100%" stopColor="#ea580c" />
+-            </linearGradient>
+-            <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+-              <stop offset="0%" stopColor="#60a5fa" />
+-              <stop offset="50%" stopColor="#ffffff" />
++              <stop offset="50%" stopColor="#8b5cf6" />
+               <stop offset="100%" stopColor="#f59e0b" />
+             </linearGradient>
+           </defs>
+-
+-          {/* Left Brain Half */}
+-          <motion.path
+-            d="M 58 20 A 38 38 0 0 0 58 96 Z"
+-            fill="url(#blueGrad)"
+-            initial={{ x: -20, opacity: 0 }}
+-            animate={{ x: 0, opacity: 1 }}
+-            transition={{ duration: 0.8, ease: "easeOut" }}
+-          />
+-
+-          {/* Right Dollar Half */}
+-          <motion.path
+-            d="M 62 20 A 38 38 0 0 1 62 96 Z"
+-            fill="url(#orangeGrad)"
+-            initial={{ x: 20, opacity: 0 }}
+-            animate={{ x: 0, opacity: 1 }}
+-            transition={{ duration: 0.8, ease: "easeOut" }}
+-          />
+-
+-          {/* Circuit Nodes (Left) */}
+-          <motion.g
+-            initial={{ opacity: 0 }}
+-            animate={{ opacity: 1 }}
+-            transition={{ delay: 0.8, duration: 0.6 }}
+-            stroke="white" strokeWidth="2" fill="white"
+-          >
+-            {/* Top node */}
+-            <circle cx="42" cy="40" r="3" />
+-            <path d="M 42 40 L 58 40" />
+-            
+-            {/* Middle node */}
+-            <circle cx="32" cy="58" r="4" />
+-            <path d="M 32 58 L 58 58" />
+-            
+-            {/* Bottom node */}
+-            <circle cx="42" cy="76" r="3" />
+-            <path d="M 42 76 L 48 76 L 54 70 L 58 70" fill="none"/>
+-          </motion.g>
+-
+-          {/* Dollar Sign (Right) */}
+-          <motion.text
+-            x="81" y="70"
+-            fontSize="38"
+-            fontWeight="bold"
+-            fontFamily="sans-serif"
+-            fill="white"
+-            textAnchor="middle"
+-            initial={{ scale: 0, opacity: 0 }}
+-            animate={{ scale: 1, opacity: 1 }}
+-            transition={{ delay: 0.8, type: "spring", stiffness: 200 }}
+-          >
+-            $
+-          </motion.text>
+-
+-          {/* Orbit Ring Front */}
+-          <motion.path
+-            d="M 12 65 Q 60 110 108 50"
++          <motion.circle
++            cx="50"
++            cy="50"
++            r="46"
+             fill="none"
+-            stroke="url(#ringGrad)"
+-            strokeWidth="5"
+-            strokeLinecap="round"
+-            initial={{ pathLength: 0, opacity: 0 }}
+-            animate={{ pathLength: 1, opacity: 1 }}
+-            transition={{ delay: 0.5, duration: 1.2, ease: "easeInOut" }}
+-          />
+-          {/* Orbit Ring Back */}
+-          <motion.path
+-            d="M 12 65 Q 60 20 108 50"
+-            fill="none"
+-            stroke="url(#ringGrad)"
++            stroke="url(#logoRingGrad)"
+             strokeWidth="2"
+-            strokeDasharray="4 4"
+             strokeLinecap="round"
+-            initial={{ opacity: 0 }}
+-            animate={{ opacity: 0.4 }}
+-            transition={{ delay: 1.5, duration: 0.8, ease: "easeInOut" }}
++            initial={{ pathLength: 0, opacity: 0 }}
++            animate={{ pathLength: 1, opacity: [0, 1, 1, 0] }}
++            transition={{
++              pathLength: { duration: 1, ease: "easeInOut" },
++              opacity: { duration: 2, times: [0, 0.2, 0.7, 1] },
++            }}
+           />
+         </svg>
++
++        {/* Stage 2: Burst particles that fly out on logo reveal */}
++        {[...Array(8)].map((_, i) => {
++          const angle = (i / 8) * 360;
++          const rad = (angle * Math.PI) / 180;
++          const x = Math.cos(rad) * 35;
++          const y = Math.sin(rad) * 35;
++          return (
++            <motion.div
++              key={i}
++              className="absolute left-1/2 top-1/2 w-1.5 h-1.5 rounded-full"
++              style={{
++                background: i % 2 === 0 ? '#3b82f6' : '#f59e0b',
++                marginLeft: '-3px',
++                marginTop: '-3px',
++              }}
++              initial={{ x: 0, y: 0, opacity: 0, scale: 0 }}
++              animate={{
++                x: [0, x, x],
++                y: [0, y, y],
++                opacity: [0, 1, 0],
++                scale: [0, 1.5, 0],
++              }}
++              transition={{
++                duration: 0.8,
++                delay: 0.6,
++                ease: "easeOut",
++                times: [0, 0.5, 1],
++              }}
++            />
++          );
++        })}
++
++        {/* Stage 3: The actual logo with spring scale-up */}
++        <motion.div
++          className="relative z-10 w-full h-full"
++          initial={{ scale: 0, opacity: 0 }}
++          animate={{ scale: 1, opacity: 1 }}
++          transition={{
++            type: "spring",
++            stiffness: 260,
++            damping: 20,
++            delay: 0.4,
++          }}
++        >
++          {/* Stage 4: Continuous subtle float */}
++          <motion.img
++            src="/logo1.png"
++            alt="FundSphere"
++            className="w-full h-full object-contain drop-shadow-lg"
++            animate={{
++              y: [0, -3, 0, 3, 0],
++            }}
++            transition={{
++              duration: 4,
++              repeat: Infinity,
++              ease: "easeInOut",
++            }}
++            draggable={false}
++          />
++        </motion.div>
+       </div>
+-      
++
+       {showText && (
+         <motion.div
+-          initial={{ opacity: 0, x: -10 }}
++          initial={{ opacity: 0, x: -15 }}
+           animate={{ opacity: 1, x: 0 }}
+-          transition={{ delay: 1.2, duration: 0.5 }}
++          transition={{ delay: 1, duration: 0.5, ease: "easeOut" }}
+           className={`font-bold text-brand-900 tracking-tight ${textClassName}`}
+         >
+           Fund<span className="text-primary-600">Sphere</span>
+diff --git a/frontend/src/components/discovery/FilterSidebar.tsx b/frontend/src/components/discovery/FilterSidebar.tsx
+index da6b500..149f2dd 100644
+--- a/frontend/src/components/discovery/FilterSidebar.tsx
++++ b/frontend/src/components/discovery/FilterSidebar.tsx
+@@ -1,32 +1,51 @@
++import type { ReactNode } from 'react';
++import { useState } from 'react';
+ import { Filter, ChevronDown, Check } from 'lucide-react';
+ 
+-export default function FilterSidebar() {
+-  const Checkbox = ({ label, count }: { label: string, count: number }) => (
+-    <label className="flex items-center justify-between group cursor-pointer py-1">
++function Checkbox({ label, count }: { label: string; count: number }) {
++  const [checked, setChecked] = useState(false);
++
++  return (
++    <label className="flex items-center justify-between group cursor-pointer py-1" onClick={() => setChecked(!checked)}>
+       <div className="flex items-center gap-3">
+-        <div className="w-4 h-4 rounded border border-brand-300 bg-white group-hover:border-primary-400 flex items-center justify-center transition-colors">
+-          <Check className="w-3 h-3 text-primary-600 opacity-0 group-hover:opacity-100" />
++        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
++          checked 
++            ? 'bg-primary-500 border-primary-500' 
++            : 'border-brand-300 bg-white group-hover:border-primary-400'
++        }`}>
++          <Check className={`w-3 h-3 text-white transition-opacity ${checked ? 'opacity-100' : 'opacity-0'}`} />
+         </div>
+         <span className="text-sm text-brand-700 group-hover:text-brand-900">{label}</span>
+       </div>
+       <span className="text-xs text-brand-400 group-hover:text-brand-500 font-medium">{count}</span>
+     </label>
+   );
++}
++
++function FilterSection({ title, children }: { title: string; children: ReactNode }) {
++  const [isOpen, setIsOpen] = useState(true);
+ 
+-  const FilterSection = ({ title, children }: { title: string, children: React.ReactNode }) => (
++  return (
+     <div className="mb-6">
+-      <button className="flex items-center justify-between w-full mb-3 group">
++      <button
++        onClick={() => setIsOpen(!isOpen)}
++        className="flex items-center justify-between w-full mb-3 group"
++      >
+         <h4 className="text-sm font-semibold text-brand-900 uppercase tracking-wider">{title}</h4>
+-        <ChevronDown className="w-4 h-4 text-brand-400 group-hover:text-brand-600 transition-colors" />
++        <ChevronDown className={`w-4 h-4 text-brand-400 group-hover:text-brand-600 transition-all ${isOpen ? '' : '-rotate-90'}`} />
+       </button>
+-      <div className="flex flex-col gap-2">
+-        {children}
+-      </div>
++      {isOpen && (
++        <div className="flex flex-col gap-2">
++          {children}
++        </div>
++      )}
+     </div>
+   );
++}
+ 
++export default function FilterSidebar() {
+   return (
+-    <aside className="w-72 bg-white border-r border-brand-100 h-full flex flex-col flex-shrink-0">
++    <aside className="w-72 bg-white border-r border-brand-100 h-full flex flex-col shrink-0">
+       <div className="p-6 border-b border-brand-100 flex items-center gap-2 text-brand-800">
+         <Filter className="w-5 h-5" />
+         <h2 className="font-bold">Filters & Preferences</h2>
+@@ -48,10 +67,10 @@ export default function FilterSidebar() {
+         </FilterSection>
+ 
+         <FilterSection title="Funding Amount">
+-          <Checkbox label="< $10,000" count={104} />
+-          <Checkbox label="$10k - $50k" count={341} />
+-          <Checkbox label="$50k - $250k" count={121} />
+-          <Checkbox label="> $250k" count={83} />
++          <Checkbox label="< ₹5 Lakh" count={104} />
++          <Checkbox label="₹5L - ₹25L" count={341} />
++          <Checkbox label="₹25L - ₹1 Cr" count={121} />
++          <Checkbox label="> ₹1 Cr" count={83} />
+         </FilterSection>
+ 
+         <FilterSection title="Deadline Timeline">
+diff --git a/frontend/src/components/discovery/GrantDiscovery.tsx b/frontend/src/components/discovery/GrantDiscovery.tsx
+index 6010735..f9d7343 100644
+--- a/frontend/src/components/discovery/GrantDiscovery.tsx
++++ b/frontend/src/components/discovery/GrantDiscovery.tsx
+@@ -6,6 +6,7 @@ import AnimatedLogo from '../common/AnimatedLogo.tsx';
+ 
+ export default function GrantDiscovery() {
+   const [searchQuery, setSearchQuery] = useState("");
++  const [sortBy, setSortBy] = useState("match");
+ 
+   return (
+     <div className="flex h-screen bg-brand-50 w-full overflow-hidden">
+@@ -15,7 +16,7 @@ export default function GrantDiscovery() {
+       {/* Main Content Area */}
+       <div className="flex-1 flex flex-col h-full overflow-hidden">
+         {/* Top Search Header */}
+-        <header className="px-8 py-6 bg-white border-b border-brand-100 flex-shrink-0 z-10">
++        <header className="px-8 py-6 bg-white border-b border-brand-100 shrink-0 z-10">
+           <div className="max-w-4xl mx-auto">
+             <div className="flex items-center gap-3 mb-4">
+               <AnimatedLogo className="w-10 h-10" />
+@@ -68,11 +69,15 @@ export default function GrantDiscovery() {
+               
+               <div className="flex items-center gap-2">
+                 <span className="text-sm text-brand-500">Sort by:</span>
+-                <select className="bg-white border border-brand-200 text-brand-700 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2 outline-none">
+-                  <option>Match Score (Highest)</option>
+-                  <option>Deadline (Closing Soon)</option>
+-                  <option>Funding Amount (Highest)</option>
+-                  <option>Recently Added</option>
++                <select
++                  value={sortBy}
++                  onChange={(e) => setSortBy(e.target.value)}
++                  className="bg-white border border-brand-200 text-brand-700 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2 outline-none"
++                >
++                  <option value="match">Match Score (Highest)</option>
++                  <option value="deadline">Deadline (Closing Soon)</option>
++                  <option value="funding">Funding Amount (Highest)</option>
++                  <option value="recent">Recently Added</option>
+                 </select>
+               </div>
+             </div>
+@@ -85,7 +90,7 @@ export default function GrantDiscovery() {
+               <div>
+                 <h4 className="font-medium text-primary-900 mb-1">AI Reasoning Summary</h4>
+                 <p className="text-sm text-primary-800/80 leading-relaxed">
+-                  We found grants strongly matching your background in <span className="font-semibold text-primary-900">Machine Learning</span> and <span className="font-semibold text-primary-900">Healthcare</span>. Specifically prioritizing grants welcoming Early Career Researchers in the United States.
++                  We found grants strongly matching your background in <span className="font-semibold text-primary-900">Machine Learning</span> and <span className="font-semibold text-primary-900">Healthcare</span>. Specifically prioritizing grants welcoming Early Career Researchers in India.
+                 </p>
+               </div>
+             </div>
+diff --git a/frontend/src/components/discovery/GrantList.tsx b/frontend/src/components/discovery/GrantList.tsx
+index 57bb4a7..3251078 100644
+--- a/frontend/src/components/discovery/GrantList.tsx
++++ b/frontend/src/components/discovery/GrantList.tsx
+@@ -1,35 +1,35 @@
+ 
+-import { ShieldAlert, Users, TrendingUp, Calendar, ChevronRight } from 'lucide-react';
++import { ShieldAlert, ShieldCheck, Users, TrendingUp, Calendar, ChevronRight } from 'lucide-react';
+ 
+ const mockGrants = [
+   {
+     id: 1,
+     title: "AI & Global Health Postdoctoral Fellowship",
+-    funder: "Gates Foundation",
++    funder: "DBT (Dept. of Biotechnology)",
+     matchScore: 98,
+-    amount: "$150,000",
++    amount: "₹12,00,000",
+     deadline: "Dec 01, 2026",
+     tags: ["Healthcare", "Machine Learning", "Postdoc"],
+-    eligibility: "Eligible", // Or "Missing Constraint"
++    eligibility: "Eligible",
+     rationale: "Perfect alignment with your PhD background and keywords: 'Machine Learning', 'Public Health'."
+   },
+   {
+     id: 2,
+-    title: "NSF Core Research: Information & Intelligent Systems",
+-    funder: "National Science Foundation (NSF)",
++    title: "SERB Core Research: Information & Intelligent Systems",
++    funder: "Science & Engineering Research Board (SERB)",
+     matchScore: 92,
+-    amount: "$500,000",
++    amount: "₹40,00,000",
+     deadline: "Jan 15, 2027",
+     tags: ["Artificial Intelligence", "Robotics", "Core Research"],
+     eligibility: "Warning",
+-    rationale: "Strong thematic match, but requires co-PI from an EPSCoR jurisdiction which isn't in your profile."
++    rationale: "Strong thematic match, but requires co-PI from an ASPIRE jurisdiction which isn't in your profile."
+   },
+   {
+     id: 3,
+     title: "Climate Tech AI Accelerator Grant",
+-    funder: "OpenAI & Y Combinator",
++    funder: "DST & Startup India",
+     matchScore: 85,
+-    amount: "$250,000",
++    amount: "₹20,00,000",
+     deadline: "Oct 31, 2026",
+     tags: ["Environment", "Startup", "AI"],
+     eligibility: "Eligible",
+@@ -62,7 +62,7 @@ export default function GrantList() {
+                 {/* Eligibility Status */}
+                 {grant.eligibility === 'Eligible' ? (
+                   <div className="flex items-center gap-1 text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-md">
+-                    <ShieldAlert className="w-3.5 h-3.5" /> Verified
++                    <ShieldCheck className="w-3.5 h-3.5" /> Verified
+                   </div>
+                 ) : (
+                   <div className="flex items-center gap-1 text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-200/50">
+@@ -74,6 +74,15 @@ export default function GrantList() {
+               <h3 className="text-xl font-bold text-brand-900 group-hover:text-primary-600 transition-colors cursor-pointer line-clamp-2">
+                 {grant.title}
+               </h3>
++
++              {/* Tags */}
++              <div className="flex flex-wrap gap-1.5 mt-2">
++                {grant.tags.map(tag => (
++                  <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-brand-50 text-brand-600 border border-brand-200">
++                    {tag}
++                  </span>
++                ))}
++              </div>
+             </div>
+           </div>
+ 
+diff --git a/frontend/src/components/onboarding/OnboardingWizard.tsx b/frontend/src/components/onboarding/OnboardingWizard.tsx
+index be72188..cf79ef8 100644
+--- a/frontend/src/components/onboarding/OnboardingWizard.tsx
++++ b/frontend/src/components/onboarding/OnboardingWizard.tsx
+@@ -66,7 +66,7 @@ const stepsConfig = [
+   { title: "Notifications", component: StepNotifications },
+ ];
+ 
+-export default function OnboardingWizard() {
++export default function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
+   const [currentStep, setCurrentStep] = useState(0);
+   const [formData, setFormData] = useState<FormData>(initialData);
+   const [direction, setDirection] = useState(0);
+@@ -79,13 +79,42 @@ export default function OnboardingWizard() {
+   const StepComponent = currentStepData.component;
+   const isLastStep = currentStep === stepsConfig.length - 1;
+ 
++  const validateCurrentStep = (): boolean => {
++    switch (currentStep) {
++      case 0: // Account Info
++        if (!formData.fullName || !formData.email || !formData.password || !formData.confirmPassword) return false;
++        if (formData.password !== formData.confirmPassword) return false;
++        return true;
++      case 1: // User Type
++        return !!formData.userType;
++      case 2: // Organization
++        return !!formData.orgName && !!formData.role;
++      case 3: // Research Area
++        return !!formData.primaryField;
++      case 4: // Location
++        return !!formData.country;
++      case 5: // Funding Preferences
++        if (formData.minFunding && formData.maxFunding && Number(formData.minFunding) > Number(formData.maxFunding)) return false;
++        return !!formData.grantType;
++      case 6: // Experience
++        return true; // all optional
++      case 7: // Notifications
++        return true; // toggles have defaults
++      default:
++        return true;
++    }
++  };
++
++  const canProceed = validateCurrentStep();
++
+   const handleNext = () => {
++    if (!canProceed) return;
+     if (currentStep < stepsConfig.length - 1) {
+       setDirection(1);
+       setCurrentStep(prev => prev + 1);
+     } else {
+       console.log("Submit Form Data: ", formData);
+-      alert("Onboarding complete! Check console for payload.");
++      onComplete();
+     }
+   };
+ 
+@@ -180,7 +209,12 @@ export default function OnboardingWizard() {
+ 
+         <button
+           onClick={handleNext}
+-          className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white shadow-md shadow-primary-500/20 transition-all active:scale-95 font-medium ml-auto"
++          disabled={!canProceed}
++          className={`flex items-center gap-2 px-6 py-2.5 rounded-lg shadow-md transition-all font-medium ml-auto ${
++            canProceed 
++              ? 'bg-primary-600 hover:bg-primary-700 text-white shadow-primary-500/20 active:scale-95' 
++              : 'bg-brand-200 text-brand-400 cursor-not-allowed shadow-none'
++          }`}
+         >
+           {isLastStep ? 'Complete Setup' : 'Continue'}
+           {isLastStep ? <Check className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+diff --git a/frontend/src/components/onboarding/steps/StepAccountInfo.tsx b/frontend/src/components/onboarding/steps/StepAccountInfo.tsx
+index 0f83cb9..4956be9 100644
+--- a/frontend/src/components/onboarding/steps/StepAccountInfo.tsx
++++ b/frontend/src/components/onboarding/steps/StepAccountInfo.tsx
+@@ -14,6 +14,7 @@ export default function StepAccountInfo({
+ }: StepProps) {
+   const inputClass = "w-full px-4 py-2.5 rounded-lg border border-brand-200 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-colors bg-white/50";
+   const labelClass = "block text-sm font-medium text-brand-700 mb-1.5";
++  const passwordsMatch = !confirmPassword || password === confirmPassword;
+ 
+   return (
+     <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+@@ -64,8 +65,11 @@ export default function StepAccountInfo({
+             placeholder="••••••••"
+             value={confirmPassword} 
+             onChange={e => updateFields({ confirmPassword: e.target.value })} 
+-            className={inputClass} 
++            className={`${inputClass} ${!passwordsMatch ? 'border-red-400 focus:ring-red-500/50 focus:border-red-500' : ''}`}
+           />
++          {!passwordsMatch && (
++            <p className="text-xs text-red-500 mt-1">Passwords do not match.</p>
++          )}
+         </div>
+       </div>
+ 
+diff --git a/frontend/src/components/onboarding/steps/StepFundingPrefs.tsx b/frontend/src/components/onboarding/steps/StepFundingPrefs.tsx
+index 5156b9f..cfe5b22 100644
+--- a/frontend/src/components/onboarding/steps/StepFundingPrefs.tsx
++++ b/frontend/src/components/onboarding/steps/StepFundingPrefs.tsx
+@@ -1,5 +1,5 @@
+ 
+-import { DollarSign, Landmark, Plane, Users, Briefcase } from 'lucide-react';
++import { IndianRupee, Landmark, Plane, Users, Briefcase } from 'lucide-react';
+ 
+ type StepProps = {
+   minFunding: string;
+@@ -13,7 +13,7 @@ const grantTypes = [
+   { id: 'Travel grant', icon: Plane },
+   { id: 'Fellowship', icon: Users },
+   { id: 'Startup funding', icon: Briefcase },
+-  { id: 'NGO funding', icon: DollarSign },
++  { id: 'NGO funding', icon: IndianRupee },
+ ];
+ 
+ export default function StepFundingPrefs({
+@@ -21,6 +21,7 @@ export default function StepFundingPrefs({
+ }: StepProps) {
+   const inputClass = "w-full pl-8 pr-4 py-2.5 rounded-lg border border-brand-200 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-colors bg-white/50";
+   const labelClass = "block text-sm font-medium text-brand-700 mb-1.5";
++  const fundingRangeInvalid = minFunding !== '' && maxFunding !== '' && Number(minFunding) > Number(maxFunding);
+ 
+   return (
+     <div className="flex flex-col gap-5">
+@@ -30,30 +31,35 @@ export default function StepFundingPrefs({
+         <div>
+           <label className={labelClass}>Min Funding Amount</label>
+           <div className="relative">
+-            <DollarSign className="absolute left-2.5 top-3 w-4 h-4 text-brand-400" />
+-            <input 
++            <IndianRupee className="absolute left-2.5 top-3 w-4 h-4 text-brand-400" />
++            <input
+               type="number" 
+-              placeholder="10,000"
+-              value={minFunding} 
++              min="0"
++              placeholder="5,00,000"
++              value={minFunding}
+               onChange={e => updateFields({ minFunding: e.target.value })} 
+-              className={inputClass} 
++              className={`${inputClass} ${fundingRangeInvalid ? 'border-red-400 focus:ring-red-500/50 focus:border-red-500' : ''}`}
+             />
+           </div>
+         </div>
+         <div>
+           <label className={labelClass}>Max Funding Amount</label>
+           <div className="relative">
+-            <DollarSign className="absolute left-2.5 top-3 w-4 h-4 text-brand-400" />
+-            <input 
++            <IndianRupee className="absolute left-2.5 top-3 w-4 h-4 text-brand-400" />
++            <input
+               type="number" 
+-              placeholder="500,000"
+-              value={maxFunding} 
++              min="0"
++              placeholder="50,00,000"
++              value={maxFunding}
+               onChange={e => updateFields({ maxFunding: e.target.value })} 
+-              className={inputClass} 
++              className={`${inputClass} ${fundingRangeInvalid ? 'border-red-400 focus:ring-red-500/50 focus:border-red-500' : ''}`}
+             />
+           </div>
+         </div>
+       </div>
++      {fundingRangeInvalid && (
++        <p className="text-xs text-red-500 -mt-3">Minimum funding cannot exceed maximum funding.</p>
++      )}
+ 
+       <div className="mt-4">
+         <label className={labelClass}>Preferred Grant Type *</label>
+diff --git a/frontend/src/components/onboarding/steps/StepLocation.tsx b/frontend/src/components/onboarding/steps/StepLocation.tsx
+index 1cd2a71..53c3e9d 100644
+--- a/frontend/src/components/onboarding/steps/StepLocation.tsx
++++ b/frontend/src/components/onboarding/steps/StepLocation.tsx
+@@ -25,11 +25,11 @@ export default function StepLocation({
+           className={inputClass}
+         >
+           <option value="" disabled>Select your country</option>
++          <option value="India">India</option>
+           <option value="United States">United States</option>
+           <option value="United Kingdom">United Kingdom</option>
+           <option value="Canada">Canada</option>
+           <option value="Australia">Australia</option>
+-          <option value="India">India</option>
+           <option value="Germany">Germany</option>
+           <option value="Other">Other</option>
+         </select>
+@@ -40,8 +40,8 @@ export default function StepLocation({
+           <label className={labelClass}>State / Province</label>
+           <input 
+             type="text" 
+-            placeholder="e.g. California"
+-            value={state} 
++            placeholder="e.g. Maharashtra"
++            value={state}
+             onChange={e => updateFields({ state: e.target.value })} 
+             className={inputClass} 
+           />
+@@ -50,8 +50,8 @@ export default function StepLocation({
+           <label className={labelClass}>City</label>
+           <input 
+             type="text" 
+-            placeholder="e.g. San Francisco"
+-            value={city} 
++            placeholder="e.g. Mumbai"
++            value={city}
+             onChange={e => updateFields({ city: e.target.value })} 
+             className={inputClass} 
+           />
+diff --git a/frontend/src/components/onboarding/steps/StepNotifications.tsx b/frontend/src/components/onboarding/steps/StepNotifications.tsx
+index 925579b..3b8d9cc 100644
+--- a/frontend/src/components/onboarding/steps/StepNotifications.tsx
++++ b/frontend/src/components/onboarding/steps/StepNotifications.tsx
+@@ -1,4 +1,5 @@
+ 
++import type { LucideIcon } from 'lucide-react';
+ import { Bell, Clock, Calendar } from 'lucide-react';
+ 
+ type StepProps = {
+@@ -8,11 +9,16 @@ type StepProps = {
+   updateFields: (fields: Partial<StepProps>) => void;
+ };
+ 
+-export default function StepNotifications({
+-  notifyNewGrants, notifyDeadlines, notifyWeekly, updateFields
+-}: StepProps) {
+-  
+-  const ToggleSwitch = ({ checked, onChange, label, sublabel, icon: Icon }: any) => (
++type ToggleSwitchProps = {
++  checked: boolean;
++  onChange: () => void;
++  label: string;
++  sublabel: string;
++  icon: LucideIcon;
++};
++
++function ToggleSwitch({ checked, onChange, label, sublabel, icon: Icon }: ToggleSwitchProps) {
++  return (
+     <div className="flex items-center justify-between p-4 rounded-xl border border-brand-200 bg-white hover:border-primary-300 transition-colors">
+       <div className="flex gap-4 items-center">
+         <div className="p-2 rounded-lg bg-brand-50 text-brand-500">
+@@ -38,7 +44,11 @@ export default function StepNotifications({
+       </button>
+     </div>
+   );
++}
+ 
++export default function StepNotifications({
++  notifyNewGrants, notifyDeadlines, notifyWeekly, updateFields
++}: StepProps) {
+   return (
+     <div className="flex flex-col gap-5">
+       <p className="text-brand-500 mb-1">Stay updated with the latest funding matches.</p>
+diff --git a/frontend/src/components/onboarding/steps/StepOrganization.tsx b/frontend/src/components/onboarding/steps/StepOrganization.tsx
+index 88546a1..03a498f 100644
+--- a/frontend/src/components/onboarding/steps/StepOrganization.tsx
++++ b/frontend/src/components/onboarding/steps/StepOrganization.tsx
+@@ -12,7 +12,7 @@ const roles = [
+   "Research Assistant",
+   "Professor",
+   "NGO Member",
+-  "founder",
++  "Founder",
+   "Other"
+ ];
+ 
