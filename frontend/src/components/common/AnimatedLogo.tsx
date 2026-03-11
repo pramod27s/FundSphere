@@ -21,10 +21,25 @@ export default function AnimatedLogo({
   const nodeVariant: Variants = {
     hidden: { scale: 0, opacity: 0 },
     visible: (customDelay: number) => ({
-      scale: 1, 
+      scale: [0, 1.2, 1], 
       opacity: 1, 
-      transition: { delay: customDelay, duration: 0.5, type: 'spring' } 
-    })
+      transition: { 
+        delay: customDelay, 
+        duration: 0.6, 
+        times: [0, 0.7, 1],
+        ease: "easeOut" 
+      } 
+    }),
+    pulse: {
+      scale: [1, 1.15, 1],
+      opacity: [1, 0.8, 1],
+      transition: {
+        duration: 3,
+        repeat: Infinity,
+        repeatType: "reverse",
+        ease: "easeInOut"
+      }
+    }
   };
 
   const globeVariant: Variants = {
@@ -42,7 +57,7 @@ export default function AnimatedLogo({
     visible: (custom: { y: number; h: number; delay: number }) => ({
       height: custom.h,
       y: custom.y,
-      transition: { delay: custom.delay, duration: 0.6, type: "spring", bounce: 0.3 }
+      transition: { delay: custom.delay, duration: 0.8, type: "spring", stiffness: 100, damping: 12 }
     })
   };
 
@@ -57,11 +72,42 @@ export default function AnimatedLogo({
   };
 
   const orbitVariant: Variants = {
-    hidden: { pathLength: 0, opacity: 0 },
+    hidden: { pathLength: 0, opacity: 0, rotate: -5 },
     visible: (custom: { delay: number; opacity?: number }) => ({
       pathLength: 1,
       opacity: custom.opacity || 1,
-      transition: { delay: custom.delay, duration: 1.5, ease: "easeInOut" }
+      rotate: 0,
+      transition: { 
+        pathLength: { delay: custom.delay, duration: 1.5, ease: "easeInOut" },
+        opacity: { delay: custom.delay, duration: 1.5, ease: "easeInOut" }
+      }
+    }),
+    float: {
+      y: [0, -3, 0],
+      rotate: [0, 2, 0],
+      transition: {
+        duration: 5,
+        repeat: Infinity,
+        repeatType: "reverse",
+        ease: "easeInOut"
+      }
+    }
+  };
+
+  const dotVariant: Variants = {
+    hidden: { scale: 0, opacity: 0 },
+    visible: (customDelay: number) => ({
+      scale: 1, opacity: 1, transition: { delay: customDelay, duration: 0.4 } 
+    }),
+    orbit: (customDelay: number) => ({
+      y: [0, -4, 0],
+      x: [0, 2, -2, 0],
+      transition: {
+        delay: customDelay % 2,
+        duration: 4,
+        repeat: Infinity,
+        ease: "easeInOut"
+      }
     })
   };
 
@@ -81,6 +127,11 @@ export default function AnimatedLogo({
             <pattern id="dotPattern" x="0" y="0" width="4" height="4" patternUnits="userSpaceOnUse">
               <circle cx="1" cy="1" r="0.75" fill="rgba(255,255,255,0.2)"/>
             </pattern>
+            {/* Soft Glow Filter for nodes and primary orbits */}
+            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="1.5" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
           </defs>
 
           {/* Right Globe Group */}
@@ -93,7 +144,7 @@ export default function AnimatedLogo({
             {/* Chart Bars */}
             <motion.rect x="68" width="6" rx="1.5" fill="#ffffff" custom={{ y: 65, h: 20, delay: 0.6 }} variants={barVariant} />
             <motion.rect x="78" width="6" rx="1.5" fill="#ffffff" custom={{ y: 50, h: 35, delay: 0.8 }} variants={barVariant} />
-            <motion.rect x="88" width="6" rx="1.5" fill="url(#chartGrad)" custom={{ y: 30, h: 55, delay: 1.0 }} variants={barVariant} />
+            <motion.rect x="88" width="6" rx="1.5" fill="url(#chartGrad)" filter="url(#glow)" custom={{ y: 30, h: 55, delay: 1.0 }} variants={barVariant} />
 
             {/* Growth Arrow */}
             <motion.path 
@@ -103,11 +154,13 @@ export default function AnimatedLogo({
               strokeWidth="3.5" 
               strokeLinecap="round"
               variants={arrowVariant}
+              filter="url(#glow)"
             />
             <motion.polygon 
               points="95,24 84,28 91,37" 
               fill="#ffffff" 
               variants={arrowHeadVariant}
+              filter="url(#glow)"
             />
           </motion.g>
 
@@ -167,51 +220,50 @@ export default function AnimatedLogo({
                 cy={node.cy} 
                 r={node.r} 
                 fill="#0f766e"
+                filter="url(#glow)"
                 variants={nodeVariant}
                 custom={1 + i * 0.05}
                 initial="hidden"
-                animate="visible"
+                animate={["visible", "pulse"]}
               />
             ))}
           </motion.g>
 
           {/* Orbits / Swooshes */}
-          {/* Top thin swoosh */}
-          <motion.path 
-            d="M 25 40 C 40 -5, 90 0, 105 35" 
-            fill="none" 
-            stroke="#115e59" 
-            strokeWidth="1.5" 
-            strokeLinecap="round"
-            initial="hidden"
-            animate="visible"
-            custom={{ delay: 1.5, opacity: 0.6 }}
-            variants={orbitVariant}
-          />
-          {/* Main dynamic front swoosh */}
-          <motion.path 
-            d="M 12 65 C 30 120, 95 110, 118 45" 
-            fill="none" 
-            stroke="#14b8a6" 
-            strokeWidth="3.5" 
-            strokeLinecap="round"
-            initial="hidden"
-            animate="visible"
-            custom={{ delay: 1.7 }}
-            variants={orbitVariant}
-          />
-          {/* Secondary bright front swoosh */}
-          <motion.path 
-            d="M 18 70 C 40 115, 85 105, 112 55" 
-            fill="none" 
-            stroke="#2dd4bf" 
-            strokeWidth="2" 
-            strokeLinecap="round"
-            initial="hidden"
-            animate="visible"
-            custom={{ delay: 1.9 }}
-            variants={orbitVariant}
-          />
+          <motion.g initial="hidden" animate={["visible", "float"]} style={{ transformOrigin: "center" }}>
+            {/* Top thin swoosh */}
+            <motion.path 
+              d="M 25 40 C 40 -5, 90 0, 105 35" 
+              fill="none" 
+              stroke="#115e59" 
+              strokeWidth="1.5" 
+              strokeLinecap="round"
+              custom={{ delay: 1.5, opacity: 0.6 }}
+              variants={orbitVariant}
+            />
+            {/* Main dynamic front swoosh */}
+            <motion.path 
+              d="M 12 65 C 30 120, 95 110, 118 45" 
+              fill="none" 
+              stroke="#14b8a6" 
+              strokeWidth="3.5" 
+              strokeLinecap="round"
+              custom={{ delay: 1.7 }}
+              variants={orbitVariant}
+              filter="url(#glow)"
+            />
+             {/* Secondary bright front swoosh */}
+            <motion.path 
+              d="M 18 70 C 40 115, 85 105, 112 55" 
+              fill="none" 
+              stroke="#2dd4bf" 
+              strokeWidth="2" 
+              strokeLinecap="round"
+              custom={{ delay: 1.9 }}
+              variants={orbitVariant}
+              filter="url(#glow)"
+            />
+          </motion.g>
 
           {/* Dynamic dots orbiting */}
           {[
@@ -226,8 +278,11 @@ export default function AnimatedLogo({
                 cy={dot.cy} 
                 r={dot.r} 
                 fill="#2dd4bf"
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1, transition: { delay: dot.delay, duration: 0.4 } }}
+                filter="url(#glow)"
+                variants={dotVariant}
+                custom={dot.delay}
+                initial="hidden"
+                animate={["visible", "orbit"]}
               />
           ))}
 
@@ -236,12 +291,12 @@ export default function AnimatedLogo({
       
       {showText && (
         <motion.div
-           initial={{ opacity: 0, x: -10 }}
-           animate={{ opacity: 1, x: 0 }}
-           transition={{ delay: 2.0, duration: 0.5 }}
+           initial={{ opacity: 0, scale: 0.95, filter: "blur(4px)" }}
+           animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+           transition={{ delay: 2.0, duration: 0.8, ease: "easeOut" }}
            className={`font-bold tracking-tight ${textClassName}`}
          >
-           <span className="text-teal-600">Fund</span><span className="text-slate-800">Sphere</span>
+           <span className="text-teal-600">Fund</span><span className="text-brand-900">Sphere</span>
          </motion.div>
       )}
     </div>
