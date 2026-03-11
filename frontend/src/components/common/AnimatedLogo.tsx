@@ -243,17 +243,7 @@ export default function AnimatedLogo({
               variants={orbitVariant}
               filter="url(#glow)"
             />
-             {/* Secondary bright front swoosh */}
-            <motion.path 
-              d="M 18 70 C 40 115, 85 105, 112 55" 
-              fill="none" 
-              stroke="#2dd4bf" 
-              strokeWidth="2" 
-              strokeLinecap="round"
-              custom={{ delay: 1.9 }}
-              variants={orbitVariant}
-              filter="url(#glow)"
-            />
+
           </motion.g>
 
           {/* Dynamic dots orbiting */}
