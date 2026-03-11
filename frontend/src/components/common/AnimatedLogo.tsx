@@ -1,5 +1,5 @@
-// @ts-nocheck
 import { motion } from 'framer-motion';
+import type { Variants } from 'framer-motion';
 
 export interface AnimatedLogoProps {
   className?: string;
@@ -13,12 +13,12 @@ export default function AnimatedLogo({
   showText = false 
 }: AnimatedLogoProps) {
   // Animation variants
-  const brainPathVariant = {
+  const brainPathVariant: Variants = {
     hidden: { pathLength: 0, opacity: 0 },
     visible: { pathLength: 1, opacity: 1, transition: { duration: 1.5, ease: "easeInOut" } }
   };
 
-  const nodeVariant = {
+  const nodeVariant: Variants = {
     hidden: { scale: 0, opacity: 0 },
     visible: (customDelay: number) => ({
       scale: 1, 
@@ -27,38 +27,38 @@ export default function AnimatedLogo({
     })
   };
 
-  const globeVariant = {
+  const globeVariant: Variants = {
     hidden: { opacity: 0, scale: 0.8 },
     visible: { opacity: 1, scale: 1, transition: { duration: 1, ease: "easeOut" } }
   };
   
-  const patternVariant = {
+  const patternVariant: Variants = {
     hidden: { opacity: 0 },
     visible: { opacity: 0.5, transition: { delay: 0.8, duration: 1 } }
   };
 
-  const barVariant = {
+  const barVariant: Variants = {
     hidden: { height: 0, y: 85 },
-    visible: (custom: any) => ({
+    visible: (custom: { y: number; h: number; delay: number }) => ({
       height: custom.h,
       y: custom.y,
       transition: { delay: custom.delay, duration: 0.6, type: "spring", bounce: 0.3 }
     })
   };
 
-  const arrowVariant = {
+  const arrowVariant: Variants = {
     hidden: { pathLength: 0, opacity: 0 },
     visible: { pathLength: 1, opacity: 1, transition: { delay: 1.2, duration: 1, ease: "easeOut" } }
   };
 
-  const arrowHeadVariant = {
+  const arrowHeadVariant: Variants = {
     hidden: { opacity: 0, scale: 0 },
     visible: { opacity: 1, scale: 1, transition: { delay: 2, duration: 0.3 } }
   };
 
-  const orbitVariant = {
+  const orbitVariant: Variants = {
     hidden: { pathLength: 0, opacity: 0 },
-    visible: (custom: any) => ({
+    visible: (custom: { delay: number; opacity?: number }) => ({
       pathLength: 1,
       opacity: custom.opacity || 1,
       transition: { delay: custom.delay, duration: 1.5, ease: "easeInOut" }
