@@ -179,11 +179,11 @@ export default function AnimatedLogo({
             
             {/* Circuit Lines */}
             {[
-              "M 58 28 L 46 28 L 40 22",
+              "M 58 28 L 46 28 L 42 24", // Top line pulled in slightly (was 40 22)
               "M 58 42 L 40 42 L 34 48 L 28 48",
               "M 58 55 L 48 55 L 42 65 L 30 65",
-              "M 58 72 L 45 72 L 40 78",
-              "M 58 88 L 45 88 L 36 82"
+              "M 58 72 L 45 72 L 38 78", // Extended line 4 out further left and down
+              "M 58 88 L 45 88 L 36 84"  // Pulled line 5 more horizontal to separate from line 4
             ].map((d, i) => (
               <motion.path 
                 key={i}
@@ -198,11 +198,11 @@ export default function AnimatedLogo({
 
             {/* Circuit Nodes */}
             {[
-              { cx: 40, cy: 22, r: 3.5 },
+              { cx: 42, cy: 24, r: 3.5 }, // Top-most node modified
               { cx: 28, cy: 48, r: 3.5 },
               { cx: 30, cy: 65, r: 3.5 },
-              { cx: 40, cy: 78, r: 3.5 },
-              { cx: 36, cy: 82, r: 3.5 },
+              { cx: 38, cy: 78, r: 3.5 }, // Line 4 end node modified
+              { cx: 36, cy: 84, r: 3.5 }, // Line 5 end node modified
               { cx: 46, cy: 28, r: 2.5 },
               { cx: 40, cy: 42, r: 2.5 },
               { cx: 48, cy: 55, r: 2.5 },
