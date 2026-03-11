@@ -3,14 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, ChevronLeft, Check } from 'lucide-react';
 import AnimatedLogo from '../common/AnimatedLogo';
 
-import StepAccountInfo from './steps/StepAccountInfo';
-import StepUserType from './steps/StepUserType';
-import StepOrganization from './steps/StepOrganization';
-import StepResearchArea from './steps/StepResearchArea';
-import StepLocation from './steps/StepLocation';
-import StepFundingPrefs from './steps/StepFundingPrefs';
-import StepExperience from './steps/StepExperience';
-import StepNotifications from './steps/StepNotifications';
+import StepAccountInfo from './steps/StepAccountInfo.tsx';
+import StepUserType from './steps/StepUserType.tsx';
+import StepOrganization from './steps/StepOrganization.tsx';
+import StepResearchArea from './steps/StepResearchArea.tsx';
+import StepLocation from './steps/StepLocation.tsx';
+import StepFundingPrefs from './steps/StepFundingPrefs.tsx';
+import StepExperience from './steps/StepExperience.tsx';
+import StepNotifications from './steps/StepNotifications.tsx';
 
 export type FormData = {
   // Step 1
