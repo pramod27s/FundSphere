@@ -21,7 +21,7 @@ export default function GrantDiscovery() {
             <div className="flex items-center gap-3 mb-4">
               <AnimatedLogo className="w-10 h-10" />
               <h1 className="text-2xl font-bold text-brand-900">
-                Intelligent Grant Discovery
+                FundSphere
               </h1>
             </div>
             
