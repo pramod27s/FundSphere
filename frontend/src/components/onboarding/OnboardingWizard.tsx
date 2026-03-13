@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, ChevronLeft, Check } from 'lucide-react';
 import AnimatedLogo from '../common/AnimatedLogo';
+import { createResearcher, type ResearcherRequest, type ResearcherResponse } from '../../services/researcherService';
 
 import StepUserType from './steps/StepUserType.tsx';
 import StepOrganization from './steps/StepOrganization.tsx';
@@ -64,7 +65,7 @@ const stepsConfig = [
   { title: "Notifications", component: StepNotifications },
 ];
 
-export default function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
+export default function OnboardingWizard({ onComplete }: { onComplete: (data: ResearcherResponse) => void }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<FormData>(initialData);
   const [direction, setDirection] = useState(0);
@@ -101,14 +102,62 @@ export default function OnboardingWizard({ onComplete }: { onComplete: () => voi
 
   const canProceed = validateCurrentStep();
 
+  const handleSubmit = async () => {
+    try {
+      // Map form data to backend DTO
+      const yearsExp = parseInt(formData.yearsExperience.split('-')[0].replace('+', '')) || 0;
+      
+      let eduLevel = null;
+      if (["Undergraduate", "Masters", "PhD"].includes(formData.educationLevel)) {
+        eduLevel = formData.educationLevel.toUpperCase();
+      } else if (formData.educationLevel === "Postdoc") {
+        eduLevel = "PHD"; 
+      }
+
+      let position = formData.role ? formData.role.toUpperCase().replace(/\s+/g, "_") : null;
+      // Validate position against known enum values to be safe
+      const validPositions = ["STUDENT", "RESEARCH_ASSISTANT", "PROFESSOR", "NGO_MEMBER", "FOUNDER"];
+      if (position && !validPositions.includes(position)) {
+        position = null;
+      }
+
+      const payload: ResearcherRequest = {
+        userType: formData.userType.toUpperCase().replace(/\s+\/\s+/g, "_").replace(/\s+/g, "_"),
+        institutionName: formData.orgName,
+        department: formData.department,
+        position: position,
+        primaryField: formData.primaryField.toUpperCase().replace(/\s+/g, "_"),
+        keywords: formData.keywords.split(',').map(k => k.trim()).filter(k => k),
+        country: formData.country,
+        state: formData.state,
+        city: formData.city,
+        minFundingAmount: Number(formData.minFunding),
+        maxFundingAmount: Number(formData.maxFunding),
+        preferredGrantType: formData.grantType.toUpperCase().replace(/\s+/g, "_"),
+        yearsOfExperience: yearsExp,
+        educationLevel: eduLevel as any,
+        previousGrantsReceived: formData.previousGrants === "Yes",
+        emailNotifications: formData.notifyNewGrants,
+        deadlineReminders: formData.notifyDeadlines,
+        weeklyGrantRecommendations: formData.notifyWeekly,
+      };
+
+      console.log("Submitting payload:", payload);
+      const response = await createResearcher(payload);
+      onComplete(response);
+    } catch (error) {
+      console.error("Submission error:", error);
+      alert("Failed to save your profile. Please check the console for details.");
+    }
+  };
+
   const handleNext = () => {
     if (!canProceed) return;
     if (currentStep < stepsConfig.length - 1) {
       setDirection(1);
       setCurrentStep(prev => prev + 1);
     } else {
-      console.log("Submit Form Data: ", formData);
-      onComplete();
+      handleSubmit();
     }
   };
 
