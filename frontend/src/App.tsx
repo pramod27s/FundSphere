@@ -12,7 +12,7 @@ function App() {
 
   const handleOnboardingComplete = (data: ResearcherResponse) => {
     setResearcherData(data);
-    setCurrentPage('profile');
+    setCurrentPage('discovery');
   };
 
   return (
