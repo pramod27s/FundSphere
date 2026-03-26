@@ -1,0 +1,12 @@
+langchain 
+google-generativeai
+selenium
+beautifulsoup4
+lxml 
+python-dotenv
+streamlit
+fastapi
+uvicorn
+requests
+python-dateutil
+pinecone[grpc]
