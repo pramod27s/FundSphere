@@ -44,7 +44,7 @@ function App() {
                     View Profile
                 </button>
             )}
-            <GrantDiscovery />
+            <GrantDiscovery researcher={researcherData} />
         </div>
       ) : null}
     </div>

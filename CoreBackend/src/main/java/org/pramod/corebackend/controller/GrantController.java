@@ -22,8 +22,9 @@ public class GrantController {
     // Uses saveOrUpdateGrant with checksum logic
     @PostMapping
     public ResponseEntity<GrantResponse> createGrant(@RequestBody GrantRequest request) {
-        GrantResponse response = grantService.saveOrUpdateGrant(request);
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+        GrantService.SaveOrUpdateResult result = grantService.saveOrUpdateGrant(request);
+        HttpStatus status = result.created() ? HttpStatus.CREATED : HttpStatus.OK;
+        return new ResponseEntity<>(result.response(), status);
     }
 
     // GET - Return all stored grants

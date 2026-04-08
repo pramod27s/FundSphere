@@ -17,7 +17,7 @@ class GrantData(BaseModel):
     eligibleApplicants: List[str] = Field(default_factory=list)
     institutionType: List[str] = Field(default_factory=list)
     field: List[str] = Field(default_factory=list)
-    application_link: Optional[str] = None
+    applicationLink: Optional[str] = None
     checksum: Optional[str] = None
     tags: List[str] = Field(default_factory=list)
     createdAt: Optional[str] = None

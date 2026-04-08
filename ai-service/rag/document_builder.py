@@ -69,8 +69,8 @@ def build_grant_document(grant: GrantData) -> str:
 
     if grant.grantUrl:
         parts.append(f"Grant URL: {grant.grantUrl}")
-    if grant.application_link:
-        parts.append(f"Application Link: {grant.application_link}")
+    if grant.applicationLink:
+        parts.append(f"Application Link: {grant.applicationLink}")
 
     return "\n".join(parts)
 
@@ -84,7 +84,7 @@ def build_pinecone_record(grant: GrantData) -> dict:
         "funding_agency": _clean_str(grant.fundingAgency),
         "program_name": _clean_str(grant.programName),
         "grant_url": _clean_str(grant.grantUrl),
-        "application_link": _clean_str(grant.application_link),
+        "application_link": _clean_str(grant.applicationLink),
         "application_deadline": _clean_str(grant.applicationDeadline),
         "deadline_epoch": _to_epoch(grant.applicationDeadline),
         "funding_amount_min": grant.fundingAmountMin,

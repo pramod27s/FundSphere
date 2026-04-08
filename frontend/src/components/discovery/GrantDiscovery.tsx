@@ -1,38 +1,89 @@
 import { Search, Sparkles, Menu } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import GrantList from './GrantList.tsx';
 import FilterSidebar from './FilterSidebar.tsx';
 import AnimatedLogo from '../common/AnimatedLogo.tsx';
+import type { ResearcherResponse } from '../../services/researcherService';
+import { getDiscoveryGrants, type DiscoveryGrant } from '../../services/discoveryService';
 
-export default function GrantDiscovery() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState("match");
+interface GrantDiscoveryProps {
+  researcher: ResearcherResponse | null;
+}
+
+export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('match');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [grants, setGrants] = useState<DiscoveryGrant[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [dataSource, setDataSource] = useState<'ai' | 'core' | null>(null);
+
+  const loadGrants = async (queryOverride?: string) => {
+    if (!researcher) {
+      setErrorMessage('Researcher profile is missing. Please complete onboarding first.');
+      setGrants([]);
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMessage(null);
+
+    try {
+      const { grants: fetchedGrants, source } = await getDiscoveryGrants({
+        userId: researcher.id,
+        userQuery: queryOverride ?? searchQuery,
+        topK: 12,
+      });
+      setGrants(fetchedGrants);
+      setDataSource(source);
+    } catch (error) {
+      setGrants([]);
+      setDataSource(null);
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to load grants.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadGrants('');
+  }, [researcher]);
+
+  const sortedGrants = useMemo(() => {
+    const copy = [...grants];
+    if (sortBy === 'deadline') {
+      return copy.sort((a, b) => a.deadline.localeCompare(b.deadline));
+    }
+    if (sortBy === 'funding') {
+      return copy.sort((a, b) => b.amount.localeCompare(a.amount));
+    }
+    if (sortBy === 'recent') {
+      return copy.sort((a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''));
+    }
+    return copy.sort((a, b) => b.matchScore - a.matchScore);
+  }, [grants, sortBy]);
 
   return (
     <div className="flex h-screen bg-brand-50 w-full overflow-hidden relative">
-      {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 md:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
-      {/* Left Sidebar (Filters) */}
       <div className={`fixed inset-y-0 left-0 z-50 transform w-72 bg-white ${
         isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
       } md:relative md:translate-x-0 transition-transform duration-300 ease-in-out md:block h-full shrink-0 shadow-2xl md:shadow-none`}>
         <FilterSidebar onClose={() => setIsSidebarOpen(false)} />
       </div>
 
-      {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-full overflow-hidden">
-        {/* Top Search Header */}
         <header className="px-4 md:px-8 py-4 md:py-6 bg-white border-b border-brand-100 shrink-0 z-10">
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center gap-3 mb-4">
-              <button 
+              <button
                 onClick={() => setIsSidebarOpen(true)}
                 className="md:hidden p-2 -ml-2 text-brand-600 hover:text-brand-900"
                 aria-label="Open sidebar"
@@ -40,12 +91,9 @@ export default function GrantDiscovery() {
                 <Menu className="w-6 h-6" />
               </button>
               <AnimatedLogo className="w-8 h-8 md:w-10 md:h-10" />
-              <h1 className="text-xl md:text-2xl font-bold text-brand-900">
-                FundSphere
-              </h1>
+              <h1 className="text-xl md:text-2xl font-bold text-brand-900">FundSphere</h1>
             </div>
-            
-            {/* Search Bar */}
+
             <div className="relative flex flex-col sm:flex-row items-center w-full group gap-2 sm:gap-0">
               <div className="hidden sm:block absolute left-4 text-brand-400 group-focus-within:text-primary-500 transition-colors z-10">
                 <Search className="w-5 h-5" />
@@ -57,18 +105,23 @@ export default function GrantDiscovery() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full sm:pl-12 sm:pr-32 px-4 py-3 sm:py-4 bg-brand-50 border-2 border-brand-100 rounded-xl focus:outline-none focus:border-primary-500 focus:bg-white text-brand-900 placeholder:text-brand-400 text-base md:text-lg transition-all shadow-sm"
               />
-              <button className="w-full sm:w-auto sm:absolute sm:right-2 sm:px-6 py-3 sm:py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl sm:rounded-lg font-medium transition-colors shadow-md shadow-primary-500/20 active:scale-95">
+              <button
+                onClick={() => void loadGrants(searchQuery)}
+                className="w-full sm:w-auto sm:absolute sm:right-2 sm:px-6 py-3 sm:py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl sm:rounded-lg font-medium transition-colors shadow-md shadow-primary-500/20 active:scale-95"
+              >
                 AI Match
               </button>
             </div>
-            
-            {/* Suggested Queries */}
+
             <div className="flex gap-2 mt-4 overflow-x-auto pb-2 scrollbar-hide">
               <span className="text-xs font-semibold text-brand-500 py-1.5 uppercase tracking-wider">Suggested:</span>
-              {["Climate Tech Startups", "Postdoc Healthcare Grants", "AI in Education Fellowships"].map(tag => (
-                <button 
+              {['Climate Tech Startups', 'Postdoc Healthcare Grants', 'AI in Education Fellowships'].map((tag) => (
+                <button
                   key={tag}
-                  onClick={() => setSearchQuery(tag)}
+                  onClick={() => {
+                    setSearchQuery(tag);
+                    void loadGrants(tag);
+                  }}
                   className="px-3 py-1.5 bg-white border border-brand-200 rounded-full text-sm text-brand-600 hover:border-primary-300 hover:text-primary-600 hover:bg-primary-50 transition-colors whitespace-nowrap"
                 >
                   {tag}
@@ -78,15 +131,16 @@ export default function GrantDiscovery() {
           </div>
         </header>
 
-        {/* Grant Feed Container */}
         <main className="flex-1 overflow-y-auto p-4 md:p-8 relative">
           <div className="max-w-4xl mx-auto">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 sm:gap-0 mb-6">
               <div>
                 <h2 className="text-lg md:text-xl font-semibold text-brand-800">Top Matches for Your Profile</h2>
-                <p className="text-xs md:text-sm text-brand-500 mt-1">Found 124 opportunities based on hybrid semantic search.</p>
+                <p className="text-xs md:text-sm text-brand-500 mt-1">
+                  {isLoading ? 'Fetching opportunities...' : `Found ${sortedGrants.length} opportunities from ${dataSource === 'core' ? 'CoreBackend fallback' : 'AI ranking'}.`}
+                </p>
               </div>
-              
+
               <div className="flex items-center gap-2">
                 <span className="text-sm text-brand-500">Sort by:</span>
                 <select
@@ -97,12 +151,11 @@ export default function GrantDiscovery() {
                   <option value="match">Match Score (Highest)</option>
                   <option value="deadline">Deadline (Closing Soon)</option>
                   <option value="funding">Funding Amount (Highest)</option>
-                  <option value="recent">Recently Added</option>
+                  <option value="recent">Recently Updated</option>
                 </select>
               </div>
             </div>
 
-            {/* AI Reasoning Summary Banner */}
             <div className="bg-primary-50 border border-primary-200 rounded-xl p-4 mb-6 flex gap-4">
               <div className="bg-white p-2 rounded-lg text-primary-600 shadow-sm border border-primary-100 h-fit">
                 <Sparkles className="w-5 h-5" />
@@ -110,13 +163,29 @@ export default function GrantDiscovery() {
               <div>
                 <h4 className="font-medium text-primary-900 mb-1">AI Reasoning Summary</h4>
                 <p className="text-sm text-primary-800/80 leading-relaxed">
-                  We found grants strongly matching your background in <span className="font-semibold text-primary-900">Machine Learning</span> and <span className="font-semibold text-primary-900">Healthcare</span>. Specifically prioritizing grants welcoming Early Career Researchers in India.
+                  Results are now loaded from live backend APIs using your onboarding profile and optional query text.
                 </p>
               </div>
             </div>
 
-            {/* Grant List */}
-            <GrantList />
+            {errorMessage && (
+              <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-center justify-between gap-4">
+                <span>{errorMessage}</span>
+                <button onClick={() => void loadGrants(searchQuery)} className="px-3 py-1 rounded-md bg-white border border-red-200 text-red-700">
+                  Retry
+                </button>
+              </div>
+            )}
+
+            {isLoading ? (
+              <div className="rounded-xl border border-brand-200 bg-white p-6 text-brand-600">Loading grants...</div>
+            ) : sortedGrants.length === 0 ? (
+              <div className="rounded-xl border border-brand-200 bg-white p-6 text-brand-600">
+                No results found for this profile/query yet. Try broadening your search.
+              </div>
+            ) : (
+              <GrantList grants={sortedGrants} />
+            )}
           </div>
         </main>
       </div>
