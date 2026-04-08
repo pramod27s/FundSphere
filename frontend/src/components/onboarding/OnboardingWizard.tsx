@@ -214,7 +214,7 @@ export default function OnboardingWizard({ onComplete }: { onComplete: (data: Re
   return (
     <div className="bg-white rounded-2xl shadow-xl border border-brand-100 overflow-hidden min-h-[500px] flex flex-col relative">
       {/* Header / Progress bar */}
-      <div className="bg-brand-50/50 border-b border-brand-100 px-8 py-6">
+      <div className="bg-brand-50/50 border-b border-brand-100 px-4 sm:px-8 py-4 sm:py-6">
         <div className="flex items-center justify-between mb-4">
           <AnimatedLogo className="w-9 h-9" textClassName="text-xl" showText={true} />
           <span className="text-sm font-medium text-brand-500">
@@ -239,7 +239,7 @@ export default function OnboardingWizard({ onComplete }: { onComplete: (data: Re
       </div>
 
       {/* Form Content Area */}
-      <div className="flex-1 p-8 relative overflow-x-hidden">
+      <div className="flex-1 p-4 sm:p-8 relative overflow-x-hidden">
         <AnimatePresence mode="wait" initial={false} custom={direction}>
           <motion.div
             key={currentStep}
@@ -264,7 +264,7 @@ export default function OnboardingWizard({ onComplete }: { onComplete: (data: Re
       </div>
 
       {/* Footer Controls */}
-      <div className="px-8 py-5 border-t border-brand-100 bg-brand-50/30 flex justify-between items-center mt-auto">
+      <div className="px-4 sm:px-8 py-4 sm:py-5 border-t border-brand-100 bg-brand-50/30 flex justify-between items-center mt-auto">
         {currentStep > 0 ? (
           <button
             onClick={handleBack}
