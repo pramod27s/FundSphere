@@ -1,8 +1,8 @@
 import { X, ShieldCheck, ShieldAlert, Calendar, TrendingUp, ExternalLink, BookmarkPlus } from 'lucide-react';
-import type { Grant } from './GrantList.tsx';
+import type { DiscoveryGrant } from '../../services/discoveryService';
 
 interface GrantDetailsModalProps {
-  grant: Grant;
+  grant: DiscoveryGrant;
   onClose: () => void;
 }
 
@@ -98,10 +98,7 @@ export default function GrantDetailsModal({ grant, onClose }: GrantDetailsModalP
                 <h3 className="text-lg font-bold text-brand-900 mb-3">Grant Description</h3>
                 <div className="prose prose-sm md:prose-base text-brand-600">
                   <p>
-                      This is a simulated description for <strong>{grant.title}</strong>. In a fully integrated application, this section would contain detailed guidelines derived from the grant provider's official documentation, formatted beautifully.
-                  </p>
-                  <p className="mt-4">
-                      Ensure all application materials are prepared according to the funder's strict formatting and submission guidelines before the deadline on {grant.deadline}. Late submissions are extremely rarely accommodated.
+                      {grant.description}
                   </p>
                 </div>
             </div>
@@ -112,7 +109,15 @@ export default function GrantDetailsModal({ grant, onClose }: GrantDetailsModalP
             <button className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-medium text-brand-700 bg-white border border-brand-200 hover:bg-brand-50 transition-colors flex items-center justify-center gap-2">
                 <BookmarkPlus className="w-5 h-5" /> Save
             </button>
-            <button className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-medium text-white bg-primary-600 hover:bg-primary-700 shadow-md shadow-primary-500/20 active:scale-95 transition-all flex items-center justify-center gap-2">
+            <button
+                onClick={() => {
+                  const target = grant.applicationLink || grant.grantUrl;
+                  if (target) {
+                    window.open(target, '_blank', 'noopener,noreferrer');
+                  }
+                }}
+                className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-medium text-white bg-primary-600 hover:bg-primary-700 shadow-md shadow-primary-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+            >
                 Apply on provider site <ExternalLink className="w-4 h-4" />
             </button>
         </div>

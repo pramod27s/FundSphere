@@ -15,6 +15,9 @@ def _as_bool(value: str | None, default: bool = False) -> bool:
 class Settings:
     spring_boot_base_url: str = os.getenv("SPRING_BOOT_BASE_URL", "http://localhost:8080")
     spring_boot_api_key: str = os.getenv("SPRING_BOOT_API_KEY", "")
+    spring_boot_timeout_seconds: float = float(os.getenv("SPRING_BOOT_TIMEOUT_SECONDS", "20"))
+    spring_boot_retry_count: int = int(os.getenv("SPRING_BOOT_RETRY_COUNT", "2"))
+    spring_boot_retry_backoff_seconds: float = float(os.getenv("SPRING_BOOT_RETRY_BACKOFF_SECONDS", "0.5"))
 
     pinecone_api_key: str = os.getenv("PINECONE_API_KEY", "")
     pinecone_index_host: str = os.getenv("PINECONE_INDEX_HOST", "")

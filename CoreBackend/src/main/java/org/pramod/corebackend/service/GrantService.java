@@ -9,8 +9,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -18,6 +20,9 @@ import java.util.stream.Collectors;
 public class GrantService {
 
     private final GrantRepository grantRepository;
+
+    public record SaveOrUpdateResult(GrantResponse response, boolean created) {}
+    public record KeywordSearchHit(Long grantId, double keywordScore) {}
 
     /**
      * SaveOrUpdate Logic (called by FastAPI):
@@ -28,14 +33,15 @@ public class GrantService {
      *         - If checksum is different → Update the grant record, checksum, and updatedAt.
      */
     @Transactional
-    public GrantResponse saveOrUpdateGrant(GrantRequest request) {
-        Optional<Grant> existingOpt = grantRepository.findByGrantUrl(request.getGrantUrl());
+    public SaveOrUpdateResult saveOrUpdateGrant(GrantRequest request) {
+        String normalizedGrantUrl = normalizeGrantUrl(request.getGrantUrl());
+        Optional<Grant> existingOpt = findExistingByGrantUrl(normalizedGrantUrl);
 
         if (existingOpt.isEmpty()) {
             // New grant — save it
             Grant grant = mapToEntity(request);
             Grant saved = grantRepository.save(grant);
-            return mapToResponse(saved);
+            return new SaveOrUpdateResult(mapToResponse(saved), true);
         }
 
         Grant existing = existingOpt.get();
@@ -43,7 +49,7 @@ public class GrantService {
         // Grant exists — compare checksum
         if (existing.getChecksum() != null && existing.getChecksum().equals(request.getChecksum())) {
             // Checksum is the same — no update needed
-            return mapToResponse(existing);
+            return new SaveOrUpdateResult(mapToResponse(existing), false);
         }
 
         // Checksum is different — update the grant
@@ -51,7 +57,7 @@ public class GrantService {
         existing.setChecksum(request.getChecksum());
         existing.setLastScrapedAt(LocalDateTime.now());
         Grant updated = grantRepository.save(existing);
-        return mapToResponse(updated);
+        return new SaveOrUpdateResult(mapToResponse(updated), false);
     }
 
     public List<GrantResponse> getAllGrants() {
@@ -86,9 +92,35 @@ public class GrantService {
     }
 
     public GrantResponse getGrantByUrl(String grantUrl) {
-        Grant grant = grantRepository.findByGrantUrl(grantUrl)
+        Grant grant = findExistingByGrantUrl(normalizeGrantUrl(grantUrl))
                 .orElseThrow(() -> new RuntimeException("Grant not found with URL: " + grantUrl));
         return mapToResponse(grant);
+    }
+
+    public List<Long> getChangedGrantIds(LocalDateTime since) {
+        return grantRepository.findAll().stream()
+                .filter(grant -> isAfterOrEqual(grant.getUpdatedAt(), since)
+                        || isAfterOrEqual(grant.getLastScrapedAt(), since)
+                        || isAfterOrEqual(grant.getCreatedAt(), since))
+                .map(Grant::getId)
+                .toList();
+    }
+
+    public List<KeywordSearchHit> keywordSearch(String query,
+                                                String country,
+                                                String institutionType,
+                                                String applicantType,
+                                                int topK) {
+        String normalizedQuery = query == null ? "" : query.trim().toLowerCase();
+        Set<String> queryTokens = tokenize(normalizedQuery);
+
+        return grantRepository.findAll().stream()
+                .filter(grant -> matchesFilters(grant, country, institutionType, applicantType))
+                .map(grant -> new KeywordSearchHit(grant.getId(), keywordScore(grant, normalizedQuery, queryTokens)))
+                .filter(hit -> hit.keywordScore() > 0)
+                .sorted((a, b) -> Double.compare(b.keywordScore(), a.keywordScore()))
+                .limit(Math.max(topK, 1))
+                .toList();
     }
 
     // --- Mapping helpers ---
@@ -99,7 +131,7 @@ public class GrantService {
                 .fundingAgency(request.getFundingAgency())
                 .programName(request.getProgramName())
                 .description(request.getDescription())
-                .grantUrl(request.getGrantUrl())
+                .grantUrl(normalizeGrantUrl(request.getGrantUrl()))
                 .applicationDeadline(request.getApplicationDeadline())
                 .fundingAmountMin(request.getFundingAmountMin())
                 .fundingAmountMax(request.getFundingAmountMax())
@@ -119,7 +151,7 @@ public class GrantService {
         entity.setFundingAgency(request.getFundingAgency());
         entity.setProgramName(request.getProgramName());
         entity.setDescription(request.getDescription());
-        entity.setGrantUrl(request.getGrantUrl());
+        entity.setGrantUrl(normalizeGrantUrl(request.getGrantUrl()));
         entity.setApplicationDeadline(request.getApplicationDeadline());
         entity.setFundingAmountMin(request.getFundingAmountMin());
         entity.setFundingAmountMax(request.getFundingAmountMax());
@@ -157,6 +189,99 @@ public class GrantService {
                 .updatedAt(grant.getUpdatedAt())
                 .lastScrapedAt(grant.getLastScrapedAt())
                 .build();
+    }
+
+    private String normalizeGrantUrl(String grantUrl) {
+        if (grantUrl == null) {
+            return null;
+        }
+
+        String normalized = grantUrl.trim();
+        while (normalized.endsWith("/")) {
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+        return normalized;
+    }
+
+    private Optional<Grant> findExistingByGrantUrl(String normalizedGrantUrl) {
+        Optional<Grant> exactMatch = grantRepository.findByGrantUrl(normalizedGrantUrl);
+        if (exactMatch.isPresent()) {
+            return exactMatch;
+        }
+
+        // Fallback for rows inserted before URL normalization existed.
+        return grantRepository.findAll().stream()
+                .filter(grant -> normalizedGrantUrl != null
+                        && normalizedGrantUrl.equals(normalizeGrantUrl(grant.getGrantUrl())))
+                .findFirst();
+    }
+
+    private boolean isAfterOrEqual(LocalDateTime value, LocalDateTime threshold) {
+        if (value == null || threshold == null) {
+            return false;
+        }
+        return !value.isBefore(threshold);
+    }
+
+    private Set<String> tokenize(String text) {
+        if (text == null || text.isBlank()) {
+            return Set.of();
+        }
+        return Arrays.stream(text.split("[^a-z0-9]+"))
+                .map(String::trim)
+                .filter(token -> token.length() > 1)
+                .collect(Collectors.toSet());
+    }
+
+    private boolean matchesFilters(Grant grant, String country, String institutionType, String applicantType) {
+        return matchesGrantListField(grant.getEligibleCountries(), country)
+                && matchesGrantListField(grant.getInstitutionType(), institutionType)
+                && matchesGrantListField(grant.getEligibleApplicants(), applicantType);
+    }
+
+    private boolean matchesGrantListField(String rawField, String requestedValue) {
+        if (requestedValue == null || requestedValue.isBlank()) {
+            return true;
+        }
+
+        String expected = requestedValue.trim().toLowerCase();
+        if (rawField == null || rawField.isBlank()) {
+            return false;
+        }
+
+        return Arrays.stream(rawField.split("[,;/|]"))
+                .map(String::trim)
+                .map(String::toLowerCase)
+                .anyMatch(value -> value.equals("global") || value.equals("any") || value.equals(expected));
+    }
+
+    private double keywordScore(Grant grant, String normalizedQuery, Set<String> queryTokens) {
+        String corpus = String.join(" ",
+                safe(grant.getGrantTitle()),
+                safe(grant.getFundingAgency()),
+                safe(grant.getProgramName()),
+                safe(grant.getDescription()),
+                safe(grant.getField()),
+                safe(grant.getEligibleApplicants()),
+                String.join(" ", grant.getTags() == null ? List.of() : grant.getTags())
+        ).toLowerCase();
+
+        if (queryTokens.isEmpty()) {
+            return 0.1;
+        }
+
+        long tokenMatches = queryTokens.stream().filter(corpus::contains).count();
+        double score = (double) tokenMatches / (double) queryTokens.size();
+
+        if (!normalizedQuery.isBlank() && safe(grant.getGrantTitle()).toLowerCase().contains(normalizedQuery)) {
+            score += 0.2;
+        }
+
+        return Math.min(score, 1.0);
+    }
+
+    private String safe(String value) {
+        return value == null ? "" : value;
     }
 }
 
