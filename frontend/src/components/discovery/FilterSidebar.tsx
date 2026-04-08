@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import { Filter, ChevronDown, Check } from 'lucide-react';
+import { Filter, ChevronDown, Check, X } from 'lucide-react';
 
 function Checkbox({ label, count }: { label: string; count: number }) {
   const [checked, setChecked] = useState(false);
@@ -43,12 +43,27 @@ function FilterSection({ title, children }: { title: string; children: ReactNode
   );
 }
 
-export default function FilterSidebar() {
+interface FilterSidebarProps {
+  onClose?: () => void;
+}
+
+export default function FilterSidebar({ onClose }: FilterSidebarProps) {
   return (
-    <aside className="w-72 bg-white border-r border-brand-100 h-full flex flex-col shrink-0">
-      <div className="p-6 border-b border-brand-100 flex items-center gap-2 text-brand-800">
-        <Filter className="w-5 h-5" />
-        <h2 className="font-bold">Filters & Preferences</h2>
+    <aside className="w-full bg-white border-r border-brand-100 h-full flex flex-col shrink-0">
+      <div className="p-4 md:p-6 border-b border-brand-100 flex items-center justify-between text-brand-800">
+        <div className="flex items-center gap-2">
+          <Filter className="w-5 h-5" />
+          <h2 className="font-bold">Filters & Preferences</h2>
+        </div>
+        {onClose && (
+          <button 
+            onClick={onClose} 
+            className="md:hidden p-1.5 text-brand-400 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 rounded-lg transition-colors"
+            aria-label="Close sidebar"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">

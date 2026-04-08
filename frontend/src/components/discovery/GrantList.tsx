@@ -1,7 +1,20 @@
-
+import { useState } from 'react';
 import { ShieldAlert, ShieldCheck, Users, TrendingUp, Calendar, ChevronRight } from 'lucide-react';
+import GrantDetailsModal from './GrantDetailsModal.tsx';
 
-const mockGrants = [
+export type Grant = {
+  id: number;
+  title: string;
+  funder: string;
+  matchScore: number;
+  amount: string;
+  deadline: string;
+  tags: string[];
+  eligibility: string;
+  rationale: string;
+};
+
+const mockGrants: Grant[] = [
   {
     id: 1,
     title: "AI & Global Health Postdoctoral Fellowship",
@@ -38,12 +51,19 @@ const mockGrants = [
 ];
 
 export default function GrantList() {
+  const [selectedGrant, setSelectedGrant] = useState<Grant | null>(null);
+
   return (
-    <div className="flex flex-col gap-4">
-      {mockGrants.map((grant) => (
-        <div key={grant.id} className="bg-white border border-brand-200 rounded-2xl p-6 hover:shadow-lg hover:border-primary-300 transition-all group">
-          
-          {/* Header Row */}
+    <>
+      <div className="flex flex-col gap-4">
+        {mockGrants.map((grant) => (
+          <div 
+            key={grant.id} 
+            className="bg-white border border-brand-200 rounded-2xl p-6 hover:shadow-lg hover:border-primary-300 transition-all group cursor-pointer"
+            onClick={() => setSelectedGrant(grant)}
+          >
+            
+            {/* Header Row */}
           <div className="flex justify-between items-start gap-4 mb-4">
             <div>
               <div className="flex items-center gap-2 mb-2">
@@ -107,7 +127,10 @@ export default function GrantList() {
               </div>
             </div>
 
-            <button className="flex items-center gap-1 text-primary-600 hover:text-primary-700 font-semibold text-sm transition-colors cursor-pointer group/btn">
+            <button 
+              className="flex items-center gap-1 text-primary-600 hover:text-primary-700 font-semibold text-sm transition-colors cursor-pointer group/btn"
+              onClick={(e) => { e.stopPropagation(); setSelectedGrant(grant); }}
+            >
               View Details 
               <ChevronRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
             </button>
@@ -115,6 +138,14 @@ export default function GrantList() {
 
         </div>
       ))}
-    </div>
+      </div>
+
+      {selectedGrant && (
+        <GrantDetailsModal 
+          grant={selectedGrant} 
+          onClose={() => setSelectedGrant(null)} 
+        />
+      )}
+    </>
   );
 }

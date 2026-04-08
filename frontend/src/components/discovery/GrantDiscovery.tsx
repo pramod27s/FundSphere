@@ -1,4 +1,4 @@
-import { Search, Sparkles } from 'lucide-react';
+import { Search, Sparkles, Menu } from 'lucide-react';
 import { useState } from 'react';
 import GrantList from './GrantList.tsx';
 import FilterSidebar from './FilterSidebar.tsx';
@@ -7,37 +7,57 @@ import AnimatedLogo from '../common/AnimatedLogo.tsx';
 export default function GrantDiscovery() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("match");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-brand-50 w-full overflow-hidden">
+    <div className="flex h-screen bg-brand-50 w-full overflow-hidden relative">
+      {/* Mobile Sidebar Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Left Sidebar (Filters) */}
-      <FilterSidebar />
+      <div className={`fixed inset-y-0 left-0 z-50 transform w-72 bg-white ${
+        isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      } md:relative md:translate-x-0 transition-transform duration-300 ease-in-out md:block h-full shrink-0 shadow-2xl md:shadow-none`}>
+        <FilterSidebar onClose={() => setIsSidebarOpen(false)} />
+      </div>
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-full overflow-hidden">
         {/* Top Search Header */}
-        <header className="px-8 py-6 bg-white border-b border-brand-100 shrink-0 z-10">
+        <header className="px-4 md:px-8 py-4 md:py-6 bg-white border-b border-brand-100 shrink-0 z-10">
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center gap-3 mb-4">
-              <AnimatedLogo className="w-10 h-10" />
-              <h1 className="text-2xl font-bold text-brand-900">
+              <button 
+                onClick={() => setIsSidebarOpen(true)}
+                className="md:hidden p-2 -ml-2 text-brand-600 hover:text-brand-900"
+                aria-label="Open sidebar"
+              >
+                <Menu className="w-6 h-6" />
+              </button>
+              <AnimatedLogo className="w-8 h-8 md:w-10 md:h-10" />
+              <h1 className="text-xl md:text-2xl font-bold text-brand-900">
                 FundSphere
               </h1>
             </div>
             
             {/* Search Bar */}
-            <div className="relative flex items-center w-full group">
-              <div className="absolute left-4 text-brand-400 group-focus-within:text-primary-500 transition-colors">
+            <div className="relative flex flex-col sm:flex-row items-center w-full group gap-2 sm:gap-0">
+              <div className="hidden sm:block absolute left-4 text-brand-400 group-focus-within:text-primary-500 transition-colors z-10">
                 <Search className="w-5 h-5" />
               </div>
               <input
                 type="text"
-                placeholder="Describe your research project, e.g. 'Machine learning models for early cancer detection...'"
+                placeholder="Describe your research project..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-32 py-4 bg-brand-50 border-2 border-brand-100 rounded-xl focus:outline-none focus:border-primary-500 focus:bg-white text-brand-900 placeholder:text-brand-400 text-lg transition-all shadow-sm"
+                className="w-full sm:pl-12 sm:pr-32 px-4 py-3 sm:py-4 bg-brand-50 border-2 border-brand-100 rounded-xl focus:outline-none focus:border-primary-500 focus:bg-white text-brand-900 placeholder:text-brand-400 text-base md:text-lg transition-all shadow-sm"
               />
-              <button className="absolute right-2 px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors shadow-md shadow-primary-500/20 active:scale-95">
+              <button className="w-full sm:w-auto sm:absolute sm:right-2 sm:px-6 py-3 sm:py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl sm:rounded-lg font-medium transition-colors shadow-md shadow-primary-500/20 active:scale-95">
                 AI Match
               </button>
             </div>
@@ -59,12 +79,12 @@ export default function GrantDiscovery() {
         </header>
 
         {/* Grant Feed Container */}
-        <main className="flex-1 overflow-y-auto p-8 relative">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 relative">
           <div className="max-w-4xl mx-auto">
-            <div className="flex justify-between items-end mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 sm:gap-0 mb-6">
               <div>
-                <h2 className="text-lg font-semibold text-brand-800">Top Matches for Your Profile</h2>
-                <p className="text-sm text-brand-500 mt-1">Found 124 opportunities based on hybrid semantic search.</p>
+                <h2 className="text-lg md:text-xl font-semibold text-brand-800">Top Matches for Your Profile</h2>
+                <p className="text-xs md:text-sm text-brand-500 mt-1">Found 124 opportunities based on hybrid semantic search.</p>
               </div>
               
               <div className="flex items-center gap-2">
