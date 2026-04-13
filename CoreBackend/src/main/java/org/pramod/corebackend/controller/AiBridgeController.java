@@ -128,7 +128,6 @@ public class AiBridgeController {
     @PostMapping("/rag/recommend")
     public ResponseEntity<Object> recommend(@RequestBody Map<String, Object> request,
                                             @RequestHeader(value = "X-API-KEY", required = false) String apiKey) {
-        verifyApiKey(apiKey);
         return ResponseEntity.ok(aiServiceClient.recommend(request));
     }
 

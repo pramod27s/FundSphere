@@ -5,9 +5,10 @@ import org.pramod.corebackend.dto.ResearcherRequest;
 import org.pramod.corebackend.dto.ResearcherResponse;
 import org.pramod.corebackend.enums.PrimaryField;
 import org.pramod.corebackend.enums.UserType;
+import org.pramod.corebackend.security.UserPrincipal;
 import org.pramod.corebackend.service.ResearcherService;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,11 +22,18 @@ public class ResearcherController {
 
     private final ResearcherService researcherService;
 
-    // POST - Create a new researcher
+    // POST - Create or update the authenticated user's researcher profile
     @PostMapping
-    public ResponseEntity<ResearcherResponse> createResearcher(@RequestBody ResearcherRequest request) {
-        ResearcherResponse response = researcherService.createResearcher(request);
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+    public ResponseEntity<ResearcherResponse> createResearcher(@AuthenticationPrincipal UserPrincipal principal,
+                                                               @RequestBody ResearcherRequest request) {
+        ResearcherResponse response = researcherService.createOrUpdateForUser(principal.getId(), request);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<ResearcherResponse> getMyResearcher(@AuthenticationPrincipal UserPrincipal principal) {
+        ResearcherResponse response = researcherService.getResearcherByUserId(principal.getId());
+        return ResponseEntity.ok(response);
     }
 
     // GET - Get all researchers

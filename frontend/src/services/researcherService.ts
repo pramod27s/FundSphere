@@ -1,4 +1,5 @@
 // Service to handle Researcher API calls
+import { apiFetch } from './apiClient';
 
 export interface ResearcherRequest {
   userType: string;
@@ -43,11 +44,11 @@ export interface ResearcherResponse {
   weeklyGrantRecommendations: boolean;
 }
 
-const API_BASE_URL = 'http://localhost:8080/api/researchers';
+const API_PATH = '/api/researchers';
 
 export const createResearcher = async (data: ResearcherRequest): Promise<ResearcherResponse> => {
   try {
-    const response = await fetch(API_BASE_URL, {
+    const response = await apiFetch(API_PATH, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -66,3 +67,13 @@ export const createResearcher = async (data: ResearcherRequest): Promise<Researc
     throw error;
   }
 };
+
+export const getMyResearcher = async (): Promise<ResearcherResponse> => {
+  const response = await apiFetch(`${API_PATH}/me`);
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Error: ${response.status} ${response.statusText} - ${errorText}`);
+  }
+  return response.json() as Promise<ResearcherResponse>;
+};
+

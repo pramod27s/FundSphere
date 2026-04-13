@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ResearcherRepository extends JpaRepository<Researcher, Long> {
@@ -20,5 +21,7 @@ public interface ResearcherRepository extends JpaRepository<Researcher, Long> {
     List<Researcher> findByCountryAndState(String country, String state);
 
     List<Researcher> findByInstitutionNameContainingIgnoreCase(String institutionName);
+
+    Optional<Researcher> findByUserId(Long userId);
 }
 

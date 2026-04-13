@@ -146,33 +146,8 @@ export default function OnboardingWizard({ onComplete }: { onComplete: (data: Re
       const response = await createResearcher(payload);
       onComplete(response);
     } catch (error) {
-      console.warn("Backend unavailable or submission failed. Using local fallback profile to proceed:", error);
-      
-      // Fallback profile to allow frontend testing without backend
-      const fallbackProfile: ResearcherResponse = {
-        id: Math.floor(Math.random() * 1000) + 1,
-        // We reuse the mapped payload values
-        userType: formData.userType.toUpperCase().replace(/\s+\/\s+/g, "_").replace(/\s+/g, "_") || "RESEARCHER",
-        institutionName: formData.orgName || "Unknown Institution",
-        department: formData.department || "",
-        position: formData.role ? formData.role.toUpperCase().replace(/\s+/g, "_") : null,
-        primaryField: formData.primaryField.toUpperCase().replace(/\s+/g, "_") || "GENERAL",
-        keywords: formData.keywords ? formData.keywords.split(',').map(k => k.trim()).filter(k => k) : [],
-        country: formData.country || "Unknown",
-        state: formData.state || "",
-        city: formData.city || "",
-        minFundingAmount: Number(formData.minFunding) || 0,
-        maxFundingAmount: Number(formData.maxFunding) || 0,
-        preferredGrantType: formData.grantType ? formData.grantType.toUpperCase().replace(/\s+/g, "_") : "ANY",
-        yearsOfExperience: parseInt(formData.yearsExperience.split('-')[0].replace('+', '')) || 0,
-        educationLevel: formData.educationLevel ? formData.educationLevel.toUpperCase() : "UNKNOWN",
-        previousGrantsReceived: formData.previousGrants === "Yes",
-        emailNotifications: formData.notifyNewGrants,
-        deadlineReminders: formData.notifyDeadlines,
-        weeklyGrantRecommendations: formData.notifyWeekly,
-      };
-
-      onComplete(fallbackProfile);
+      console.error('Failed to submit onboarding profile', error);
+      alert('Profile save failed. Please check backend auth/session and try again.');
     }
   };
 

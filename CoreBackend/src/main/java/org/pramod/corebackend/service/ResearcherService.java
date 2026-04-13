@@ -3,12 +3,16 @@ package org.pramod.corebackend.service;
 import lombok.RequiredArgsConstructor;
 import org.pramod.corebackend.dto.ResearcherRequest;
 import org.pramod.corebackend.dto.ResearcherResponse;
+import org.pramod.corebackend.entity.AppUser;
 import org.pramod.corebackend.entity.Researcher;
 import org.pramod.corebackend.enums.PrimaryField;
 import org.pramod.corebackend.enums.UserType;
+import org.pramod.corebackend.repository.AppUserRepository;
 import org.pramod.corebackend.repository.ResearcherRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -18,12 +22,27 @@ import java.util.stream.Collectors;
 public class ResearcherService {
 
     private final ResearcherRepository researcherRepository;
+    private final AppUserRepository appUserRepository;
 
     @Transactional
-    public ResearcherResponse createResearcher(ResearcherRequest request) {
-        Researcher researcher = mapToEntity(request);
-        Researcher saved = researcherRepository.save(researcher);
+    public ResearcherResponse createOrUpdateForUser(Long userId, ResearcherRequest request) {
+        AppUser user = appUserRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        Researcher saved = researcherRepository.findByUserId(userId)
+                .map(existing -> {
+                    updateEntity(existing, request);
+                    return researcherRepository.save(existing);
+                })
+                .orElseGet(() -> researcherRepository.save(mapToEntity(request, user)));
+
         return mapToResponse(saved);
+    }
+
+    public ResearcherResponse getResearcherByUserId(Long userId) {
+        Researcher researcher = researcherRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Researcher profile not found for user"));
+        return mapToResponse(researcher);
     }
 
     public ResearcherResponse getResearcherById(Long id) {
@@ -87,8 +106,9 @@ public class ResearcherService {
 
     // --- Mapping helpers ---
 
-    private Researcher mapToEntity(ResearcherRequest request) {
+    private Researcher mapToEntity(ResearcherRequest request, AppUser user) {
         return Researcher.builder()
+                .user(user)
                 .userType(request.getUserType())
                 .institutionName(request.getInstitutionName())
                 .department(request.getDepartment())
