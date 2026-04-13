@@ -1,3 +1,5 @@
+import { apiFetch } from './apiClient';
+
 export interface DiscoveryGrant {
   id: number;
   title: string;
@@ -53,8 +55,6 @@ interface CoreGrantResponse {
   lastScrapedAt?: string;
 }
 
-const API_BASE_URL = 'http://localhost:8080';
-
 export async function getDiscoveryGrants(request: RecommendationRequest): Promise<{ grants: DiscoveryGrant[]; source: 'ai' | 'core' }> {
   try {
     const aiGrants = await fetchAiRecommendations(request);
@@ -70,7 +70,7 @@ export async function getDiscoveryGrants(request: RecommendationRequest): Promis
 }
 
 async function fetchAiRecommendations(request: RecommendationRequest): Promise<DiscoveryGrant[]> {
-  const response = await fetch(`${API_BASE_URL}/api/ai/rag/recommend`, {
+  const response = await apiFetch('/api/ai/rag/recommend', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -92,7 +92,7 @@ async function fetchAiRecommendations(request: RecommendationRequest): Promise<D
 }
 
 async function fetchCoreGrantList(): Promise<DiscoveryGrant[]> {
-  const response = await fetch(`${API_BASE_URL}/api/grants`);
+  const response = await apiFetch('/api/grants');
 
   if (!response.ok) {
     const errorText = await response.text();

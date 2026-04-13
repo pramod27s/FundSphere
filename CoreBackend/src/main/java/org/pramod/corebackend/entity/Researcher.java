@@ -21,6 +21,10 @@ public class Researcher {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", unique = true)
+    private AppUser user;
+
     // --- Section 2: User Type ---
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

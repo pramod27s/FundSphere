@@ -13,6 +13,9 @@ def _as_bool(value: str | None, default: bool = False) -> bool:
 
 @dataclass
 class Settings:
+    require_internal_api_key: bool = _as_bool(os.getenv("REQUIRE_INTERNAL_API_KEY"), True)
+    internal_api_key: str = os.getenv("INTERNAL_API_KEY", os.getenv("SPRING_BOOT_API_KEY", ""))
+
     spring_boot_base_url: str = os.getenv("SPRING_BOOT_BASE_URL", "http://localhost:8080")
     spring_boot_api_key: str = os.getenv("SPRING_BOOT_API_KEY", "")
     spring_boot_timeout_seconds: float = float(os.getenv("SPRING_BOOT_TIMEOUT_SECONDS", "20"))
