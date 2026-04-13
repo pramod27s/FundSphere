@@ -4,10 +4,12 @@ import OnboardingWizard from './components/onboarding/OnboardingWizard.tsx';
 import GrantDiscovery from './components/discovery/GrantDiscovery.tsx';
 import ResearcherProfile from './components/profile/ResearcherProfile.tsx';
 import SplashScreen from './components/common/SplashScreen.tsx';
+import Login from './components/auth/Login.tsx';
+import Register from './components/auth/Register.tsx';
 import type { ResearcherResponse } from './services/researcherService';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState<'splash' | 'onboarding' | 'discovery' | 'profile'>('splash');
+  const [currentPage, setCurrentPage] = useState<'splash' | 'login' | 'register' | 'onboarding' | 'discovery' | 'profile'>('splash');
   const [researcherData, setResearcherData] = useState<ResearcherResponse | null>(null);
 
   const handleOnboardingComplete = (data: ResearcherResponse) => {
@@ -24,7 +26,21 @@ function App() {
         )}
       </AnimatePresence>
 
-      {currentPage === 'onboarding' ? (
+      {currentPage === 'login' ? (
+        <div className="w-full max-w-3xl flex justify-center items-center flex-1 p-4">
+          <Login 
+            onLoginSuccess={() => setCurrentPage(researcherData ? 'discovery' : 'onboarding')} 
+            onNavigateToRegister={() => setCurrentPage('register')} 
+          />
+        </div>
+      ) : currentPage === 'register' ? (
+        <div className="w-full max-w-3xl flex justify-center items-center flex-1 p-4">
+          <Register 
+            onRegisterSuccess={() => setCurrentPage('onboarding')} 
+            onNavigateToLogin={() => setCurrentPage('login')}
+          />
+        </div>
+      ) : currentPage === 'onboarding' ? (
         <div className="w-full max-w-3xl">
           <OnboardingWizard onComplete={handleOnboardingComplete} />
         </div>
