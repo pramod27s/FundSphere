@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional
 
 
@@ -13,13 +13,14 @@ class GrantData(BaseModel):
     fundingAmountMin: Optional[float] = None
     fundingAmountMax: Optional[float] = None
     fundingCurrency: Optional[str] = None
-    eligibleCountries: List[str] = []
-    eligibleApplicants: List[str] = []
-    institutionType: List[str] = []
-    field: List[str] = []
+    eligibleCountries: List[str] = Field(default_factory=list)
+    eligibleApplicants: List[str] = Field(default_factory=list)
+    institutionType: List[str] = Field(default_factory=list)
+    field: List[str] = Field(default_factory=list)
     application_link: Optional[str] = None
+    applicationLink: Optional[str] = None
     checksum: Optional[str] = None
-    tags: List[str] = []
+    tags: List[str] = Field(default_factory=list)
     createdAt: Optional[str] = None
     updatedAt: Optional[str] = None
     lastScrapedAt: Optional[str] = None
