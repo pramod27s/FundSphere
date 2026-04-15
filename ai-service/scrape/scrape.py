@@ -1,12 +1,19 @@
 # scraper_final.py
-import re
+import argparse
 import hashlib
+import json
+import logging
+import os
+import re
+import threading
+import time
+from collections import deque
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
+from urllib.parse import parse_qs, urlencode, urljoin, urlparse, urlunparse
+
 import requests
 from bs4 import BeautifulSoup, NavigableString
-from urllib.parse import urljoin, urlparse
-from concurrent.futures import ThreadPoolExecutor
-import time
-import logging
 
 # Optional selenium fallback only when needed
 from selenium import webdriver
@@ -36,14 +43,17 @@ DATE_PATTERN = re.compile(
     re.I
 )
 
-CURRENCY_PATTERN = re.compile(r"(₹|\bINR\b|\$|EUR|£|rupees|usd|eur|pounds)", re.I)
+CURRENCY_PATTERN = re.compile(r"(₹|\bINR\b|\$|\bEUR\b|€|£|\brupees\b|\bUSD\b|\bGBP\b|\bpounds\b)", re.I)
 
 MAX_LISTING_PAGES = 8
 MAX_GRANT_LINKS = 120
 MAX_WORKERS = 8
 QUEUE_LIMIT = 60
 REQUEST_TIMEOUT = 12
-MAX_DETAIL_DEPTH = 1  # 0 = don't follow listing → detail, 1 = follow one level
+MAX_DETAIL_DEPTH = 2  # 0 = don't follow listing → detail, 1+ = nested follow depth
+FETCH_RETRIES = 3
+FETCH_BACKOFF = 0.8
+TRANSIENT_STATUS_CODES = {429, 500, 502, 503, 504}
 
 
 def normalize_url(href, base):
@@ -59,20 +69,92 @@ def same_domain(url, base):
         return False
 
 
-def fetch(url, allow_redirects=True):
-    """Try requests GET (fast). Return text or None."""
-    try:
-        r = requests.get(url, headers=HEADERS, timeout=REQUEST_TIMEOUT, allow_redirects=allow_redirects)
-        r.raise_for_status()
-        # If this is a non-HTML (pdf) we return a marker
-        ct = r.headers.get("content-type", "")
-        if "application/pdf" in ct or url.lower().endswith(".pdf"):
-            # For PDFs we won't parse HTML; just return raw bytes marker
-            return {"type": "pdf", "bytes": r.content, "url": r.url}
-        return {"type": "html", "text": r.text, "url": r.url}
-    except Exception as e:
-        logger.debug(f"requests fetch failed {url}: {e}")
-        return None
+def _is_document_like_url(url):
+    if not url:
+        return False
+    path = (urlparse(url).path or "").lower()
+    doc_exts = (".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".zip")
+    if path.endswith(doc_exts):
+        return True
+    if "/assets/pdf/" in path:
+        return True
+    return False
+
+
+def should_follow_detail_candidate(url, homepage):
+    """Filter out links that are unlikely to be grant detail pages."""
+    if not url or not same_domain(url, homepage):
+        return False
+
+    if _is_document_like_url(url):
+        return False
+
+    parsed = urlparse(url)
+    path = (parsed.path or "").lower()
+
+    deny_path_hints = [
+        "/directory",
+        "/scientist",
+        "/committee",
+        "/career",
+        "/recruit",
+        "/notice",
+        "/advert",
+        "/order",
+        "/circular",
+        "/vigilance",
+        "/sitemap",
+        "/contact",
+        "/faq",
+        "/tender",
+        "/assets",
+        "/about",
+        "/home",
+        "/vision",
+        "/mission",
+        "/image",
+        "/media",
+    ]
+    if any(h in path for h in deny_path_hints):
+        return False
+
+    return True
+
+
+def fetch(url, allow_redirects=True, retries=FETCH_RETRIES, backoff=FETCH_BACKOFF):
+    """Try requests GET with retry/backoff for transient errors."""
+    for attempt in range(retries):
+        try:
+            r = requests.get(url, headers=HEADERS, timeout=REQUEST_TIMEOUT, allow_redirects=allow_redirects)
+            status = r.status_code
+
+            if status in TRANSIENT_STATUS_CODES:
+                if attempt < retries - 1:
+                    wait_s = backoff * (2 ** attempt)
+                    logger.debug("Transient status %s for %s; retrying in %.1fs", status, url, wait_s)
+                    time.sleep(wait_s)
+                    continue
+
+            r.raise_for_status()
+
+            ct = r.headers.get("content-type", "")
+            if "application/pdf" in ct or url.lower().endswith(".pdf"):
+                return {"type": "pdf", "bytes": r.content, "url": r.url}
+
+            return {"type": "html", "text": r.text, "url": r.url}
+        except requests.Timeout:
+            if attempt < retries - 1:
+                wait_s = backoff * (2 ** attempt)
+                logger.debug("Timeout for %s; retrying in %.1fs", url, wait_s)
+                time.sleep(wait_s)
+                continue
+            logger.debug("requests timeout failed %s", url)
+            return None
+        except Exception as e:
+            logger.debug("requests fetch failed %s: %s", url, e)
+            return None
+
+    return None
 
 
 def fetch_sitemap_urls(homepage):
@@ -173,32 +255,86 @@ def extract_grants_from_table(table_tag, base):
         headers = [th.get_text(" ", strip=True).lower() for th in thead.find_all("th")]
     # fallback: first row as header if it has <th>
     if not headers:
-        first_ths = table_tag.find_all("th")
-        headers = [th.get_text(" ", strip=True).lower() for th in first_ths]
-    # parse rows
-    for tr in table_tag.find_all("tr"):
+        first_row = table_tag.find("tr")
+        if first_row:
+            first_ths = first_row.find_all(["th", "td"])
+            headers = [th.get_text(" ", strip=True).lower() for th in first_ths]
+    
+    # parse rows (skip header row if we got headers from first row)
+    rows = table_tag.find_all("tr")
+    start_idx = 1 if headers else 0
+    
+    for tr in rows[start_idx:]:
         cols = tr.find_all(["td", "th"])
         if not cols or len(cols) == 1:
             continue
-        # attempt to map columns to likely fields by header names
-        row_text = " | ".join(c.get_text(" ", strip=True) for c in cols)
+        
+        # Map columns to header names
+        row_data = {}
+        for i, c in enumerate(cols):
+            key = headers[i] if i < len(headers) else f"col_{i}"
+            row_data[key] = c.get_text(" ", strip=True)
+        
+        row_text = " | ".join(row_data.values())
+        if len(row_text) < 5:
+            continue
+        
         title = None
         url = None
         extra = {}
+        
+        # Extract link (usually for grant title)
         for c in cols:
             a = c.find("a", href=True)
             if a and not title:
                 title = a.get_text(" ", strip=True)
                 url = normalize_url(a["href"], base)
-            # heuristics: date-like or currency-like
-            t = c.get_text(" ", strip=True)
-            if DATE_PATTERN.search(t) and "deadline" not in extra:
-                extra["deadline"] = t
-            if CURRENCY_PATTERN.search(t) and "amount" not in extra:
-                extra["amount"] = t
+        
+        # Extract data based on header keywords
+        for key, val in row_data.items():
+            if not val or len(val) < 2:
+                continue
+            key_lower = key.lower()
+            
+            # Agency/Sponsor
+            if any(kw in key_lower for kw in ["agency", "sponsor", "organization", "funder", "funded by"]):
+                extra["agency"] = val
+            # Deadline
+            elif any(kw in key_lower for kw in ["deadline", "last date", "closing date", "due date", "apply by"]):
+                extra["deadline"] = val
+            # Amount/Budget
+            elif any(kw in key_lower for kw in ["amount", "budget", "value", "grant value"]):
+                if CURRENCY_PATTERN.search(val):
+                    extra["amount"] = val
+            # Scheme/Program/Title (can be title fallback)
+            elif any(kw in key_lower for kw in ["scheme", "program", "programme", "grant name", "grant title", "title"]):
+                if not title:
+                    title = val
+                extra["program"] = val
+            # Eligibility
+            elif any(kw in key_lower for kw in ["eligibility", "eligible", "who can apply"]):
+                extra["eligibility"] = val
+            # Duration
+            elif any(kw in key_lower for kw in ["duration", "period", "tenure"]):
+                extra["duration"] = val
+        
+        # Fallback: extract date-like and currency-like from any column
+        if "deadline" not in extra:
+            for val in row_data.values():
+                if DATE_PATTERN.search(val):
+                    extra["deadline"] = val
+                    break
+        
+        if "amount" not in extra:
+            for val in row_data.values():
+                if CURRENCY_PATTERN.search(val):
+                    extra["amount"] = val
+                    break
+        
+        # Fallback title: first column text
         if not title:
-            # maybe the title is in first column text
             title = cols[0].get_text(" ", strip=True)
+        
         out.append({"title": title, "url": url, "row_text": row_text, "meta": extra})
     return out
 
@@ -292,8 +428,7 @@ def extract_candidate_links_from_page(html_text, base):
                     marker = base + "#__grant_block__" + hashlib.sha1(str(container).encode()).hexdigest()[:10]
                     candidates.add(marker)
             if candidates:
-                logger.info(f"Found {len(candidates)} candidate links/blocks from section headings")
-                return list(candidates)
+                logger.debug(f"Found {len(candidates)} candidate links/blocks from section headings")
     except Exception as e:
         logger.debug("section extraction failed: " + str(e))
 
@@ -305,10 +440,8 @@ def extract_candidate_links_from_page(html_text, base):
             # mark the block so caller can parse rows directly
             marker = base + "#__grant_block__" + hashlib.sha1(str(container).encode()).hexdigest()[:10]
             candidates.add(marker)
-            logger.info("Found table-like grant block")
-            # store mapping of marker -> container html by attaching a hidden attribute on soup (caller will reparse)
-            # for simplicity, we will re-parse page in caller and find the first large block, so just return marker
-            return list(candidates)
+            logger.debug("Found table-like grant block")
+            # Keep collecting globally instead of returning early.
 
     # 3) fallback: global anchors but only those whose anchor text or nearby text matches SECTION_KEYWORDS
     for a in soup.find_all("a", href=True):
@@ -327,8 +460,64 @@ def extract_candidate_links_from_page(html_text, base):
         if SECTION_KEYWORDS.search(context) and not EXCLUDE_KEYWORDS.search(context):
             candidates.add(href)
 
-    logger.info(f"Found {len(candidates)} candidate links from global anchor context")
+    logger.debug(f"Found {len(candidates)} candidate links from global extraction")
     return list(candidates)
+
+
+def extract_pagination_links(html_text, page_url, homepage):
+    """Discover listing-page pagination links to improve crawl coverage."""
+    soup = BeautifulSoup(html_text, "lxml")
+    out = set()
+
+    selectors = [
+        ("a", {"rel": re.compile(r"\bnext\b", re.I)}),
+        ("a", {"aria-label": re.compile(r"next|older|following", re.I)}),
+        ("a", {"class": re.compile(r"next|pagination|pager", re.I)}),
+        ("a", {"title": re.compile(r"next", re.I)}),
+    ]
+
+    for tag_name, attrs in selectors:
+        for el in soup.find_all(tag_name, attrs=attrs, href=True):
+            href = normalize_url(el.get("href"), page_url)
+            if href and same_domain(href, homepage):
+                out.add(href)
+
+    for a in soup.find_all("a", href=True):
+        txt = (a.get_text(" ", strip=True) or "").lower()
+        cls = " ".join(a.get("class", [])) if a.get("class") else ""
+        if txt in {"next", "more", "older", ">", ">>"} or "page" in cls.lower() or txt.isdigit():
+            href = normalize_url(a.get("href"), page_url)
+            if href and same_domain(href, homepage):
+                out.add(href)
+
+    parsed = urlparse(page_url)
+    query = parse_qs(parsed.query)
+    page_like_keys = ["page", "p", "start", "offset"]
+    for key in page_like_keys:
+        current = 1
+        if key in query:
+            try:
+                current = int(query[key][0])
+            except Exception:
+                current = 1
+        for step in range(1, 3):
+            nxt = current + step
+            new_query = {k: list(v) for k, v in query.items()}
+            new_query[key] = [str(nxt)]
+            candidate = urlunparse(
+                (
+                    parsed.scheme,
+                    parsed.netloc,
+                    parsed.path,
+                    parsed.params,
+                    urlencode(new_query, doseq=True),
+                    parsed.fragment,
+                )
+            )
+            if same_domain(candidate, homepage):
+                out.add(candidate)
+
+    return list(out)
 
 
 def page_is_grant(html_text):
@@ -338,6 +527,12 @@ def page_is_grant(html_text):
     soup = BeautifulSoup(html_text, "lxml")
     text = " ".join(soup.stripped_strings).lower()
     # must contain at least one strong sign: 'deadline' or date pattern or 'how to apply' or 'apply'
+    # AND must strictly contain one of the target identifying keywords out of:
+    # grants, funding, fellowship, research support, call for proposals, scholarships
+    target_keywords = ["grant", "funding", "fellowship", "research support", "call for proposal", "scholarship", "scheme", "award"]
+    if not any(kw in text for kw in target_keywords):
+        return False
+
     positive_count = 0
     if any(k in text for k in DETAIL_KEYWORDS):
         positive_count += 1
@@ -351,6 +546,58 @@ def page_is_grant(html_text):
     return positive_count >= 1
 
 
+def _table_looks_like_listing(table_tag):
+    rows = table_tag.find_all("tr")
+    if len(rows) < 2:
+        return False
+
+    header_cells = rows[0].find_all(["th", "td"])
+    header_text = " ".join(c.get_text(" ", strip=True).lower() for c in header_cells)
+    listing_keywords = ["agency", "scheme", "deadline", "eligibility", "program", "grant", "fund", "amount"]
+    return any(k in header_text for k in listing_keywords)
+
+
+def page_looks_like_listing(html_text, url=""):
+    from urllib.parse import urlparse
+    if url:
+        p = urlparse(url).path.lower()
+        if p in ["", "/"] or p.startswith("/type/") or p.startswith("/industry/") or p.startswith("/state/"):
+            return True
+    """Heuristic to avoid treating listing pages as final detail pages."""
+    if not html_text:
+        return False
+
+    soup = BeautifulSoup(html_text, "lxml")
+
+    for table in soup.find_all("table"):
+        if _table_looks_like_listing(table):
+            return True
+
+    # SERB accordions
+    funding_sections = soup.find_all(id=re.compile(r"^funding\d+$", re.I))
+    if len(funding_sections) >= 2:
+        return True
+
+    anchors = soup.find_all("a", href=True)
+    if len(anchors) < 10:
+        return False
+
+    granty_anchor_count = 0
+    pagination_hint = False
+    for a in anchors[:300]:
+        href = (a.get("href") or "").lower()
+        txt = (a.get_text(" ", strip=True) or "").lower()
+        if "page=" in href or "pagination" in href or txt in {"next", "previous", ">", ">>", "1", "2", "3"}:
+            pagination_hint = True
+        if SECTION_KEYWORDS.search(href + " " + txt):
+            granty_anchor_count += 1
+
+    if pagination_hint and granty_anchor_count >= 4:
+        return True
+
+    return granty_anchor_count >= 12
+
+
 def checksum_text(text):
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
@@ -360,7 +607,8 @@ def crawl_site_for_grants(homepage, max_listing=MAX_LISTING_PAGES, max_links=MAX
                           max_detail_depth=MAX_DETAIL_DEPTH):
     """
     Orchestrator:
-     - try sitemap for urls in the domain
+     - First check if the provided URL is itself a grant detail page
+     - If not, try sitemap for urls in the domain
      - try the provided homepage/listing page to extract candidate links or inline grant blocks
      - validate detail pages in parallel and follow one-level detail links from listings
     """
@@ -369,17 +617,7 @@ def crawl_site_for_grants(homepage, max_listing=MAX_LISTING_PAGES, max_links=MAX
     seen_links = set()
     seen_grant_checksums = set()
 
-    # --- Try sitemap first (fast) ---
-    sitemap_urls = fetch_sitemap_urls(homepage)
-    if sitemap_urls:
-        # filter sitemap to pages that have positive keywords in url or path
-        for u in sitemap_urls:
-            if SECTION_KEYWORDS.search(u) and same_domain(u, homepage):
-                seen_links.add(u)
-        if len(seen_links) >= max_links:
-            logger.info("Using sitemap-derived links")
-
-    # --- fetch homepage/listing HTML ---
+    # --- First, check if the provided URL is a direct grant page ---
     homepage_resp = fetch(homepage)
     if not homepage_resp:
         # last resort selenium render once
@@ -390,147 +628,316 @@ def crawl_site_for_grants(homepage, max_listing=MAX_LISTING_PAGES, max_links=MAX
 
     if homepage_resp and homepage_resp.get("type") == "html":
         homepage_html = homepage_resp["text"]
-        # 1) detect inline grant blocks (tables or dense anchor blocks)
-        try:
-            soup = BeautifulSoup(homepage_html, "lxml")
-            # find largest container by number of anchors
-            candidate_containers = sorted(
-                [c for c in soup.find_all(["div", "main", "section", "article"])],
-                key=lambda x: len(x.find_all("a")),
-                reverse=True
-            )[:4]
-            for c in candidate_containers:
-                if len(c.find_all("a")) >= 4 and SECTION_KEYWORDS.search(c.get_text(" ", strip=True) or ""):
-                    grants = extract_grants_from_container(c, homepage)
-                    if grants:
-                        for g in grants:
-                            # if we already have a URL for this row, we will follow it later; but if no URL, accept
-                            url = g.get("url")
-                            text = g.get("row_text") or ""
-                            # check if this row is a real grant (deadline / apply keywords or date)
-                            if page_is_grant(text) or g.get("meta"):
-                                checksum = checksum_text((url or "") + "||" + (g.get("title") or "") + "||" + (text or ""))
-                                if checksum not in seen_grant_checksums:
-                                    seen_grant_checksums.add(checksum)
-                                    results.append({"url": url, "title": g.get("title"), "checksum": checksum, "snippet": text, "meta": g.get("meta")})
-                        # keep going, but continue to gather link candidates too
-            # 2) extract candidate links from homepage
-            candidates = extract_candidate_links_from_page(homepage_html, homepage)
-            for c in candidates:
-                if len(seen_links) >= max_links:
-                    break
-                # markers for inline grant blocks are not external links — skip adding to seen_links but we'll parse homepage block above
-                if "#__grant_block__" in c:
-                    continue
-                if same_domain(c, homepage):
-                    seen_links.add(c)
-        except Exception as e:
-            logger.debug("homepage parsing failed: " + str(e))
+        
+        # Only treat as direct detail if it does not look like a listing page.
+        soup = BeautifulSoup(homepage_html, "lxml")
+        is_detail_page = (not page_looks_like_listing(homepage_html, homepage)) and page_is_grant(homepage_html)
+        
+        if is_detail_page:
+            # This is a direct grant detail page - extract it directly and return
+            logger.info("Detected direct grant detail page - extracting single grant")
+            text = soup.get_text("\n").strip()
+            checksum = checksum_text(text)
+            results.append({
+                "url": homepage,
+                "title": None,
+                "checksum": checksum,
+                "snippet": text[:1000],
+                "html": homepage_html,
+                "meta": {}
+            })
+            logger.info(f"Validated grant pages / rows: {len(results)}")
+            return results
 
-    # If still empty, try shallow crawl of a few internal pages (limited)
+    # --- Continue with normal crawling if not a direct detail page ---
+
+    listing_queue = deque([homepage])
+    visited_listing_pages = set()
+
+    sitemap_urls = fetch_sitemap_urls(homepage)
+    for u in sitemap_urls:
+        if same_domain(u, homepage) and len(listing_queue) < QUEUE_LIMIT:
+            listing_queue.append(u)
+
+    def collect_inline_grants(page_html, page_url):
+        local_results = []
+        soup = BeautifulSoup(page_html, "lxml")
+        candidate_containers = sorted(
+            [c for c in soup.find_all(["div", "main", "section", "article"])],
+            key=lambda x: len(x.find_all("a")),
+            reverse=True,
+        )[:6]
+
+        for c in candidate_containers:
+            if len(c.find_all("a")) < 3:
+                continue
+            if not SECTION_KEYWORDS.search(c.get_text(" ", strip=True) or ""):
+                continue
+
+            grants = extract_grants_from_container(c, page_url)
+            for g in grants:
+                url = g.get("url")
+                text = g.get("row_text") or ""
+                if not (page_is_grant(text) or g.get("meta")):
+                    continue
+                checksum = checksum_text((url or "") + "||" + (g.get("title") or "") + "||" + text)
+                if checksum in seen_grant_checksums:
+                    continue
+                seen_grant_checksums.add(checksum)
+                local_results.append(
+                    {
+                        "url": url,
+                        "title": g.get("title"),
+                        "checksum": checksum,
+                        "snippet": text,
+                        "meta": g.get("meta", {}),
+                    }
+                )
+
+        return local_results
+
+    while listing_queue and len(visited_listing_pages) < max_listing and len(seen_links) < max_links:
+        page_url = listing_queue.popleft()
+        if not page_url or page_url in visited_listing_pages:
+            continue
+
+        visited_listing_pages.add(page_url)
+        resp = fetch(page_url)
+        if not resp:
+            try:
+                resp = fetch_selenium(page_url, driver_path=selenium_driver_path, wait=1.2)
+            except Exception:
+                resp = None
+        if not resp or resp.get("type") != "html":
+            continue
+
+        page_html = resp.get("text") or ""
+        candidates = extract_candidate_links_from_page(page_html, page_url)
+        added_candidates_on_page = 0
+        for c in candidates:
+            if len(seen_links) >= max_links:
+                break
+            if not c or "#__grant_block__" in c:
+                continue
+            if should_follow_detail_candidate(c, homepage):
+                if c not in seen_links:
+                    seen_links.add(c)
+                    added_candidates_on_page += 1
+
+        # Always collect inline blocks as fallback for rich listing pages
+        if re.search(r"id=[\'\"]funding\d+", page_html, re.I):
+            results.append({"url": page_url, "html": page_html})
+        else:
+            results.extend(collect_inline_grants(page_html, page_url))
+
+        next_pages = extract_pagination_links(page_html, page_url, homepage)
+        for nxt in next_pages:
+            if len(listing_queue) >= QUEUE_LIMIT:
+                break
+            if nxt not in visited_listing_pages:
+                listing_queue.append(nxt)
+
     if not seen_links:
-        logger.info("No candidates found from sitemap/sections, doing shallow anchor scan")
+        logger.info("No candidates found from listing traversal; doing fallback anchor scan")
         try:
             soup = BeautifulSoup(homepage_resp["text"] if homepage_resp and homepage_resp.get("type") == "html" else "", "lxml")
             anchors = [normalize_url(a.get("href"), homepage) for a in soup.find_all("a", href=True)]
             anchors = [a for a in anchors if a and same_domain(a, homepage)]
         except Exception:
             anchors = []
-        anchors = list(dict.fromkeys(anchors))[:min(40, QUEUE_LIMIT)]
-        for a in anchors:
-            html_resp = fetch(a)
-            if not html_resp or html_resp.get("type") != "html":
-                continue
-            cand = extract_candidate_links_from_page(html_resp["text"], homepage)
-            for c in cand:
-                if len(seen_links) >= max_links:
-                    break
-                if "#__grant_block__" in c:
-                    continue
-                seen_links.add(c)
+
+        for a in list(dict.fromkeys(anchors))[: min(40, QUEUE_LIMIT)]:
             if len(seen_links) >= max_links:
                 break
+            seen_links.add(a)
 
     seen_list = list(seen_links)[:max_links]
     logger.info(f"Candidate detail links before validation: {len(seen_list)}")
+
+    validated_seen_urls = set()
+    validated_seen_lock = threading.Lock()
+
+    def claim_validate_url_once(candidate_url):
+        with validated_seen_lock:
+            if candidate_url in validated_seen_urls:
+                return False
+            validated_seen_urls.add(candidate_url)
+            return True
+
     # Validate detail pages in parallel (requests-first, optional selenium fallback per-url)
-    def validate_and_fetch(url):
-        # url may be None (some inline rows had no link)
+    def validate_and_fetch(url, depth=0, path_seen=None):
         if not url:
-            return None
-        # fetch the URL
+            return []
+
+        if not claim_validate_url_once(url):
+            return []
+
+        if path_seen is None:
+            path_seen = set()
+
+        if url in path_seen:
+            return []
+
+        if depth > max_detail_depth:
+            return []
+
+        local_seen = set(path_seen)
+        local_seen.add(url)
+
         resp = fetch(url)
         if not resp:
-            # try selenium fallback
             try:
                 resp = fetch_selenium(url, driver_path=selenium_driver_path, wait=1.0)
             except Exception:
                 resp = None
         if not resp:
-            return None
-        # If it's a PDF, accept as a grant detail if surrounding listing suggests it
+            return []
+
         if resp.get("type") == "pdf":
-            return {"url": url, "checksum": checksum_text(url), "snippet": "pdf:" + url, "html": None, "is_pdf": True}
-        html = resp.get("text")
-        if page_is_grant(html):
-            text = BeautifulSoup(html, "lxml").get_text("\n").strip()
-            return {"url": url, "checksum": checksum_text(text), "snippet": text[:1000], "html": html}
-        # if not a direct grant page, but this page contains many internal links (a listing), try to discover detail links (one level)
-        if max_detail_depth > 0:
-            try:
-                inner_candidates = extract_candidate_links_from_page(html, url)
-                # filter for anchors that look like details
-                inner = []
-                for ic in inner_candidates:
-                    if "#__grant_block__" in ic:
-                        continue
-                    if same_domain(ic, url):
-                        inner.append(ic)
-                # try validating inner candidates sequentially (small number)
-                inner_results = []
-                for ic in inner[:20]:
-                    r2 = validate_and_fetch(ic)
-                    if not r2:
-                        # r2 may be pdf or html grant detail
-                        continue
-                    if isinstance(r2, list):
-                        inner_results.extend(r2)
-                    else:
-                        inner_results.append(r2)
-                return inner_results if inner_results else None
-            except Exception:
-                pass
-        # Not a grant detail
-        return None
+            return [{"url": url, "checksum": checksum_text(url), "snippet": "pdf:" + url, "html": None, "is_pdf": True}]
+
+        html = resp.get("text") or ""
+        listing_like = page_looks_like_listing(html, url)
+
+        # The user requested: "after reaching to grant page you dont need to crawl any further from that stay there only"
+        # So we just keep the HTML of the page (whether it's listing-like or a single detail) 
+        # and do not recursively visit any candidate links from inside it.
+
+        text = BeautifulSoup(html, "lxml").get_text("\n").strip()
+        
+        if listing_like:
+            return [{"url": url, "checksum": checksum_text(text), "snippet": text[:1000], "html": html, "is_listing_page": True}]
+
+        # If the page itself is truly a detail page, keep it.
+        if page_is_grant(html) and not listing_like:
+            return [{"url": url, "checksum": checksum_text(text), "snippet": text[:1000], "html": html}]
+
+        return []
 
     validated = []
     with ThreadPoolExecutor(max_workers=max_workers) as ex:
-        for r in ex.map(validate_and_fetch, seen_list):
-            if r:
-                # dedupe by checksum
-                if r.get("checksum") and r["checksum"] not in seen_grant_checksums:
-                    seen_grant_checksums.add(r["checksum"])
-                    validated.append(r)
-                elif not r.get("checksum"):
-                    validated.append(r)
+        for r in ex.map(lambda u: validate_and_fetch(u, 0, set()), seen_list):
+            if not r:
+                continue
+
+            items = r if isinstance(r, list) else [r]
+
+            for item in items:
+                if not item:
+                    continue
+
+                checksum = item.get("checksum")
+                if checksum:
+                    if checksum not in seen_grant_checksums:
+                        seen_grant_checksums.add(checksum)
+                        validated.append(item)
+                else:
+                    validated.append(item)
+
                 if len(validated) >= max_links:
                     break
 
+            if len(validated) >= max_links:
+                break
     # combine results: results from inline blocks + validated detail pages
     results.extend(validated)
     logger.info(f"Validated grant pages / rows: {len(results)}")
     return results
 
 
-# Example usage:
+def _format_cell(val, width):
+    text = (val or "").replace("\n", " ").strip()
+    if len(text) > width:
+        return text[: width - 1] + "…"
+    return text.ljust(width)
+
+
+def print_grant_summary(grants, limit=None):
+    rows = grants if limit is None else grants[:limit]
+    print("\n=== Grant Summary ===")
+    header = " | ".join(
+        [
+            _format_cell("#", 4),
+            _format_cell("Title", 34),
+            _format_cell("Deadline", 20),
+            _format_cell("Agency", 22),
+            _format_cell("Amount", 18),
+            _format_cell("URL", 54),
+        ]
+    )
+    print(header)
+    print("-" * len(header))
+
+    for idx, g in enumerate(rows, 1):
+        amount = ""
+        mn = g.get("fundingAmountMin")
+        mx = g.get("fundingAmountMax")
+        cur = g.get("fundingCurrency")
+        if mn is not None and mx is not None:
+            amount = f"{cur or ''} {mn:g}-{mx:g}".strip()
+        elif mn is not None:
+            amount = f"{cur or ''} {mn:g}".strip()
+
+        line = " | ".join(
+            [
+                _format_cell(str(idx), 4),
+                _format_cell(g.get("grantTitle") or g.get("title") or "", 34),
+                _format_cell(g.get("applicationDeadline") or "", 20),
+                _format_cell(g.get("fundingAgency") or "", 22),
+                _format_cell(amount, 18),
+                _format_cell(g.get("grantUrl") or g.get("url") or "", 54),
+            ]
+        )
+        print(line)
+
+
+def save_grants_json(grants, output_path=None):
+    if not output_path:
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_path = os.path.abspath(f"grants_scrape_{ts}.json")
+    else:
+        output_path = os.path.abspath(output_path)
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(grants, f, indent=2, ensure_ascii=False)
+
+    return output_path
+
+
 if __name__ == "__main__":
-    test_sites = [
-        "https://www.ncbs.res.in/rdo/sponsor-grants",
-        "https://www.indiascienceandtechnology.gov.in/funding-opportunities/research-grants/international"
-    ]
-    for s in test_sites:
-        print("Crawling:", s)
-        out = crawl_site_for_grants(s, max_listing=6, max_links=40, max_workers=6, selenium_driver_path="./chromedriver", max_detail_depth=1)
-        print(f"Found {len(out)} items for {s}")
-        for i, item in enumerate(out[:6], 1):
-            print(i, item.get("title") or item.get("url"), item.get("url"))
+    parser = argparse.ArgumentParser(description="Crawl grant opportunities from a website.")
+    parser.add_argument("url", nargs="?", help="Listing or detail URL to crawl")
+    parser.add_argument("--max-listing", type=int, default=MAX_LISTING_PAGES, help="Maximum listing pages to crawl")
+    parser.add_argument("--max-links", type=int, default=MAX_GRANT_LINKS, help="Maximum candidate links to validate")
+    parser.add_argument("--max-workers", type=int, default=MAX_WORKERS, help="Parallel workers for detail validation")
+    parser.add_argument("--max-depth", type=int, default=MAX_DETAIL_DEPTH, help="Nested listing-to-detail recursion depth")
+    parser.add_argument("--driver", default="./chromedriver", help="Path to chromedriver for JS fallback")
+    parser.add_argument("--output", default=None, help="Output JSON path")
+    parser.add_argument("--show", type=int, default=200, help="Max rows to print in summary")
+    args = parser.parse_args()
+
+    if not args.url:
+        parser.error("Please provide a website URL, e.g. python -m scrape.scrape https://example.com/grants")
+
+    print(f"Crawling: {args.url}")
+    raw_items = crawl_site_for_grants(
+        args.url,
+        max_listing=args.max_listing,
+        max_links=args.max_links,
+        max_workers=args.max_workers,
+        selenium_driver_path=args.driver,
+        max_detail_depth=args.max_depth,
+    )
+    print(f"Raw scraped items: {len(raw_items)}")
+
+    try:
+        from .extractor import extract_grant_items
+    except Exception:
+        from extractor import extract_grant_items
+
+    grants = extract_grant_items(raw_items)
+    print(f"Extracted grants: {len(grants)}")
+
+    print_grant_summary(grants, limit=args.show)
+    output_path = save_grants_json(grants, args.output)
+    print(f"\nSaved JSON output: {output_path}")
