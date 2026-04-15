@@ -1,0 +1,166 @@
+[
+  {
+    "grantTitle": "Various Research Grants by Anusandhan National Research Foundation (ANRF)",
+    "fundingAgency": "Anusandhan National Research Foundation (ANRF), Department of Science & Technology, Government of India",
+    "programName": null,
+    "description": "ANRF provides various funding schemes to support researchers in frontier areas of science and engineering, including Core Research Grant (CRG), Scientific and Useful Profound Research Advancement (SUPRA), and more.",
+    "applicationDeadline": "Not Specified",
+    "fundingAmountMin": "Rs. 50,000",
+    "fundingAmountMax": "Rs. 60,000,000",
+    "fundingCurrency": "INR",
+    "eligibleCountries": [
+      "India"
+    ],
+    "eligibleApplicants": [
+      "Researchers holding PhD or equivalent degree",
+      "Indian nationals or OCI/PIO with adequate service remaining"
+    ],
+    "institutionType": [
+      "Academic Institutions",
+      "National Laboratories",
+      "R&D Institutions",
+      "Private Institutions"
+    ],
+    "field": [
+      "Science",
+      "Engineering",
+      "Social Sciences",
+      "Humanities"
+    ],
+    "applicationLink": "https://www.anrfonline.in",
+    "tags": [
+      "Research Grants",
+      "ANRF",
+      "Funding Opportunities"
+    ],
+    "id": "9b78d975-b51f-42e8-bdc0-f4976b79975a",
+    "grantUrl": "https://serb.gov.in/page/english/research_grants#Core%20Research%20Grant%20%28CRG%29",
+    "application_link": "https://www.anrfonline.in",
+    "createdAt": null,
+    "updatedAt": null,
+    "lastScrapedAt": "2026-04-14T14:30:21.151598",
+    "checksum": "3ae4bda486e011cea3a36b9f2dd051f41f1497a3766575141f9a9491e0d94421"
+  },
+  {
+    "grantTitle": "Core Research Grant (CRG)",
+    "fundingAgency": "Science and Engineering Research Board (SERB)",
+    "programName": null,
+    "description": "Extramural Research funding scheme to support basic research in all areas of Science and Engineering.",
+    "applicationDeadline": "Not Specified",
+    "fundingAmountMin": "Rs. 1,000,000",
+    "fundingAmountMax": "Rs. 8,000,000",
+    "fundingCurrency": "INR",
+    "eligibleCountries": [
+      "India"
+    ],
+    "eligibleApplicants": [
+      "Indian citizens",
+      "Foreign nationals (with specific eligibility)",
+      "Researchers with Ph.D. in relevant fields"
+    ],
+    "institutionType": [
+      "Academic Institutions",
+      "National Laboratories",
+      "R&D Institutions"
+    ],
+    "field": [
+      "Science",
+      "Engineering",
+      "Mathematics"
+    ],
+    "applicationLink": "https://serb.gov.in/page/english/proposal",
+    "tags": [
+      "Research Grant",
+      "Basic Research",
+      "Extramural Funding"
+    ],
+    "id": "8f04b553-c832-4139-9643-da000684dc9b",
+    "grantUrl": "https://serb.gov.in/page/english/research_grants#Fund%20for%20Industrial%20Research%20Engagement%20%28FIRE%29",
+    "application_link": "https://serb.gov.in/page/english/proposal",
+    "createdAt": null,
+    "updatedAt": null,
+    "lastScrapedAt": "2026-04-14T14:30:27.631043",
+    "checksum": "ff208cf6c9ad78a5a181ef1c9b78a706094c2a604b68e31873edaef8e131ab00"
+  },
+  {
+    "grantTitle": "Core Research Grant (CRG)",
+    "fundingAgency": "Department of Science & Technology, Government of India",
+    "programName": "Core Research Grant",
+    "description": "The CRG scheme provides core research support to active researchers to carry out basic research in frontier areas of Science and Engineering.",
+    "applicationDeadline": "Not Specified",
+    "fundingAmountMin": "Rs. 80 lakh",
+    "fundingAmountMax": "null",
+    "fundingCurrency": "INR",
+    "eligibleCountries": [
+      "India"
+    ],
+    "eligibleApplicants": [
+      "Indian citizens",
+      "Foreign nationals (including OCI and NRI) fulfilling SERB criteria"
+    ],
+    "institutionType": [
+      "Government",
+      "Private",
+      "National Laboratories",
+      "Research Institutions",
+      "Recognized Academic Institutions"
+    ],
+    "field": [
+      "Science",
+      "Engineering"
+    ],
+    "applicationLink": "https://serb.gov.in/page/english/research_grants#accordion",
+    "tags": [
+      "Research Grant",
+      "Basic Research",
+      "SERB"
+    ],
+    "id": "42facc67-9628-4328-9514-518bea3d0318",
+    "grantUrl": "https://serb.gov.in/page/english/research_grants#Prime%20Minister%20Early%20Career%20Research%20Grant%20%28PM%20ECRG%29",
+    "application_link": "https://serb.gov.in/page/english/research_grants#accordion",
+    "createdAt": null,
+    "updatedAt": null,
+    "lastScrapedAt": "2026-04-14T14:30:38.972567",
+    "checksum": "e51ae5720013ec2f07f56f0cbf48e4e39b549d6b45907f1c69afd6bc5a211a71"
+  },
+  {
+    "grantTitle": "Core Research Grant (CRG)",
+    "fundingAgency": "Anusandhan National Research Foundation (ANRF)",
+    "programName": "Core Research Grant",
+    "description": "Extramural Research funding scheme for basic research in all frontier areas of Science and Engineering.",
+    "applicationDeadline": "Not Specified",
+    "fundingAmountMin": "Rs. 80 lakh",
+    "fundingAmountMax": "Rs. 80 lakh",
+    "fundingCurrency": "INR",
+    "eligibleCountries": [
+      "India"
+    ],
+    "eligibleApplicants": [
+      "Indian citizens",
+      "Foreign nationals fulfilling eligibility criteria"
+    ],
+    "institutionType": [
+      "Academic institutions",
+      "Research Laboratories",
+      "R&D organizations"
+    ],
+    "field": [
+      "Science",
+      "Engineering"
+    ],
+    "applicationLink": "https://serb.gov.in/page/english/proposal",
+    "tags": [
+      "research",
+      "grants",
+      "science",
+      "engineering"
+    ],
+    "id": "b90acbe5-d5c1-4eaf-acfe-31740d63c0a4",
+    "grantUrl": "https://serb.gov.in/page/english/research_grants#SERB%20-%20POWER%20Research%20Grants",
+    "application_link": "https://serb.gov.in/page/english/proposal",
+    "createdAt": null,
+    "updatedAt": null,
+    "lastScrapedAt": "2026-04-14T14:30:54.438174",
+    "checksum": "294ba575dc4731f38d8d070c94edeffdc7f2a95f81e3d605510a483d2a1e1941"
+  }
+]
