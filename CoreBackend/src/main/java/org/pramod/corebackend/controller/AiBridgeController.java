@@ -125,6 +125,8 @@ public class AiBridgeController {
         return ResponseEntity.ok(grantService.getChangedGrantIds(since));
     }
 
+
+
     @PostMapping("/rag/recommend")
     public ResponseEntity<Object> recommend(@RequestBody Map<String, Object> request,
                                             @RequestHeader(value = "X-API-KEY", required = false) String apiKey) {
