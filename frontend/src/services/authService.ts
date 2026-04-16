@@ -44,6 +44,7 @@ export function saveSession(session: AuthSession): void {
 
 export function clearSession(): void {
   localStorage.removeItem(STORAGE_KEY);
+  window.dispatchEvent(new Event('auth:unauthorized'));
 }
 
 export async function register(payload: RegisterPayload): Promise<AuthSession> {

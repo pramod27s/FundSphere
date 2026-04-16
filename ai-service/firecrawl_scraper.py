@@ -4,7 +4,7 @@ import uuid
 import hashlib
 from datetime import datetime
 
-FIRECRAWL_API_KEY = "fc-02adebc8ff4b4d5e9c7c9dc7542576ab"
+FIRECRAWL_API_KEY = "fc-f1a6fad35689468b90bfdd9c3979eb2f"
 
 # The schema definition we want Firecrawl to strictly extract for us
 GRANT_SCHEMA = {
@@ -134,8 +134,8 @@ def crawl_for_grants(start_url, max_required=8):
                 
                 # Check for actual grant keywords in the title text
                 grant_title = link_div.text.strip().lower()
-                grant_keywords = ["grant", "fellowship", "award", "scheme", "fund", "scholarship", "support"]
-                
+                grant_keywords = ["grant", "fellowship", "award", "scheme", "fund", "scholarship", "support", "artificial intelligence", "conference", "seminar", "call for proposal"]
+
                 if not any(kw in grant_title for kw in grant_keywords):
                     continue
 
@@ -150,16 +150,29 @@ def crawl_for_grants(start_url, max_required=8):
                 # to instruct Firecrawl properly. 
                 if fragment == "#accordion":
                     import urllib.parse
-                    safe_title = urllib.parse.quote(link_div.text.strip())
+                    try:
+                        safe_title = urllib.parse.quote(link_div.text.strip())
+                    except:
+                        safe_title = "accordion"
                     l = f"{current_url}#{safe_title}"
                 else:
                     from urllib.parse import urljoin
                     l = urljoin(current_url, fragment)
                 
+                # For printing safely on Windows terminals
+                def safe_print(*args):
+                    try:
+                        print(*args)
+                    except UnicodeEncodeError:
+                        print(" ".join(str(a) for a in args).encode("utf-8", "ignore").decode("utf-8"))
+
                 if l not in valid_candidates and l not in visited:
                     valid_candidates.append(l)
-                    print(f"       Found grant accordion target: {link_div.text.strip()} -> {l}")
-            
+                    try:
+                        safe_print(f"       Found grant accordion target: {link_div.text.strip()} -> {l}")
+                    except Exception:
+                        pass
+
             # Catch standard href links that explicitly mention grant keywords in text
             # but only if they are clearly grants (avoid menu items)
             for a in soup.find_all("a", href=True):
@@ -174,12 +187,23 @@ def crawl_for_grants(start_url, max_required=8):
                 if any(bad in l.lower() for bad in ignore_list):
                     continue
                 
-                text = a.text.strip().lower()
+                try:
+                    text = a.text.strip().lower()
+                except Exception:
+                    text = ""
+
                 if not text:
                     continue
                 
+                # For printing safely on Windows terminals
+                def safe_print(*args):
+                    try:
+                        print(*args)
+                    except UnicodeEncodeError:
+                        print(" ".join(str(a) for a in args).encode("utf-8", "ignore").decode("utf-8"))
+
                 is_grant = False
-                grant_keywords = ["fellowship", "research grant", "award", "scholarship", "funding"]
+                grant_keywords = ["fellowship", "research grant", "award", "scholarship", "funding", "call for proposal", "grants for artificial intelligence", "grants for conference"]
                 for kw in grant_keywords:
                     # Require the keyword and at least 2 words to avoid generic links
                     if kw in text and len(text.split()) > 1: 
@@ -188,7 +212,7 @@ def crawl_for_grants(start_url, max_required=8):
                 
                 if is_grant and l not in valid_candidates and l not in visited and l != current_url:
                     valid_candidates.append(l)
-                    print(f"       Found explicit grant link: {text} -> {l}")
+                    safe_print(f"       Found explicit grant link: {text} -> {l}")
                     if len(valid_candidates) >= max_required * 2:
                         break
 
