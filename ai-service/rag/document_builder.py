@@ -77,7 +77,7 @@ def build_grant_document(grant: GrantData) -> str:
 
 def build_pinecone_record(grant: GrantData) -> dict:
     record = {
-        "_id": f"grant#{grant.id}",
+        "id": f"grant#{grant.id}",
         "chunk_text": build_grant_document(grant),
         "grant_id": grant.id,
         "grant_title": _clean_str(grant.grantTitle),
