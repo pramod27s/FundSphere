@@ -114,8 +114,8 @@ class PineconeService:
 
     def _hit_id(self, hit: Any) -> str:
         if isinstance(hit, dict):
-            return str(hit.get("_id", ""))
-        return str(getattr(hit, "_id", ""))
+            return str(hit.get("id", hit.get("_id", "")))
+        return str(getattr(hit, "id", getattr(hit, "_id", "")))
 
     def _hit_score(self, hit: Any) -> float:
         if isinstance(hit, dict):
