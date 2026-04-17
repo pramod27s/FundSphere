@@ -17,9 +17,10 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
   const [grants, setGrants] = useState<DiscoveryGrant[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [warningMessage, setWarningMessage] = useState<string | null>(null);
   const [dataSource, setDataSource] = useState<'ai' | 'core' | null>(null);
 
-  const loadGrants = async (queryOverride?: string) => {
+  const loadGrants = async (queryOverride?: string, useRerank = false) => {
     if (!researcher) {
       setErrorMessage('Researcher profile is missing. Please complete onboarding first.');
       setGrants([]);
@@ -28,15 +29,20 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
 
     setIsLoading(true);
     setErrorMessage(null);
+    setWarningMessage(null);
 
     try {
-      const { grants: fetchedGrants, source } = await getDiscoveryGrants({
-        userId: researcher.id,
+      const { grants: fetchedGrants, source, aiError } = await getDiscoveryGrants({
         userQuery: queryOverride ?? searchQuery,
         topK: 12,
+        useRerank,
       });
       setGrants(fetchedGrants);
       setDataSource(source);
+
+      if (useRerank && source === 'core' && aiError) {
+        setWarningMessage('AI matching is currently unavailable, showing fallback grants from CoreBackend.');
+      }
     } catch (error) {
       setGrants([]);
       setDataSource(null);
@@ -47,7 +53,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
   };
 
   useEffect(() => {
-    void loadGrants('');
+    void loadGrants('', false);
   }, [researcher]);
 
   const sortedGrants = useMemo(() => {
@@ -106,7 +112,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                 className="w-full sm:pl-12 sm:pr-32 px-4 py-3 sm:py-4 bg-brand-50 border-2 border-brand-100 rounded-xl focus:outline-none focus:border-primary-500 focus:bg-white text-brand-900 placeholder:text-brand-400 text-base md:text-lg transition-all shadow-sm"
               />
               <button
-                onClick={() => void loadGrants(searchQuery)}
+                onClick={() => void loadGrants(searchQuery, true)}
                 className="w-full sm:w-auto sm:absolute sm:right-2 sm:px-6 py-3 sm:py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl sm:rounded-lg font-medium transition-colors shadow-md shadow-primary-500/20 active:scale-95"
               >
                 AI Match
@@ -120,7 +126,6 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                   key={tag}
                   onClick={() => {
                     setSearchQuery(tag);
-                    void loadGrants(tag);
                   }}
                   className="px-3 py-1.5 bg-white border border-brand-200 rounded-full text-sm text-brand-600 hover:border-primary-300 hover:text-primary-600 hover:bg-primary-50 transition-colors whitespace-nowrap"
                 >
@@ -174,6 +179,12 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                 <button onClick={() => void loadGrants(searchQuery)} className="px-3 py-1 rounded-md bg-white border border-red-200 text-red-700">
                   Retry
                 </button>
+              </div>
+            )}
+
+            {warningMessage && (
+              <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                {warningMessage}
               </div>
             )}
 

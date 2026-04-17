@@ -1,0 +1,129 @@
+Here is the **same text returned exactly with structure preserved**:
+
+---
+
+# Grant Finder Project
+
+## 2. User Type
+
+This is important because grants differ for different applicants.
+
+Field:
+
+• User Type
+• Researcher
+• Student
+• Nonprofit Organization
+• Startup / Company
+• Professor / Faculty
+
+---
+
+## 3. Organization / Institution Details
+
+• Institution / Organization Name
+• Department / Area
+• Position / Role
+• Student
+• Research Assistant
+• Professor
+• NGO Member
+• Founder
+
+---
+
+## 4. Research / Interest Area
+
+This helps match grants.
+
+• Primary Field
+• Artificial Intelligence
+• Healthcare
+• Education
+• Environment
+• Agriculture
+• Robotics
+• Data Science
+• Social Impact
+
+Optional
+
+• Keywords / Research Interests
+
+Example:
+Machine Learning, Climate Tech, Public Health
+
+---
+
+## 5. Location Information
+
+Many grants are region-specific.
+
+• Country
+• State
+• City
+
+---
+
+## 6. Funding Preferences
+
+Helps filter opportunities.
+
+• Minimum Funding Amount
+• Maximum Funding Amount
+
+• Preferred Grant Type
+• Research grant
+• Travel grant
+• Fellowship
+• Startup funding
+• NGO funding
+
+---
+
+## 7. Experience / Background
+
+(Optional but useful)
+
+• Year of experience
+
+• Education level
+• Undergraduate
+• Masters
+• PhD
+
+• Previous grants received (Yes / No)
+
+---
+
+## 8. Notification Preferences
+
+• Email notifications for new grants
+• Deadline reminders
+• Weekly grant recommendations
+
+
+
+{
+  "userType": "RESEARCHER",
+  "institutionName": "MIT",
+  "department": "Computer Science",
+  "position": "PROFESSOR",
+  "primaryField": "ARTIFICIAL_INTELLIGENCE",
+  "keywords": ["Machine Learning", "Climate Tech"],
+  "country": "USA",
+  "state": "Massachusetts",
+  "city": "Cambridge",
+  "minFundingAmount": 10000,
+  "maxFundingAmount": 500000,
+  "preferredGrantType": "RESEARCH_GRANT",
+  "yearsOfExperience": 10,
+  "educationLevel": "PHD",
+  "previousGrantsReceived": true,
+  "emailNotifications": true,
+  "deadlineReminders": true,
+  "weeklyGrantRecommendations": false
+}
+
+
+

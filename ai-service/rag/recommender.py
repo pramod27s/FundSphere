@@ -36,6 +36,14 @@ class RecommenderService:
                 top_k=max(request.topK * 3, 20),
             )
 
+            # If strict profile filters return nothing, retry broad keyword search.
+            if not keyword_candidates:
+                keyword_candidates = self.spring_client.keyword_search(
+                    query=query_text,
+                    user_profile=None,
+                    top_k=max(request.topK * 3, 20),
+                )
+
         metadata_filter = self._build_metadata_filter(profile)
         semantic_hits = self.pinecone_service.search(
             query_text=query_text,
@@ -43,6 +51,15 @@ class RecommenderService:
             metadata_filter=metadata_filter,
             use_rerank=settings.use_rerank if request.useRerank is None else request.useRerank,
         )
+
+        # If metadata constraints are too narrow, retry without filter to recover candidates.
+        if not semantic_hits and metadata_filter is not None:
+            semantic_hits = self.pinecone_service.search(
+                query_text=query_text,
+                top_k=max(request.topK * 3, settings.semantic_top_k),
+                metadata_filter=None,
+                use_rerank=settings.use_rerank if request.useRerank is None else request.useRerank,
+            )
 
         fused = fuse_keyword_and_semantic(keyword_candidates, semantic_hits)
         semantic_map = {hit.grantId: hit for hit in semantic_hits}

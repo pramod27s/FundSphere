@@ -89,9 +89,9 @@ public class AiBridgeController {
     public ResponseEntity<AiUserProfileResponse> getUserProfile(@PathVariable Long id,
                                                                 @RequestHeader(value = "X-API-KEY", required = false) String apiKey) {
         verifyApiKey(apiKey);
-        // Important: the parameter 'id' passed here is actually the USER_ID (AppUser.id),
-        // so we must fetch by userId rather than researcherId, or we will get a 404!
-        ResearcherResponse researcher = researcherService.getResearcherByUserId(id);
+        // The ID passed from the frontend is the researcher ID (from ResearcherResponse.id)
+        // Not the AppUser.id, so we must load by researcher ID!
+        ResearcherResponse researcher = researcherService.getResearcherById(id);
 
         AiUserProfileResponse response = AiUserProfileResponse.builder()
                 .userId(researcher.getId())

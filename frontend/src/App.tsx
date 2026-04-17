@@ -6,7 +6,7 @@ import ResearcherProfile from './components/profile/ResearcherProfile.tsx';
 import SplashScreen from './components/common/SplashScreen.tsx';
 import AuthPage from './components/auth/AuthPage.tsx';
 import { getMyResearcher, type ResearcherResponse } from './services/researcherService';
-import { loadSession, clearSession, type AuthSession } from './services/authService';
+import { loadSession, clearSession } from './services/authService';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<'splash' | 'auth' | 'onboarding' | 'discovery' | 'profile'>('splash');
