@@ -1,3 +1,7 @@
+/**
+ * This file contains the CustomUserDetailsService class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend.security;
 
 import lombok.RequiredArgsConstructor;
@@ -21,4 +25,5 @@ public class CustomUserDetailsService implements UserDetailsService {
         return new UserPrincipal(user);
     }
 }
+
 

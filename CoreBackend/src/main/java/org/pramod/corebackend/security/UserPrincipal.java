@@ -1,3 +1,7 @@
+/**
+ * This file contains the UserPrincipal class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend.security;
 
 import lombok.Getter;
@@ -61,4 +65,5 @@ public class UserPrincipal implements UserDetails {
         return true;
     }
 }
+
 

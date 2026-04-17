@@ -1,3 +1,7 @@
+/**
+ * This file contains the Researcher class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend.entity;
 
 import jakarta.persistence.*;
@@ -106,4 +110,5 @@ public class Researcher {
         this.updatedAt = LocalDateTime.now();
     }
 }
+
 

@@ -1,3 +1,7 @@
+/**
+ * This file contains the JwtService class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend.security;
 
 import io.jsonwebtoken.Claims;
@@ -114,4 +118,5 @@ public class JwtService {
         return normalized.matches("^[A-Za-z0-9+/]*={0,2}$");
     }
 }
+
 

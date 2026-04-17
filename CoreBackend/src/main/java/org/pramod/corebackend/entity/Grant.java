@@ -1,3 +1,7 @@
+/**
+ * This file contains the Grant class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend.entity;
 
 import jakarta.persistence.*;
@@ -78,4 +82,5 @@ public class Grant {
         this.updatedAt = LocalDateTime.now();
     }
 }
+
 

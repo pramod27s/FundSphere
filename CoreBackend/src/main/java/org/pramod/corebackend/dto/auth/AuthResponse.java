@@ -1,3 +1,7 @@
+/**
+ * This file contains the AuthResponse class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend.dto.auth;
 
 import lombok.Builder;
@@ -12,4 +16,5 @@ public class AuthResponse {
     private long expiresIn;
     private AuthUserResponse user;
 }
+
 

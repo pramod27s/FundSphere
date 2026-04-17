@@ -1,3 +1,7 @@
+/**
+ * This file contains the GrantResponse class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend.dto;
 
 import lombok.*;
@@ -34,4 +38,5 @@ public class GrantResponse {
     private LocalDateTime updatedAt;
     private LocalDateTime lastScrapedAt;
 }
+
 

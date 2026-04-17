@@ -1,3 +1,7 @@
+/**
+ * This file contains the AppUserRepository class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend.repository;
 
 import org.pramod.corebackend.entity.AppUser;
@@ -10,4 +14,5 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
 
     boolean existsByEmailIgnoreCase(String email);
 }
+
 

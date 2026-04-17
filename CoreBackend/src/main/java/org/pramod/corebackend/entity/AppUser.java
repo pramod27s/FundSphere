@@ -1,3 +1,7 @@
+/**
+ * This file contains the AppUser class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend.entity;
 
 import jakarta.persistence.*;
@@ -49,4 +53,5 @@ public class AppUser {
         this.updatedAt = LocalDateTime.now();
     }
 }
+
 

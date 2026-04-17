@@ -1,3 +1,7 @@
+/**
+ * This file contains the GrantController class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend.controller;
 
 import lombok.RequiredArgsConstructor;
@@ -18,8 +22,12 @@ public class GrantController {
 
     private final GrantService grantService;
 
-    // POST - Store scraped grant data (used by FastAPI)
-    // Uses saveOrUpdateGrant with checksum logic
+    /**
+     * Creates a new grant or updates an existing one based on checksum logic.
+     * This endpoint is typically consumed by the Python scraper (FastAPI/Firecrawl).
+     * @param request The grant data payload.
+     * @return GrantResponse containing the saved entity and whether it was created or updated.
+     */
     @PostMapping
     public ResponseEntity<GrantResponse> createGrant(@RequestBody GrantRequest request) {
         GrantService.SaveOrUpdateResult result = grantService.saveOrUpdateGrant(request);
@@ -27,21 +35,33 @@ public class GrantController {
         return new ResponseEntity<>(result.response(), status);
     }
 
-    // GET - Return all stored grants
+    /**
+     * Retrieves a list of all grants available in the system.
+     * @return List of GrantResponse objects.
+     */
     @GetMapping
     public ResponseEntity<List<GrantResponse>> getAllGrants() {
         List<GrantResponse> grants = grantService.getAllGrants();
         return ResponseEntity.ok(grants);
     }
 
-    // GET - Return a specific grant by ID
+    /**
+     * Retrieves a specific grant by its unique ID.
+     * @param id The primary key of the grant.
+     * @return The requested GrantResponse.
+     */
     @GetMapping("/{id}")
     public ResponseEntity<GrantResponse> getGrantById(@PathVariable Long id) {
         GrantResponse response = grantService.getGrantById(id);
         return ResponseEntity.ok(response);
     }
 
-    // PUT - Update a grant by ID
+    /**
+     * Updates an existing grant by its ID.
+     * @param id The primary key of the target grant.
+     * @param request The new data to update the grant with.
+     * @return The updated GrantResponse.
+     */
     @PutMapping("/{id}")
     public ResponseEntity<GrantResponse> updateGrant(@PathVariable Long id,
                                                      @RequestBody GrantRequest request) {
@@ -49,18 +69,26 @@ public class GrantController {
         return ResponseEntity.ok(response);
     }
 
-    // DELETE - Delete a grant by ID
+    /**
+     * Deletes a grant by its ID.
+     * @param id The primary key of the grant to delete.
+     * @return A success message alongside the deleted grant's ID.
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, String>> deleteGrant(@PathVariable Long id) {
         grantService.deleteGrant(id);
         return ResponseEntity.ok(Map.of("message", "Grant deleted successfully", "id", id.toString()));
     }
 
-    // GET - Find grant by URL (useful for FastAPI to check existence)
+    /**
+     * Searches for a specific grant using its source URL.
+     * Useful for external services to verify if a grant has already been stored.
+     * @param grantUrl The URL of the grant.
+     * @return The matching GrantResponse.
+     */
     @GetMapping("/search")
     public ResponseEntity<GrantResponse> getGrantByUrl(@RequestParam String grantUrl) {
         GrantResponse response = grantService.getGrantByUrl(grantUrl);
         return ResponseEntity.ok(response);
     }
 }
-

@@ -1,3 +1,7 @@
+/**
+ * This file contains the CorsConfig class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend.config;
 
 import org.springframework.context.annotation.Bean;
@@ -21,5 +25,6 @@ public class CorsConfig {
         };
     }
 }
+
 
 

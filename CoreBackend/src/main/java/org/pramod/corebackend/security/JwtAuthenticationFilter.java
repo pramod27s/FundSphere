@@ -1,3 +1,7 @@
+/**
+ * This file contains the JwtAuthenticationFilter class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend.security;
 
 import io.jsonwebtoken.JwtException;
@@ -61,4 +65,5 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 }
+
 

@@ -1,3 +1,7 @@
+/**
+ * This file contains the RefreshTokenRepository class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend.repository;
 
 import org.pramod.corebackend.entity.AppUser;
@@ -11,4 +15,5 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
 
     void deleteByUser(AppUser user);
 }
+
 

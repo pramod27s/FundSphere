@@ -1,3 +1,7 @@
+/**
+ * This file contains the ResearcherResponse class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend.dto;
 
 import lombok.*;
@@ -52,4 +56,5 @@ public class ResearcherResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
+
 

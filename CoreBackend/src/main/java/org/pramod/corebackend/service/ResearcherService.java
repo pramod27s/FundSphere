@@ -1,3 +1,7 @@
+/**
+ * This file contains the ResearcherService class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend.service;
 
 import lombok.RequiredArgsConstructor;
@@ -185,4 +189,5 @@ public class ResearcherService {
                 .build();
     }
 }
+
 

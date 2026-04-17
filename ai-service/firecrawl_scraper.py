@@ -3,6 +3,11 @@ import json
 import uuid
 import hashlib
 from datetime import datetime
+import sys
+
+# Force UTF-8 for output to avoid charmap codec errors in Windows terminals
+if sys.stdout.encoding.lower() != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8')
 
 FIRECRAWL_API_KEY = "fc-f1a6fad35689468b90bfdd9c3979eb2f"
 

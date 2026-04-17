@@ -1,3 +1,7 @@
+/**
+ * This file contains the RefreshToken class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend.entity;
 
 import jakarta.persistence.*;
@@ -40,4 +44,5 @@ public class RefreshToken {
         this.createdAt = LocalDateTime.now();
     }
 }
+
 

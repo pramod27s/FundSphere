@@ -1,3 +1,7 @@
+/**
+ * This file contains the ResearcherRepository class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend.repository;
 
 import org.pramod.corebackend.entity.Researcher;
@@ -24,4 +28,5 @@ public interface ResearcherRepository extends JpaRepository<Researcher, Long> {
 
     Optional<Researcher> findByUserId(Long userId);
 }
+
 

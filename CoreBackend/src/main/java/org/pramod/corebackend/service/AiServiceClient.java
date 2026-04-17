@@ -1,3 +1,7 @@
+/**
+ * This file contains the AiServiceClient class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend.service;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -68,4 +72,5 @@ public class AiServiceClient {
         }
     }
 }
+
 
