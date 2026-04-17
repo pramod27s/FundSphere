@@ -11,7 +11,10 @@ import org.pramod.corebackend.enums.PrimaryField;
 import org.pramod.corebackend.enums.UserType;
 import org.pramod.corebackend.security.UserPrincipal;
 import org.pramod.corebackend.service.AiServiceClient;
+import org.pramod.corebackend.service.GrantService;
 import org.pramod.corebackend.service.ResearcherService;
+import org.pramod.corebackend.dto.ai.AiUserProfileResponse;
+import org.pramod.corebackend.dto.ai.AiKeywordCandidateResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -28,6 +31,7 @@ public class ResearcherController {
 
     private final ResearcherService researcherService;
     private final AiServiceClient aiServiceClient;
+    private final GrantService grantService;
 
     /**
      * Creates or updates the researcher profile for the currently authenticated user.
@@ -65,17 +69,70 @@ public class ResearcherController {
                                                @RequestBody(required = false) Map<String, Object> request) {
         ResearcherResponse researcher = researcherService.getResearcherByUserId(principal.getId());
 
+        AiUserProfileResponse userProfile = AiUserProfileResponse.builder()
+                .userId(researcher.getId())
+                .country(researcher.getCountry())
+                .institutionType(null)
+                .applicantType(researcher.getUserType() == null ? null : researcher.getUserType().name())
+                .careerStage(researcher.getPosition() == null ? null : researcher.getPosition().name())
+                .department(researcher.getDepartment())
+                .researchBio(null)
+                .researchInterests(researcher.getPrimaryField() == null
+                        ? List.of()
+                        : List.of(researcher.getPrimaryField().name()))
+                .keywords(researcher.getKeywords() == null ? List.of() : researcher.getKeywords())
+                .preferredMinAmount(researcher.getMinFundingAmount())
+                .preferredMaxAmount(researcher.getMaxFundingAmount())
+                .preferredCurrency("USD")
+                .build();
+
+        int topK = parseTopK(request);
+        String userQuery = parseUserQuery(request);
+
+        String queryText = userQuery != null ? userQuery : buildQueryText(userProfile);
+
+        List<AiKeywordCandidateResponse> keywordCandidates = grantService.keywordSearch(
+                        queryText,
+                        userProfile.getCountry(),
+                        userProfile.getInstitutionType(),
+                        userProfile.getApplicantType(),
+                        Math.max(topK * 3, 20))
+                .stream()
+                .map(hit -> AiKeywordCandidateResponse.builder()
+                        .grantId(hit.grantId())
+                        .keywordScore(hit.keywordScore())
+                        .build())
+                .toList();
+
         Map<String, Object> requestToAi = new HashMap<>();
         requestToAi.put("userId", researcher.getId());
-        requestToAi.put("topK", parseTopK(request));
+        requestToAi.put("userProfile", userProfile);
+        requestToAi.put("keywordCandidates", keywordCandidates);
+        requestToAi.put("topK", topK);
         requestToAi.put("useRerank", parseUseRerank(request));
 
-        String userQuery = parseUserQuery(request);
         if (userQuery != null) {
             requestToAi.put("userQuery", userQuery);
         }
 
         return ResponseEntity.ok(aiServiceClient.recommend(requestToAi));
+    }
+
+    private String buildQueryText(AiUserProfileResponse profile) {
+        StringBuilder parts = new StringBuilder();
+        if (profile.getResearchInterests() != null && !profile.getResearchInterests().isEmpty()) {
+            parts.append(String.join(", ", profile.getResearchInterests())).append(" ");
+        }
+        if (profile.getKeywords() != null && !profile.getKeywords().isEmpty()) {
+            parts.append(String.join(", ", profile.getKeywords())).append(" ");
+        }
+        if (profile.getDepartment() != null) {
+            parts.append(profile.getDepartment()).append(" ");
+        }
+        if (profile.getResearchBio() != null) {
+            parts.append(profile.getResearchBio()).append(" ");
+        }
+        return parts.toString().trim();
     }
 
     /**
