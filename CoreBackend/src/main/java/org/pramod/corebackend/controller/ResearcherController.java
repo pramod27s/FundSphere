@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -54,18 +55,83 @@ public class ResearcherController {
 
     /**
      * Retrieves AI-powered grant recommendations tailored to the current user's profile.
-     * Communicates with the Python AI Service.
+     * The researcher ID is resolved server-side from the authenticated user to avoid client-side ID mismatch bugs.
      * @param principal The security principal of the logged-in user.
+     * @param request Optional request with userQuery and topK.
      * @return AI recommendations specific to the researcher.
      */
-    @GetMapping("/me/matches")
-    public ResponseEntity<Object> getMyMatches(@AuthenticationPrincipal UserPrincipal principal) {
-        // Send the userId to the AI service's RAG recommendation engine
-        Map<String, Object> requestToAi = Map.of(
-                "userId", principal.getId(),
-                "topK", 10 // Requesting top 10 best matches
-        );
+    @PostMapping("/me/matches")
+    public ResponseEntity<Object> getMyMatches(@AuthenticationPrincipal UserPrincipal principal,
+                                               @RequestBody(required = false) Map<String, Object> request) {
+        ResearcherResponse researcher = researcherService.getResearcherByUserId(principal.getId());
+
+        Map<String, Object> requestToAi = new HashMap<>();
+        requestToAi.put("userId", researcher.getId());
+        requestToAi.put("topK", parseTopK(request));
+        requestToAi.put("useRerank", parseUseRerank(request));
+
+        String userQuery = parseUserQuery(request);
+        if (userQuery != null) {
+            requestToAi.put("userQuery", userQuery);
+        }
+
         return ResponseEntity.ok(aiServiceClient.recommend(requestToAi));
+    }
+
+    /**
+     * Backward-compatible GET endpoint for existing clients.
+     */
+    @GetMapping("/me/matches")
+    public ResponseEntity<Object> getMyMatchesLegacy(@AuthenticationPrincipal UserPrincipal principal) {
+        return getMyMatches(principal, null);
+    }
+
+    private int parseTopK(Map<String, Object> request) {
+        int defaultTopK = 12;
+        int minTopK = 1;
+        int maxTopK = 50;
+
+        if (request == null || request.get("topK") == null) {
+            return defaultTopK;
+        }
+
+        Object raw = request.get("topK");
+        int parsed;
+
+        if (raw instanceof Number number) {
+            parsed = number.intValue();
+        } else {
+            try {
+                parsed = Integer.parseInt(raw.toString());
+            } catch (NumberFormatException ex) {
+                return defaultTopK;
+            }
+        }
+
+        return Math.max(minTopK, Math.min(maxTopK, parsed));
+    }
+
+    private String parseUserQuery(Map<String, Object> request) {
+        if (request == null || request.get("userQuery") == null) {
+            return null;
+        }
+
+        String value = request.get("userQuery").toString().trim();
+        return value.isEmpty() ? null : value;
+    }
+
+    private boolean parseUseRerank(Map<String, Object> request) {
+        if (request == null || request.get("useRerank") == null) {
+            return false;
+        }
+
+        Object raw = request.get("useRerank");
+        if (raw instanceof Boolean value) {
+            return value;
+        }
+
+        String value = raw.toString().trim().toLowerCase();
+        return "true".equals(value) || "1".equals(value) || "yes".equals(value) || "y".equals(value) || "on".equals(value);
     }
 
     /**

@@ -17,10 +17,17 @@ export interface DiscoveryGrant {
   lastScrapedAt?: string;
 }
 
+export interface DiscoveryResult {
+  grants: DiscoveryGrant[];
+  source: 'ai' | 'core';
+  aiError?: string;
+}
+
 interface RecommendationRequest {
-  userId: number;
+  userId?: number;
   userQuery?: string;
   topK?: number;
+  useRerank?: boolean;
 }
 
 interface RecommendationResponse {
@@ -55,30 +62,38 @@ interface CoreGrantResponse {
   lastScrapedAt?: string;
 }
 
-export async function getDiscoveryGrants(request: RecommendationRequest): Promise<{ grants: DiscoveryGrant[]; source: 'ai' | 'core' }> {
+export async function getDiscoveryGrants(request: RecommendationRequest): Promise<DiscoveryResult> {
+  if (request.useRerank !== true) {
+    const coreGrants = await fetchCoreGrantList();
+    return { grants: coreGrants, source: 'core' };
+  }
+
+  let aiError: string | undefined;
+
   try {
     const aiGrants = await fetchAiRecommendations(request);
     if (aiGrants.length > 0) {
       return { grants: aiGrants, source: 'ai' };
     }
   } catch (error) {
+    aiError = error instanceof Error ? error.message : 'Unknown AI recommendation error';
     console.warn('AI recommendation failed, trying CoreBackend grant list fallback.', error);
   }
 
   const coreGrants = await fetchCoreGrantList();
-  return { grants: coreGrants, source: 'core' };
+  return { grants: coreGrants, source: 'core', aiError };
 }
 
 async function fetchAiRecommendations(request: RecommendationRequest): Promise<DiscoveryGrant[]> {
-  const response = await apiFetch('/api/ai/rag/recommend', {
+  const response = await apiFetch('/api/researchers/me/matches', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      userId: request.userId,
       userQuery: request.userQuery,
       topK: request.topK ?? 12,
+      useRerank: request.useRerank === true,
     }),
   });
 
