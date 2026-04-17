@@ -15,7 +15,7 @@ class GrantIndexer:
         return {
             "status": "indexed",
             "grantId": grant_id,
-            "recordId": record["_id"],
+            "recordId": record.get("id") or record.get("_id"),
         }
 
     def index_many(self, grant_ids: List[int]) -> dict:
