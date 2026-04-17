@@ -1,3 +1,7 @@
+/**
+ * This file contains the GlobalExceptionHandler class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend.exception;
 
 import org.springframework.http.HttpStatus;
@@ -57,4 +61,5 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }
+
 

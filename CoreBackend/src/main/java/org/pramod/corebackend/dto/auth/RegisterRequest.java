@@ -1,3 +1,7 @@
+/**
+ * This file contains the RegisterRequest class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend.dto.auth;
 
 import lombok.Getter;
@@ -10,4 +14,5 @@ public class RegisterRequest {
     private String email;
     private String password;
 }
+
 

@@ -1,3 +1,7 @@
+/**
+ * This file contains the AiKeywordCandidateResponse class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend.dto.ai;
 
 import lombok.AllArgsConstructor;
@@ -16,4 +20,5 @@ public class AiKeywordCandidateResponse {
     private Long grantId;
     private double keywordScore;
 }
+
 

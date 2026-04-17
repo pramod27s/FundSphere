@@ -1,3 +1,7 @@
+/**
+ * This file contains the AiBridgeController class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend.controller;
 
 import lombok.RequiredArgsConstructor;
@@ -37,6 +41,12 @@ public class AiBridgeController {
     @Value("${integration.api-key:}")
     private String expectedApiKey;
 
+    /**
+     * Fetches a grant by ID formatted for indexing by the AI service.
+     * @param id The ID of the grant to index.
+     * @param apiKey Internal integration key.
+     * @return AI indexable format.
+     */
     @GetMapping("/grants/{id}/indexable")
     public ResponseEntity<AiGrantIndexableResponse> getGrantForIndexing(@PathVariable Long id,
                                                                          @RequestHeader(value = "X-API-KEY", required = false) String apiKey) {
@@ -69,11 +79,19 @@ public class AiBridgeController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Fetches a user's details tailored for the AI recommendation process.
+     * @param id User ID.
+     * @param apiKey Internal integration key.
+     * @return Formatted AI user profile response.
+     */
     @GetMapping("/users/{id}/grant-profile")
     public ResponseEntity<AiUserProfileResponse> getUserProfile(@PathVariable Long id,
                                                                 @RequestHeader(value = "X-API-KEY", required = false) String apiKey) {
         verifyApiKey(apiKey);
-        ResearcherResponse researcher = researcherService.getResearcherById(id);
+        // Important: the parameter 'id' passed here is actually the USER_ID (AppUser.id),
+        // so we must fetch by userId rather than researcherId, or we will get a 404!
+        ResearcherResponse researcher = researcherService.getResearcherByUserId(id);
 
         AiUserProfileResponse response = AiUserProfileResponse.builder()
                 .userId(researcher.getId())
@@ -95,6 +113,12 @@ public class AiBridgeController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Conducts a keyword text search to retrieve the top grant candidates.
+     * @param request Search query and filtering criteria.
+     * @param apiKey Internal integration key.
+     * @return List of matching grant candidates with scores.
+     */
     @PostMapping("/grants/keyword-search")
     public ResponseEntity<List<AiKeywordCandidateResponse>> keywordSearch(@RequestBody AiKeywordSearchRequest request,
                                                                            @RequestHeader(value = "X-API-KEY", required = false) String apiKey) {
@@ -117,6 +141,13 @@ public class AiBridgeController {
         return ResponseEntity.ok(results);
     }
 
+    /**
+     * Retrieves IDs of grants that have been modified after a certain date.
+     * Used by the AI service to selectively re-index updated chunks.
+     * @param since The datetime from which to check.
+     * @param apiKey Internal integration key.
+     * @return List of grant IDs.
+     */
     @GetMapping("/grants/changed-ids")
     public ResponseEntity<List<Long>> getChangedGrantIds(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime since,
@@ -126,13 +157,26 @@ public class AiBridgeController {
     }
 
 
-
+    /**
+     * Proxy endpoint: Forwards a recommendation request to the Python AI service.
+     * @param request AI Service generic payload.
+     * @param apiKey Expected client payload (if applicable).
+     * @return AI recommender output.
+     *
+     * called by the frontend i guess , if @RequestHeader(value = "X-API-KEY", required = false) String apiKey is null not a problem , its fine
+     */
     @PostMapping("/rag/recommend")
     public ResponseEntity<Object> recommend(@RequestBody Map<String, Object> request,
                                             @RequestHeader(value = "X-API-KEY", required = false) String apiKey) {
         return ResponseEntity.ok(aiServiceClient.recommend(request));
     }
 
+    /**
+     * Proxy endpoint: Commands the Python AI service to embed and index a single grant in Vector DB.
+     * @param request AI Service generic payload.
+     * @param apiKey Internal integration key.
+     * @return Indexing confirmation.
+     */
     @PostMapping("/rag/index-grant")
     public ResponseEntity<Object> indexGrant(@RequestBody Map<String, Object> request,
                                              @RequestHeader(value = "X-API-KEY", required = false) String apiKey) {
@@ -140,6 +184,12 @@ public class AiBridgeController {
         return ResponseEntity.ok(aiServiceClient.indexGrant(request));
     }
 
+    /**
+     * Proxy endpoint: Commands the Python AI service to bulk embed and index multiple grants in Vector DB.
+     * @param request AI Service generic payload.
+     * @param apiKey Internal integration key.
+     * @return Batch Indexing confirmation.
+     */
     @PostMapping("/rag/index-grants")
     public ResponseEntity<Object> indexGrants(@RequestBody Map<String, Object> request,
                                               @RequestHeader(value = "X-API-KEY", required = false) String apiKey) {
@@ -167,4 +217,3 @@ public class AiBridgeController {
         }
     }
 }
-

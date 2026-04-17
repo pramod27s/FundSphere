@@ -1,3 +1,7 @@
+/**
+ * This file contains the AiGrantIndexableResponse class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend.dto.ai;
 
 import lombok.AllArgsConstructor;
@@ -38,4 +42,5 @@ public class AiGrantIndexableResponse {
     private LocalDateTime updatedAt;
     private LocalDateTime lastScrapedAt;
 }
+
 

@@ -1,3 +1,7 @@
+/**
+ * This file contains the SecurityConfig class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend.security;
 
 import lombok.RequiredArgsConstructor;
@@ -87,4 +91,5 @@ public class SecurityConfig {
         return source;
     }
 }
+
 

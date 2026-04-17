@@ -1,3 +1,7 @@
+/**
+ * This file contains the UserType class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend.enums;
 
 public enum UserType {
@@ -7,4 +11,5 @@ public enum UserType {
     STARTUP_COMPANY,
     PROFESSOR_FACULTY
 }
+
 

@@ -1,3 +1,7 @@
+/**
+ * This file contains the GrantService class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend.service;
 
 import lombok.RequiredArgsConstructor;
@@ -284,4 +288,5 @@ public class GrantService {
         return value == null ? "" : value;
     }
 }
+
 

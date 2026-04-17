@@ -1,3 +1,7 @@
+/**
+ * This file contains the GrantType class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend.enums;
 
 public enum GrantType {
@@ -7,4 +11,5 @@ public enum GrantType {
     STARTUP_FUNDING,
     NGO_FUNDING
 }
+
 

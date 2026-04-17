@@ -1,3 +1,7 @@
+/**
+ * This file contains the CoreBackendApplication class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend;
 
 import org.springframework.boot.SpringApplication;
@@ -11,3 +15,4 @@ public class CoreBackendApplication {
     }
 
 }
+

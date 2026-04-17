@@ -1,3 +1,7 @@
+/**
+ * This file contains the GrantRequest class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend.dto;
 
 import lombok.*;
@@ -30,3 +34,4 @@ public class GrantRequest {
     private String checksum;
     private List<String> tags;
 }
+

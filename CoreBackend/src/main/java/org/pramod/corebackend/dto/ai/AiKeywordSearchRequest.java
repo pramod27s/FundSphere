@@ -1,3 +1,7 @@
+/**
+ * This file contains the AiKeywordSearchRequest class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend.dto.ai;
 
 import lombok.AllArgsConstructor;
@@ -19,4 +23,5 @@ public class AiKeywordSearchRequest {
     private String institutionType;
     private String applicantType;
 }
+
 

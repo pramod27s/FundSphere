@@ -1,3 +1,7 @@
+/**
+ * This file contains the GrantRepository class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend.repository;
 
 import org.pramod.corebackend.entity.Grant;
@@ -13,4 +17,5 @@ public interface GrantRepository extends JpaRepository<Grant, Long> {
 
     boolean existsByGrantUrl(String grantUrl);
 }
+
 

@@ -1,3 +1,7 @@
+/**
+ * This file contains the AiUserProfileResponse class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend.dto.ai;
 
 import lombok.AllArgsConstructor;
@@ -29,4 +33,5 @@ public class AiUserProfileResponse {
     private BigDecimal preferredMaxAmount;
     private String preferredCurrency;
 }
+
 

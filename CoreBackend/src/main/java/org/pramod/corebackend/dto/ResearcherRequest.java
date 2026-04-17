@@ -1,3 +1,7 @@
+/**
+ * This file contains the ResearcherRequest class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend.dto;
 
 import lombok.*;
@@ -45,4 +49,5 @@ public class ResearcherRequest {
     private Boolean deadlineReminders;
     private Boolean weeklyGrantRecommendations;
 }
+
 

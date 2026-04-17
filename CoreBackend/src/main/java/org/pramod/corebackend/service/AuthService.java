@@ -1,3 +1,7 @@
+/**
+ * This file contains the AuthService class.
+ * This adds business logic, data transfer object, or configurations.
+ */
 package org.pramod.corebackend.service;
 
 import lombok.RequiredArgsConstructor;
@@ -141,4 +145,5 @@ public class AuthService {
                 .build();
     }
 }
+
 
