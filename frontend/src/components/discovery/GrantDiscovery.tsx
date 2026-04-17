@@ -109,14 +109,27 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                 placeholder="Describe your research project..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full sm:pl-12 sm:pr-32 px-4 py-3 sm:py-4 bg-brand-50 border-2 border-brand-100 rounded-xl focus:outline-none focus:border-primary-500 focus:bg-white text-brand-900 placeholder:text-brand-400 text-base md:text-lg transition-all shadow-sm"
+                className="w-full sm:pl-12 sm:pr-56 px-4 py-3 sm:py-4 bg-brand-50 border-2 border-brand-100 rounded-xl focus:outline-none focus:border-primary-500 focus:bg-white text-brand-900 placeholder:text-brand-400 text-base md:text-lg transition-all shadow-sm"
               />
-              <button
-                onClick={() => void loadGrants(searchQuery, true)}
-                className="w-full sm:w-auto sm:absolute sm:right-2 sm:px-6 py-3 sm:py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl sm:rounded-lg font-medium transition-colors shadow-md shadow-primary-500/20 active:scale-95"
-              >
-                AI Match
-              </button>
+              <div className="flex w-full sm:w-auto sm:absolute sm:right-2 gap-2">
+                {dataSource === 'ai' && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      void loadGrants('', false);
+                    }}
+                    className="w-full sm:w-auto px-4 py-3 sm:py-2 bg-white text-brand-600 border border-brand-200 hover:bg-brand-50 hover:text-brand-900 rounded-xl sm:rounded-lg font-medium transition-colors shadow-sm"
+                  >
+                    Clear
+                  </button>
+                )}
+                <button
+                  onClick={() => void loadGrants(searchQuery, true)}
+                  className="w-full sm:w-auto px-6 py-3 sm:py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl sm:rounded-lg font-medium transition-colors shadow-md shadow-primary-500/20 active:scale-95"
+                >
+                  AI Match
+                </button>
+              </div>
             </div>
 
             <div className="flex gap-2 mt-4 overflow-x-auto pb-2 scrollbar-hide">
@@ -161,18 +174,6 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
               </div>
             </div>
 
-            <div className="bg-primary-50 border border-primary-200 rounded-xl p-4 mb-6 flex gap-4">
-              <div className="bg-white p-2 rounded-lg text-primary-600 shadow-sm border border-primary-100 h-fit">
-                <Sparkles className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="font-medium text-primary-900 mb-1">AI Reasoning Summary</h4>
-                <p className="text-sm text-primary-800/80 leading-relaxed">
-                  Results are now loaded from live backend APIs using your onboarding profile and optional query text.
-                </p>
-              </div>
-            </div>
-
             {errorMessage && (
               <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-center justify-between gap-4">
                 <span>{errorMessage}</span>
@@ -188,14 +189,27 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
               </div>
             )}
 
-            {isLoading ? (
-              <div className="rounded-xl border border-brand-200 bg-white p-6 text-brand-600">Loading grants...</div>
-            ) : sortedGrants.length === 0 ? (
-              <div className="rounded-xl border border-brand-200 bg-white p-6 text-brand-600">
-                No results found for this profile/query yet. Try broadening your search.
+            <GrantList grants={sortedGrants} isLoading={isLoading} />
+            
+            {!isLoading && sortedGrants.length === 0 && (
+              <div className="rounded-2xl border-2 border-dashed border-brand-200 bg-brand-50 p-12 flex flex-col items-center justify-center text-center mt-4">
+                <div className="bg-white p-4 rounded-full shadow-sm border border-brand-100 mb-4">
+                  <Search className="w-8 h-8 text-brand-400" />
+                </div>
+                <h3 className="text-lg font-bold text-brand-900 mb-2">No exact matches found</h3>
+                <p className="text-brand-500 max-w-sm mb-6">
+                  We couldn't find any grants matching this specific profile and query. Try adjusting your research tags or broadening your search terms.
+                </p>
+                <button 
+                  onClick={() => {
+                    setSearchQuery('');
+                    void loadGrants('', false);
+                  }}
+                  className="px-6 py-2.5 bg-white border border-brand-200 hover:border-primary-300 hover:text-primary-600 text-brand-700 font-medium rounded-lg shadow-sm transition-all"
+                >
+                  Clear Search & View All
+                </button>
               </div>
-            ) : (
-              <GrantList grants={sortedGrants} />
             )}
           </div>
         </main>
