@@ -2,6 +2,7 @@ from .schemas import UserProfile
 
 
 def build_user_query_text(profile: UserProfile, user_query: str | None = None) -> str:
+    """Build a single retrieval query string from profile attributes and optional user intent."""
     parts: list[str] = []
 
     if profile.country:
@@ -27,4 +28,5 @@ def build_user_query_text(profile: UserProfile, user_query: str | None = None) -
     if user_query:
         parts.append(f"Current user need: {user_query}")
 
+    # Join all profile signals into one prompt-like retrieval query.
     return " ".join(parts).strip()
