@@ -1,4 +1,4 @@
-import { Search, Sparkles, Menu } from 'lucide-react';
+import { Search, Menu } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import GrantList from './GrantList.tsx';
 import FilterSidebar from './FilterSidebar.tsx';
@@ -13,6 +13,7 @@ interface GrantDiscoveryProps {
 export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('match');
+  const [topK, setTopK] = useState(12);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [grants, setGrants] = useState<DiscoveryGrant[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -34,7 +35,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
     try {
       const { grants: fetchedGrants, source, aiError } = await getDiscoveryGrants({
         userQuery: queryOverride ?? searchQuery,
-        topK: 12,
+        topK,
         useRerank,
       });
       setGrants(fetchedGrants);
@@ -54,7 +55,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
 
   useEffect(() => {
     void loadGrants('', false);
-  }, [researcher]);
+  }, [researcher, topK]);
 
   const sortedGrants = useMemo(() => {
     const copy = [...grants];
@@ -157,6 +158,19 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                 <p className="text-xs md:text-sm text-brand-500 mt-1">
                   {isLoading ? 'Fetching opportunities...' : `Found ${sortedGrants.length} opportunities from ${dataSource === 'core' ? 'CoreBackend fallback' : 'AI ranking'}.`}
                 </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-brand-500">Top results:</span>
+                <select
+                  value={topK}
+                  onChange={(e) => setTopK(Number(e.target.value))}
+                  className="bg-white border border-brand-200 text-brand-700 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2 outline-none"
+                >
+                  <option value={6}>6</option>
+                  <option value={12}>12</option>
+                  <option value={20}>20</option>
+                </select>
               </div>
 
               <div className="flex items-center gap-2">
