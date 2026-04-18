@@ -105,9 +105,10 @@ class RecommenderService:
         top_k: int,
         use_rerank: bool,
     ) -> List[SemanticHit]:
-        collected: Dict[int, SemanticHit] = {}
+        collected: Dict[str, SemanticHit] = {}
+        stages = self._build_metadata_filter_stages(profile)
 
-        for metadata_filter in self._build_metadata_filter_stages(profile):
+        for i, metadata_filter in enumerate(stages):
             hits = self.pinecone_service.search(
                 query_text=query_text,
                 top_k=top_k,
@@ -115,13 +116,12 @@ class RecommenderService:
                 use_rerank=use_rerank,
             )
 
-            cleaned_hits = self._post_filter_hits(profile, hits)
+            is_last_stage = (i == len(stages) - 1)
+            cleaned_hits = self._post_filter_hits(profile, hits, strict=not is_last_stage)
+
             for hit in cleaned_hits:
                 if hit.grantId not in collected:
                     collected[hit.grantId] = hit
-
-            if len(collected) >= top_k:
-                break
 
         return list(collected.values())[:top_k]
 
@@ -165,7 +165,7 @@ class RecommenderService:
 
         return deduped
 
-    def _post_filter_hits(self, profile: UserProfile, hits: List[SemanticHit]) -> List[SemanticHit]:
+    def _post_filter_hits(self, profile: UserProfile, hits: List[SemanticHit], strict: bool) -> List[SemanticHit]:
         cleaned: List[SemanticHit] = []
 
         profile_country = self._normalize(profile.country)
@@ -173,7 +173,7 @@ class RecommenderService:
             fields = hit.fields or {}
 
             # Keep strong semantic recall, but remove clear country mismatch when metadata exists.
-            if profile_country:
+            if strict and profile_country:
                 eligible_countries = self._normalize_list(fields.get("eligible_countries", []))
                 if eligible_countries and profile_country not in eligible_countries:
                     continue

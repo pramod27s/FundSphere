@@ -72,6 +72,7 @@ class PineconeService:
                 "model": settings.pinecone_rerank_model,
                 "top_n": top_k,
                 "rank_fields": ["chunk_text"],
+                "query": query_text,
             }
 
         response = self.index.search(**kwargs)
