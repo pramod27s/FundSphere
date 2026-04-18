@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -96,14 +97,12 @@ public class AiBridgeController {
         AiUserProfileResponse response = AiUserProfileResponse.builder()
                 .userId(researcher.getId())
                 .country(researcher.getCountry())
-                .institutionType(null)
-                .applicantType(researcher.getUserType() == null ? null : researcher.getUserType().name())
-                .careerStage(researcher.getPosition() == null ? null : researcher.getPosition().name())
+                .institutionType(inferInstitutionType(researcher.getInstitutionName()))
+                .applicantType(researcher.getUserType() == null ? null : humanizeEnum(researcher.getUserType().name()))
+                .careerStage(researcher.getPosition() == null ? null : humanizeEnum(researcher.getPosition().name()))
                 .department(researcher.getDepartment())
-                .researchBio(null)
-                .researchInterests(researcher.getPrimaryField() == null
-                        ? List.of()
-                        : List.of(researcher.getPrimaryField().name()))
+                .researchBio(buildResearchBio(researcher))
+                .researchInterests(buildResearchInterests(researcher))
                 .keywords(researcher.getKeywords() == null ? List.of() : researcher.getKeywords())
                 .preferredMinAmount(researcher.getMinFundingAmount())
                 .preferredMaxAmount(researcher.getMaxFundingAmount())
@@ -215,5 +214,114 @@ public class AiBridgeController {
         if (!StringUtils.hasText(apiKey) || !expectedApiKey.equals(apiKey)) {
             throw new ResponseStatusException(UNAUTHORIZED, "Invalid API key");
         }
+    }
+
+    /**
+     * Synthesizes a research bio from available researcher fields.
+     */
+    private String buildResearchBio(ResearcherResponse researcher) {
+        StringBuilder bio = new StringBuilder();
+
+        String position = researcher.getPosition() != null ? humanizeEnum(researcher.getPosition().name()) : null;
+        String field = researcher.getPrimaryField() != null ? humanizeEnum(researcher.getPrimaryField().name()) : null;
+        String dept = researcher.getDepartment();
+        String institution = researcher.getInstitutionName();
+        String country = researcher.getCountry();
+        List<String> keywords = researcher.getKeywords();
+
+        if (position != null) {
+            bio.append(position);
+        }
+        if (dept != null && !dept.isBlank()) {
+            bio.append(bio.length() > 0 ? " in the department of " : "Department of ");
+            bio.append(dept);
+        }
+        if (institution != null && !institution.isBlank()) {
+            bio.append(bio.length() > 0 ? " at " : "At ");
+            bio.append(institution);
+        }
+        if (country != null && !country.isBlank()) {
+            bio.append(", ").append(country);
+        }
+        if (bio.length() > 0) {
+            bio.append(". ");
+        }
+        if (field != null) {
+            bio.append("Research focus: ").append(field).append(". ");
+        }
+        if (keywords != null && !keywords.isEmpty()) {
+            bio.append("Keywords: ").append(String.join(", ", keywords)).append(".");
+        }
+
+        String result = bio.toString().trim();
+        return result.isEmpty() ? null : result;
+    }
+
+    /**
+     * Infers a general institution type category from the institution name.
+     */
+    private String inferInstitutionType(String institutionName) {
+        if (institutionName == null || institutionName.isBlank()) {
+            return null;
+        }
+        String lower = institutionName.trim().toLowerCase();
+        if (lower.contains("university") || lower.contains("universit")) {
+            return "University";
+        }
+        if (lower.contains("college")) {
+            return "College";
+        }
+        if (lower.contains("institute") || lower.contains("institution")) {
+            return "Academic Institutions";
+        }
+        if (lower.contains("hospital") || lower.contains("medical") || lower.contains("clinic")) {
+            return "Medical Institution";
+        }
+        if (lower.contains("lab") || lower.contains("laboratory") || lower.contains("research center") || lower.contains("research centre")) {
+            return "Research Lab";
+        }
+        if (lower.contains("startup") || lower.contains("inc") || lower.contains("llc") || lower.contains("ltd") || lower.contains("corp")) {
+            return "Startup";
+        }
+        if (lower.contains("ngo") || lower.contains("non-profit") || lower.contains("nonprofit") || lower.contains("foundation") || lower.contains("trust")) {
+            return "NGO";
+        }
+        return "Academic Institutions";
+    }
+
+    /**
+     * Builds a list of human-readable research interests from primaryField and keywords.
+     */
+    private List<String> buildResearchInterests(ResearcherResponse researcher) {
+        List<String> interests = new ArrayList<>();
+        if (researcher.getPrimaryField() != null) {
+            interests.add(humanizeEnum(researcher.getPrimaryField().name()));
+        }
+        if (researcher.getKeywords() != null) {
+            for (String keyword : researcher.getKeywords()) {
+                if (keyword != null && !keyword.isBlank() && !interests.contains(keyword.trim())) {
+                    interests.add(keyword.trim());
+                }
+            }
+        }
+        return interests;
+    }
+
+    /**
+     * Converts UPPER_SNAKE_CASE enum name to Title Case.
+     */
+    private String humanizeEnum(String enumName) {
+        if (enumName == null || enumName.isBlank()) {
+            return null;
+        }
+        String[] words = enumName.toLowerCase().split("_");
+        StringBuilder sb = new StringBuilder();
+        for (String word : words) {
+            if (!word.isEmpty()) {
+                if (sb.length() > 0) sb.append(" ");
+                sb.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1));
+            }
+        }
+        return sb.toString();
     }
 }
