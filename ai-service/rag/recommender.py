@@ -44,22 +44,13 @@ class RecommenderService:
                     top_k=max(request.topK * 3, 20),
                 )
 
-        metadata_filter = self._build_metadata_filter(profile)
-        semantic_hits = self.pinecone_service.search(
+        use_rerank = settings.use_rerank if request.useRerank is None else request.useRerank
+        semantic_hits = self._search_with_fallback(
+            profile=profile,
             query_text=query_text,
             top_k=max(request.topK * 3, settings.semantic_top_k),
-            metadata_filter=metadata_filter,
-            use_rerank=settings.use_rerank if request.useRerank is None else request.useRerank,
+            use_rerank=use_rerank,
         )
-
-        # If metadata constraints are too narrow, retry without filter to recover candidates.
-        if not semantic_hits and metadata_filter is not None:
-            semantic_hits = self.pinecone_service.search(
-                query_text=query_text,
-                top_k=max(request.topK * 3, settings.semantic_top_k),
-                metadata_filter=None,
-                use_rerank=settings.use_rerank if request.useRerank is None else request.useRerank,
-            )
 
         fused = fuse_keyword_and_semantic(keyword_candidates, semantic_hits)
         semantic_map = {hit.grantId: hit for hit in semantic_hits}
@@ -107,34 +98,179 @@ class RecommenderService:
             results=top_items,
         )
 
-    def _build_metadata_filter(self, profile: UserProfile) -> dict | None:
-        clauses = []
+    def _search_with_fallback(
+        self,
+        profile: UserProfile,
+        query_text: str,
+        top_k: int,
+        use_rerank: bool,
+    ) -> List[SemanticHit]:
+        collected: Dict[int, SemanticHit] = {}
 
-        if profile.country:
-            clauses.append({"eligible_countries": {"$in": [profile.country]}})
+        for metadata_filter in self._build_metadata_filter_stages(profile):
+            hits = self.pinecone_service.search(
+                query_text=query_text,
+                top_k=top_k,
+                metadata_filter=metadata_filter,
+                use_rerank=use_rerank,
+            )
 
-        if profile.institutionType:
-            clauses.append({"institution_type": {"$in": [profile.institutionType]}})
+            cleaned_hits = self._post_filter_hits(profile, hits)
+            for hit in cleaned_hits:
+                if hit.grantId not in collected:
+                    collected[hit.grantId] = hit
 
-        if profile.applicantType:
-            clauses.append({"eligible_applicants": {"$in": [profile.applicantType]}})
+            if len(collected) >= top_k:
+                break
 
-        if not clauses:
+        return list(collected.values())[:top_k]
+
+    def _build_metadata_filter_stages(self, profile: UserProfile) -> List[dict | None]:
+        stages: List[dict | None] = []
+
+        country_clause = self._clause("eligible_countries", self._expand_country(profile.country))
+        institution_clause = self._clause("institution_type", self._expand_institution(profile.institutionType))
+        applicant_clause = self._clause("eligible_applicants", self._expand_applicant(profile.applicantType))
+
+        all_clauses = [c for c in [country_clause, institution_clause, applicant_clause] if c]
+        if all_clauses:
+            stages.append(self._and_clauses(all_clauses))
+
+        if country_clause and applicant_clause:
+            stages.append(self._and_clauses([country_clause, applicant_clause]))
+
+        if country_clause and institution_clause:
+            stages.append(self._and_clauses([country_clause, institution_clause]))
+
+        if country_clause:
+            stages.append(country_clause)
+
+        if applicant_clause:
+            stages.append(applicant_clause)
+
+        if institution_clause:
+            stages.append(institution_clause)
+
+        # Final fallback keeps recall when metadata values are inconsistent.
+        stages.append(None)
+
+        deduped: List[dict | None] = []
+        seen = set()
+        for stage in stages:
+            key = repr(stage)
+            if key in seen:
+                continue
+            seen.add(key)
+            deduped.append(stage)
+
+        return deduped
+
+    def _post_filter_hits(self, profile: UserProfile, hits: List[SemanticHit]) -> List[SemanticHit]:
+        cleaned: List[SemanticHit] = []
+
+        profile_country = self._normalize(profile.country)
+        for hit in hits:
+            fields = hit.fields or {}
+
+            # Keep strong semantic recall, but remove clear country mismatch when metadata exists.
+            if profile_country:
+                eligible_countries = self._normalize_list(fields.get("eligible_countries", []))
+                if eligible_countries and profile_country not in eligible_countries:
+                    continue
+
+            cleaned.append(hit)
+
+        return cleaned
+
+    def _clause(self, field: str, values: List[str]) -> dict | None:
+        if not values:
             return None
+        unique_values = []
+        seen = set()
+        for value in values:
+            key = self._normalize(value)
+            if not key or key in seen:
+                continue
+            seen.add(key)
+            unique_values.append(value)
+        if not unique_values:
+            return None
+        return {field: {"$in": unique_values}}
+
+    def _and_clauses(self, clauses: List[dict]) -> dict:
         if len(clauses) == 1:
             return clauses[0]
         return {"$and": clauses}
 
+    def _expand_country(self, value: str | None) -> List[str]:
+        if not value:
+            return []
+        normalized = self._normalize(value)
+        aliases = {
+            "usa": ["USA", "US", "United States", "United States of America"],
+            "us": ["US", "USA", "United States", "United States of America"],
+            "united states": ["United States", "United States of America", "US", "USA"],
+            "uk": ["UK", "United Kingdom", "Great Britain"],
+            "united kingdom": ["United Kingdom", "UK", "Great Britain"],
+        }
+        return aliases.get(normalized, [value])
+
+    def _expand_institution(self, value: str | None) -> List[str]:
+        if not value:
+            return []
+        normalized = self._normalize(value)
+        aliases = {
+            "university": [
+                "University",
+                "Universities",
+                "Academic Institutions",
+                "Private Academic Institutions",
+            ],
+            "college": ["College", "Colleges", "Academic Institutions"],
+            "academic institution": ["Academic Institutions", "University", "Universities"],
+            "startup": ["Startup", "Startups", "Early-stage Startups"],
+            "ngo": ["NGO", "Non-Governmental Organizations"],
+        }
+        return aliases.get(normalized, [value])
+
+    def _expand_applicant(self, value: str | None) -> List[str]:
+        if not value:
+            return []
+        normalized = self._normalize(value)
+        aliases = {
+            "researcher": ["Researcher", "Researchers", "Individual Researchers", "Faculty"],
+            "student": ["Student", "Students", "Graduate Students", "PhD Students"],
+            "faculty": ["Faculty", "Researchers", "Principal Investigators"],
+            "startup": ["Startup", "Startups", "Founders", "Entrepreneurs"],
+        }
+        return aliases.get(normalized, [value])
+
+    def _normalize(self, value: str | None) -> str:
+        return (value or "").strip().lower()
+
+    def _normalize_list(self, values: List[str] | None) -> set[str]:
+        if not values:
+            return set()
+        return {self._normalize(str(v)) for v in values if self._normalize(str(v))}
+
     def _build_reason(self, profile: UserProfile, fields: Dict, scores: Dict) -> str:
         reasons = []
 
-        if profile.country and profile.country in fields.get("eligible_countries", []):
+        normalized_countries = self._normalize_list(fields.get("eligible_countries", []))
+        normalized_institutions = self._normalize_list(fields.get("institution_type", []))
+        normalized_applicants = self._normalize_list(fields.get("eligible_applicants", []))
+
+        country_aliases = {self._normalize(x) for x in self._expand_country(profile.country)}
+        institution_aliases = {self._normalize(x) for x in self._expand_institution(profile.institutionType)}
+        applicant_aliases = {self._normalize(x) for x in self._expand_applicant(profile.applicantType)}
+
+        if country_aliases and country_aliases & normalized_countries:
             reasons.append(f"country match: {profile.country}")
 
-        if profile.institutionType and profile.institutionType in fields.get("institution_type", []):
+        if institution_aliases and institution_aliases & normalized_institutions:
             reasons.append(f"institution match: {profile.institutionType}")
 
-        if profile.applicantType and profile.applicantType in fields.get("eligible_applicants", []):
+        if applicant_aliases and applicant_aliases & normalized_applicants:
             reasons.append(f"applicant match: {profile.applicantType}")
 
         grant_fields = fields.get("field", [])
