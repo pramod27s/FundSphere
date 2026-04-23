@@ -1,7 +1,6 @@
 from typing import Dict, List, Optional
 from .config import settings
 from .filters import eligibility_score, freshness_score, deadline_is_open
-from .keyword_fusion import fuse_keyword_and_semantic
 from .pinecone_client import PineconeService
 from .profile_builder import build_user_query_text
 from .schemas import (
@@ -27,51 +26,44 @@ class RecommenderService:
             profile = self.spring_client.get_user_profile(request.userId)
 
         query_text = build_user_query_text(profile, request.userQuery)
-        keyword_candidates = request.keywordCandidates
-
-        if not keyword_candidates:
-            keyword_candidates = self.spring_client.keyword_search(
-                query=query_text,
-                user_profile=profile,
-                top_k=max(request.topK * 3, 20),
-            )
-
-            # If strict profile filters return nothing, retry broad keyword search.
-            if not keyword_candidates:
-                keyword_candidates = self.spring_client.keyword_search(
-                    query=query_text,
-                    user_profile=None,
-                    top_k=max(request.topK * 3, 20),
-                )
 
         use_rerank = settings.use_rerank if request.useRerank is None else request.useRerank
+        
+        # Expose alpha on the request if present, else fallback to smart defaults
+        alpha = 0.7
+        if hasattr(request, "alpha") and request.alpha is not None:
+            alpha = request.alpha
+        elif "deadline" in query_text.lower():
+            alpha = 0.5
+        elif request.userQuery and len(request.userQuery.split()) < 3 and request.userQuery.isupper(): 
+            alpha = 0.3
+        elif request.userQuery and len(request.userQuery.split()) > 4: 
+            alpha = 0.75
+
         semantic_hits = self._search_with_fallback(
             profile=profile,
             query_text=query_text,
             top_k=max(request.topK * 3, settings.semantic_top_k),
             use_rerank=use_rerank,
+            alpha=alpha,
         )
-
-        fused = fuse_keyword_and_semantic(keyword_candidates, semantic_hits)
-        semantic_map = {hit.grantId: hit for hit in semantic_hits}
 
         items: List[RecommendationItem] = []
 
-        for grant_id, scores in fused.items():
-            hit: Optional[SemanticHit] = semantic_map.get(grant_id)
+        for hit in semantic_hits:
             fields = hit.fields if hit else {}
-
+            grant_id = hit.grantId
+            score = hit.semanticScore
+            
             e_score = eligibility_score(profile, fields)
             f_score = freshness_score(fields.get("application_deadline"))
 
             expired_penalty = 0.15 if fields.get("application_deadline") and not deadline_is_open(fields.get("application_deadline")) else 0.0
 
             final_score = (
-                0.45 * scores["semanticScore"]
-                + 0.25 * scores["keywordScore"]
-                + 0.15 * e_score
+                0.70 * score
+                + 0.20 * e_score
                 + 0.10 * f_score
-                + 0.05 * scores["rrfScore"]
                 - expired_penalty
             )
 
@@ -79,13 +71,13 @@ class RecommenderService:
                 RecommendationItem(
                     grantId=grant_id,
                     finalScore=round(final_score, 6),
-                    semanticScore=round(scores["semanticScore"], 6),
-                    keywordScore=round(scores["keywordScore"], 6),
+                    semanticScore=round(score, 6),
+                    keywordScore=0.0,
                     eligibilityScore=round(e_score, 6),
                     freshnessScore=round(f_score, 6),
                     title=fields.get("grant_title"),
                     fundingAgency=fields.get("funding_agency"),
-                    reason=self._build_reason(profile, fields, scores),
+                    reason=self._build_reason(profile, fields, {"semanticScore": score, "keywordScore": 0.0}),
                     fields=fields,
                 )
             )
@@ -104,6 +96,7 @@ class RecommenderService:
         query_text: str,
         top_k: int,
         use_rerank: bool,
+        alpha: float,
     ) -> List[SemanticHit]:
         collected: Dict[str, SemanticHit] = {}
         stages = self._build_metadata_filter_stages(profile)
@@ -114,6 +107,7 @@ class RecommenderService:
                 top_k=top_k,
                 metadata_filter=metadata_filter,
                 use_rerank=use_rerank,
+                alpha=alpha,
             )
 
             is_last_stage = (i == len(stages) - 1)
