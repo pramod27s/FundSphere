@@ -1,86 +1,96 @@
 from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class GrantData(BaseModel):
+    model_config = ConfigDict(extra='forbid')
     id: Optional[int] = None
-    grantTitle: Optional[str] = None
-    fundingAgency: Optional[str] = None
-    programName: Optional[str] = None
-    description: Optional[str] = None
-    grantUrl: Optional[str] = None
-    applicationDeadline: Optional[str] = None
-    fundingAmountMin: Optional[float] = None
-    fundingAmountMax: Optional[float] = None
-    fundingCurrency: Optional[str] = None
+    grantTitle: Optional[str] = Field(default=None, max_length=500)
+    fundingAgency: Optional[str] = Field(default=None, max_length=500)
+    programName: Optional[str] = Field(default=None, max_length=500)
+    description: Optional[str] = Field(default=None, max_length=2000)
+    grantUrl: Optional[str] = Field(default=None, max_length=500)
+    applicationDeadline: Optional[str] = Field(default=None, max_length=100)
+    fundingAmountMin: Optional[float] = Field(default=None, ge=0)
+    fundingAmountMax: Optional[float] = Field(default=None, ge=0)
+    fundingCurrency: Optional[str] = Field(default=None, max_length=50)
     eligibleCountries: List[str] = Field(default_factory=list)
     eligibleApplicants: List[str] = Field(default_factory=list)
     institutionType: List[str] = Field(default_factory=list)
     field: List[str] = Field(default_factory=list)
-    applicationLink: Optional[str] = None
-    checksum: Optional[str] = None
+    applicationLink: Optional[str] = Field(default=None, max_length=500)
+    checksum: Optional[str] = Field(default=None, max_length=200)
     tags: List[str] = Field(default_factory=list)
-    createdAt: Optional[str] = None
-    updatedAt: Optional[str] = None
-    lastScrapedAt: Optional[str] = None
+    createdAt: Optional[str] = Field(default=None, max_length=100)
+    updatedAt: Optional[str] = Field(default=None, max_length=100)
+    lastScrapedAt: Optional[str] = Field(default=None, max_length=100)
 
 
 class UserProfile(BaseModel):
+    model_config = ConfigDict(extra='forbid')
     userId: Optional[int] = None
-    country: Optional[str] = None
-    institutionType: Optional[str] = None
-    applicantType: Optional[str] = None
-    careerStage: Optional[str] = None
-    department: Optional[str] = None
-    researchBio: Optional[str] = None
+    country: Optional[str] = Field(default=None, max_length=100)
+    institutionType: Optional[str] = Field(default=None, max_length=100)
+    applicantType: Optional[str] = Field(default=None, max_length=100)
+    careerStage: Optional[str] = Field(default=None, max_length=100)
+    department: Optional[str] = Field(default=None, max_length=200)
+    researchBio: Optional[str] = Field(default=None, max_length=3000)
     researchInterests: List[str] = Field(default_factory=list)
     keywords: List[str] = Field(default_factory=list)
-    preferredMinAmount: Optional[float] = None
-    preferredMaxAmount: Optional[float] = None
-    preferredCurrency: Optional[str] = None
+    preferredMinAmount: Optional[float] = Field(default=None, ge=0)
+    preferredMaxAmount: Optional[float] = Field(default=None, ge=0)
+    preferredCurrency: Optional[str] = Field(default=None, max_length=50)
 
 
 class KeywordCandidate(BaseModel):
+    model_config = ConfigDict(extra='forbid')
     grantId: int
     keywordScore: float
 
 
 class IndexGrantRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid')
     grantId: int
 
 
 class IndexBatchRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid')
     grantIds: List[int]
 
 
 class SemanticHit(BaseModel):
+    model_config = ConfigDict(extra='forbid')
     grantId: int
     semanticScore: float
     fields: Dict[str, Any] = Field(default_factory=dict)
 
 
 class RecommendationRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid')
     userId: Optional[int] = None
     userProfile: Optional[UserProfile] = None
-    userQuery: Optional[str] = None
+    userQuery: Optional[str] = Field(default=None, max_length=1000)
     keywordCandidates: List[KeywordCandidate] = Field(default_factory=list)
-    topK: int = 10
+    topK: int = Field(default=10, ge=1, le=100)
     useRerank: Optional[bool] = None
+    alpha: Optional[float] = Field(default=None, ge=0.0, le=1.0)
 
 
 class RecommendationItem(BaseModel):
+    model_config = ConfigDict(extra='forbid')
     grantId: int
     finalScore: float
     semanticScore: float = 0.0
     keywordScore: float = 0.0
     eligibilityScore: float = 0.0
     freshnessScore: float = 0.0
-    title: Optional[str] = None
-    fundingAgency: Optional[str] = None
-    reason: str = ""
+    title: Optional[str] = Field(default=None, max_length=500)
+    fundingAgency: Optional[str] = Field(default=None, max_length=500)
+    reason: str = Field(default="", max_length=1000)
     fields: Dict[str, Any] = Field(default_factory=dict)
 
 
 class RecommendationResponse(BaseModel):
-    queryText: str
+    model_config = ConfigDict(extra='forbid')
+    queryText: str = Field(..., max_length=2000)
     results: List[RecommendationItem]
