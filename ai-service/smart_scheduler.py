@@ -1,12 +1,19 @@
 import os
 import json
 import hashlib
-import requests
 import argparse
+import logging
+import xml.etree.ElementTree as ET
+from urllib.parse import urlparse, urljoin
 from bs4 import BeautifulSoup
+from curl_cffi import requests as cffi_requests
 
 # Import your existing scraper logic
 from firecrawl_scraper import scrape_grant, crawl_for_grants
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 STATE_FILE = os.path.join(os.path.dirname(__file__), "scraper_state.json")
 
@@ -25,31 +32,118 @@ def save_state(state):
     with open(STATE_FILE, "w", encoding="utf-8") as f:
         json.dump(state, f, indent=2)
 
+def discover_urls_from_sitemap(base_url):
+    """
+    Fix 3 - Auto-Discovery via Sitemap / RSS Parsing
+    """
+    logger.info(f"Attempting auto-discovery for {base_url} via sitemap/RSS...")
+    parsed = urlparse(base_url)
+    root_url = f"{parsed.scheme}://{parsed.netloc}"
+    keywords = ["grant", "fellowship", "funding", "award", "scheme"]
+    discovered = set()
+
+    paths_to_check = ["/sitemap.xml", "/sitemap_index.xml", "/feed", "/rss.xml"]
+
+    for path in paths_to_check:
+        url_to_check = urljoin(root_url, path)
+        try:
+            response = cffi_requests.get(url_to_check, impersonate="chrome110", timeout=10)
+            if response.status_code != 200:
+                continue
+
+            try:
+                # Parse XML content
+                root = ET.fromstring(response.content)
+                for elem in root.iter():
+                    tag = elem.tag.lower()
+                    if "loc" in tag or "link" in tag:
+                        link_url = elem.text
+                        if link_url and isinstance(link_url, str):
+                            link_url_lower = link_url.lower()
+                            if any(k in link_url_lower for k in keywords):
+                                discovered.add(link_url.strip())
+            except ET.ParseError:
+                pass
+        except Exception as e:
+            logger.warning(f"Failed to fetch or parse {url_to_check}: {e}")
+
+    return list(discovered)
+
 def get_page_hash(url):
     """Pass 1: Free extraction to get a fingerprint of the current page text."""
-    try:
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
-        }
-        # A quick standard GET request (costs nothing)
-        response = requests.get(url, headers=headers, timeout=15)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, "html.parser")
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+    }
 
-        # Extract just the text to avoid changing HTML metadata/timestamps/ads
-        page_text = soup.get_text(separator=' ', strip=True)
-        return hashlib.sha256(page_text.encode('utf-8')).hexdigest()
+    html_content = ""
+    try:
+        # Fix 2: TLS Impersonation to Bypass Cloudflare
+        response = cffi_requests.get(url, headers=headers, impersonate="chrome110", timeout=15)
+        if response.status_code == 200:
+            html_content = response.text
+        else:
+            logger.warning(f"curl_cffi failed for {url} with status {response.status_code}. Returning None.")
+            return None
     except Exception as e:
-        print(f"Failed to fetch content for hash at {url}: {e}")
+        logger.warning(f"Failed to fetch content for hash at {url} using curl_cffi: {e}")
         return None
 
+    def extract_pure_text(html):
+        """Fix 1: Content-Only Hashing (No False Positives)"""
+        soup = BeautifulSoup(html, "html.parser")
+
+        target = soup.find("main")
+        if not target:
+            target = soup.find("body")
+        if not target:
+            target = soup
+
+        for tag in target(["script", "style", "footer", "nav", "header"]):
+            tag.decompose()
+
+        return target.get_text(separator=' ', strip=True)
+
+    page_text = extract_pure_text(html_content)
+
+    # Fix 4: SPA Detection and Playwright Fallback
+    if page_text and len(page_text) < 300:
+        logger.info(f"Page text length < 300 for {url}. Likely SPA. Invoking Playwright fallback.")
+        try:
+            from playwright.sync_api import sync_playwright
+            with sync_playwright() as p:
+                browser = p.chromium.launch(headless=True)
+                page = browser.new_page()
+                page.goto(url, wait_until="networkidle", timeout=20000)
+                html_content = page.content()
+                browser.close()
+
+            page_text = extract_pure_text(html_content)
+        except Exception as e:
+            logger.warning(f"Playwright fallback failed for {url}: {e}")
+            return None
+
+    if not page_text:
+        return None
+
+    return hashlib.sha256(page_text.encode('utf-8')).hexdigest()
+
 def run_smart_scraper(seed_urls, max_per_seed=8):
-    print("[*] Starting Smart Scheduler Two-Pass Scraping...")
+    logger.info("[*] Starting Smart Scheduler Two-Pass Scraping...")
     state = load_state()
 
     candidates = []
+    import requests  # For backend POST requests later
+
     for seed in seed_urls:
-        print(f"[*] Crawling seed URL: {seed}")
+        logger.info(f"[*] Crawling seed URL: {seed}")
+
+        # Fix 3: Run auto-discovery first
+        discovered_urls = discover_urls_from_sitemap(seed)
+        for d_url in discovered_urls:
+            if d_url not in state:
+                logger.info(f"    -> Found new URL via auto-discovery: {d_url}")
+                candidates.append(d_url)
+
         # If it's a known list/category page, discover child grants using your existing crawler logic
         if seed.count("/") <= 3 or "/type/" in seed.lower() or "/industry/" in seed.lower() or "page" in seed.lower():
             discovered = crawl_for_grants(seed, max_required=max_per_seed)
@@ -62,9 +156,10 @@ def run_smart_scraper(seed_urls, max_per_seed=8):
 
     # Deduplicate candidate URLs
     candidates = list(dict.fromkeys(candidates))
-    print(f"[*] Total unique candidate URLs to check: {len(candidates)}")
+    logger.info(f"[*] Total unique candidate URLs to check: {len(candidates)}")
 
     for url in candidates:
+        logger.info(f"[*] Checking {url}")
         # 1. Get the free hash (Pass 1)
         current_hash = get_page_hash(url)
         if not current_hash:
@@ -74,7 +169,7 @@ def run_smart_scraper(seed_urls, max_per_seed=8):
 
         # 2. State Comparison
         if current_hash != last_known_hash:
-            print(f"\n[+] Change detected at {url}! (Tokens will be used...)")
+            logger.info(f"\n[+] Change detected at {url}! (Tokens will be used...)")
 
             # 3. The Paid Extractor (Pass 2)
             grant_data = scrape_grant(url)
@@ -159,19 +254,19 @@ def run_smart_scraper(seed_urls, max_per_seed=8):
                         headers={"Content-Type": "application/json"}
                     )
                     if response.status_code in [200, 201]:
-                        print(f"    -> Successfully PUSHED grant '{grant_data['grantTitle']}' to backend (Status: {response.status_code})")
+                        logger.info(f"    -> Successfully PUSHED grant '{grant_data['grantTitle']}' to backend (Status: {response.status_code})")
 
                         # Only update state hash if we successfully scraped AND pushed to backend!
                         state[url] = current_hash
                         save_state(state)
                     else:
-                        print(f"    -> Backend error {response.status_code} for {url}: {response.text}")
+                        logger.error(f"    -> Backend error {response.status_code} for {url}: {response.text}")
                 except Exception as e:
-                    print(f"    -> Failed to communicate with backend at http://localhost:8080: {e}")
+                    logger.error(f"    -> Failed to communicate with backend at http://localhost:8080: {e}")
             else:
-                print(f"    -> Firecrawl extraction didn't return valid grant fields for {url}. State untouched.")
+                logger.warning(f"    -> Firecrawl extraction didn't return valid grant fields for {url}. State untouched.")
         else:
-            print(f"[-] No changes at {url} - Skipping Firecrawl.")
+            logger.info(f"[-] No changes at {url} - Skipping Firecrawl.")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Smart Scheduled Scraper to minimize Firecrawl token usage.")
