@@ -91,15 +91,58 @@ export default function GrantDetailsModal({ grant, onClose }: GrantDetailsModalP
                           {tag}
                       </span>
                     ))}
+                    {grant.researchThemes && grant.researchThemes.length > 0 && grant.researchThemes.map(theme => (
+                      <span key={theme} className="px-3 py-1.5 bg-primary-50 border border-primary-100 text-primary-700 rounded-lg text-sm font-medium flex items-center">
+                          <TrendingUp className="w-3.5 h-3.5 mr-1 text-primary-400" />
+                          {theme}
+                      </span>
+                    ))}
                 </div>
             </div>
-            
+
+            <div className="mt-8 border-t border-brand-100 pt-8">
+                <h3 className="text-lg font-bold text-brand-900 mb-3">Objectives</h3>
+                <div className="prose prose-sm md:prose-base text-brand-600">
+                  <p>{grant.objectives || 'Objectives not explicitly specified. Review the description or guidelines for details.'}</p>
+                </div>
+            </div>
+
             <div className="mt-8 border-t border-brand-100 pt-8">
                 <h3 className="text-lg font-bold text-brand-900 mb-3">Grant Description</h3>
                 <div className="prose prose-sm md:prose-base text-brand-600">
                   <p>
                       {grant.description}
                   </p>
+                </div>
+            </div>
+
+            <div className="mt-8 border-t border-brand-100 pt-8 flex flex-col md:flex-row gap-8">
+                <div className="flex-1">
+                    <h3 className="text-lg font-bold text-brand-900 mb-3">Funding Scope</h3>
+                    <div className="prose prose-sm text-brand-600">
+                        <p>{grant.fundingScope || 'Not specified. Please check provider site.'}</p>
+                    </div>
+                </div>
+                <div className="flex-1">
+                    <h3 className="text-lg font-bold text-brand-900 mb-3">Duration</h3>
+                    <div className="prose prose-sm text-brand-600">
+                        <p>{grant.grantDuration || 'Not specified'}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div className="mt-8 border-t border-brand-100 pt-8 flex flex-col md:flex-row gap-8">
+                <div className="flex-1">
+                    <h3 className="text-lg font-bold text-brand-900 mb-3">Eligibility Criteria</h3>
+                    <div className="prose prose-sm text-brand-600">
+                        <p>{grant.eligibilityCriteria || 'Not fully detailed here. Please check provider site.'}</p>
+                    </div>
+                </div>
+                <div className="flex-1">
+                    <h3 className="text-lg font-bold text-brand-900 mb-3">Selection Process</h3>
+                    <div className="prose prose-sm text-brand-600">
+                        <p>{grant.selectionCriteria || 'Not explicitly specified.'}</p>
+                    </div>
                 </div>
             </div>
         </div>

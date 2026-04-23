@@ -3,26 +3,32 @@ from pydantic import BaseModel, Field
 
 
 class GrantData(BaseModel):
-    id: Optional[int] = None
-    grantTitle: Optional[str] = None
-    fundingAgency: Optional[str] = None
-    programName: Optional[str] = None
-    description: Optional[str] = None
-    grantUrl: Optional[str] = None
-    applicationDeadline: Optional[str] = None
-    fundingAmountMin: Optional[float] = None
-    fundingAmountMax: Optional[float] = None
-    fundingCurrency: Optional[str] = None
-    eligibleCountries: List[str] = Field(default_factory=list)
-    eligibleApplicants: List[str] = Field(default_factory=list)
-    institutionType: List[str] = Field(default_factory=list)
-    field: List[str] = Field(default_factory=list)
-    applicationLink: Optional[str] = None
-    checksum: Optional[str] = None
-    tags: List[str] = Field(default_factory=list)
-    createdAt: Optional[str] = None
-    updatedAt: Optional[str] = None
-    lastScrapedAt: Optional[str] = None
+    id: str | None = None
+    grantTitle: str | None = None
+    fundingAgency: str | None = None
+    programName: str | None = None
+    description: str | None = None
+    applicationDeadline: str | None = None
+    fundingAmountMin: float | None = None
+    fundingAmountMax: float | None = None
+    fundingCurrency: str | None = None
+    eligibleCountries: list[str] | None = None
+    eligibleApplicants: list[str] | None = None
+    institutionType: list[str] | None = None
+    field: list[str] | None = None
+    applicationLink: str | None = None
+    grantUrl: str | None = None
+    checksum: str | None = None
+    tags: list[str] | None = None
+    createdAt: str | None = None
+    updatedAt: str | None = None
+    lastScrapedAt: str | None = None
+    objectives: str | None = None
+    fundingScope: str | None = None
+    eligibilityCriteria: str | None = None
+    selectionCriteria: str | None = None
+    grantDuration: str | None = None
+    researchThemes: list[str] | None = None
 
 
 class UserProfile(BaseModel):
