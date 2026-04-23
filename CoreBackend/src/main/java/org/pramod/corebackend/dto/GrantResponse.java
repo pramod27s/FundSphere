@@ -34,9 +34,13 @@ public class GrantResponse {
     private String applicationLink;
     private String checksum;
     private List<String> tags;
+    private String objectives;
+    private String fundingScope;
+    private String eligibilityCriteria;
+    private String selectionCriteria;
+    private String grantDuration;
+    private String researchThemes;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime lastScrapedAt;
 }
-
-
