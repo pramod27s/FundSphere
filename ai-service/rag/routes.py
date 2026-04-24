@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+import asyncio
 from .indexer import GrantIndexer
 from .pinecone_client import PineconeService
 from .recommender import RecommenderService
@@ -18,37 +19,54 @@ recommender = RecommenderService(spring_client, pinecone_service)
 
 
 @router.get("/health")
-def health() -> dict:
+async def health() -> dict:
     return {"status": "ok"}
 
 
 @router.post("/index-grant")
-def index_grant(request: IndexGrantRequest) -> dict:
+async def index_grant(request: IndexGrantRequest) -> dict:
     try:
-        return indexer.index_grant(request.grantId)
+        return await asyncio.to_thread(indexer.index_grant, request.grantId)
+    except TimeoutError as exc:
+        raise HTTPException(status_code=504, detail="Pinecone timeout getting embedding or indexing grant.")
     except Exception as exc:
+        if "embedding" in str(exc).lower() and ("empty" in str(exc).lower() or "none" in str(exc).lower()):
+            raise HTTPException(status_code=422, detail="Embedding failure missing dense or sparse vector generation.")
         raise HTTPException(status_code=500, detail=str(exc))
 
 
 @router.post("/index-grants")
-def index_grants(request: IndexBatchRequest) -> dict:
+async def index_grants(request: IndexBatchRequest) -> dict:
     try:
-        return indexer.index_many(request.grantIds)
+        return await asyncio.to_thread(indexer.index_many, request.grantIds)
+    except TimeoutError as exc:
+        raise HTTPException(status_code=504, detail="Pinecone timeout processing batch.")
     except Exception as exc:
+        if "embedding" in str(exc).lower() and ("empty" in str(exc).lower() or "none" in str(exc).lower()):
+            raise HTTPException(status_code=422, detail="Embedding failure missing dense or sparse vector generation.")
         raise HTTPException(status_code=500, detail=str(exc))
 
 
 @router.delete("/grant/{grant_id}")
-def delete_grant(grant_id: int) -> dict:
+async def delete_grant(grant_id: int) -> dict:
     try:
-        return indexer.delete_grant(grant_id)
+        return await asyncio.to_thread(indexer.delete_grant, grant_id)
+    except TimeoutError as exc:
+        raise HTTPException(status_code=504, detail="Pinecone deletion timed out.")
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
 
 @router.post("/recommend")
-def recommend(request: RecommendationRequest):
+async def recommend(request: RecommendationRequest):
     try:
-        return recommender.recommend(request)
+        result = await asyncio.to_thread(recommender.recommend, request)
+        if not result.results:
+            return {"queryText": result.queryText, "results": [], "no_results": True}
+        return result
+    except TimeoutError as exc:
+        raise HTTPException(status_code=504, detail="Search inference timeout fetching semantic query.")
     except Exception as exc:
+        if "embedding" in str(exc).lower() and ("empty" in str(exc).lower() or "none" in str(exc).lower()):
+            raise HTTPException(status_code=422, detail="Embedding extraction failed.")
         raise HTTPException(status_code=500, detail=str(exc))
