@@ -53,6 +53,23 @@ public class Grant {
 
     private String field;
 
+    @Column(columnDefinition = "TEXT")
+    private String objectives;
+
+    @Column(columnDefinition = "TEXT")
+    private String fundingScope;
+
+    @Column(columnDefinition = "TEXT")
+    private String eligibilityCriteria;
+
+    @Column(columnDefinition = "TEXT")
+    private String selectionCriteria;
+
+    private String grantDuration;
+
+    @Column(columnDefinition = "TEXT")
+    private String researchThemes;
+
     private String applicationLink;
 
     @Column(nullable = false)
@@ -82,5 +99,3 @@ public class Grant {
         this.updatedAt = LocalDateTime.now();
     }
 }
-
-

@@ -147,6 +147,12 @@ public class GrantService {
                 .applicationLink(request.getApplicationLink())
                 .checksum(request.getChecksum())
                 .tags(request.getTags())
+                .objectives(request.getObjectives())
+                .fundingScope(request.getFundingScope())
+                .eligibilityCriteria(request.getEligibilityCriteria())
+                .selectionCriteria(request.getSelectionCriteria())
+                .grantDuration(request.getGrantDuration())
+                .researchThemes(request.getResearchThemes())
                 .build();
     }
 
@@ -167,6 +173,12 @@ public class GrantService {
         entity.setApplicationLink(request.getApplicationLink());
         entity.setChecksum(request.getChecksum());
         entity.setTags(request.getTags());
+        entity.setObjectives(request.getObjectives());
+        entity.setFundingScope(request.getFundingScope());
+        entity.setEligibilityCriteria(request.getEligibilityCriteria());
+        entity.setSelectionCriteria(request.getSelectionCriteria());
+        entity.setGrantDuration(request.getGrantDuration());
+        entity.setResearchThemes(request.getResearchThemes());
         entity.setLastScrapedAt(LocalDateTime.now());
     }
 
@@ -189,6 +201,12 @@ public class GrantService {
                 .applicationLink(grant.getApplicationLink())
                 .checksum(grant.getChecksum())
                 .tags(grant.getTags())
+                .objectives(grant.getObjectives())
+                .fundingScope(grant.getFundingScope())
+                .eligibilityCriteria(grant.getEligibilityCriteria())
+                .selectionCriteria(grant.getSelectionCriteria())
+                .grantDuration(grant.getGrantDuration())
+                .researchThemes(grant.getResearchThemes())
                 .createdAt(grant.getCreatedAt())
                 .updatedAt(grant.getUpdatedAt())
                 .lastScrapedAt(grant.getLastScrapedAt())

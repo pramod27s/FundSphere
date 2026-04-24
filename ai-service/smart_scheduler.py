@@ -179,10 +179,10 @@ def run_smart_scraper(seed_urls, max_per_seed=8):
                 import re
 
                 # 1. Convert lists to comma-separated strings for Java backend
-                for field in ["eligibleCountries", "eligibleApplicants", "institutionType", "field"]:
+                for field in ["eligibleCountries", "eligibleApplicants", "institutionType", "field", "researchThemes"]:
                     val = grant_data.get(field)
                     if isinstance(val, list):
-                        grant_data[field] = ", ".join(val)
+                        grant_data[field] = ", ".join(str(v) for v in val)
                     elif val is None:
                         grant_data[field] = None
 
@@ -241,7 +241,9 @@ def run_smart_scraper(seed_urls, max_per_seed=8):
                     "grantUrl", "applicationDeadline", "fundingAmountMin",
                     "fundingAmountMax", "fundingCurrency", "eligibleCountries",
                     "eligibleApplicants", "institutionType", "field",
-                    "applicationLink", "checksum", "tags"
+                    "applicationLink", "checksum", "tags",
+                    "objectives", "fundingScope", "eligibilityCriteria",
+                    "selectionCriteria", "grantDuration", "researchThemes"
                 }
 
                 clean_payload = {k: v for k, v in grant_data.items() if k in expected_keys}
@@ -282,4 +284,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     run_smart_scraper(args.urls, max_per_seed=args.max)
-

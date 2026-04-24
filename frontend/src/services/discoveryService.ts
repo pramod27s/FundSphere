@@ -11,6 +11,12 @@ export interface DiscoveryGrant {
   eligibility: 'Eligible' | 'Warning';
   rationale: string;
   description: string;
+  objectives?: string;
+  fundingScope?: string;
+  eligibilityCriteria?: string;
+  selectionCriteria?: string;
+  grantDuration?: string;
+  researchThemes?: string[];
   applicationLink: string;
   grantUrl: string;
   updatedAt?: string;
@@ -50,6 +56,12 @@ interface CoreGrantResponse {
   grantTitle: string;
   fundingAgency: string;
   description: string;
+  objectives?: string;
+  fundingScope?: string;
+  eligibilityCriteria?: string;
+  selectionCriteria?: string;
+  grantDuration?: string;
+  researchThemes?: string;
   grantUrl: string;
   applicationDeadline?: string;
   fundingAmountMin?: number;
@@ -140,6 +152,12 @@ function mapRecommendationToGrant(item: RecommendationItem): DiscoveryGrant {
     eligibility: item.eligibilityScore >= 0.45 ? 'Eligible' : 'Warning',
     rationale: item.reason ?? 'Matched by semantic and keyword relevance to your profile.',
     description: asString(fields.chunk_text) ?? `No detailed description available for ${title}.`,
+    objectives: asString(fields.objectives),
+    fundingScope: asString(fields.funding_scope),
+    eligibilityCriteria: asString(fields.eligibility_criteria),
+    selectionCriteria: asString(fields.selection_criteria),
+    grantDuration: asString(fields.grant_duration),
+    researchThemes: asStringArray(fields.research_themes),
     applicationLink: asString(fields.application_link) ?? '',
     grantUrl: asString(fields.grant_url) ?? '',
     updatedAt: asString(fields.updated_at),
@@ -159,6 +177,12 @@ function mapCoreGrantToDiscoveryGrant(grant: CoreGrantResponse): DiscoveryGrant 
     eligibility: 'Warning',
     rationale: 'Fallback result from CoreBackend grant list while AI ranking is unavailable.',
     description: grant.description || `No detailed description available for ${grant.grantTitle}.`,
+    objectives: grant.objectives,
+    fundingScope: grant.fundingScope,
+    eligibilityCriteria: grant.eligibilityCriteria,
+    selectionCriteria: grant.selectionCriteria,
+    grantDuration: grant.grantDuration,
+    researchThemes: splitTextList(grant.researchThemes),
     applicationLink: grant.applicationLink || '',
     grantUrl: grant.grantUrl || '',
     updatedAt: grant.updatedAt,

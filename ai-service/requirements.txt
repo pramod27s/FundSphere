@@ -10,3 +10,5 @@ uvicorn
 requests
 python-dateutil
 pinecone[grpc]
+curl_cffi
+playwright
