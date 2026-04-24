@@ -21,17 +21,34 @@ GRANT_SCHEMA = {
         "grantTitle": {"type": "string", "description": "Title of the grant or fellowship"},
         "fundingAgency": {"type": "string", "description": "The organization providing the funding"},
         "programName": {"type": ["string", "null"], "description": "Specific program name, if applicable"},
-        "description": {"type": "string", "description": "A very brief 1-2 sentence description of the grant"},
+        "description": {
+            "type": "string",
+            "description": "A detailed 4-6 sentence summary covering: core objective, type of research/project funded, intended impact, and any unique aspects. Never 1-2 sentences."
+        },
         "applicationDeadline": {"type": ["string", "null"], "description": "Deadline in ISO format if possible, else text. Return null if not strictly found."},
-        "fundingAmountMin": {"type": ["string", "null"], "description": "Minimum funding amount. Must extract if present (e.g. \'$10,000\', \'10 Lakhs\', \'Rs. 10,00,000\')."},
-        "fundingAmountMax": {"type": ["string", "null"], "description": "Maximum funding amount. Must extract if present (e.g. \'$50,000\', \'50 Lakhs\', \'80 lakh\', \'50%\'). Look for limits, caps, per month/year budgets, or percentages."},
+        "fundingAmountMin": {"type": ["string", "null"], "description": "Minimum funding amount. Must extract if present (e.g. '$10,000', '10 Lakhs', 'Rs. 10,00,000')."},
+        "fundingAmountMax": {"type": ["string", "null"], "description": "Maximum funding amount. Must extract if present (e.g. '$50,000', '50 Lakhs', '80 lakh', '50%'). Look for limits, caps, per month/year budgets, or percentages."},
         "fundingCurrency": {"type": ["string", "null"]},
         "eligibleCountries": {"type": "array", "items": {"type": "string"}, "description": "Array of country names. Keep concise."},
         "eligibleApplicants": {"type": "array", "items": {"type": "string"}, "description": "Applicant types including degrees (e.g. PhD, MS, B.Tech) and positions (e.g. Postdoc, Researcher, Student, Faculty, Startup). Keep concise."},
         "institutionType": {"type": "array", "items": {"type": "string"}, "description": "e.g. Government, Private, Startup. Keep concise."},
         "field": {"type": "array", "items": {"type": "string"}, "description": "e.g. AI, Healthcare, Biotechnology"},
         "applicationLink": {"type": ["string", "null"], "description": "Direct URL or mailto link to apply"},
-        "tags": {"type": "array", "items": {"type": "string"}, "description": "Keywords related to this grant"}
+        "tags": {"type": "array", "items": {"type": "string"}, "description": "Keywords related to this grant"},
+
+        # --- NEW SEMANTIC RAG FIELDS ---
+        # Improves RAG by matching exact stated goals against user queries
+        "objectives": {"type": ["string", "null"], "description": "Full stated objectives or goals of the grant program, closely paraphrased or copied from the page text."},
+        # Improves RAG by filtering out irrelevant queries based on allowed use of funds
+        "fundingScope": {"type": ["string", "null"], "description": "What expenses or activities the grant covers or excludes — e.g., equipment, salaries, travel, overheads, conference attendance, prototype development, indirect costs."},
+        # Improves RAG by ensuring user constraints (e.g. nationality, degree) match exact rules
+        "eligibilityCriteria": {"type": ["string", "null"], "description": "ALL detailed eligibility rules — degree level, nationality, institution type, age limits, prior publication requirements, co-PI conditions, industry collaboration requirements."},
+        # Improves RAG by letting users search for grants prioritizing specific values (e.g. 'societal impact')
+        "selectionCriteria": {"type": ["string", "null"], "description": "How applications are evaluated — scientific merit, innovation, societal impact, panel review process, scoring rubric if mentioned."},
+        # Improves RAG by allowing length-based matching if specified
+        "grantDuration": {"type": ["string", "null"], "description": "Duration of the funded project e.g. '1 year', '3 years', 'up to 36 months'."},
+        # Improves RAG by providing dense, high-value keyword targets for vector search instead of broad domains
+        "researchThemes": {"type": ["array", "null"], "items": {"type": "string"}, "description": "Specific research sub-domains and focus areas — prefer granular themes like 'Computer Vision for Agriculture' or 'Rural Healthcare AI' over broad terms like just 'AI' or 'Healthcare'."}
     },
     "required": ["grantTitle", "fundingAgency", "description"]
 }
@@ -67,7 +84,7 @@ def scrape_grant(url):
             "formats": ["extract"],
             "extract": {
                 "schema": GRANT_SCHEMA,
-                "systemPrompt": "Extract grant and fellowship details strictly following the schema. If a value isn't found, use null or an empty array. If the URL contains a #fragment, extract ONLY the grant matching that fragment. Ensure you find the exact funding amount; do not leave it null if the text mentions amounts like '10 Lakhs', '80 lakh', '50%', or 'Rs. 50,000'. Extensively search the text for any monetary limits, cost caps, overheads, or percentages awarded. In eligibleApplicants, explicitly include degrees (e.g. PhD, MS, B.Tech) and positions (e.g. Postdoc, Researcher, Student, Faculty, Startup) mentioned in the guidelines."
+                "systemPrompt": "You are extracting data for a semantic RAG search engine. Richness and specificity of text matter far more than brevity. Strictly follow the schema. For 'description': Write a detailed 4-6 sentence summary. Explicitly forbidden to write 1-2 sentence summaries. For 'objectives': Copy or closely paraphrase the stated goals directly from the page. If a dedicated objectives section exists, use it fully. For 'eligibilityCriteria': Include ALL conditions found (degree, nationality, age, institution, prior work) — never truncate. For 'researchThemes': Extract specific sub-domains, not broad fields (e.g. prefer 'Quantum Error Correction' over 'Physics'). For 'fundingScope': List what is covered AND what is explicitly excluded if mentioned. If a value isn't found, use null or an empty array. Use null ONLY if genuinely not found. Never fabricate or hallucinate values. If the URL contains a #fragment, extract ONLY the grant matching that fragment. Ensure you find the exact funding amount; do not leave it null if the text mentions amounts like '10 Lakhs', '80 lakh', '50%', or 'Rs. 50,000'. Extensively search the text for any monetary limits, cost caps, overheads, or percentages awarded. In eligibleApplicants, explicitly include degrees (e.g. PhD, MS, B.Tech) and positions (e.g. Postdoc, Researcher) mentioned in the guidelines. Your output will be directly embedded into a vector database. Richer, more specific text produces better search matches. Do not summarize aggressively."
             }
         },
         timeout=60

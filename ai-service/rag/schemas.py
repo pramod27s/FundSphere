@@ -24,6 +24,12 @@ class GrantData(BaseModel):
     createdAt: Optional[str] = Field(default=None, max_length=100)
     updatedAt: Optional[str] = Field(default=None, max_length=100)
     lastScrapedAt: Optional[str] = Field(default=None, max_length=100)
+    objectives: Optional[str] = Field(default=None, max_length=3000)
+    fundingScope: Optional[str] = Field(default=None, max_length=1000)
+    eligibilityCriteria: Optional[str] = Field(default=None, max_length=3000)
+    selectionCriteria: Optional[str] = Field(default=None, max_length=3000)
+    grantDuration: Optional[str] = Field(default=None, max_length=500)
+    researchThemes: List[str] = Field(default_factory=list)
 
 
 class UserProfile(BaseModel):

@@ -33,44 +33,50 @@ def _to_epoch(date_value: str | None) -> int | None:
 
 
 def build_grant_document(grant: GrantData) -> str:
-    parts: list[str] = []
+    """
+    Builds a rich semantic text representation of a grant for vector embeddings.
+    This function feeds directly into Pinecone upsert, ensuring the RAG model
+    can semantically match user queries against detailed, labeled fields.
+    """
+    parts = []
 
-    if grant.grantTitle:
-        parts.append(f"Grant Title: {grant.grantTitle}")
-    if grant.fundingAgency:
-        parts.append(f"Funding Agency: {grant.fundingAgency}")
-    if grant.programName:
-        parts.append(f"Program Name: {grant.programName}")
-    if grant.description:
-        parts.append(f"Description: {grant.description}")
-    if grant.applicationDeadline:
-        parts.append(f"Application Deadline: {grant.applicationDeadline}")
-    if grant.fundingAmountMin is not None or grant.fundingAmountMax is not None:
-        parts.append(
-            f"Funding Amount: {grant.fundingAmountMin or ''} to {grant.fundingAmountMax or ''} {grant.fundingCurrency or ''}".strip()
-        )
+    if getattr(grant, "grantTitle", None):
+        parts.append(f"Title: {_clean_str(grant.grantTitle)}")
+    if getattr(grant, "fundingAgency", None):
+        parts.append(f"Agency: {_clean_str(grant.fundingAgency)}")
+    if getattr(grant, "programName", None):
+        parts.append(f"Program: {_clean_str(grant.programName)}")
+    if getattr(grant, "objectives", None):
+        parts.append(f"Objectives: {_clean_str(grant.objectives)}")
+    if getattr(grant, "description", None):
+        parts.append(f"Description: {_clean_str(grant.description)}")
+    if getattr(grant, "fundingScope", None):
+        parts.append(f"Funding Scope: {_clean_str(grant.fundingScope)}")
+    if getattr(grant, "eligibilityCriteria", None):
+        parts.append(f"Eligibility: {_clean_str(grant.eligibilityCriteria)}")
+    if getattr(grant, "selectionCriteria", None):
+        parts.append(f"Selection Criteria: {_clean_str(grant.selectionCriteria)}")
 
-    countries = _clean_list(grant.eligibleCountries)
-    applicants = _clean_list(grant.eligibleApplicants)
-    institution_types = _clean_list(grant.institutionType)
-    fields = _clean_list(grant.field)
-    tags = _clean_list(grant.tags)
+    themes = _clean_list(getattr(grant, "researchThemes", []))
+    if themes:
+        parts.append(f"Themes: {', '.join(themes)}")
 
-    if countries:
-        parts.append(f"Eligible Countries: {', '.join(countries)}")
-    if applicants:
-        parts.append(f"Eligible Applicants: {', '.join(applicants)}")
-    if institution_types:
-        parts.append(f"Institution Types: {', '.join(institution_types)}")
+    fields = _clean_list(getattr(grant, "field", []))
     if fields:
-        parts.append(f"Research Fields: {', '.join(fields)}")
+        parts.append(f"Field: {', '.join(fields)}")
+
+    applicants = _clean_list(getattr(grant, "eligibleApplicants", []))
+    if applicants:
+        parts.append(f"Applicants: {', '.join(applicants)}")
+
+    countries = _clean_list(getattr(grant, "eligibleCountries", []))
+    if countries:
+        parts.append(f"Countries: {', '.join(countries)}")
+
+    tags = _clean_list(getattr(grant, "tags", []))
     if tags:
         parts.append(f"Tags: {', '.join(tags)}")
 
-    if grant.grantUrl:
-        parts.append(f"Grant URL: {grant.grantUrl}")
-    if grant.applicationLink:
-        parts.append(f"Application Link: {grant.applicationLink}")
 
     return "\n".join(parts)
 
