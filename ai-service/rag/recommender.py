@@ -10,7 +10,12 @@ from .schemas import (
     SemanticHit,
     UserProfile,
 )
+from .query_expander import expand_queries
+from .llm_judge import judge_and_rerank
 from .springboot_client import SpringBootClient
+import logging
+
+logger = logging.getLogger("rag.recommender")
 
 
 class RecommenderService:
@@ -40,13 +45,26 @@ class RecommenderService:
         elif request.userQuery and len(request.userQuery.split()) > 4: 
             alpha = 0.75
 
-        semantic_hits = self._search_with_fallback(
-            profile=profile,
-            query_text=query_text,
-            top_k=max(request.topK * 3, settings.semantic_top_k),
-            use_rerank=use_rerank,
-            alpha=alpha,
-        )
+        if getattr(settings, "enable_query_expansion", False):
+            query_strings = expand_queries(profile, request.userQuery)
+        else:
+            query_strings = [query_text]
+
+        all_semantic_hits: Dict[int, SemanticHit] = {}
+
+        for q_str in query_strings:
+            hits = self._search_with_fallback(
+                profile=profile,
+                query_text=q_str,
+                top_k=max(request.topK * 3, settings.semantic_top_k),
+                use_rerank=use_rerank,
+                alpha=alpha,
+            )
+            for hit in hits:
+                if hit.grantId not in all_semantic_hits or hit.semanticScore > all_semantic_hits[hit.grantId].semanticScore:
+                    all_semantic_hits[hit.grantId] = hit
+
+        semantic_hits = list(all_semantic_hits.values())
 
         items: List[RecommendationItem] = []
 
@@ -56,15 +74,23 @@ class RecommenderService:
             score = hit.semanticScore
             
             e_score = eligibility_score(profile, fields)
-            f_score = freshness_score(fields.get("application_deadline"))
+            f_score = freshness_score(fields.get("application_deadline"), decay_rate=getattr(settings, "freshness_decay_rate", 0.012))
 
-            expired_penalty = 0.15 if fields.get("application_deadline") and not deadline_is_open(fields.get("application_deadline")) else 0.0
+            expired_penalty = getattr(settings, "expired_penalty", 0.15) if fields.get("application_deadline") and not deadline_is_open(fields.get("application_deadline")) else 0.0
+
+            w_sem = getattr(settings, "weight_semantic", 0.70)
+            w_eli = getattr(settings, "weight_eligibility", 0.20)
+            w_fre = getattr(settings, "weight_freshness", 0.10)
 
             final_score = (
-                0.70 * score
-                + 0.20 * e_score
-                + 0.10 * f_score
+                w_sem * score
+                + w_eli * e_score
+                + w_fre * f_score
                 - expired_penalty
+            )
+            
+            logger.debug(
+                f"GrantId={grant_id} | Sem={score:.3f}(x{w_sem}) | Eli={e_score:.3f}(x{w_eli}) | Fre={f_score:.3f}(x{w_fre}) | Pen={expired_penalty:.3f} | Final={final_score:.3f}"
             )
 
             items.append(
@@ -83,7 +109,14 @@ class RecommenderService:
             )
 
         items.sort(key=lambda x: x.finalScore, reverse=True)
-        top_items = items[: request.topK or settings.final_top_k]
+        
+        target_top_k = request.topK or settings.final_top_k
+        
+        if getattr(settings, "enable_llm_judge", False):
+            judge_candidates = items[: getattr(settings, "llm_judge_candidate_count", 20)]
+            top_items = judge_and_rerank(profile, query_text, judge_candidates, target_top_k)
+        else:
+            top_items = items[:target_top_k]
 
         return RecommendationResponse(
             queryText=query_text,
@@ -148,9 +181,25 @@ class RecommenderService:
         # Final fallback keeps recall when metadata values are inconsistent.
         stages.append(None)
 
+        hard_clauses = []
+        if getattr(profile, "hasPhd", None) is False:
+            hard_clauses.append({"requires_phd": {"$ne": True}})
+        if getattr(profile, "yearsOfExperience", None) is not None:
+            # We use $or to allow missing fields if possible, but Pinecone standard only supports flat filters easily.
+            # Using $lte as requested, though it may filter out records missing this field.
+            hard_clauses.append({"min_experience_years": {"$lte": profile.yearsOfExperience}})
+        if getattr(profile, "citizenship", None):
+            hard_clauses.append({"citizenship_required": {"$in": [self._normalize(profile.citizenship)]}})
+
         deduped: List[dict | None] = []
         seen = set()
         for stage in stages:
+            if hard_clauses:
+                if stage is None:
+                    stage = self._and_clauses(hard_clauses)
+                else:
+                    stage = self._and_clauses([stage] + hard_clauses)
+            
             key = repr(stage)
             if key in seen:
                 continue
@@ -165,6 +214,22 @@ class RecommenderService:
         profile_country = self._normalize(profile.country)
         for hit in hits:
             fields = hit.fields or {}
+
+            # Strict metadata filtering safety net
+            if getattr(profile, "hasPhd", None) is False and fields.get("requires_phd") is True:
+                continue
+            
+            years_exp = getattr(profile, "yearsOfExperience", None)
+            if years_exp is not None:
+                min_exp = fields.get("min_experience_years")
+                if min_exp is not None and min_exp > years_exp:
+                    continue
+
+            citizenship = getattr(profile, "citizenship", None)
+            if citizenship:
+                cit_req = self._normalize_list(fields.get("citizenship_required", []))
+                if cit_req and self._normalize(citizenship) not in cit_req:
+                    continue
 
             # Keep strong semantic recall, but remove clear country mismatch when metadata exists.
             if strict and profile_country:

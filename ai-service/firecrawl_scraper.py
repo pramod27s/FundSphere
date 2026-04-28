@@ -4,15 +4,12 @@ import uuid
 import hashlib
 from datetime import datetime
 import sys
-import os
 
 # Force UTF-8 for output to avoid charmap codec errors in Windows terminals
 if sys.stdout.encoding.lower() != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
 
-FIRECRAWL_API_KEY = os.environ.get("FIRECRAWL_API_KEY")
-if not FIRECRAWL_API_KEY:
-    raise RuntimeError("FIRECRAWL_API_KEY environment variable is not set.")
+FIRECRAWL_API_KEY = "fc-f1a6fad35689468b90bfdd9c3979eb2f"
 
 # The schema definition we want Firecrawl to strictly extract for us
 GRANT_SCHEMA = {
@@ -53,22 +50,6 @@ GRANT_SCHEMA = {
     "required": ["grantTitle", "fundingAgency", "description"]
 }
 
-def load_existing_checksums():
-    # Simple deduplication state matching what exists in db/index.
-    # In a real system, this would query the db. We simulate it by reading a local file.
-    state_file = "scraper_state.json"
-    if os.path.exists(state_file):
-        try:
-            with open(state_file, "r") as f:
-                return json.load(f)
-        except Exception:
-            return {}
-    return {}
-
-def save_existing_checksums(state):
-    with open("scraper_state.json", "w") as f:
-        json.dump(state, f)
-
 def scrape_grant(url):
     print(f"[*] Asking Firecrawl to extract schema from {url}...")
     
@@ -108,33 +89,16 @@ def scrape_grant(url):
                 extract["fundingAmountMin"] = max_amt
             
             # Fill in the system-managed fields required by our schema
+            extract["id"] = str(uuid.uuid4())
             extract["grantUrl"] = url
             extract["application_link"] = extract.get("applicationLink")
             extract["createdAt"] = None
+            extract["updatedAt"] = None
+            extract["lastScrapedAt"] = datetime.utcnow().isoformat()
             
-            # Live ISO timestamp for updated and scraped at
-            now_iso = datetime.utcnow().isoformat()
-            extract["updatedAt"] = now_iso
-            extract["lastScrapedAt"] = now_iso
-            
-            # Basic checksum fix matching requirements
-            hash_str = f"{extract.get('grantTitle', '')}-{extract.get('fundingAgency', '')}-{extract.get('applicationDeadline', '')}"
-            checksum = hashlib.sha256(hash_str.encode()).hexdigest()
-            extract["checksum"] = checksum
-            
-            # Deduplication before upsert
-            state = load_existing_checksums()
-            if checksum in state:
-                # Reuse existing id
-                extract["id"] = state[checksum]
-                print(f"[*] Reused existing id {extract['id']} for checksum {checksum}")
-            else:
-                # New id
-                new_id = str(uuid.uuid4())
-                extract["id"] = new_id
-                state[checksum] = new_id
-                save_existing_checksums(state)
-                print(f"[*] Generated fresh id {new_id} for checksum {checksum}")
+            # Basic checksum
+            hash_str = f"{extract.get('grantTitle', '')}-{extract.get('fundingAgency', '')}"
+            extract["checksum"] = hashlib.sha256(hash_str.encode()).hexdigest()
             
             return extract
         else:
@@ -146,6 +110,8 @@ def scrape_grant(url):
 def crawl_for_grants(start_url, max_required=8):
     print(f"[*] Crawling {start_url} to discover up to {max_required} valid grant pages...")
     try:
+        import sys
+        import os
         from urllib.parse import urljoin
         from bs4 import BeautifulSoup
         sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -180,7 +146,6 @@ def crawl_for_grants(start_url, max_required=8):
                 continue
                 
             soup = BeautifulSoup(page_html, "lxml")
-            grant_keywords = ["grant", "fellowship", "award", "scheme", "fund", "scholarship", "support", "artificial intelligence", "conference", "seminar", "call for proposal"]
             
             # Find specific grant links using the accordion/link structure found on serb.gov.in
             for a in soup.select("a.awards_btn"):
@@ -191,17 +156,9 @@ def crawl_for_grants(start_url, max_required=8):
                 
                 # Check for actual grant keywords in the title text
                 grant_title = link_div.text.strip().lower()
-                
-                # Relevance stop condition: min 2 grant keywords
-                hit_count = sum(1 for kw in grant_keywords if kw in grant_title)
-                
-                # Minimum confidence threshold
-                if not link_div.text.strip():
-                    print(f"       [-] Skipped tracking: title empty")
-                    continue
-                
-                if hit_count < 2:
-                    print(f"       [-] Skipped tracking: hit count {hit_count} < 2")
+                grant_keywords = ["grant", "fellowship", "award", "scheme", "fund", "scholarship", "support", "artificial intelligence", "conference", "seminar", "call for proposal"]
+
+                if not any(kw in grant_title for kw in grant_keywords):
                     continue
 
                 href = a.get("href")
@@ -259,17 +216,78 @@ def crawl_for_grants(start_url, max_required=8):
 
                 if not text:
                     continue
-                    
-                # Relevance stop condition: min 2 grant keywords
-                hit_count = sum(1 for kw in grant_keywords if kw in text)
-                if hit_count < 2:
-                    continue
-                    
-                if l not in valid_candidates and l not in visited:
-                    valid_candidates.append(l)
-                    print(f"       Found grant standard link: {text} -> {l}")
+                
+                # For printing safely on Windows terminals
+                def safe_print(*args):
+                    try:
+                        print(*args)
+                    except UnicodeEncodeError:
+                        print(" ".join(str(a) for a in args).encode("utf-8", "ignore").decode("utf-8"))
 
-        return valid_candidates[:max_required]
+                is_grant = False
+                grant_keywords = ["fellowship", "research grant", "award", "scholarship", "funding", "call for proposal", "grants for artificial intelligence", "grants for conference"]
+                for kw in grant_keywords:
+                    # Require the keyword and at least 2 words to avoid generic links
+                    if kw in text and len(text.split()) > 1: 
+                        is_grant = True
+                        break
+                
+                if is_grant and l not in valid_candidates and l not in visited and l != current_url:
+                    valid_candidates.append(l)
+                    safe_print(f"       Found explicit grant link: {text} -> {l}")
+                    if len(valid_candidates) >= max_required * 2:
+                        break
+
+            # If depth 0, look for category links to crawl further
+            if depth == 0:
+                for a in soup.find_all("a", href=True):
+                    l = urljoin(current_url, a["href"])
+                    if l.startswith("http") and ("grant" in a.text.lower() or "fellowship" in a.text.lower()):
+                         if l not in visited and not any(q[0] == l for q in queue) and l != current_url and not a["href"].startswith("#"):
+                             queue.append((l, depth + 1))
+                            
+        print(f"[+] Crawler discovered {len(valid_candidates)} candidate grant URLs.")
+        return valid_candidates[:max_required * 2]
+        
     except Exception as e:
-        print(f"[-] Crawl failed: {str(e)}")
+        print(f"[-] Local crawler encountered an error: {str(e)}")
         return []
+
+import argparse
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Extract grant data from a URL using Firecrawl.")
+    parser.add_argument("url", help="The URL to scrape or map (e.g., https://example.com/grant or https://www.startupgrantsindia.com/)")
+    parser.add_argument("--output", "-o", default="grants_firecrawl_output.json", help="Output JSON file path")
+    parser.add_argument("--max", "-m", type=int, default=8, help="Maximum number of grants to extract")
+    args = parser.parse_args()
+    
+    candidates = [args.url]
+    # Heuristic: If it's a root domain or a listing page, invoke the crawler
+    if args.url.count("/") <= 3 or "/type/" in args.url.lower() or "/industry/" in args.url.lower() or "page" in args.url.lower():
+        candidates = crawl_for_grants(args.url, args.max)
+        if not candidates:
+            print("[-] No candidate links found. Falling back to scraping the original URL.")
+            candidates = [args.url]
+    
+    scraped_data = []
+    print(f"[*] Beginning extraction for up to {args.max} candidate pages...")
+    for link in candidates:
+        if len(scraped_data) >= args.max:
+            break
+            
+        grant_data = scrape_grant(link)
+        if grant_data and grant_data.get("grantTitle") and grant_data.get("fundingAgency"):
+            # Optional: Check if we just hallucinated a dummy object that wasn't a grant
+            # e.g., if grantTitle is something silly like "Terms of Service"
+            if "terms" not in grant_data["grantTitle"].lower() and "privacy" not in grant_data["grantTitle"].lower():
+                scraped_data.append(grant_data)
+            
+    if scraped_data:
+        with open(args.output, "w", encoding="utf-8") as f:
+            json.dump(scraped_data, f, indent=2, ensure_ascii=False)
+        print(f"[+] Saved {len(scraped_data)} grants to {args.output} matching schema!")
+        # Print just the first one to console to keep it clean
+        print(json.dumps(scraped_data[0], indent=2, ensure_ascii=False))
+        if len(scraped_data) > 1:
+            print(f"... and {len(scraped_data)-1} more grants.")

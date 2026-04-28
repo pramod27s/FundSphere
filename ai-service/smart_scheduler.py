@@ -105,21 +105,15 @@ def get_page_hash(url):
 
     page_text = extract_pure_text(html_content)
 
-    # Fix 4: SPA Detection and Playwright Fallback
+    # Fix 4: SPA Detection and Selenium Fallback
     if page_text and len(page_text) < 300:
-        logger.info(f"Page text length < 300 for {url}. Likely SPA. Invoking Playwright fallback.")
+        logger.info(f"Page text length < 300 for {url}. Likely SPA. Invoking Selenium fallback.")
         try:
-            from playwright.sync_api import sync_playwright
-            with sync_playwright() as p:
-                browser = p.chromium.launch(headless=True)
-                page = browser.new_page()
-                page.goto(url, wait_until="networkidle", timeout=20000)
-                html_content = page.content()
-                browser.close()
-
+            from scrape.scrape import fetch_selenium
+            html_content = fetch_selenium(url, driver_path="scrape/chromedriver", wait=2.0)
             page_text = extract_pure_text(html_content)
         except Exception as e:
-            logger.warning(f"Playwright fallback failed for {url}: {e}")
+            logger.warning(f"Selenium fallback failed for {url}: {e}")
             return None
 
     if not page_text:

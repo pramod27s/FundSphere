@@ -1,5 +1,5 @@
 langchain 
-google-generativeai
+google-genai
 selenium
 beautifulsoup4
 lxml 
@@ -11,4 +11,3 @@ requests
 python-dateutil
 pinecone[grpc]
 curl_cffi
-playwright

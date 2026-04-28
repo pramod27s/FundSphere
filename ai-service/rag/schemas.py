@@ -30,6 +30,10 @@ class GrantData(BaseModel):
     selectionCriteria: Optional[str] = Field(default=None, max_length=3000)
     grantDuration: Optional[str] = Field(default=None, max_length=500)
     researchThemes: List[str] = Field(default_factory=list)
+    requiresPhd: Optional[bool] = None
+    minExperienceYears: Optional[int] = None
+    citizenshipRequired: Optional[List[str]] = None
+    maxFundingPerApplicant: Optional[float] = None
 
 
 class UserProfile(BaseModel):
@@ -46,6 +50,9 @@ class UserProfile(BaseModel):
     preferredMinAmount: Optional[float] = Field(default=None, ge=0)
     preferredMaxAmount: Optional[float] = Field(default=None, ge=0)
     preferredCurrency: Optional[str] = Field(default=None, max_length=50)
+    hasPhd: Optional[bool] = None
+    yearsOfExperience: Optional[int] = None
+    citizenship: Optional[str] = None
 
 
 class KeywordCandidate(BaseModel):
@@ -94,6 +101,8 @@ class RecommendationItem(BaseModel):
     fundingAgency: Optional[str] = Field(default=None, max_length=500)
     reason: str = Field(default="", max_length=1000)
     fields: Dict[str, Any] = Field(default_factory=dict)
+    llmApproved: bool = True
+    llmReason: Optional[str] = None
 
 
 class RecommendationResponse(BaseModel):
