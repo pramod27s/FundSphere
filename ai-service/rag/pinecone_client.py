@@ -1,9 +1,11 @@
 from typing import Any, Dict, List, Optional
+import logging
 from pinecone import Pinecone, ServerlessSpec
 from .config import settings
 from .document_builder import build_pinecone_records
 from .schemas import GrantData, SemanticHit
 
+logger = logging.getLogger("rag.pinecone_client")
 
 SEARCH_FIELDS = [
     "grant_id",
@@ -126,25 +128,29 @@ class PineconeService:
         alpha: float = 0.7,
     ) -> List[SemanticHit]:
         
-        # Generate dense query vector via Pinecone Integrated Inference
-        dense_result = self.pc.inference.embed(
-            model="llama-text-embed-v2",
-            inputs=[query_text],
-            parameters={"dimension": 1024, "input_type": "query"}
-        )
-        dense_embedding = dense_result[0].values
+        try:
+            # Generate dense query vector via Pinecone Integrated Inference
+            dense_result = self.pc.inference.embed(
+                model="llama-text-embed-v2",
+                inputs=[query_text],
+                parameters={"dimension": 1024, "input_type": "query"}
+            )
+            dense_embedding = dense_result[0].values
 
-        # Generate SPLADE sparse vector for query via Pinecone inference
-        sparse_result = self.pc.inference.embed(
-            model="pinecone-sparse-english-v0",
-            inputs=[query_text],
-            parameters={"input_type": "query"}
-        )
-        sparse_vector = {
-            "indices": sparse_result[0].sparse_indices,
-            "values":  sparse_result[0].sparse_values,
-        }
-        
+            # Generate SPLADE sparse vector for query via Pinecone inference
+            sparse_result = self.pc.inference.embed(
+                model="pinecone-sparse-english-v0",
+                inputs=[query_text],
+                parameters={"input_type": "query"}
+            )
+            sparse_vector = {
+                "indices": sparse_result[0].sparse_indices,
+                "values":  sparse_result[0].sparse_values,
+            }
+        except Exception as e:
+            logger.error(f"Pinecone inference embed failed: {e}")
+            raise RuntimeError(f"Pinecone inference failed: {e}") from e
+
         # Apply alpha weighting
         weighted_dense = [v * alpha for v in dense_embedding]
         weighted_sparse = {
@@ -160,7 +166,7 @@ class PineconeService:
                 sparse_vector=weighted_sparse,
                 top_k=top_k,
                 include_metadata=True,
-                filter=metadata_filter or {},
+                filter=metadata_filter if metadata_filter else None,
             )
         except Exception as e:
             if "does not support sparse values" in str(e):
@@ -169,7 +175,7 @@ class PineconeService:
                     vector=weighted_dense,
                     top_k=top_k,
                     include_metadata=True,
-                    filter=metadata_filter or {},
+                    filter=metadata_filter if metadata_filter else None,
                 )
             else:
                 raise

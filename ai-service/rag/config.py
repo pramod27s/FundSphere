@@ -33,8 +33,8 @@ class Settings:
     use_rerank: bool = _as_bool(os.getenv("USE_RERANK"), True)
 
     # Query Expansion Settings
-    gemini_api_key_query_expansion: str = os.getenv("GEMINI_API_KEY_QUERY_EXPANSION", "AIzaSyDBa-DGiRJJcmqIzPwpBc7hz1-dfwQG24o")
-    query_expansion_model: str = os.getenv("QUERY_EXPANSION_MODEL", "gemini-2.0-flash")
+    groq_api_key_query_expansion: str = os.getenv("GROQ_API_KEY_QUERY_EXPANSION", "")
+    query_expansion_model: str = os.getenv("QUERY_EXPANSION_MODEL", "openai/gpt-oss-120b")
     enable_query_expansion: bool = _as_bool(os.getenv("ENABLE_QUERY_EXPANSION"), True)
 
     # Chunking Settings
@@ -43,10 +43,10 @@ class Settings:
     enable_chunking: bool = _as_bool(os.getenv("ENABLE_CHUNKING"), True)
 
     # LLM Judge Settings
-    gemini_api_key_llm_judge: str = os.getenv("GEMINI_API_KEY_LLM_JUDGE", "AIzaSyDUqUXVn9o8ZRo9_zDAusdHGYg124ZlZl4")
+    groq_api_key_llm_judge: str = os.getenv("GROQ_API_KEY_LLM_JUDGE", "")
     enable_llm_judge: bool = _as_bool(os.getenv("ENABLE_LLM_JUDGE"), True)
-    llm_judge_model: str = os.getenv("LLM_JUDGE_MODEL", "gemini-2.0-flash")
-    llm_judge_candidate_count: int = int(os.getenv("LLM_JUDGE_CANDIDATE_COUNT", "20"))
+    llm_judge_model: str = os.getenv("LLM_JUDGE_MODEL", "openai/gpt-oss-120b")
+    llm_judge_candidate_count: int = int(os.getenv("LLM_JUDGE_CANDIDATE_COUNT", "10"))
 
     # Scoring Weights
     weight_semantic: float = float(os.getenv("WEIGHT_SEMANTIC", "0.70"))

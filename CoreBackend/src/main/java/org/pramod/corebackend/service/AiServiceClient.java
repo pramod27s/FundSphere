@@ -60,9 +60,13 @@ public class AiServiceClient {
                 request = request.header("X-API-KEY", apiKey);
             }
 
-            return request.body(requestBody)
+            byte[] responseBytes = request.body(requestBody)
                     .retrieve()
-                    .body(Object.class);
+                    .body(byte[].class);
+            if (responseBytes == null || responseBytes.length == 0) {
+                return "{\"results\":[], \"no_results\":true}";
+            }
+            return new String(responseBytes, java.nio.charset.StandardCharsets.UTF_8);
         } catch (RestClientResponseException ex) {
             throw new ResponseStatusException(BAD_GATEWAY,
                     "AI service returned " + ex.getStatusCode().value() + ": " + ex.getResponseBodyAsString(), ex);

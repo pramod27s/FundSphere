@@ -135,13 +135,17 @@ class RecommenderService:
         stages = self._build_metadata_filter_stages(profile)
 
         for i, metadata_filter in enumerate(stages):
-            hits = self.pinecone_service.search(
-                query_text=query_text,
-                top_k=top_k,
-                metadata_filter=metadata_filter,
-                use_rerank=use_rerank,
-                alpha=alpha,
-            )
+            try:
+                hits = self.pinecone_service.search(
+                    query_text=query_text,
+                    top_k=top_k,
+                    metadata_filter=metadata_filter,
+                    use_rerank=use_rerank,
+                    alpha=alpha,
+                )
+            except Exception as e:
+                logger.error(f"Pinecone search failed at stage {i}: {e}")
+                hits = []
 
             is_last_stage = (i == len(stages) - 1)
             cleaned_hits = self._post_filter_hits(profile, hits, strict=not is_last_stage)

@@ -192,8 +192,22 @@ function mapCoreGrantToDiscoveryGrant(grant: CoreGrantResponse): DiscoveryGrant 
 
 function clampToPercentage(value: number): number {
   const normalized = Number.isFinite(value) ? value : 0;
-  const scaled = normalized <= 1 ? normalized * 100 : normalized;
-  return Math.max(0, Math.min(100, Math.round(scaled)));
+  
+  // Hybrid search scores can exceed 1.0 (typically 2.0 - 4.0 for good matches)
+  // We'll scale relative to a reasonable max score of 4.0
+  const maxExpectedScore = 4.0;
+  let percentage = 0;
+  
+  if (normalized > 1) {
+    // It's a hybrid score, scale it
+    percentage = (normalized / maxExpectedScore) * 100;
+  } else {
+    // It's a normalized [0,1] score
+    percentage = normalized * 100;
+  }
+  
+  // Ensure we don't drop below 0 or exceed 99% (save 100% for exact ID matches if any)
+  return Math.max(0, Math.min(99, Math.round(percentage)));
 }
 
 function formatDate(value?: string): string {

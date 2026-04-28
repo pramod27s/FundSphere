@@ -158,6 +158,11 @@ public class AiBridgeController {
         return ResponseEntity.ok(aiServiceClient.recommend(request));
     }
 
+    @PostMapping("/test-rag")
+    public ResponseEntity<Object> testRag(@RequestBody Map<String, Object> request) {
+        return ResponseEntity.ok(aiServiceClient.recommend(request));
+    }
+
     /**
      * Proxy endpoint: Commands the Python AI service to embed and index a single grant in Vector DB.
      * @param request AI Service generic payload.

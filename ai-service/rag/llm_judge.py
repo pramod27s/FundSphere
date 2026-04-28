@@ -1,22 +1,25 @@
 import json
 import logging
-from google import genai
+from openai import OpenAI
 from .config import settings
 from .schemas import UserProfile, RecommendationItem
 
 logger = logging.getLogger("rag.llm_judge")
 
 def judge_and_rerank(profile: UserProfile, query_text: str, candidates: list[RecommendationItem], top_k: int) -> list[RecommendationItem]:
-    if not settings.enable_llm_judge or not settings.gemini_api_key_llm_judge:
-        logger.warning("LLM Judge is disabled or GEMINI_API_KEY_LLM_JUDGE is missing, skipping.")
+    if not settings.enable_llm_judge or not settings.groq_api_key_llm_judge:
+        logger.warning("LLM Judge is disabled or GROQ_API_KEY_LLM_JUDGE is missing, skipping.")
         return candidates[:top_k]
 
     if not candidates:
         return []
 
     try:
-        client = genai.Client(api_key=settings.gemini_api_key_llm_judge)
-        
+        client = OpenAI(
+            api_key=settings.groq_api_key_llm_judge,
+            base_url="https://api.groq.com/openai/v1"
+        )
+
         # Build prompt
         profile_str = f"Country: {profile.country}\nInstitution: {profile.institutionType}\nApplicant: {profile.applicantType}\nBio: {profile.researchBio}\nInterests: {', '.join(profile.researchInterests)}\nKeywords: {', '.join(profile.keywords)}"
         
@@ -46,27 +49,42 @@ User Profile:
 Candidate Grants:
 {candidates_str}
 
-Return ONLY a JSON array of objects with these keys:
+Return ONLY a JSON object with a single key "judgments" containing an array of objects with these keys:
 - grantId (integer, must match the input grantId)
 - llmApproved (boolean)
 - llmReason (string, 1-2 sentence explanation)
 
+Example JSON structure:
+{{
+  "judgments": [
+    {{
+      "grantId": 123,
+      "llmApproved": true,
+      "llmReason": "User has a background in AI which aligns perfectly."
+    }}
+  ]
+}}
+
 The array must be ordered from best match to worst match. Do not include any markdown formatting or explanations outside the JSON.
 """
 
-        response = client.models.generate_content(
+        response = client.chat.completions.create(
             model=settings.llm_judge_model,
-            contents=prompt
+            messages=[
+                {"role": "system", "content": "You are a helpful grant evaluator. Output ONLY JSON."},
+                {"role": "user", "content": prompt}
+            ]
         )
-        text = response.text.strip()
-        
+        text = response.choices[0].message.content.strip()
+
         if text.startswith("```json"):
             text = text[7:-3].strip()
         elif text.startswith("```"):
             text = text[3:-3].strip()
             
-        judgments = json.loads(text)
-        
+        parsed_json = json.loads(text)
+        judgments = parsed_json.get("judgments", []) if isinstance(parsed_json, dict) else parsed_json
+
         # Merge judgments back into candidates
         approved_candidates = []
         

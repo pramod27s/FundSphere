@@ -12,6 +12,10 @@ import org.pramod.corebackend.repository.GrantRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.web.client.RestTemplate;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.concurrent.CompletableFuture;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
@@ -45,6 +49,7 @@ public class GrantService {
             // New grant — save it
             Grant grant = mapToEntity(request);
             Grant saved = grantRepository.save(grant);
+            triggerPineconeIndexing(saved.getId());
             return new SaveOrUpdateResult(mapToResponse(saved), true);
         }
 
@@ -61,6 +66,7 @@ public class GrantService {
         existing.setChecksum(request.getChecksum());
         existing.setLastScrapedAt(LocalDateTime.now());
         Grant updated = grantRepository.save(existing);
+        triggerPineconeIndexing(updated.getId());
         return new SaveOrUpdateResult(mapToResponse(updated), false);
     }
 
@@ -84,6 +90,7 @@ public class GrantService {
 
         updateEntity(existing, request);
         Grant updated = grantRepository.save(existing);
+        triggerPineconeIndexing(updated.getId());
         return mapToResponse(updated);
     }
 
@@ -93,6 +100,7 @@ public class GrantService {
             throw new RuntimeException("Grant not found with id: " + id);
         }
         grantRepository.deleteById(id);
+        triggerPineconeDeletion(id);
     }
 
     public GrantResponse getGrantByUrl(String grantUrl) {
@@ -125,6 +133,30 @@ public class GrantService {
                 .sorted((a, b) -> Double.compare(b.keywordScore(), a.keywordScore()))
                 .limit(Math.max(topK, 1))
                 .toList();
+    }
+
+    private void triggerPineconeIndexing(Long grantId) {
+        CompletableFuture.runAsync(() -> {
+            try {
+                RestTemplate restTemplate = new RestTemplate();
+                Map<String, Long> request = new HashMap<>();
+                request.put("grantId", grantId);
+                restTemplate.postForObject("http://localhost:8000/rag/index-grant", request, String.class);
+            } catch (Exception e) {
+                System.err.println("Failed to index grant in Pinecone for grantId: " + grantId + " - " + e.getMessage());
+            }
+        });
+    }
+
+    private void triggerPineconeDeletion(Long grantId) {
+        CompletableFuture.runAsync(() -> {
+            try {
+                RestTemplate restTemplate = new RestTemplate();
+                restTemplate.delete("http://localhost:8000/rag/grant/" + grantId);
+            } catch (Exception e) {
+                System.err.println("Failed to delete grant from Pinecone for grantId: " + grantId + " - " + e.getMessage());
+            }
+        });
     }
 
     // --- Mapping helpers ---
