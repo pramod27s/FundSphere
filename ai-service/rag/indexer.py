@@ -10,12 +10,14 @@ class GrantIndexer:
 
     def index_grant(self, grant_id: int) -> dict:
         grant = self.spring_client.get_grant_for_indexing(grant_id)
-        record = self.pinecone_service.upsert_grant(grant)
+        records = self.pinecone_service.upsert_grant(grant)
+
+        record_ids = [r.get("id") or r.get("_id") for r in records]
 
         return {
             "status": "indexed",
             "grantId": grant_id,
-            "recordId": record.get("id") or record.get("_id"),
+            "recordIds": record_ids,
         }
 
     def index_many(self, grant_ids: List[int]) -> dict:

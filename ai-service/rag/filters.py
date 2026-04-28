@@ -1,5 +1,7 @@
 from datetime import datetime, timezone
 from dateutil import parser as date_parser
+from math import exp
+from .config import settings
 from .schemas import UserProfile
 
 
@@ -25,7 +27,10 @@ def deadline_is_open(deadline: str | None) -> bool:
         return True
 
 
-def freshness_score(deadline: str | None) -> float:
+def freshness_score(deadline: str | None, decay_rate: float | None = None) -> float:
+    if decay_rate is None:
+        decay_rate = getattr(settings, "freshness_decay_rate", 0.012)
+
     if not deadline:
         return 0.3
 
@@ -37,13 +42,8 @@ def freshness_score(deadline: str | None) -> float:
 
         if days_left < 0:
             return 0.0
-        if days_left <= 30:
-            return 1.0
-        if days_left <= 90:
-            return 0.7
-        if days_left <= 180:
-            return 0.5
-        return 0.3
+            
+        return max(0.1, exp(-decay_rate * days_left))
     except Exception:
         return 0.3
 

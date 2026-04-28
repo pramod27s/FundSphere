@@ -1,6 +1,8 @@
+import re
 from datetime import datetime, timezone
 from dateutil import parser as date_parser
 from .schemas import GrantData
+from .config import settings
 
 
 def _clean_str(value: str | None) -> str:
@@ -81,10 +83,66 @@ def build_grant_document(grant: GrantData) -> str:
     return "\n".join(parts)
 
 
-def build_pinecone_record(grant: GrantData) -> dict:
-    record = {
-        "id": f"grant#{grant.id}",
-        "chunk_text": build_grant_document(grant),
+def chunk_grant_document(full_text: str, max_tokens: int = 400, overlap_tokens: int = 80) -> list[str]:
+    if not full_text:
+        return []
+        
+    words = full_text.split()
+    if len(words) <= max_tokens:
+        return [full_text]
+
+    # Split into sentences or lines
+    sentences = re.split(r'(?<=\. )|(?<=\n)', full_text)
+    
+    chunks = []
+    current_chunk = []
+    current_len = 0
+    
+    for sentence in sentences:
+        sentence = sentence.strip()
+        if not sentence:
+            continue
+            
+        sentence_words = sentence.split()
+        sentence_len = len(sentence_words)
+        
+        if current_len + sentence_len > max_tokens and current_chunk:
+            chunks.append(" ".join(current_chunk))
+            
+            # Keep overlap
+            overlap_words = []
+            overlap_len = 0
+            for s in reversed(current_chunk):
+                s_words = s.split()
+                if overlap_len + len(s_words) <= overlap_tokens:
+                    overlap_words.insert(0, s)
+                    overlap_len += len(s_words)
+                else:
+                    break
+            
+            current_chunk = overlap_words
+            current_len = overlap_len
+            
+        current_chunk.append(sentence)
+        current_len += sentence_len
+        
+    if current_chunk:
+        chunks.append(" ".join(current_chunk))
+        
+    return chunks
+
+
+def build_pinecone_records(grant: GrantData) -> list[dict]:
+    full_text = build_grant_document(grant)
+    
+    if getattr(settings, "enable_chunking", False):
+        max_t = getattr(settings, "chunk_max_tokens", 400)
+        overlap_t = getattr(settings, "chunk_overlap_tokens", 80)
+        chunks = chunk_grant_document(full_text, max_tokens=max_t, overlap_tokens=overlap_t)
+    else:
+        chunks = [full_text]
+
+    base_record = {
         "grant_id": grant.id,
         "grant_title": _clean_str(grant.grantTitle),
         "funding_agency": _clean_str(grant.fundingAgency),
@@ -104,17 +162,30 @@ def build_pinecone_record(grant: GrantData) -> dict:
         "checksum": _clean_str(grant.checksum),
         "last_scraped_at": _clean_str(grant.lastScrapedAt),
         "updated_at": _clean_str(grant.updatedAt),
+        "requires_phd": getattr(grant, "requiresPhd", None),
+        "min_experience_years": getattr(grant, "minExperienceYears", None),
+        "citizenship_required": _clean_list(getattr(grant, "citizenshipRequired", [])),
+        "max_funding_per_applicant": getattr(grant, "maxFundingPerApplicant", None),
     }
 
     # Pinecone metadata should be flat and should not contain null values.
-    cleaned = {}
-    for key, value in record.items():
+    cleaned_metadata = {}
+    for key, value in base_record.items():
         if value is None:
             continue
         if value == "":
             continue
         if value == []:
             continue
-        cleaned[key] = value
+        cleaned_metadata[key] = value
 
-    return cleaned
+    records = []
+    title_prefix = f"[Title: {base_record.get('grant_title', 'Unknown')} | Agency: {base_record.get('funding_agency', 'Unknown')}] "
+    
+    for i, chunk in enumerate(chunks):
+        record = cleaned_metadata.copy()
+        record["id"] = f"grant#{grant.id}-chunk{i}"
+        record["chunk_text"] = f"{title_prefix}{chunk}"
+        records.append(record)
+
+    return records
