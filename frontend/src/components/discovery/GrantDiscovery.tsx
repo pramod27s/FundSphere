@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import GrantList from './GrantList.tsx';
 import FilterSidebar from './FilterSidebar.tsx';
 import AnimatedLogo from '../common/AnimatedLogo.tsx';
+import CustomSelect from '../common/CustomSelect.tsx';
 import type { ResearcherResponse } from '../../services/researcherService';
 import { getDiscoveryGrants, type DiscoveryGrant } from '../../services/discoveryService';
 
@@ -42,7 +43,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
       setDataSource(source);
 
       if (useRerank && source === 'core' && aiError) {
-        setWarningMessage('AI matching is currently unavailable, showing fallback grants from CoreBackend.');
+        setWarningMessage(`AI matching is currently unavailable (${aiError}), showing fallback grants from CoreBackend.`);
       }
     } catch (error) {
       setGrants([]);
@@ -160,31 +161,33 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-brand-500">Top results:</span>
-                <select
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-brand-500 hidden sm:inline-block">Top results:</span>
+                <CustomSelect
                   value={topK}
-                  onChange={(e) => setTopK(Number(e.target.value))}
-                  className="bg-white border border-brand-200 text-brand-700 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2 outline-none"
-                >
-                  <option value={6}>6</option>
-                  <option value={12}>12</option>
-                  <option value={20}>20</option>
-                </select>
+                  onChange={(val) => setTopK(Number(val))}
+                  width="w-24"
+                  options={[
+                    { value: 6, label: '6' },
+                    { value: 12, label: '12' },
+                    { value: 20, label: '20' },
+                  ]}
+                />
               </div>
 
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-brand-500">Sort by:</span>
-                <select
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-brand-500 hidden sm:inline-block">Sort by:</span>
+                <CustomSelect
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="bg-white border border-brand-200 text-brand-700 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2 outline-none"
-                >
-                  <option value="match">Match Score (Highest)</option>
-                  <option value="deadline">Deadline (Closing Soon)</option>
-                  <option value="funding">Funding Amount (Highest)</option>
-                  <option value="recent">Recently Updated</option>
-                </select>
+                  onChange={(val) => setSortBy(String(val))}
+                  width="w-56"
+                  options={[
+                    { value: 'match', label: 'Match Score (Highest)' },
+                    { value: 'deadline', label: 'Deadline (Closing Soon)' },
+                    { value: 'funding', label: 'Funding Amount (Highest)' },
+                    { value: 'recent', label: 'Recently Updated' },
+                  ]}
+                />
               </div>
             </div>
 
