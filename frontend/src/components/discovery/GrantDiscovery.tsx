@@ -166,7 +166,10 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
               </button>
               <AnimatedLogo className="w-8 h-8 md:w-10 md:h-10" />
               <div className="flex items-baseline gap-2">
-                <h1 className="text-xl md:text-2xl font-bold text-brand-900 tracking-tight">FundSphere</h1>
+                <h1 className="text-xl md:text-2xl font-bold tracking-tight">
+                  <span className="text-teal-600">Fund</span>
+                  <span className="text-brand-900">Sphere</span>
+                </h1>
                 <span className="hidden sm:inline-block text-[10px] font-semibold uppercase tracking-widest text-primary-600 bg-primary-50 px-2 py-0.5 rounded-md border border-primary-100">Discovery</span>
               </div>
             </div>
