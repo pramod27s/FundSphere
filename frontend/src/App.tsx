@@ -69,7 +69,7 @@ function App() {
   };
 
   return (
-    <div className={`min-h-screen bg-brand-50 flex flex-col ${['onboarding', 'auth'].includes(currentPage) ? 'justify-center items-center p-4 sm:p-6 lg:p-8' : ''}`}>
+    <div className={`min-h-screen flex flex-col ${['onboarding', 'auth'].includes(currentPage) ? 'justify-center items-center p-4 sm:p-6 lg:p-8' : ''}`}>
       
       <AnimatePresence mode="wait">
         {currentPage === 'splash' && (

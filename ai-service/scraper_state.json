@@ -34,7 +34,7 @@
   "https://www.startupgrantsindia.com/api/sitemap/core": "5a02f971de0c7a3fe566da16214e7b778b63d69266a2262d9b09f93de941de27",
   "https://www.startupgrantsindia.com/api/sitemap/providers": "e0f783faab41dd210bd40806e7aa196dc9ccde9ffc51cb7b29fceaac711f0090",
   "https://www.startupgrantsindia.com/api/sitemap/events": "c7e82015927a70dc0da182bf891ba1579bfef26c8fb2c261f503022848e711aa",
-  "https://www.startupgrantsindia.com/": "c3dcfed2377f4f2da0b2cbad6bb71b98ac2f11e33d5ba88ab56dd08be841cde8",
+  "https://www.startupgrantsindia.com/": "a6159531df3491580de0488b955661e88aad4fb8e3146eaaf4f469e41f4eaddc",
   "https://fundsforcompanies.fundsforngos.org/grant/accelerated-startup-partnerships-for-sustainable-road-transport-innovation-sweden/": "34ce134095a5113d5d9309b1dd109e23d5714cd0e69c429971a1ceff9fba06bf",
   "https://fundsforcompanies.fundsforngos.org/awards-and-prizes/call-for-nominations-isc-ficci-sanitation-awards-2026-india/": "fadcd21669e69729985541a841730bcc83f5a0f519db203e2427e90cdc97e2ba",
   "https://fundsforcompanies.fundsforngos.org/training-and-mentorship/grant-in-aid-incubation-program-for-agri-startups-in-india/": "10d0ab93c91206855a594273a6d6b09f8e7339518f3e9d462f71a9d4fc13c128",
@@ -79,5 +79,14 @@
   "https://www.startupgrantsindia.com/api/sitemap/taxonomy": "44ca6e700e070f02ac65397097e45e8d36bf630053d3e8ba6814aac2b26ce018",
   "https://www.startupgrantsindia.com/funding-frontier-climate-tech-for-childrens-health": "dd11e3a20dd4c280e6e049cc2a62ab1affbbcab75488c31d092e5dcf785a665d",
   "https://www.startupgrantsindia.com/dbt-birac-joint-call-bio-ai-bioe3": "197c3f43f2299df8099babdf104b523752b19ab3598eb3057aba96ce8437e145",
-  "https://www.startupgrantsindia.com/alliance-crypto-ai-accelerator": "02bf93fa6dda42a35e18419972025305b16c9478f7621970a6ce87de9944c671"
+  "https://www.startupgrantsindia.com/alliance-crypto-ai-accelerator": "02bf93fa6dda42a35e18419972025305b16c9478f7621970a6ce87de9944c671",
+  "https://serb.gov.in/page/english/research_grants": "a47c3013ea07233e043aadeb09a7c108fed6163bd602f2d5a9abf7dbf59000da",
+  "https://fundsforcompanies.fundsforngos.org/grant/call-for-digital-solutions-for-regulatory-compliance-through-data/": "f02ba7792202cb6918d9136bc083465caeabcd79f99d62cf059ef7992b677642",
+  "https://fundsforcompanies.fundsforngos.org/grant/digital-skills-and-jobs-platform-national-coalitions-integration-initiative/": "ba77bb19e1d3ddf66b00f67411ffa2f840ba119fdc35255ed2df2c7fdd6700ca",
+  "https://fundsforcompanies.fundsforngos.org/grant/impact-innovation-water-wise-societies-pre-studies-2026-sweden/": "cbfc56ece0fb82df02d9a0b9fbcc919bb8da58bbea6fc5dfe4458e48efa4676b",
+  "https://fundsforcompanies.fundsforngos.org/grant/verizon-small-business-digital-ready-national-grant-us/": "7fbbd2b36ab662165138d99a7af7e115a98b81b9cd664e4ae42432d01fe1f2e0",
+  "https://fundsforcompanies.fundsforngos.org/grant/youth-and-women-led-network-empowerment-initiative-kenya/": "e3cd79b8570ca923f44aac35174b287c1307b15772a0954c04b0f27f502f74aa",
+  "https://fundsforcompanies.fundsforngos.org/grant/cfps-nordic-secondary-critical-raw-materials-value-chains/": "2cb9bf16850ca3223a2bce8a7789bfac952113edebd867d0faa427b1a72c087a",
+  "https://fundsforcompanies.fundsforngos.org/awards-and-prizes/submissions-open-wastesorted-awards-2026-australia/": "05468b1730d0a9c85e6e16a51f9acbb1ffcd0ae1bb1965ed7991d2b593587a2a",
+  "https://fundsforcompanies.fundsforngos.org/grant/funding-for-climate-strategy-implementation-project/": "bd5ac5bf32be5ce4ac0bae1242b5e6c7b9027e8e2fbeab52125fc611d823c53f"
 }
