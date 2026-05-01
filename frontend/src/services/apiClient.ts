@@ -6,7 +6,7 @@ let refreshPromise: Promise<AuthSession | null> | null = null;
 
 export async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
   const attempt = await doFetch(path, init, false);
-  if (attempt.status !== 401) {
+  if (attempt.status !== 401 && attempt.status !== 403) {
     return attempt;
   }
 
@@ -69,4 +69,3 @@ async function refreshSession(): Promise<AuthSession | null> {
 
   return refreshPromise;
 }
-

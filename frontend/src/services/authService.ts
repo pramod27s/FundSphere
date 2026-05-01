@@ -79,10 +79,21 @@ async function post<T>(path: string, payload: unknown): Promise<T> {
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`${response.status} ${response.statusText}: ${errorText}`);
+    let errorText = await response.text();
+    try {
+      const errorJson = JSON.parse(errorText);
+      if (errorJson.message) {
+        errorText = errorJson.message;
+      } else if (errorJson.error) {
+        errorText = errorJson.error;
+      }
+    } catch {
+      // Ignore if not JSON
+    }
+
+    // Throw a cleaner error string so the UI can display it
+    throw new Error(errorText || `Authentication failed (${response.status})`);
   }
 
   return response.json() as Promise<T>;
 }
-

@@ -10,12 +10,24 @@ interface LoginProps {
 export default function Login({ onLoginSuccess, onNavigateToRegister }: LoginProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // JWT auth will go here later
-    // For now, mock a successful login
-    onLoginSuccess();
+    setErrorMsg('');
+    setIsLoading(true);
+
+    try {
+      const { login, saveSession } = await import('../../services/authService');
+      const session = await login({ email, password });
+      saveSession(session);
+      onLoginSuccess();
+    } catch (err: any) {
+      setErrorMsg(err.message || 'An error occurred during login. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -35,6 +47,11 @@ export default function Login({ onLoginSuccess, onNavigateToRegister }: LoginPro
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {errorMsg && (
+            <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm text-center font-medium">
+              {errorMsg}
+            </div>
+          )}
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-semibold text-brand-800 mb-1">Email Address</label>
@@ -76,10 +93,11 @@ export default function Login({ onLoginSuccess, onNavigateToRegister }: LoginPro
 
           <button
             type="submit"
-            className="w-full flex items-center justify-center py-3.5 px-4 rounded-xl text-white bg-linear-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 shadow-lg shadow-primary-500/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transform transition-all active:scale-[0.98] font-bold text-lg group"
+            disabled={isLoading}
+            className="w-full flex items-center justify-center py-3.5 px-4 rounded-xl text-white bg-linear-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 shadow-lg shadow-primary-500/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transform transition-all active:scale-[0.98] font-bold text-lg group disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            Sign In
-            <ArrowRight size={20} className="ml-2 group-hover:translate-x-1 transition-transform" />
+            {isLoading ? 'Signing In...' : 'Sign In'}
+            {!isLoading && <ArrowRight size={20} className="ml-2 group-hover:translate-x-1 transition-transform" />}
           </button>
         </form>
 
