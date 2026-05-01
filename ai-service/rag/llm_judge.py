@@ -6,13 +6,19 @@ from .schemas import UserProfile, RecommendationItem
 
 logger = logging.getLogger("rag.llm_judge")
 
-def judge_and_rerank(profile: UserProfile, query_text: str, candidates: list[RecommendationItem], top_k: int) -> list[RecommendationItem]:
-    if not settings.enable_llm_judge or not settings.groq_api_key_llm_judge:
-        logger.warning("LLM Judge is disabled or GROQ_API_KEY_LLM_JUDGE is missing, skipping.")
-        return candidates[:top_k]
 
-    if not candidates:
-        return []
+def explain_candidates(
+    profile: UserProfile,
+    query_text: str,
+    candidates: list[RecommendationItem],
+) -> list[RecommendationItem]:
+    """
+    Annotate each candidate with an LLM-written explanation. Never removes or
+    reorders candidates — the deterministic pipeline already chose them. If the
+    LLM fails, candidates are returned unchanged.
+    """
+    if not settings.enable_llm_judge or not settings.groq_api_key_llm_judge or not candidates:
+        return candidates
 
     try:
         client = OpenAI(
@@ -20,96 +26,93 @@ def judge_and_rerank(profile: UserProfile, query_text: str, candidates: list[Rec
             base_url="https://api.groq.com/openai/v1"
         )
 
-        # Build prompt
-        profile_str = f"Country: {profile.country}\nInstitution: {profile.institutionType}\nApplicant: {profile.applicantType}\nBio: {profile.researchBio}\nInterests: {', '.join(profile.researchInterests)}\nKeywords: {', '.join(profile.keywords)}"
-        
+        profile_str = (
+            f"Country: {profile.country}\n"
+            f"Institution: {profile.institutionType}\n"
+            f"Applicant: {profile.applicantType}\n"
+            f"Bio: {profile.researchBio}\n"
+            f"Interests: {', '.join(profile.researchInterests or [])}\n"
+            f"Keywords: {', '.join(profile.keywords or [])}"
+        )
+
         candidates_str = ""
         for i, c in enumerate(candidates):
-            fields = c.fields
+            fields = c.fields or {}
             candidates_str += f"--- Candidate {i} ---\n"
             candidates_str += f"Grant ID: {c.grantId}\n"
             candidates_str += f"Title: {c.title}\n"
             candidates_str += f"Agency: {c.fundingAgency}\n"
-            candidates_str += f"Fields: {', '.join(fields.get('field', []))}\n"
-            candidates_str += f"Countries: {', '.join(fields.get('eligible_countries', []))}\n"
-            candidates_str += f"Applicants: {', '.join(fields.get('eligible_applicants', []))}\n"
-            candidates_str += f"Funding Min: {fields.get('funding_amount_min')}, Max: {fields.get('funding_amount_max')}\n"
-            candidates_str += f"Deadline: {fields.get('application_deadline')}\n"
-            candidates_str += f"Current Reason: {c.reason}\n\n"
+            candidates_str += f"Fields: {', '.join(fields.get('field', []) or [])}\n"
+            candidates_str += f"Countries: {', '.join(fields.get('eligible_countries', []) or [])}\n"
+            candidates_str += f"Applicants: {', '.join(fields.get('eligible_applicants', []) or [])}\n"
+            candidates_str += f"Funding: {fields.get('funding_amount_min')} - {fields.get('funding_amount_max')} {fields.get('funding_currency', '')}\n"
+            candidates_str += f"Deadline: {fields.get('application_deadline')}\n\n"
 
-        prompt = f"""
-You are an expert grant evaluator. Review the following user profile and a list of candidate grants.
-Discard grants where the user clearly violates eligibility.
-Rank the remaining grants from best to worst match.
-Write a 1-2 sentence explanation for each match.
+        prompt = f"""You are a grant-matching assistant. For each candidate grant, write a concise 1-2 sentence explanation of why it could be a fit for this user. Focus on the strongest concrete signals (research overlap, eligibility, funding range, deadline). Never reject candidates — explanation only.
 
 User Profile:
 {profile_str}
 
+User Query: {query_text}
+
 Candidate Grants:
 {candidates_str}
 
-Return ONLY a JSON object with a single key "judgments" containing an array of objects with these keys:
-- grantId (integer, must match the input grantId)
-- llmApproved (boolean)
-- llmReason (string, 1-2 sentence explanation)
+Return ONLY a JSON object with key "explanations" — an array of objects with:
+- grantId (integer, must match input)
+- reason (string, 1-2 sentences)
 
-Example JSON structure:
-{{
-  "judgments": [
-    {{
-      "grantId": 123,
-      "llmApproved": true,
-      "llmReason": "User has a background in AI which aligns perfectly."
-    }}
-  ]
-}}
-
-The array must be ordered from best match to worst match. Do not include any markdown formatting or explanations outside the JSON.
+Example: {{"explanations": [{{"grantId": 123, "reason": "Your AI research aligns with the program's focus areas, and your country is eligible."}}]}}
 """
 
         response = client.chat.completions.create(
             model=settings.llm_judge_model,
             messages=[
-                {"role": "system", "content": "You are a helpful grant evaluator. Output ONLY JSON."},
-                {"role": "user", "content": prompt}
-            ]
+                {"role": "system", "content": "You explain grant matches. Output ONLY JSON."},
+                {"role": "user", "content": prompt},
+            ],
         )
-        text = response.choices[0].message.content.strip()
+        text = (response.choices[0].message.content or "").strip()
 
         if text.startswith("```json"):
-            text = text[7:-3].strip()
+            text = text[7:].rstrip("`").rstrip().rstrip("`").strip()
+            if text.endswith("```"):
+                text = text[:-3].strip()
         elif text.startswith("```"):
-            text = text[3:-3].strip()
-            
-        parsed_json = json.loads(text)
-        judgments = parsed_json.get("judgments", []) if isinstance(parsed_json, dict) else parsed_json
+            text = text[3:].rstrip("`").strip()
+            if text.endswith("```"):
+                text = text[:-3].strip()
 
-        # Merge judgments back into candidates
-        approved_candidates = []
-        
-        # Iterate over the judgments to preserve LLM's ranking
-        for j in judgments:
-            grant_id = j.get("grantId")
-            approved = j.get("llmApproved", True)
-            reason = j.get("llmReason", "")
-            
-            if not approved:
-                continue
-                
-            # Find the candidate object
-            candidate = next((c for c in candidates if c.grantId == grant_id), None)
-            if candidate:
-                candidate.llmApproved = approved
-                candidate.llmReason = reason
-                candidate.reason = reason
-                approved_candidates.append(candidate)
-                
-        if not approved_candidates and candidates:
-            logger.warning("LLM judge filtered out ALL candidates.")
-            
-        return approved_candidates[:top_k]
+        parsed = json.loads(text)
+        explanations = parsed.get("explanations", []) if isinstance(parsed, dict) else parsed
+
+        reason_by_id = {}
+        for item in explanations:
+            gid = item.get("grantId")
+            reason = (item.get("reason") or "").strip()
+            if gid is not None and reason:
+                reason_by_id[int(gid)] = reason
+
+        for c in candidates:
+            if c.grantId in reason_by_id:
+                c.llmReason = reason_by_id[c.grantId]
+                c.reason = reason_by_id[c.grantId]
+                c.llmApproved = True
+
+        return candidates
 
     except Exception as e:
-        logger.error(f"Error during LLM judge: {e}")
-        return candidates[:top_k]
+        logger.error(f"LLM explain step failed (non-fatal): {e}")
+        return candidates
+
+
+# Backwards-compatible shim: old call sites used judge_and_rerank as a hard filter.
+# It now delegates to explain_candidates and never drops anyone.
+def judge_and_rerank(
+    profile: UserProfile,
+    query_text: str,
+    candidates: list[RecommendationItem],
+    top_k: int,
+) -> list[RecommendationItem]:
+    annotated = explain_candidates(profile, query_text, candidates)
+    return annotated[:top_k]
