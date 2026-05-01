@@ -84,7 +84,10 @@ export default function AuthPage({ onAuthenticated }: AuthPageProps) {
       <div className="w-full max-w-md bg-white rounded-2xl border border-brand-100 shadow-lg p-6 space-y-4">
         <div className="flex items-center gap-3">
           <AnimatedLogo className="w-8 h-8" />
-          <h1 className="text-xl font-semibold text-brand-900">FundSphere</h1>
+          <h1 className="text-xl font-bold tracking-tight">
+            <span className="text-teal-600">Fund</span>
+            <span className="text-brand-900">Sphere</span>
+          </h1>
         </div>
 
         <div className="flex gap-2 rounded-lg bg-brand-100 p-1 mb-4">
