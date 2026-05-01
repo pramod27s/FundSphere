@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import org.springframework.web.client.RestTemplate;
+import org.springframework.context.annotation.Lazy;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.concurrent.CompletableFuture;
@@ -26,13 +27,18 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class GrantService {
 
     private final GrantRepository grantRepository;
+    private final AiServiceClient aiServiceClient;
 
     public record SaveOrUpdateResult(GrantResponse response, boolean created) {}
     public record KeywordSearchHit(Long grantId, double keywordScore) {}
+
+    public GrantService(GrantRepository grantRepository, @Lazy AiServiceClient aiServiceClient) {
+        this.grantRepository = grantRepository;
+        this.aiServiceClient = aiServiceClient;
+    }
 
     /**
      * SaveOrUpdate Logic (called by FastAPI):
@@ -140,10 +146,9 @@ public class GrantService {
     private void triggerPineconeIndexing(Long grantId) {
         CompletableFuture.runAsync(() -> {
             try {
-                RestTemplate restTemplate = new RestTemplate();
                 Map<String, Long> request = new HashMap<>();
                 request.put("grantId", grantId);
-                restTemplate.postForObject("http://localhost:8000/rag/index-grant", request, String.class);
+                aiServiceClient.indexGrant(request);
             } catch (Exception e) {
                 System.err.println("Failed to index grant in Pinecone for grantId: " + grantId + " - " + e.getMessage());
             }
@@ -340,5 +345,3 @@ public class GrantService {
         return value == null ? "" : value;
     }
 }
-
-

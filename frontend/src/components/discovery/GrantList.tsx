@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { ShieldAlert, ShieldCheck, Users, TrendingUp, Calendar, ChevronRight, Sparkles, Search } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, Users, TrendingUp, Calendar, ChevronRight, Sparkles, Search, Bookmark, BookmarkCheck } from 'lucide-react';
 import GrantDetailsModal from './GrantDetailsModal.tsx';
 import type { DiscoveryGrant } from '../../services/discoveryService';
+import { useSavedGrants } from '../../hooks/useSavedGrants';
 
 interface GrantListProps {
   grants: DiscoveryGrant[];
@@ -42,6 +43,7 @@ export function GrantSkeleton() {
 
 export default function GrantList({ grants, isLoading, source }: GrantListProps) {
   const [selectedGrant, setSelectedGrant] = useState<DiscoveryGrant | null>(null);
+  const { isSaved, toggleSave } = useSavedGrants();
   const isAi = source === 'ai';
 
   const openDetails = (grant: DiscoveryGrant) => setSelectedGrant(grant);
@@ -71,7 +73,9 @@ export default function GrantList({ grants, isLoading, source }: GrantListProps)
 
       <div className="flex flex-col gap-4" aria-live="polite">
         {grants.map((grant) => (
-          isAi ? renderAiCard(grant, openDetails) : renderBrowseCard(grant, openDetails)
+          isAi
+            ? renderAiCard(grant, openDetails, isSaved, toggleSave)
+            : renderBrowseCard(grant, openDetails, isSaved, toggleSave)
         ))}
       </div>
 
@@ -80,13 +84,53 @@ export default function GrantList({ grants, isLoading, source }: GrantListProps)
           grant={selectedGrant}
           onClose={() => setSelectedGrant(null)}
           source={source}
+          isSaved={isSaved(selectedGrant.id)}
+          onToggleSave={toggleSave}
         />
       )}
     </>
   );
 }
 
-function renderAiCard(grant: DiscoveryGrant, openDetails: (g: DiscoveryGrant) => void) {
+function BookmarkButton({
+  grant,
+  isSaved,
+  toggleSave,
+  size = 'md',
+}: {
+  grant: DiscoveryGrant;
+  isSaved: (id: number) => boolean;
+  toggleSave: (grant: DiscoveryGrant) => void;
+  size?: 'sm' | 'md';
+}) {
+  const saved = isSaved(grant.id);
+  const iconCls = size === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4';
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); toggleSave(grant); }}
+      aria-label={saved ? `Unsave ${grant.title}` : `Save ${grant.title}`}
+      aria-pressed={saved}
+      className={`p-1.5 rounded-lg transition-colors shrink-0 ${
+        saved
+          ? 'text-primary-600 bg-primary-50 hover:bg-primary-100'
+          : 'text-brand-300 hover:text-primary-500 hover:bg-primary-50'
+      }`}
+    >
+      {saved
+        ? <BookmarkCheck className={iconCls} />
+        : <Bookmark className={iconCls} />
+      }
+    </button>
+  );
+}
+
+function renderAiCard(
+  grant: DiscoveryGrant,
+  openDetails: (g: DiscoveryGrant) => void,
+  isSaved: (id: number) => boolean,
+  toggleSave: (grant: DiscoveryGrant) => void,
+) {
   return (
     <article
       key={grant.id}
@@ -145,6 +189,8 @@ function renderAiCard(grant: DiscoveryGrant, openDetails: (g: DiscoveryGrant) =>
             ))}
           </div>
         </div>
+
+        <BookmarkButton grant={grant} isSaved={isSaved} toggleSave={toggleSave} />
       </div>
 
       <div className="mb-5 relative overflow-hidden bg-linear-to-r from-primary-50/50 to-brand-50/50 border border-primary-100/60 rounded-lg p-4 text-sm text-brand-700 shadow-sm transition-all hover:shadow-md group-hover:border-primary-300">
@@ -192,7 +238,12 @@ function renderAiCard(grant: DiscoveryGrant, openDetails: (g: DiscoveryGrant) =>
   );
 }
 
-function renderBrowseCard(grant: DiscoveryGrant, openDetails: (g: DiscoveryGrant) => void) {
+function renderBrowseCard(
+  grant: DiscoveryGrant,
+  openDetails: (g: DiscoveryGrant) => void,
+  isSaved: (id: number) => boolean,
+  toggleSave: (grant: DiscoveryGrant) => void,
+) {
   return (
     <article
       key={grant.id}
@@ -212,9 +263,12 @@ function renderBrowseCard(grant: DiscoveryGrant, openDetails: (g: DiscoveryGrant
         <span className="text-xs font-semibold px-2 py-0.5 rounded bg-brand-50 text-brand-600 uppercase tracking-wider">
           {grant.funder}
         </span>
-        <span className="text-xs text-brand-400 whitespace-nowrap">
-          {grant.updatedAt && `Updated ${new Date(grant.updatedAt).toLocaleDateString()}`}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-brand-400 whitespace-nowrap">
+            {grant.updatedAt && `Updated ${new Date(grant.updatedAt).toLocaleDateString()}`}
+          </span>
+          <BookmarkButton grant={grant} isSaved={isSaved} toggleSave={toggleSave} size="sm" />
+        </div>
       </div>
 
       <h3 className="text-lg font-semibold text-brand-900 group-hover:text-brand-700 transition-colors line-clamp-2 wrap-break-word mb-2">

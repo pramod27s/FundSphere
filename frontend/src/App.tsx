@@ -5,11 +5,14 @@ import GrantDiscovery from './components/discovery/GrantDiscovery.tsx';
 import ResearcherProfile from './components/profile/ResearcherProfile.tsx';
 import SplashScreen from './components/common/SplashScreen.tsx';
 import AuthPage from './components/auth/AuthPage.tsx';
+import UserAvatarMenu from './components/common/UserAvatarMenu.tsx';
+import SavedGrants from './components/saved-grants/SavedGrants.tsx';
+import WritingProposal from './components/proposal/WritingProposal.tsx';
 import { getMyResearcher, type ResearcherResponse } from './services/researcherService';
 import { loadSession, clearSession } from './services/authService';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState<'splash' | 'auth' | 'onboarding' | 'discovery' | 'profile'>('splash');
+  const [currentPage, setCurrentPage] = useState<'splash' | 'auth' | 'onboarding' | 'discovery' | 'profile' | 'saved-grants' | 'proposal'>('splash');
   const [researcherData, setResearcherData] = useState<ResearcherResponse | null>(null);
 
   useEffect(() => {
@@ -91,23 +94,21 @@ function App() {
           <OnboardingWizard onComplete={handleOnboardingComplete} />
         </div>
       ) : currentPage === 'profile' && researcherData ? (
-        <ResearcherProfile 
-          researcher={researcherData} 
-          onBack={() => setCurrentPage('discovery')} 
+        <ResearcherProfile
+          researcher={researcherData}
+          onBack={() => setCurrentPage('discovery')}
           onLogout={handleLogout}
         />
+      ) : currentPage === 'saved-grants' && researcherData ? (
+        <SavedGrants onBack={() => setCurrentPage('discovery')} />
+      ) : currentPage === 'proposal' && researcherData ? (
+        <WritingProposal onBack={() => setCurrentPage('discovery')} />
       ) : currentPage === 'discovery' ? (
         <div className="relative">
-             {/* Simple navigation to toggle back to profile if we have data */}
             {researcherData && (
-                <div className="absolute top-4 right-4 z-50 flex gap-2">
-                    <button 
-                        onClick={() => setCurrentPage('profile')}
-                        className="bg-white shadow-md px-4 py-2 rounded-lg text-sm font-medium text-primary-600 hover:bg-gray-50 border border-gray-100"
-                    >
-                        View Profile
-                    </button>
-                </div>
+              <div className="absolute top-4 right-4 z-50">
+                <UserAvatarMenu onNavigate={(page) => setCurrentPage(page)} />
+              </div>
             )}
             <GrantDiscovery researcher={researcherData} />
         </div>

@@ -1,13 +1,15 @@
-import { X, ShieldCheck, ShieldAlert, Calendar, TrendingUp, ExternalLink, BookmarkPlus } from 'lucide-react';
+import { X, ShieldCheck, ShieldAlert, Calendar, TrendingUp, ExternalLink, BookmarkPlus, BookmarkCheck } from 'lucide-react';
 import type { DiscoveryGrant } from '../../services/discoveryService';
 
 interface GrantDetailsModalProps {
   grant: DiscoveryGrant;
   onClose: () => void;
   source?: 'ai' | 'core' | null;
+  isSaved?: boolean;
+  onToggleSave?: (grant: DiscoveryGrant) => void;
 }
 
-export default function GrantDetailsModal({ grant, onClose, source }: GrantDetailsModalProps) {
+export default function GrantDetailsModal({ grant, onClose, source, isSaved = false, onToggleSave }: GrantDetailsModalProps) {
   const isAi = source === 'ai';
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
@@ -153,8 +155,18 @@ export default function GrantDetailsModal({ grant, onClose, source }: GrantDetai
 
         {/* Footer actions */}
         <div className="p-4 sm:p-6 border-t border-brand-100 bg-brand-50/50 flex flex-col-reverse sm:flex-row gap-3 justify-end items-center">
-            <button className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-medium text-brand-700 bg-white border border-brand-200 hover:bg-brand-50 transition-colors flex items-center justify-center gap-2">
-                <BookmarkPlus className="w-5 h-5" /> Save
+            <button
+                onClick={() => onToggleSave?.(grant)}
+                className={`w-full sm:w-auto px-6 py-2.5 rounded-xl font-medium border transition-colors flex items-center justify-center gap-2 ${
+                  isSaved
+                    ? 'text-primary-700 bg-primary-50 border-primary-200 hover:bg-primary-100'
+                    : 'text-brand-700 bg-white border-brand-200 hover:bg-brand-50'
+                }`}
+            >
+                {isSaved
+                  ? <><BookmarkCheck className="w-5 h-5 text-primary-600" /> Saved</>
+                  : <><BookmarkPlus className="w-5 h-5" /> Save</>
+                }
             </button>
             <button
                 onClick={() => {
