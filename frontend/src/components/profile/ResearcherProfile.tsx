@@ -1,3 +1,4 @@
+import React, { useState, useRef, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { ResearcherResponse } from '../../services/researcherService';
 import {
@@ -12,6 +13,7 @@ import {
   LogOut,
   CheckCircle2,
   Circle,
+  Camera,
 } from 'lucide-react';
 
 interface ResearcherProfileProps {
@@ -37,9 +39,9 @@ const formatText = (value: string | null | undefined): string => {
 
 const formatCurrency = (value: number | null | undefined): string => {
   if (typeof value !== 'number' || Number.isNaN(value)) return NOT_PROVIDED;
-  return new Intl.NumberFormat(undefined, {
+  return new Intl.NumberFormat('en-IN', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'INR',
     maximumFractionDigits: 0,
   }).format(value);
 };
@@ -47,6 +49,31 @@ const formatCurrency = (value: number | null | undefined): string => {
 const formatBoolean = (value: boolean): string => (value ? 'Yes' : 'No');
 
 function ResearcherProfile({ researcher, onBack, onLogout }: ResearcherProfileProps) {
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (researcher?.id) {
+      const savedImage = localStorage.getItem(`profile_image_${researcher.id}`);
+      if (savedImage) setProfileImage(savedImage);
+    }
+  }, [researcher?.id]);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setProfileImage(base64String);
+        if (researcher?.id) {
+          localStorage.setItem(`profile_image_${researcher.id}`, base64String);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   if (!researcher) {
     return <div className="p-8 text-center text-brand-500">No profile data found.</div>;
   }
@@ -86,8 +113,29 @@ function ResearcherProfile({ researcher, onBack, onLogout }: ResearcherProfilePr
         <section className="rounded-2xl border border-primary-100 bg-linear-to-r from-white to-primary-50 p-5 md:p-7 shadow-sm">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
             <div className="flex items-start gap-4">
-              <div className="h-14 w-14 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center shrink-0">
-                <User className="w-7 h-7" />
+              <div className="relative group">
+                <div className="h-16 w-16 md:h-20 md:w-20 rounded-2xl bg-primary-100 text-primary-700 flex items-center justify-center shrink-0 overflow-hidden border-2 border-primary-200">
+                  {profileImage ? (
+                    <img src={profileImage} alt="Profile" className="h-full w-full object-cover" />
+                  ) : (
+                    <User className="w-8 h-8 md:w-10 md:h-10" />
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute -bottom-2 -right-2 bg-white p-1.5 rounded-full border border-brand-200 shadow-sm text-brand-600 hover:text-primary-600 transition-colors"
+                  title="Change profile picture"
+                >
+                  <Camera className="w-4 h-4" />
+                </button>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  className="hidden" 
+                  ref={fileInputRef} 
+                  onChange={handleImageUpload} 
+                />
               </div>
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold text-brand-900">Researcher Profile</h1>

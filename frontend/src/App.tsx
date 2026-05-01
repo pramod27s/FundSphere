@@ -35,7 +35,8 @@ function App() {
         return;
       }
 
-      if (message.includes('401')) {
+      if (message.includes('401') || message.includes('403')){
+        alert('Your session has expired. Please log in again.');
         clearSession();
         setCurrentPage('auth');
         return;

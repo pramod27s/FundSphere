@@ -11,12 +11,24 @@ export default function Register({ onRegisterSuccess, onNavigateToLogin }: Regis
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // JWT auth registration will go here later
-    // For now, mock a successful registration
-    onRegisterSuccess();
+    setErrorMsg('');
+    setIsLoading(true);
+
+    try {
+      const { register, saveSession } = await import('../../services/authService');
+      const session = await register({ email, password, fullName: name });
+      saveSession(session);
+      onRegisterSuccess();
+    } catch (err: any) {
+      setErrorMsg(err.message || 'An error occurred during registration. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -36,6 +48,11 @@ export default function Register({ onRegisterSuccess, onNavigateToLogin }: Regis
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          {errorMsg && (
+            <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm text-center font-medium">
+              {errorMsg}
+            </div>
+          )}
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-semibold text-brand-800 mb-1">Full Name</label>
@@ -92,10 +109,11 @@ export default function Register({ onRegisterSuccess, onNavigateToLogin }: Regis
 
           <button
             type="submit"
-            className="w-full flex items-center justify-center py-3.5 px-4 rounded-xl text-white bg-linear-to-r from-brand-900 to-brand-800 hover:from-black hover:to-brand-900 shadow-lg shadow-brand-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-900 transform transition-all active:scale-[0.98] font-bold text-lg group mt-2"
+            disabled={isLoading}
+            className="w-full flex items-center justify-center py-3.5 px-4 rounded-xl text-white bg-linear-to-r from-brand-900 to-brand-800 hover:from-black hover:to-brand-900 shadow-lg shadow-brand-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-900 transform transition-all active:scale-[0.98] font-bold text-lg group mt-2 disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            Sign Up
-            <ArrowRight size={20} className="ml-2 group-hover:translate-x-1 transition-transform" />
+            {isLoading ? 'Signing Up...' : 'Sign Up'}
+            {!isLoading && <ArrowRight size={20} className="ml-2 group-hover:translate-x-1 transition-transform" />}
           </button>
         </form>
 
