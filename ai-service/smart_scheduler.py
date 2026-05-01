@@ -5,6 +5,8 @@ import argparse
 import logging
 import xml.etree.ElementTree as ET
 from urllib.parse import urlparse, urljoin
+
+import requests
 from bs4 import BeautifulSoup
 from curl_cffi import requests as cffi_requests
 
@@ -105,16 +107,10 @@ def get_page_hash(url):
 
     page_text = extract_pure_text(html_content)
 
-    # Fix 4: SPA Detection and Selenium Fallback
+    # SPA pages with very little static text cannot be hashed reliably.
     if page_text and len(page_text) < 300:
-        logger.info(f"Page text length < 300 for {url}. Likely SPA. Invoking Selenium fallback.")
-        try:
-            from scrape.scrape import fetch_selenium
-            html_content = fetch_selenium(url, driver_path="scrape/chromedriver", wait=2.0)
-            page_text = extract_pure_text(html_content)
-        except Exception as e:
-            logger.warning(f"Selenium fallback failed for {url}: {e}")
-            return None
+        logger.info(f"Page text length < 300 for {url}; treating as unhashable SPA.")
+        return None
 
     if not page_text:
         return None
@@ -126,7 +122,6 @@ def run_smart_scraper(seed_urls, max_per_seed=8):
     state = load_state()
 
     candidates = []
-    import requests  # For backend POST requests later
 
     for seed in seed_urls:
         logger.info(f"[*] Crawling seed URL: {seed}")

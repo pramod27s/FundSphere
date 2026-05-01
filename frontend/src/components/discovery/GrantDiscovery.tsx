@@ -206,7 +206,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
               </div>
             )}
 
-            <GrantList grants={sortedGrants} isLoading={isLoading} />
+            <GrantList grants={sortedGrants} isLoading={isLoading} source={dataSource} />
             
             {!isLoading && sortedGrants.length === 0 && (
               <div className="rounded-2xl border-2 border-dashed border-brand-200 bg-brand-50 p-12 flex flex-col items-center justify-center text-center mt-4">

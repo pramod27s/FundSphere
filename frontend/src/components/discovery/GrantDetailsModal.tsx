@@ -4,9 +4,11 @@ import type { DiscoveryGrant } from '../../services/discoveryService';
 interface GrantDetailsModalProps {
   grant: DiscoveryGrant;
   onClose: () => void;
+  source?: 'ai' | 'core' | null;
 }
 
-export default function GrantDetailsModal({ grant, onClose }: GrantDetailsModalProps) {
+export default function GrantDetailsModal({ grant, onClose, source }: GrantDetailsModalProps) {
+  const isAi = source === 'ai';
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
       {/* Backdrop */}
@@ -61,12 +63,14 @@ export default function GrantDetailsModal({ grant, onClose }: GrantDetailsModalP
                 <p className="text-3xl font-bold text-green-600">{grant.amount}</p>
             </div>
 
-            <div className="mb-8">
-                <h3 className="text-lg font-bold text-brand-900 mb-3">AI Match Rationale</h3>
-                <div className="bg-primary-50 border border-primary-100 rounded-xl p-5 text-primary-900 shadow-sm">
-                    {grant.rationale}
-                </div>
-            </div>
+            {isAi && (
+              <div className="mb-8">
+                  <h3 className="text-lg font-bold text-brand-900 mb-3">AI Match Rationale</h3>
+                  <div className="bg-primary-50 border border-primary-100 rounded-xl p-5 text-primary-900 shadow-sm">
+                      {grant.rationale}
+                  </div>
+              </div>
+            )}
 
             <div className="mb-8">
                 <h3 className="text-lg font-bold text-brand-900 mb-3">Eligibility Status</h3>
