@@ -9,8 +9,10 @@ import org.pramod.corebackend.dto.GrantRequest;
 import org.pramod.corebackend.dto.GrantResponse;
 import org.pramod.corebackend.entity.Grant;
 import org.pramod.corebackend.repository.GrantRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import org.springframework.web.client.RestTemplate;
 import java.util.Map;
@@ -79,14 +81,14 @@ public class GrantService {
 
     public GrantResponse getGrantById(Long id) {
         Grant grant = grantRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Grant not found with id: " + id));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Grant not found with id: " + id));
         return mapToResponse(grant);
     }
 
     @Transactional
     public GrantResponse updateGrant(Long id, GrantRequest request) {
         Grant existing = grantRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Grant not found with id: " + id));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Grant not found with id: " + id));
 
         updateEntity(existing, request);
         Grant updated = grantRepository.save(existing);
@@ -97,7 +99,7 @@ public class GrantService {
     @Transactional
     public void deleteGrant(Long id) {
         if (!grantRepository.existsById(id)) {
-            throw new RuntimeException("Grant not found with id: " + id);
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Grant not found with id: " + id);
         }
         grantRepository.deleteById(id);
         triggerPineconeDeletion(id);
@@ -105,7 +107,7 @@ public class GrantService {
 
     public GrantResponse getGrantByUrl(String grantUrl) {
         Grant grant = findExistingByGrantUrl(normalizeGrantUrl(grantUrl))
-                .orElseThrow(() -> new RuntimeException("Grant not found with URL: " + grantUrl));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Grant not found with URL: " + grantUrl));
         return mapToResponse(grant);
     }
 

@@ -51,7 +51,7 @@ public class ResearcherService {
 
     public ResearcherResponse getResearcherById(Long id) {
         Researcher researcher = researcherRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Researcher not found with id: " + id));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Researcher not found with id: " + id));
         return mapToResponse(researcher);
     }
 
@@ -65,7 +65,7 @@ public class ResearcherService {
     @Transactional
     public ResearcherResponse updateResearcher(Long id, ResearcherRequest request) {
         Researcher existing = researcherRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Researcher not found with id: " + id));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Researcher not found with id: " + id));
 
         updateEntity(existing, request);
         Researcher updated = researcherRepository.save(existing);

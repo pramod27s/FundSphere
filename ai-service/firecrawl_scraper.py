@@ -1,3 +1,4 @@
+import os
 import requests
 import json
 import uuid
@@ -5,11 +6,21 @@ import hashlib
 from datetime import datetime
 import sys
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 # Force UTF-8 for output to avoid charmap codec errors in Windows terminals
 if sys.stdout.encoding.lower() != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
 
-FIRECRAWL_API_KEY = "fc-f1a6fad35689468b90bfdd9c3979eb2f"
+FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY", "")
+
+
+def _require_firecrawl_key() -> str:
+    if not FIRECRAWL_API_KEY:
+        raise RuntimeError("FIRECRAWL_API_KEY env var must be set to call Firecrawl")
+    return FIRECRAWL_API_KEY
 
 # The schema definition we want Firecrawl to strictly extract for us
 GRANT_SCHEMA = {
@@ -57,7 +68,7 @@ def scrape_grant(url):
     response = requests.post(
         "https://api.firecrawl.dev/v1/scrape",
         headers={
-            "Authorization": f"Bearer {FIRECRAWL_API_KEY}",
+            "Authorization": f"Bearer {_require_firecrawl_key()}",
             "Content-Type": "application/json"
         },
         json={

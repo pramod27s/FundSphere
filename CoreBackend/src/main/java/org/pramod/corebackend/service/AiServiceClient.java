@@ -14,6 +14,9 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
+import java.util.Map;
+
 import static org.springframework.http.HttpStatus.BAD_GATEWAY;
 import static org.springframework.http.HttpStatus.GATEWAY_TIMEOUT;
 
@@ -54,19 +57,25 @@ public class AiServiceClient {
         try {
             RestClient.RequestBodySpec request = restClient.post()
                     .uri(path)
-                    .contentType(MediaType.APPLICATION_JSON);
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .accept(MediaType.APPLICATION_JSON);
 
             if (StringUtils.hasText(apiKey)) {
                 request = request.header("X-API-KEY", apiKey);
             }
 
-            byte[] responseBytes = request.body(requestBody)
+            // Letting RestClient deserialize to Map (via Spring's pre-registered Jackson
+            // converter) means the controller returns a real JSON object to the frontend.
+            // Returning a raw String here would be re-encoded as a JSON string literal,
+            // and the frontend's `payload.results` access would fail every time.
+            Map<String, Object> body = request.body(requestBody)
                     .retrieve()
-                    .body(byte[].class);
-            if (responseBytes == null || responseBytes.length == 0) {
-                return "{\"results\":[], \"no_results\":true}";
+                    .body(new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {});
+
+            if (body == null || body.isEmpty()) {
+                return Map.of("results", List.of(), "no_results", true);
             }
-            return new String(responseBytes, java.nio.charset.StandardCharsets.UTF_8);
+            return body;
         } catch (RestClientResponseException ex) {
             throw new ResponseStatusException(BAD_GATEWAY,
                     "AI service returned " + ex.getStatusCode().value() + ": " + ex.getResponseBodyAsString(), ex);
