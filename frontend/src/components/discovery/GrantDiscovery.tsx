@@ -135,15 +135,15 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
   const filteredGrants = useMemo(() => applyFilters(sortedGrants, filterState), [sortedGrants, filterState]);
 
   return (
-    <div className="flex h-screen bg-brand-50 w-full overflow-hidden relative">
+    <div className="flex h-screen w-full overflow-hidden relative bg-gradient-to-br from-brand-50 via-white to-primary-50/30">
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          className="fixed inset-0 bg-brand-900/40 backdrop-blur-sm z-40 md:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
-      <div className={`fixed inset-y-0 left-0 z-50 transform w-72 bg-white ${
+      <div className={`fixed inset-y-0 left-0 z-50 transform w-72 ${
         isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
       } md:relative md:translate-x-0 transition-transform duration-300 ease-in-out md:block h-full shrink-0 shadow-2xl md:shadow-none`}>
         <FilterSidebar
@@ -154,18 +154,21 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
       </div>
 
       <div className="flex-1 flex flex-col h-full overflow-hidden">
-        <header className="px-4 md:px-8 py-4 md:py-6 bg-white border-b border-brand-100 shrink-0 z-10">
+        <header className="px-4 md:px-8 py-4 md:py-6 bg-white/80 backdrop-blur-xl border-b border-brand-100/80 shrink-0 z-10 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
           <div className="max-w-4xl mx-auto">
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-3 mb-5">
               <button
                 onClick={() => setIsSidebarOpen(true)}
-                className="md:hidden p-2 -ml-2 text-brand-600 hover:text-brand-900"
+                className="md:hidden p-2 -ml-2 text-brand-600 hover:text-brand-900 hover:bg-brand-100 rounded-lg transition-colors"
                 aria-label="Open sidebar"
               >
                 <Menu className="w-6 h-6" />
               </button>
               <AnimatedLogo className="w-8 h-8 md:w-10 md:h-10" />
-              <h1 className="text-xl md:text-2xl font-bold text-brand-900">FundSphere</h1>
+              <div className="flex items-baseline gap-2">
+                <h1 className="text-xl md:text-2xl font-bold text-brand-900 tracking-tight">FundSphere</h1>
+                <span className="hidden sm:inline-block text-[10px] font-semibold uppercase tracking-widest text-primary-600 bg-primary-50 px-2 py-0.5 rounded-md border border-primary-100">Discovery</span>
+              </div>
             </div>
 
             <div className="relative flex flex-col sm:flex-row items-center w-full group gap-2 sm:gap-0">
@@ -177,7 +180,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                 placeholder="Describe your research project..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full sm:pl-12 sm:pr-56 px-4 py-3 sm:py-4 bg-brand-50 border-2 border-brand-100 rounded-xl focus:outline-none focus:border-primary-500 focus:bg-white text-brand-900 placeholder:text-brand-400 text-base md:text-lg transition-all shadow-sm"
+                className="w-full sm:pl-12 sm:pr-56 px-4 py-3 sm:py-4 bg-white border border-brand-200 rounded-xl focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 text-brand-900 placeholder:text-brand-400 text-base md:text-lg transition-all shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.04)] hover:border-brand-300"
               />
               <div className="flex w-full sm:w-auto sm:absolute sm:right-2 gap-2">
                 {dataSource === 'ai' && (
@@ -186,29 +189,30 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                       setSearchQuery('');
                       void loadGrants('', false);
                     }}
-                    className="w-full sm:w-auto px-4 py-3 sm:py-2 bg-white text-brand-600 border border-brand-200 hover:bg-brand-50 hover:text-brand-900 rounded-xl sm:rounded-lg font-medium transition-colors shadow-sm"
+                    className="w-full sm:w-auto px-4 py-3 sm:py-2 bg-white text-brand-600 border border-brand-200 hover:bg-brand-50 hover:text-brand-900 hover:border-brand-300 rounded-xl sm:rounded-lg font-medium transition-all shadow-sm"
                   >
                     Clear
                   </button>
                 )}
                 <button
                   onClick={() => void loadGrants(searchQuery, true)}
-                  className="w-full sm:w-auto px-6 py-3 sm:py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl sm:rounded-lg font-medium transition-colors shadow-md shadow-primary-500/20 active:scale-95"
+                  className="w-full sm:w-auto px-6 py-3 sm:py-2 bg-gradient-to-br from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-xl sm:rounded-lg font-semibold transition-all shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30 active:scale-[0.97]"
                 >
                   AI Match
                 </button>
               </div>
             </div>
 
-            <div className="flex gap-2 mt-4 overflow-x-auto pb-2 scrollbar-hide">
-              <span className="text-xs font-semibold text-brand-500 py-1.5 uppercase tracking-wider">Suggested:</span>
+            <div className="flex gap-2 mt-4 overflow-x-auto pb-1 scrollbar-hide items-center">
+              <span className="text-[10px] font-semibold text-brand-500 py-1 uppercase tracking-widest shrink-0">Suggested</span>
+              <span className="h-3 w-px bg-brand-200 shrink-0" />
               {['Climate Tech Startups', 'Postdoc Healthcare Grants', 'AI in Education Fellowships'].map((tag) => (
                 <button
                   key={tag}
                   onClick={() => {
                     setSearchQuery(tag);
                   }}
-                  className="px-3 py-1.5 bg-white border border-brand-200 rounded-full text-sm text-brand-600 hover:border-primary-300 hover:text-primary-600 hover:bg-primary-50 transition-colors whitespace-nowrap"
+                  className="px-3 py-1.5 bg-white border border-brand-200 rounded-full text-sm text-brand-600 hover:border-primary-300 hover:text-primary-700 hover:bg-primary-50 hover:shadow-sm transition-all whitespace-nowrap shrink-0"
                 >
                   {tag}
                 </button>
@@ -219,57 +223,59 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
 
         <main className="flex-1 overflow-y-auto p-4 md:p-8 relative">
           <div className="max-w-4xl mx-auto">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 sm:gap-0 mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 sm:gap-6 mb-6">
               <div>
-                <h2 className="text-lg md:text-xl font-semibold text-brand-800">Top Matches for Your Profile</h2>
-                <p className="text-xs md:text-sm text-brand-500 mt-1">
+                <h2 className="text-xl md:text-2xl font-bold text-brand-900 tracking-tight">Top Matches for Your Profile</h2>
+                <p className="text-xs md:text-sm text-brand-500 mt-1.5 tabular-nums">
                   {isLoading
                     ? 'Fetching opportunities...'
-                    : `Showing ${filteredGrants.length}${filteredGrants.length !== sortedGrants.length ? ` of ${sortedGrants.length}` : ''} opportunities from ${dataSource === 'core' ? 'CoreBackend fallback' : 'AI ranking'}.`}
+                    : <>Showing <span className="font-semibold text-brand-700">{filteredGrants.length}</span>{filteredGrants.length !== sortedGrants.length ? <> of <span className="font-semibold text-brand-700">{sortedGrants.length}</span></> : null} opportunities {dataSource && <>· <span className="text-primary-600 font-medium">{dataSource === 'core' ? 'CoreBackend fallback' : 'AI ranking'}</span></>}</>}
                 </p>
               </div>
 
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-brand-500 hidden sm:inline-block">Top results:</span>
-                <CustomSelect
-                  value={topK}
-                  onChange={(val) => setTopK(Number(val))}
-                  width="w-24"
-                  options={[
-                    { value: 6, label: '6' },
-                    { value: 12, label: '12' },
-                    { value: 20, label: '20' },
-                  ]}
-                />
-              </div>
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-brand-500 uppercase tracking-wider hidden sm:inline-block">Top</span>
+                  <CustomSelect
+                    value={topK}
+                    onChange={(val) => setTopK(Number(val))}
+                    width="w-24"
+                    options={[
+                      { value: 6, label: '6' },
+                      { value: 12, label: '12' },
+                      { value: 20, label: '20' },
+                    ]}
+                  />
+                </div>
 
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-brand-500 hidden sm:inline-block">Sort by:</span>
-                <CustomSelect
-                  value={sortBy}
-                  onChange={(val) => setSortBy(String(val))}
-                  width="w-56"
-                  options={[
-                    { value: 'match', label: 'Match Score (Highest)' },
-                    { value: 'deadline', label: 'Deadline (Closing Soon)' },
-                    { value: 'funding', label: 'Funding Amount (Highest)' },
-                    { value: 'recent', label: 'Recently Updated' },
-                  ]}
-                />
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-brand-500 uppercase tracking-wider hidden sm:inline-block">Sort</span>
+                  <CustomSelect
+                    value={sortBy}
+                    onChange={(val) => setSortBy(String(val))}
+                    width="w-56"
+                    options={[
+                      { value: 'match', label: 'Match Score (Highest)' },
+                      { value: 'deadline', label: 'Deadline (Closing Soon)' },
+                      { value: 'funding', label: 'Funding Amount (Highest)' },
+                      { value: 'recent', label: 'Recently Updated' },
+                    ]}
+                  />
+                </div>
               </div>
             </div>
 
             {errorMessage && (
-              <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-center justify-between gap-4">
-                <span>{errorMessage}</span>
-                <button onClick={() => void loadGrants(searchQuery)} className="px-3 py-1 rounded-md bg-white border border-red-200 text-red-700">
+              <div className="mb-4 rounded-xl border border-red-200/80 bg-gradient-to-r from-red-50 to-red-50/50 px-4 py-3 text-sm text-red-800 flex items-center justify-between gap-4 shadow-sm">
+                <span className="font-medium">{errorMessage}</span>
+                <button onClick={() => void loadGrants(searchQuery)} className="px-3 py-1.5 rounded-lg bg-white border border-red-200 text-red-700 font-medium hover:bg-red-50 transition-colors shadow-sm">
                   Retry
                 </button>
               </div>
             )}
 
             {warningMessage && (
-              <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <div className="mb-4 rounded-xl border border-amber-200/80 bg-gradient-to-r from-amber-50 to-amber-50/50 px-4 py-3 text-sm text-amber-900 shadow-sm">
                 {warningMessage}
               </div>
             )}
@@ -277,17 +283,17 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
             <GrantList grants={filteredGrants} isLoading={isLoading} source={dataSource} />
 
             {!isLoading && filteredGrants.length === 0 && sortedGrants.length > 0 && (
-              <div className="rounded-2xl border-2 border-dashed border-brand-200 bg-brand-50 p-12 flex flex-col items-center justify-center text-center mt-4">
-                <div className="bg-white p-4 rounded-full shadow-sm border border-brand-100 mb-4">
+              <div className="rounded-2xl border border-brand-200/60 bg-white/60 backdrop-blur-sm p-12 flex flex-col items-center justify-center text-center mt-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(15,23,42,0.04)]">
+                <div className="bg-gradient-to-br from-brand-50 to-white p-5 rounded-2xl shadow-inner border border-brand-100 mb-4">
                   <Search className="w-8 h-8 text-brand-400" />
                 </div>
-                <h3 className="text-lg font-bold text-brand-900 mb-2">No grants match your filters</h3>
-                <p className="text-brand-500 max-w-sm mb-6">
+                <h3 className="text-lg font-bold text-brand-900 mb-2 tracking-tight">No grants match your filters</h3>
+                <p className="text-brand-500 max-w-sm mb-6 text-sm">
                   None of the {sortedGrants.length} loaded grants pass all selected filters. Try removing a filter or widening your criteria.
                 </p>
                 <button
                   onClick={() => setFilterState(EMPTY_FILTERS)}
-                  className="px-6 py-2.5 bg-white border border-brand-200 hover:border-primary-300 hover:text-primary-600 text-brand-700 font-medium rounded-lg shadow-sm transition-all"
+                  className="px-6 py-2.5 bg-white border border-brand-200 hover:border-primary-300 hover:text-primary-700 hover:bg-primary-50 text-brand-700 font-semibold rounded-xl shadow-sm hover:shadow-md transition-all"
                 >
                   Clear All Filters
                 </button>
@@ -295,12 +301,12 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
             )}
 
             {!isLoading && sortedGrants.length === 0 && (
-              <div className="rounded-2xl border-2 border-dashed border-brand-200 bg-brand-50 p-12 flex flex-col items-center justify-center text-center mt-4">
-                <div className="bg-white p-4 rounded-full shadow-sm border border-brand-100 mb-4">
-                  <Search className="w-8 h-8 text-brand-400" />
+              <div className="rounded-2xl border border-brand-200/60 bg-white/60 backdrop-blur-sm p-12 flex flex-col items-center justify-center text-center mt-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(15,23,42,0.04)]">
+                <div className="bg-gradient-to-br from-primary-50 to-white p-5 rounded-2xl shadow-inner border border-primary-100 mb-4">
+                  <Search className="w-8 h-8 text-primary-400" />
                 </div>
-                <h3 className="text-lg font-bold text-brand-900 mb-2">No exact matches found</h3>
-                <p className="text-brand-500 max-w-sm mb-6">
+                <h3 className="text-lg font-bold text-brand-900 mb-2 tracking-tight">No exact matches found</h3>
+                <p className="text-brand-500 max-w-sm mb-6 text-sm">
                   We couldn't find any grants matching this specific profile and query. Try adjusting your research tags or broadening your search terms.
                 </p>
                 <button
@@ -308,7 +314,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                     setSearchQuery('');
                     void loadGrants('', false);
                   }}
-                  className="px-6 py-2.5 bg-white border border-brand-200 hover:border-primary-300 hover:text-primary-600 text-brand-700 font-medium rounded-lg shadow-sm transition-all"
+                  className="px-6 py-2.5 bg-white border border-brand-200 hover:border-primary-300 hover:text-primary-700 hover:bg-primary-50 text-brand-700 font-semibold rounded-xl shadow-sm hover:shadow-md transition-all"
                 >
                   Clear Search & View All
                 </button>
