@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import type { ReactNode } from 'react';
 import type { ResearcherResponse } from '../../services/researcherService';
 import {
@@ -49,15 +49,13 @@ const formatCurrency = (value: number | null | undefined): string => {
 const formatBoolean = (value: boolean): string => (value ? 'Yes' : 'No');
 
 function ResearcherProfile({ researcher, onBack, onLogout }: ResearcherProfileProps) {
-  const [profileImage, setProfileImage] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
+  const [profileImage, setProfileImage] = useState<string | null>(() => {
     if (researcher?.id) {
-      const savedImage = localStorage.getItem(`profile_image_${researcher.id}`);
-      if (savedImage) setProfileImage(savedImage);
+      return localStorage.getItem(`profile_image_${researcher.id}`);
     }
-  }, [researcher?.id]);
+    return null;
+  });
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
