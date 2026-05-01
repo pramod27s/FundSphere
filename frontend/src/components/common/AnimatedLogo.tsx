@@ -52,8 +52,8 @@ export default function AnimatedLogo({
               x1="16" y1="68" x2="88" y2="24"
               gradientUnits="userSpaceOnUse"
             >
-              <stop offset="0%"   stopColor="#0f766e" />
-              <stop offset="55%"  stopColor="#0d9488" />
+              <stop offset="0%"   stopColor="#0d9488" />
+              <stop offset="55%"  stopColor="#14b8a6" />
               <stop offset="100%" stopColor="#2dd4bf" />
             </linearGradient>
 
@@ -63,8 +63,8 @@ export default function AnimatedLogo({
               x1="16" y1="68" x2="89" y2="62"
               gradientUnits="userSpaceOnUse"
             >
-              <stop offset="0%"   stopColor="#134e4a" />
-              <stop offset="100%" stopColor="#0f766e" />
+              <stop offset="0%"   stopColor="#0f766e" />
+              <stop offset="100%" stopColor="#0d9488" />
             </linearGradient>
 
             {/* Glow filter for dot */}
