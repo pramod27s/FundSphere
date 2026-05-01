@@ -7,198 +7,163 @@ export interface AnimatedLogoProps {
   showText?: boolean;
 }
 
-// Equatorial ring (rx=44 ry=13): back half = top arc, front half = bottom arc
-const EQ_BACK  = "M 6 50 A 44 13 0 0 1 94 50";
-const EQ_FRONT = "M 6 50 A 44 13 0 0 0 94 50";
+// Main ring arc (sweeps bottom-left to top-right)
+const RING = "M 16 68 A 44 44 0 0 1 82 17";
 
-// Meridional ring (rx=13 ry=44): back half = left arc, front half = right arc
-const MR_BACK  = "M 50 6 A 13 44 0 0 0 50 94";
-const MR_FRONT = "M 50 6 A 13 44 0 0 1 50 94";
+// Bottom swoosh (crescent moon form)
+const SWOOSH = "M 16 68 C 25 96, 75 98, 89 62 C 68 85, 35 82, 16 68 Z";
+
+// Orbital Dot
+const dot = { x: 88, y: 24 };
+
+// Helper to draw precise custom ascending bars with sloped/rounded tops
+const getBarPath = (x: number, w: number, bottom: number, h: number) => {
+  const right = x + w;
+  const topEdge = bottom - h;
+  return `M ${x} ${bottom}
+          L ${right} ${bottom}
+          L ${right} ${topEdge}
+          L ${x + 5} ${topEdge + 3}
+          Q ${x} ${topEdge + 5} ${x} ${topEdge + 10}
+          Z`;
+};
+
+const BARS = [
+  getBarPath(26, 12, 74, 20),
+  getBarPath(43, 12, 74, 34),
+  getBarPath(60, 12, 74, 48),
+];
 
 export default function AnimatedLogo({
-  className     = "w-10 h-10",
-  textClassName = "text-2xl",
+  className     = 'w-10 h-10',
+  textClassName = 'text-2xl',
   showText      = false,
 }: AnimatedLogoProps) {
-  const [dotsReady, setDotsReady] = useState(false);
+  const [ringDone, setRingDone] = useState(false);
 
   return (
     <div className="flex items-center gap-3">
       <div className={`relative shrink-0 overflow-visible ${className}`}>
         <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible">
           <defs>
-            {/* 3-D sphere gradient — highlight top-left */}
-            <radialGradient id="fs-globe" cx="38%" cy="30%" r="65%">
-              <stop offset="0%"   stopColor="#5eead4" />
-              <stop offset="42%"  stopColor="#0d9488" />
-              <stop offset="100%" stopColor="#061514" />
-            </radialGradient>
+            {/* Ring gradient: dark-teal lower-left → bright-teal upper-right */}
+            <linearGradient
+              id="fs-ring-grad"
+              x1="16" y1="68" x2="88" y2="24"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop offset="0%"   stopColor="#0f766e" />
+              <stop offset="55%"  stopColor="#0d9488" />
+              <stop offset="100%" stopColor="#2dd4bf" />
+            </linearGradient>
 
-            {/* Specular sheen */}
-            <radialGradient id="fs-sheen" cx="30%" cy="24%" r="44%">
-              <stop offset="0%"   stopColor="rgba(255,255,255,0.26)" />
-              <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-            </radialGradient>
+            {/* Swoosh gradient: left → right */}
+            <linearGradient
+              id="fs-swoosh-grad"
+              x1="16" y1="68" x2="89" y2="62"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop offset="0%"   stopColor="#134e4a" />
+              <stop offset="100%" stopColor="#0f766e" />
+            </linearGradient>
 
-            {/* Glow for rings and dots */}
-            <filter id="fs-glow" x="-60%" y="-60%" width="220%" height="220%">
-              <feGaussianBlur stdDeviation="2" result="b" />
+            {/* Glow filter for dot */}
+            <filter id="fs-dot-glow" x="-120%" y="-120%" width="340%" height="340%">
+              <feGaussianBlur stdDeviation="2.2" result="b" />
               <feMerge>
                 <feMergeNode in="b" />
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
 
-            {/* Softer glow for secondary dot */}
-            <filter id="fs-glow-sm" x="-80%" y="-80%" width="260%" height="260%">
-              <feGaussianBlur stdDeviation="1.5" result="b" />
-              <feMerge>
-                <feMergeNode in="b" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
+            {/* Drop shadow for swoosh */}
+            <filter id="fs-swoosh-shadow" x="-20%" y="-60%" width="140%" height="220%">
+              <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#0f766e" floodOpacity="0.35" />
             </filter>
-
-            {/* Clip sphere surface lines */}
-            <clipPath id="fs-clip">
-              <circle cx="50" cy="50" r="35.5" />
-            </clipPath>
           </defs>
 
-          {/* ── Back arcs (rendered before sphere) ── */}
-
-          {/* Equatorial ring — back */}
+          {/* ── Main ring arc ── */}
           <motion.path
-            d={EQ_BACK}
-            transform="rotate(-18, 50, 50)"
-            fill="none" stroke="#2dd4bf" strokeWidth="2" strokeLinecap="round"
-            initial={{ pathLength: 0, opacity: 0 }}
-            animate={{ pathLength: 1, opacity: 0.28 }}
-            transition={{ delay: 0.4, duration: 0.65, ease: "easeInOut" }}
-          />
-
-          {/* Meridional ring — back */}
-          <motion.path
-            d={MR_BACK}
-            transform="rotate(22, 50, 50)"
-            fill="none" stroke="#2dd4bf" strokeWidth="2" strokeLinecap="round"
-            initial={{ pathLength: 0, opacity: 0 }}
-            animate={{ pathLength: 1, opacity: 0.22 }}
-            transition={{ delay: 0.48, duration: 0.65, ease: "easeInOut" }}
-          />
-
-          {/* ── Sphere ── */}
-          <motion.circle
-            cx="50" cy="50" r="36"
-            fill="url(#fs-globe)"
-            style={{ transformOrigin: "50px 50px" }}
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 0.5, type: "spring", stiffness: 210, damping: 17 }}
-          />
-
-          {/* Meridian surface lines clipped to sphere */}
-          <g clipPath="url(#fs-clip)">
-            <motion.ellipse
-              cx="50" cy="50" rx="17" ry="36"
-              fill="none" stroke="#5eead4" strokeWidth="0.9"
-              initial={{ opacity: 0 }} animate={{ opacity: 0.13 }}
-              transition={{ delay: 0.55, duration: 0.5 }}
-            />
-            <motion.ellipse
-              cx="50" cy="50" rx="36" ry="11"
-              fill="none" stroke="#5eead4" strokeWidth="0.9"
-              initial={{ opacity: 0 }} animate={{ opacity: 0.13 }}
-              transition={{ delay: 0.6, duration: 0.5 }}
-            />
-          </g>
-
-          {/* Sheen overlay */}
-          <motion.circle
-            cx="50" cy="50" r="36"
-            fill="url(#fs-sheen)"
-            style={{ pointerEvents: "none" }}
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            transition={{ delay: 0.3, duration: 0.5 }}
-          />
-
-          {/* ── Front arcs + dots (rendered after sphere) ── */}
-
-          {/* Equatorial ring — front */}
-          <motion.path
-            d={EQ_FRONT}
-            transform="rotate(-18, 50, 50)"
-            fill="none" stroke="#2dd4bf" strokeWidth="2.8" strokeLinecap="round"
-            filter="url(#fs-glow)"
+            d={RING}
+            fill="none"
+            stroke="url(#fs-ring-grad)"
+            strokeWidth="4.5"
+            strokeLinecap="round"
             initial={{ pathLength: 0, opacity: 0 }}
             animate={{ pathLength: 1, opacity: 1 }}
-            transition={{ delay: 0.72, duration: 0.7, ease: "easeInOut" }}
-            onAnimationComplete={() => setDotsReady(true)}
+            transition={{ duration: 0.85, ease: 'easeInOut' }}
+            onAnimationComplete={() => setRingDone(true)}
           />
 
-          {/* Meridional ring — front */}
+          {/* ── Bars (grow up from bottom) ── */}
+          {BARS.map((barPath, i) => (
+            <motion.path
+              key={i}
+              d={barPath}
+              fill="#0f172a"
+              style={{ transformOrigin: '50% 100%', transformBox: 'fill-box' }}
+              initial={{ scaleY: 0, opacity: 0 }}
+              animate={{ scaleY: 1, opacity: 1 }}
+              transition={{
+                delay: 0.45 + i * 0.13,
+                duration: 0.5,
+                type: 'spring',
+                stiffness: 220,
+                damping: 16,
+              }}
+            />
+          ))}
+
+          {/* ── Swoosh (rendered after bars so it sits on top) ── */}
           <motion.path
-            d={MR_FRONT}
-            transform="rotate(22, 50, 50)"
-            fill="none" stroke="#2dd4bf" strokeWidth="2.2" strokeLinecap="round"
-            filter="url(#fs-glow)"
-            initial={{ pathLength: 0, opacity: 0 }}
-            animate={{ pathLength: 1, opacity: 0.85 }}
-            transition={{ delay: 0.82, duration: 0.7, ease: "easeInOut" }}
+            d={SWOOSH}
+            fill="url(#fs-swoosh-grad)"
+            filter="url(#fs-swoosh-shadow)"
+            style={{ transformOrigin: 'center', transformBox: 'fill-box' }}
+            initial={{ opacity: 0, scale: 0.8, y: 5 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.7, ease: 'easeOut' }}
           />
 
-          {/* ── Orbital dots (appear after rings animate in) ── */}
-          {dotsReady && (
+          {/* ── Dot at 1 o'clock with ripple ── */}
+          {ringDone && (
             <>
-              {/* Equatorial dot — right tip (94, 50) rotated -18deg around center */}
-              {/* Actual position: rotate(-18) of (94,50) → approx (92.5, 44.6) */}
-              <g transform="rotate(-18, 50, 50)">
-                <motion.circle
-                  cx="94" cy="50" r="3.6"
-                  fill="#5eead4"
-                  filter="url(#fs-glow)"
-                  style={{ transformOrigin: "94px 50px", transformBox: "fill-box" }}
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ duration: 0.35, type: "spring", stiffness: 320, damping: 14 }}
-                />
-                {/* Ripple */}
-                <motion.circle
-                  cx="94" cy="50" r="3.6"
-                  fill="none" stroke="#5eead4" strokeWidth="1.5"
-                  style={{ transformOrigin: "94px 50px", transformBox: "fill-box" }}
-                  initial={{ scale: 1, opacity: 0.65 }}
-                  animate={{ scale: 3.4, opacity: 0 }}
-                  transition={{
-                    delay: 0.5, duration: 1.5,
-                    repeat: Infinity, repeatDelay: 1.2, ease: "easeOut",
-                  }}
-                />
-              </g>
-
-              {/* Meridional dot — top tip (50, 6) rotated 22deg around center */}
-              <g transform="rotate(22, 50, 50)">
-                <motion.circle
-                  cx="50" cy="6" r="2.6"
-                  fill="#5eead4"
-                  filter="url(#fs-glow-sm)"
-                  style={{ transformOrigin: "50px 6px", transformBox: "fill-box" }}
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 0.9 }}
-                  transition={{ delay: 0.18, duration: 0.35, type: "spring", stiffness: 280, damping: 14 }}
-                />
-                {/* Soft ripple */}
-                <motion.circle
-                  cx="50" cy="6" r="2.6"
-                  fill="none" stroke="#5eead4" strokeWidth="1"
-                  style={{ transformOrigin: "50px 6px", transformBox: "fill-box" }}
-                  initial={{ scale: 1, opacity: 0.5 }}
-                  animate={{ scale: 3, opacity: 0 }}
-                  transition={{
-                    delay: 1.1, duration: 1.5,
-                    repeat: Infinity, repeatDelay: 1.6, ease: "easeOut",
-                  }}
-                />
-              </g>
+              <motion.circle
+                cx={dot.x}
+                cy={dot.y}
+                r={5}
+                fill="#14b8a6"
+                filter="url(#fs-dot-glow)"
+                style={{
+                  transformOrigin: 'center',
+                  transformBox: 'fill-box',
+                }}
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.38, type: 'spring', stiffness: 320, damping: 14 }}
+              />
+              {/* Ripple */}
+              <motion.circle
+                cx={dot.x}
+                cy={dot.y}
+                r={5}
+                fill="none"
+                stroke="#2dd4bf"
+                strokeWidth="1.8"
+                style={{
+                  transformOrigin: 'center',
+                  transformBox: 'fill-box',
+                }}
+                initial={{ scale: 1, opacity: 0.7 }}
+                animate={{ scale: 3.6, opacity: 0 }}
+                transition={{
+                  delay: 0.4,
+                  duration: 1.6,
+                  repeat: Infinity,
+                  repeatDelay: 1.1,
+                  ease: 'easeOut',
+                }}
+              />
             </>
           )}
         </svg>
@@ -208,7 +173,7 @@ export default function AnimatedLogo({
         <motion.div
           initial={{ opacity: 0, x: -8 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 1.15, duration: 0.45, ease: "easeOut" }}
+          transition={{ delay: 1.1, duration: 0.45, ease: 'easeOut' }}
           className={`font-bold tracking-tight ${textClassName}`}
         >
           <span className="text-teal-600">Fund</span>
