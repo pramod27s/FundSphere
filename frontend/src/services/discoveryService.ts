@@ -21,6 +21,10 @@ export interface DiscoveryGrant {
   grantUrl: string;
   updatedAt?: string;
   lastScrapedAt?: string;
+  fundingAmountMinRaw?: number;
+  fundingAmountMaxRaw?: number;
+  fundingCurrencyRaw?: string;
+  deadlineRaw?: string;
 }
 
 export interface DiscoveryResult {
@@ -162,6 +166,10 @@ function mapRecommendationToGrant(item: RecommendationItem): DiscoveryGrant {
     grantUrl: asString(fields.grant_url) ?? '',
     updatedAt: asString(fields.updated_at),
     lastScrapedAt: asString(fields.last_scraped_at),
+    fundingAmountMinRaw: asNumber(fields.funding_amount_min),
+    fundingAmountMaxRaw: asNumber(fields.funding_amount_max),
+    fundingCurrencyRaw: asString(fields.funding_currency),
+    deadlineRaw,
   };
 }
 
@@ -187,6 +195,10 @@ function mapCoreGrantToDiscoveryGrant(grant: CoreGrantResponse): DiscoveryGrant 
     grantUrl: grant.grantUrl || '',
     updatedAt: grant.updatedAt,
     lastScrapedAt: grant.lastScrapedAt,
+    fundingAmountMinRaw: grant.fundingAmountMin,
+    fundingAmountMaxRaw: grant.fundingAmountMax,
+    fundingCurrencyRaw: grant.fundingCurrency,
+    deadlineRaw: grant.applicationDeadline,
   };
 }
 
