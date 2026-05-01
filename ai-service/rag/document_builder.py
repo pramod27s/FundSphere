@@ -180,12 +180,10 @@ def build_pinecone_records(grant: GrantData) -> list[dict]:
         cleaned_metadata[key] = value
 
     records = []
-    title_prefix = f"[Title: {base_record.get('grant_title', 'Unknown')} | Agency: {base_record.get('funding_agency', 'Unknown')}] "
-    
     for i, chunk in enumerate(chunks):
         record = cleaned_metadata.copy()
         record["id"] = f"grant#{grant.id}-chunk{i}"
-        record["chunk_text"] = f"{title_prefix}{chunk}"
+        record["chunk_text"] = chunk
         records.append(record)
 
     return records

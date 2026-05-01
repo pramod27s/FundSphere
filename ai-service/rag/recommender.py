@@ -1,19 +1,33 @@
-from typing import Dict, List, Optional
+import logging
+from typing import Dict, List, Optional, Tuple
+
 from .config import settings
-from .filters import eligibility_score, freshness_score, deadline_is_open
+from .filters import (
+    deadline_is_open,
+    eligibility_score,
+    freshness_score,
+    funding_fit,
+    keyword_overlap_score,
+    _expand_aliases,
+    _norm,
+    _norm_set,
+    APPLICANT_ALIASES,
+    INSTITUTION_ALIASES,
+    COUNTRY_ALIASES,
+)
+from .llm_judge import explain_candidates
 from .pinecone_client import PineconeService
 from .profile_builder import build_user_query_text
+from .query_expander import expand_queries
 from .schemas import (
     RecommendationItem,
     RecommendationRequest,
     RecommendationResponse,
     SemanticHit,
     UserProfile,
+    KeywordCandidate,
 )
-from .query_expander import expand_queries
-from .llm_judge import judge_and_rerank
 from .springboot_client import SpringBootClient
-import logging
 
 logger = logging.getLogger("rag.recommender")
 
@@ -23,6 +37,8 @@ class RecommenderService:
         self.spring_client = spring_client
         self.pinecone_service = pinecone_service
 
+    # ---------- Public entry point ----------
+
     def recommend(self, request: RecommendationRequest) -> RecommendationResponse:
         profile = request.userProfile
         if profile is None:
@@ -31,327 +47,456 @@ class RecommenderService:
             profile = self.spring_client.get_user_profile(request.userId)
 
         query_text = build_user_query_text(profile, request.userQuery)
+        target_top_k = request.topK or settings.final_top_k
 
-        use_rerank = settings.use_rerank if request.useRerank is None else request.useRerank
-        
-        # Expose alpha on the request if present, else fallback to smart defaults
-        alpha = 0.7
-        if hasattr(request, "alpha") and request.alpha is not None:
-            alpha = request.alpha
-        elif "deadline" in query_text.lower():
-            alpha = 0.5
-        elif request.userQuery and len(request.userQuery.split()) < 3 and request.userQuery.isupper(): 
-            alpha = 0.3
-        elif request.userQuery and len(request.userQuery.split()) > 4: 
-            alpha = 0.75
-
-        if getattr(settings, "enable_query_expansion", False):
+        # Stage 1 — query build (+ expansion)
+        if settings.enable_query_expansion:
             query_strings = expand_queries(profile, request.userQuery)
         else:
             query_strings = [query_text]
 
-        all_semantic_hits: Dict[int, SemanticHit] = {}
+        alpha = self._resolve_alpha(request, query_text)
+        use_rerank = settings.use_rerank if request.useRerank is None else request.useRerank
 
-        for q_str in query_strings:
-            hits = self._search_with_fallback(
-                profile=profile,
-                query_text=q_str,
-                top_k=max(request.topK * 3, settings.semantic_top_k),
-                use_rerank=use_rerank,
-                alpha=alpha,
-            )
+        # Stage 2 — parallel retrieval channels
+        semantic_hits = self._semantic_channel(profile, query_strings, alpha)
+        keyword_hits = self._keyword_channel(profile, request, query_strings)
+
+        # Stage 3 — RRF fusion across channels
+        fused = self._rrf_fuse(
+            channels=[semantic_hits, keyword_hits],
+            k=settings.rrf_k,
+            pool_size=settings.rrf_pool_size,
+        )
+
+        if not fused:
+            return RecommendationResponse(queryText=query_text, results=[])
+
+        # Hydrate keyword-only candidates (no Pinecone metadata) before scoring/reranking
+        fused = self._hydrate_missing_metadata(fused)
+
+        # Drop anything we still couldn't hydrate — without a title or chunk text,
+        # we can't render or rerank it meaningfully.
+        fused = [h for h in fused if h.fields.get("grant_title") or h.fields.get("chunk_text")]
+        if not fused:
+            return RecommendationResponse(queryText=query_text, results=[])
+
+        # Stage 4 — reranker (Pinecone bge-reranker-v2-m3)
+        reranked = self._rerank_stage(query_text, fused, top_k=settings.rerank_top_k) if use_rerank else fused[: settings.rerank_top_k]
+
+        # Stage 5 — 5-signal business-rule scoring
+        scored = self._score_candidates(profile, request.userQuery, reranked)
+        scored.sort(key=lambda x: x.finalScore, reverse=True)
+        top_items = scored[:target_top_k]
+
+        # Stage 6 — LLM explanations (never filters)
+        if settings.enable_llm_judge:
+            top_items = explain_candidates(profile, query_text, top_items)
+
+        return RecommendationResponse(queryText=query_text, results=top_items)
+
+    # ---------- Stage 2: channels ----------
+
+    def _semantic_channel(
+        self,
+        profile: UserProfile,
+        query_strings: List[str],
+        alpha: float,
+    ) -> List[SemanticHit]:
+        """Pinecone hybrid (dense + sparse). Soft filters; structured constraints
+        are scored downstream rather than excluded here."""
+        soft_filter = self._soft_filter(profile) if settings.use_soft_filters else None
+        merged: Dict[int, SemanticHit] = {}
+
+        for q in query_strings:
+            try:
+                hits = self.pinecone_service.search(
+                    query_text=q,
+                    top_k=settings.semantic_top_k,
+                    metadata_filter=soft_filter,
+                    alpha=alpha,
+                )
+            except Exception as exc:
+                logger.error(f"Semantic channel failed for query='{q[:60]}': {exc}")
+                hits = []
+
+            # Recall fallback: drop the soft filter if first attempt was thin.
+            if len(hits) < 5 and soft_filter is not None:
+                try:
+                    extra = self.pinecone_service.search(
+                        query_text=q,
+                        top_k=settings.semantic_top_k,
+                        metadata_filter=None,
+                        alpha=alpha,
+                    )
+                    hits = self._merge_hits(hits, extra)
+                except Exception as exc:
+                    logger.warning(f"Semantic fallback failed: {exc}")
+
             for hit in hits:
-                if hit.grantId not in all_semantic_hits or hit.semanticScore > all_semantic_hits[hit.grantId].semanticScore:
-                    all_semantic_hits[hit.grantId] = hit
+                existing = merged.get(hit.grantId)
+                if existing is None or hit.semanticScore > existing.semanticScore:
+                    merged[hit.grantId] = hit
 
-        semantic_hits = list(all_semantic_hits.values())
+        return sorted(merged.values(), key=lambda h: h.semanticScore, reverse=True)
 
+    def _keyword_channel(
+        self,
+        profile: UserProfile,
+        request: RecommendationRequest,
+        query_strings: List[str],
+    ) -> List[SemanticHit]:
+        """PostgreSQL FTS via Spring Boot. Each KeywordCandidate becomes a thin
+        SemanticHit with score-only (no metadata) — RRF only needs rank order."""
+        if not settings.use_keyword_channel:
+            return []
+
+        # Prefer client-supplied keyword candidates if present
+        if request.keywordCandidates:
+            return self._kw_to_hits(request.keywordCandidates)
+
+        merged: Dict[int, KeywordCandidate] = {}
+        seed_query = (request.userQuery or "").strip()
+        queries: List[str] = []
+        if seed_query:
+            queries.append(seed_query)
+        if profile.keywords:
+            queries.append(" ".join(profile.keywords))
+        if profile.researchInterests:
+            queries.append(" ".join(profile.researchInterests))
+        if not queries and query_strings:
+            queries.append(query_strings[0])
+
+        for q in queries:
+            if not q.strip():
+                continue
+            try:
+                results = self.spring_client.keyword_search(
+                    query=q,
+                    user_profile=profile,
+                    top_k=settings.keyword_top_k,
+                )
+            except Exception as exc:
+                logger.warning(f"Keyword channel failed for query='{q[:60]}': {exc}")
+                continue
+
+            for kc in results:
+                prev = merged.get(kc.grantId)
+                if prev is None or kc.keywordScore > prev.keywordScore:
+                    merged[kc.grantId] = kc
+
+        ranked = sorted(merged.values(), key=lambda c: c.keywordScore, reverse=True)
+        return self._kw_to_hits(ranked)
+
+    @staticmethod
+    def _kw_to_hits(cands: List[KeywordCandidate]) -> List[SemanticHit]:
+        return [
+            SemanticHit(grantId=c.grantId, semanticScore=float(c.keywordScore), fields={})
+            for c in cands
+        ]
+
+    def _hydrate_missing_metadata(self, hits: List[SemanticHit]) -> List[SemanticHit]:
+        """Fill in Pinecone metadata for any candidate that came from the keyword
+        channel only (and therefore has empty `fields`)."""
+        missing_ids = [h.grantId for h in hits if not (h.fields.get("grant_title") or h.fields.get("chunk_text"))]
+        if not missing_ids:
+            return hits
+
+        try:
+            md_by_id = self.pinecone_service.fetch_metadata_by_grant_ids(missing_ids)
+        except Exception as exc:
+            logger.warning(f"Metadata hydration failed (non-fatal): {exc}")
+            md_by_id = {}
+
+        if not md_by_id:
+            return hits
+
+        hydrated: List[SemanticHit] = []
+        for h in hits:
+            md = md_by_id.get(h.grantId)
+            if md and not (h.fields.get("grant_title") or h.fields.get("chunk_text")):
+                merged = {**md, **h.fields}  # keep RRF score etc. from h
+                hydrated.append(SemanticHit(grantId=h.grantId, semanticScore=h.semanticScore, fields=merged))
+            else:
+                hydrated.append(h)
+        return hydrated
+
+    @staticmethod
+    def _merge_hits(primary: List[SemanticHit], extra: List[SemanticHit]) -> List[SemanticHit]:
+        seen = {h.grantId for h in primary}
+        out = list(primary)
+        for h in extra:
+            if h.grantId not in seen:
+                out.append(h)
+                seen.add(h.grantId)
+        return out
+
+    # ---------- Stage 3: RRF ----------
+
+    @staticmethod
+    def _rrf_fuse(
+        channels: List[List[SemanticHit]],
+        k: int,
+        pool_size: int,
+    ) -> List[SemanticHit]:
+        """
+        Reciprocal Rank Fusion: score = Σ 1/(k + rank_i) across channels.
+        Carries forward the richest available metadata (Pinecone hits beat
+        keyword-only hits) and keeps the best raw semantic score for downstream
+        scoring.
+        """
+        scores: Dict[int, float] = {}
+        best_hit: Dict[int, SemanticHit] = {}
+
+        for channel in channels:
+            for rank, hit in enumerate(channel, start=1):
+                gid = hit.grantId
+                scores[gid] = scores.get(gid, 0.0) + 1.0 / (k + rank)
+
+                prev = best_hit.get(gid)
+                if prev is None:
+                    best_hit[gid] = hit
+                else:
+                    # Prefer the hit with metadata; otherwise the higher score
+                    if not prev.fields and hit.fields:
+                        best_hit[gid] = hit
+                    elif prev.fields and hit.fields and hit.semanticScore > prev.semanticScore:
+                        # keep prev's fields but bump the score
+                        prev.semanticScore = max(prev.semanticScore, hit.semanticScore)
+                        best_hit[gid] = prev
+
+        ordered = sorted(scores.items(), key=lambda kv: kv[1], reverse=True)
+        fused: List[SemanticHit] = []
+        for gid, rrf_score in ordered[:pool_size]:
+            hit = best_hit[gid]
+            fields = dict(hit.fields or {})
+            fields["_rrf_score"] = rrf_score
+            fused.append(SemanticHit(grantId=gid, semanticScore=hit.semanticScore, fields=fields))
+        return fused
+
+    # ---------- Stage 4: rerank ----------
+
+    def _rerank_stage(
+        self,
+        query: str,
+        candidates: List[SemanticHit],
+        top_k: int,
+    ) -> List[SemanticHit]:
+        if not candidates:
+            return []
+
+        docs = []
+        for hit in candidates:
+            text = self._candidate_text_for_rerank(hit)
+            docs.append({
+                "id": str(hit.grantId),
+                "text": text or hit.fields.get("grant_title", "") or "",
+                "_grant_id": hit.grantId,
+            })
+
+        ranked_docs = self.pinecone_service.rerank(
+            query=query,
+            documents=docs,
+            top_n=top_k,
+            text_field="text",
+        )
+
+        if not ranked_docs:
+            return candidates[:top_k]
+
+        by_id = {h.grantId: h for h in candidates}
+        out: List[SemanticHit] = []
+        for doc in ranked_docs:
+            gid = doc.get("_grant_id")
+            if gid is None:
+                try:
+                    gid = int(doc.get("id"))
+                except Exception:
+                    continue
+            hit = by_id.get(gid)
+            if hit is None:
+                continue
+            new_fields = dict(hit.fields or {})
+            new_fields["_rerank_score"] = doc.get("_rerank_score", 0.0)
+            new_fields["_rerank_rank"] = doc.get("_rerank_rank")
+            out.append(SemanticHit(grantId=gid, semanticScore=hit.semanticScore, fields=new_fields))
+        return out
+
+    @staticmethod
+    def _candidate_text_for_rerank(hit: SemanticHit) -> str:
+        f = hit.fields or {}
+        parts = []
+        title = f.get("grant_title")
+        agency = f.get("funding_agency")
+        if title:
+            parts.append(f"Title: {title}")
+        if agency:
+            parts.append(f"Agency: {agency}")
+        chunk = f.get("chunk_text")
+        if chunk:
+            parts.append(chunk)
+        for key in ("field", "eligible_applicants", "eligible_countries", "tags"):
+            val = f.get(key)
+            if val:
+                parts.append(f"{key}: {', '.join(val) if isinstance(val, list) else val}")
+        return "\n".join(parts).strip()
+
+    # ---------- Stage 5: 5-signal scoring ----------
+
+    def _score_candidates(
+        self,
+        profile: UserProfile,
+        user_query: Optional[str],
+        candidates: List[SemanticHit],
+    ) -> List[RecommendationItem]:
         items: List[RecommendationItem] = []
 
-        for hit in semantic_hits:
-            fields = hit.fields if hit else {}
-            grant_id = hit.grantId
-            score = hit.semanticScore
-            
-            e_score = eligibility_score(profile, fields)
-            f_score = freshness_score(fields.get("application_deadline"), decay_rate=getattr(settings, "freshness_decay_rate", 0.012))
+        rerank_scores = [c.fields.get("_rerank_score") for c in candidates if c.fields.get("_rerank_score") is not None]
+        rr_min = min(rerank_scores) if rerank_scores else 0.0
+        rr_max = max(rerank_scores) if rerank_scores else 1.0
+        rr_span = (rr_max - rr_min) or 1.0
 
-            expired_penalty = getattr(settings, "expired_penalty", 0.15) if fields.get("application_deadline") and not deadline_is_open(fields.get("application_deadline")) else 0.0
+        sem_scores = [c.semanticScore for c in candidates]
+        s_min = min(sem_scores) if sem_scores else 0.0
+        s_max = max(sem_scores) if sem_scores else 1.0
+        s_span = (s_max - s_min) or 1.0
 
-            w_sem = getattr(settings, "weight_semantic", 0.70)
-            w_eli = getattr(settings, "weight_eligibility", 0.20)
-            w_fre = getattr(settings, "weight_freshness", 0.10)
+        for hit in candidates:
+            fields = hit.fields or {}
 
-            final_score = (
-                w_sem * score
-                + w_eli * e_score
-                + w_fre * f_score
-                - expired_penalty
+            # Semantic signal: prefer reranker score (normalised) when available
+            rr = fields.get("_rerank_score")
+            if rr is not None:
+                semantic = (rr - rr_min) / rr_span
+            else:
+                semantic = (hit.semanticScore - s_min) / s_span
+            semantic = max(0.0, min(1.0, semantic))
+
+            elig = eligibility_score(profile, fields)
+            keyword = keyword_overlap_score(profile, user_query, fields)
+            funding = funding_fit(profile, fields)
+            fresh = freshness_score(fields)
+
+            deadline = fields.get("application_deadline")
+            penalty = settings.expired_penalty if (deadline and not deadline_is_open(deadline)) else 0.0
+
+            final = (
+                settings.weight_semantic * semantic
+                + settings.weight_eligibility * elig
+                + settings.weight_keyword * keyword
+                + settings.weight_funding * funding
+                + settings.weight_freshness * fresh
+                - penalty
             )
-            
+
             logger.debug(
-                f"GrantId={grant_id} | Sem={score:.3f}(x{w_sem}) | Eli={e_score:.3f}(x{w_eli}) | Fre={f_score:.3f}(x{w_fre}) | Pen={expired_penalty:.3f} | Final={final_score:.3f}"
+                f"GrantId={hit.grantId} | Sem={semantic:.3f} | Eli={elig:.3f} | "
+                f"Kw={keyword:.3f} | Fund={funding:.3f} | Fresh={fresh:.3f} | "
+                f"Pen={penalty:.2f} | Final={final:.3f}"
             )
 
             items.append(
                 RecommendationItem(
-                    grantId=grant_id,
-                    finalScore=round(final_score, 6),
-                    semanticScore=round(score, 6),
-                    keywordScore=0.0,
-                    eligibilityScore=round(e_score, 6),
-                    freshnessScore=round(f_score, 6),
+                    grantId=hit.grantId,
+                    finalScore=round(final, 6),
+                    semanticScore=round(semantic, 6),
+                    keywordScore=round(keyword, 6),
+                    eligibilityScore=round(elig, 6),
+                    freshnessScore=round(fresh, 6),
                     title=fields.get("grant_title"),
                     fundingAgency=fields.get("funding_agency"),
-                    reason=self._build_reason(profile, fields, {"semanticScore": score, "keywordScore": 0.0}),
+                    reason=self._build_reason(profile, fields, semantic, elig, keyword, funding),
                     fields=fields,
                 )
             )
 
-        items.sort(key=lambda x: x.finalScore, reverse=True)
-        
-        target_top_k = request.topK or settings.final_top_k
-        
-        if getattr(settings, "enable_llm_judge", False):
-            judge_candidates = items[: getattr(settings, "llm_judge_candidate_count", 20)]
-            top_items = judge_and_rerank(profile, query_text, judge_candidates, target_top_k)
-        else:
-            top_items = items[:target_top_k]
+        return items
 
-        return RecommendationResponse(
-            queryText=query_text,
-            results=top_items,
-        )
+    # ---------- Helpers ----------
 
-    def _search_with_fallback(
+    @staticmethod
+    def _resolve_alpha(request: RecommendationRequest, query_text: str) -> float:
+        if request.alpha is not None:
+            return float(request.alpha)
+        q = (request.userQuery or "").strip()
+        if "deadline" in query_text.lower():
+            return 0.5
+        if q and len(q.split()) < 3 and q.isupper():
+            return 0.3
+        if q and len(q.split()) > 4:
+            return 0.75
+        return 0.7
+
+    def _soft_filter(self, profile: UserProfile) -> Optional[dict]:
+        """
+        Soft metadata filter: include grants that explicitly match the user's
+        country OR are open to all OR have no country listed at all. Never AND
+        across multiple structured fields — that silently kills recall.
+        """
+        if not profile.country:
+            return None
+        country_aliases = list(_expand_aliases(profile.country, COUNTRY_ALIASES))
+        # Pinecone metadata filters are case-sensitive against the stored values.
+        # Stored values aren't normalised, so include common casings.
+        casings = set()
+        for c in country_aliases:
+            casings.add(c)
+            casings.add(c.title())
+            casings.add(c.upper())
+        casings.update({"All", "Any", "Global", "International", "Worldwide"})
+        return {
+            "$or": [
+                {"eligible_countries": {"$in": sorted(casings)}},
+                {"eligible_countries": {"$exists": False}},
+            ]
+        }
+
+    def _build_reason(
         self,
         profile: UserProfile,
-        query_text: str,
-        top_k: int,
-        use_rerank: bool,
-        alpha: float,
-    ) -> List[SemanticHit]:
-        collected: Dict[str, SemanticHit] = {}
-        stages = self._build_metadata_filter_stages(profile)
+        fields: dict,
+        semantic: float,
+        elig: float,
+        keyword: float,
+        funding: float,
+    ) -> str:
+        bits: List[str] = []
 
-        for i, metadata_filter in enumerate(stages):
-            try:
-                hits = self.pinecone_service.search(
-                    query_text=query_text,
-                    top_k=top_k,
-                    metadata_filter=metadata_filter,
-                    use_rerank=use_rerank,
-                    alpha=alpha,
-                )
-            except Exception as e:
-                logger.error(f"Pinecone search failed at stage {i}: {e}")
-                hits = []
+        country_aliases = _expand_aliases(profile.country, COUNTRY_ALIASES)
+        applicant_aliases = _expand_aliases(profile.applicantType, APPLICANT_ALIASES)
+        institution_aliases = _expand_aliases(profile.institutionType, INSTITUTION_ALIASES)
 
-            is_last_stage = (i == len(stages) - 1)
-            cleaned_hits = self._post_filter_hits(profile, hits, strict=not is_last_stage)
+        grant_countries = _norm_set(fields.get("eligible_countries", []))
+        grant_applicants = _norm_set(fields.get("eligible_applicants", []))
+        grant_institutions = _norm_set(fields.get("institution_type", []))
 
-            for hit in cleaned_hits:
-                if hit.grantId not in collected:
-                    collected[hit.grantId] = hit
+        if profile.country and (country_aliases & grant_countries):
+            bits.append(f"country match: {profile.country}")
+        if profile.applicantType and (applicant_aliases & grant_applicants):
+            bits.append(f"applicant fit: {profile.applicantType}")
+        if profile.institutionType and (institution_aliases & grant_institutions):
+            bits.append(f"institution fit: {profile.institutionType}")
 
-        return list(collected.values())[:top_k]
-
-    def _build_metadata_filter_stages(self, profile: UserProfile) -> List[dict | None]:
-        stages: List[dict | None] = []
-
-        country_clause = self._clause("eligible_countries", self._expand_country(profile.country))
-        institution_clause = self._clause("institution_type", self._expand_institution(profile.institutionType))
-        applicant_clause = self._clause("eligible_applicants", self._expand_applicant(profile.applicantType))
-
-        all_clauses = [c for c in [country_clause, institution_clause, applicant_clause] if c]
-        if all_clauses:
-            stages.append(self._and_clauses(all_clauses))
-
-        if country_clause and applicant_clause:
-            stages.append(self._and_clauses([country_clause, applicant_clause]))
-
-        if country_clause and institution_clause:
-            stages.append(self._and_clauses([country_clause, institution_clause]))
-
-        if country_clause:
-            stages.append(country_clause)
-
-        if applicant_clause:
-            stages.append(applicant_clause)
-
-        if institution_clause:
-            stages.append(institution_clause)
-
-        # Final fallback keeps recall when metadata values are inconsistent.
-        stages.append(None)
-
-        hard_clauses = []
-        if getattr(profile, "hasPhd", None) is False:
-            hard_clauses.append({"requires_phd": {"$ne": True}})
-        if getattr(profile, "yearsOfExperience", None) is not None:
-            # We use $or to allow missing fields if possible, but Pinecone standard only supports flat filters easily.
-            # Using $lte as requested, though it may filter out records missing this field.
-            hard_clauses.append({"min_experience_years": {"$lte": profile.yearsOfExperience}})
-        if getattr(profile, "citizenship", None):
-            hard_clauses.append({"citizenship_required": {"$in": [self._normalize(profile.citizenship)]}})
-
-        deduped: List[dict | None] = []
-        seen = set()
-        for stage in stages:
-            if hard_clauses:
-                if stage is None:
-                    stage = self._and_clauses(hard_clauses)
-                else:
-                    stage = self._and_clauses([stage] + hard_clauses)
-            
-            key = repr(stage)
-            if key in seen:
-                continue
-            seen.add(key)
-            deduped.append(stage)
-
-        return deduped
-
-    def _post_filter_hits(self, profile: UserProfile, hits: List[SemanticHit], strict: bool) -> List[SemanticHit]:
-        cleaned: List[SemanticHit] = []
-
-        profile_country = self._normalize(profile.country)
-        for hit in hits:
-            fields = hit.fields or {}
-
-            # Strict metadata filtering safety net
-            if getattr(profile, "hasPhd", None) is False and fields.get("requires_phd") is True:
-                continue
-            
-            years_exp = getattr(profile, "yearsOfExperience", None)
-            if years_exp is not None:
-                min_exp = fields.get("min_experience_years")
-                if min_exp is not None and min_exp > years_exp:
-                    continue
-
-            citizenship = getattr(profile, "citizenship", None)
-            if citizenship:
-                cit_req = self._normalize_list(fields.get("citizenship_required", []))
-                if cit_req and self._normalize(citizenship) not in cit_req:
-                    continue
-
-            # Keep strong semantic recall, but remove clear country mismatch when metadata exists.
-            if strict and profile_country:
-                eligible_countries = self._normalize_list(fields.get("eligible_countries", []))
-                if eligible_countries and profile_country not in eligible_countries:
-                    continue
-
-            cleaned.append(hit)
-
-        return cleaned
-
-    def _clause(self, field: str, values: List[str]) -> dict | None:
-        if not values:
-            return None
-        unique_values = []
-        seen = set()
-        for value in values:
-            key = self._normalize(value)
-            if not key or key in seen:
-                continue
-            seen.add(key)
-            unique_values.append(value)
-        if not unique_values:
-            return None
-        return {field: {"$in": unique_values}}
-
-    def _and_clauses(self, clauses: List[dict]) -> dict:
-        if len(clauses) == 1:
-            return clauses[0]
-        return {"$and": clauses}
-
-    def _expand_country(self, value: str | None) -> List[str]:
-        if not value:
-            return []
-        normalized = self._normalize(value)
-        aliases = {
-            "usa": ["USA", "US", "United States", "United States of America"],
-            "us": ["US", "USA", "United States", "United States of America"],
-            "united states": ["United States", "United States of America", "US", "USA"],
-            "uk": ["UK", "United Kingdom", "Great Britain"],
-            "united kingdom": ["United Kingdom", "UK", "Great Britain"],
-        }
-        return aliases.get(normalized, [value])
-
-    def _expand_institution(self, value: str | None) -> List[str]:
-        if not value:
-            return []
-        normalized = self._normalize(value)
-        aliases = {
-            "university": [
-                "University",
-                "Universities",
-                "Academic Institutions",
-                "Private Academic Institutions",
-            ],
-            "college": ["College", "Colleges", "Academic Institutions"],
-            "academic institution": ["Academic Institutions", "University", "Universities"],
-            "startup": ["Startup", "Startups", "Early-stage Startups"],
-            "ngo": ["NGO", "Non-Governmental Organizations"],
-        }
-        return aliases.get(normalized, [value])
-
-    def _expand_applicant(self, value: str | None) -> List[str]:
-        if not value:
-            return []
-        normalized = self._normalize(value)
-        aliases = {
-            "researcher": ["Researcher", "Researchers", "Individual Researchers", "Faculty"],
-            "student": ["Student", "Students", "Graduate Students", "PhD Students"],
-            "faculty": ["Faculty", "Researchers", "Principal Investigators"],
-            "startup": ["Startup", "Startups", "Founders", "Entrepreneurs"],
-        }
-        return aliases.get(normalized, [value])
-
-    def _normalize(self, value: str | None) -> str:
-        return (value or "").strip().lower()
-
-    def _normalize_list(self, values: List[str] | None) -> set[str]:
-        if not values:
-            return set()
-        return {self._normalize(str(v)) for v in values if self._normalize(str(v))}
-
-    def _build_reason(self, profile: UserProfile, fields: Dict, scores: Dict) -> str:
-        reasons = []
-
-        normalized_countries = self._normalize_list(fields.get("eligible_countries", []))
-        normalized_institutions = self._normalize_list(fields.get("institution_type", []))
-        normalized_applicants = self._normalize_list(fields.get("eligible_applicants", []))
-
-        country_aliases = {self._normalize(x) for x in self._expand_country(profile.country)}
-        institution_aliases = {self._normalize(x) for x in self._expand_institution(profile.institutionType)}
-        applicant_aliases = {self._normalize(x) for x in self._expand_applicant(profile.applicantType)}
-
-        if country_aliases and country_aliases & normalized_countries:
-            reasons.append(f"country match: {profile.country}")
-
-        if institution_aliases and institution_aliases & normalized_institutions:
-            reasons.append(f"institution match: {profile.institutionType}")
-
-        if applicant_aliases and applicant_aliases & normalized_applicants:
-            reasons.append(f"applicant match: {profile.applicantType}")
-
-        grant_fields = fields.get("field", [])
-        if profile.researchInterests and grant_fields:
-            overlap = set(x.lower() for x in profile.researchInterests) & set(x.lower() for x in grant_fields)
+        grant_fields_list = fields.get("field") or []
+        if profile.researchInterests and grant_fields_list:
+            overlap = _norm_set(profile.researchInterests) & _norm_set(grant_fields_list)
             if overlap:
-                reasons.append(f"research overlap: {', '.join(sorted(overlap))}")
+                bits.append(f"research overlap: {', '.join(sorted(overlap))}")
 
-        if fields.get("application_deadline"):
-            if deadline_is_open(fields.get("application_deadline")):
-                reasons.append("deadline still open")
+        if funding >= 0.7:
+            bits.append("funding range fits")
+
+        deadline = fields.get("application_deadline")
+        if deadline:
+            if deadline_is_open(deadline):
+                bits.append("deadline open")
             else:
-                reasons.append("deadline may be closed")
+                bits.append("deadline likely closed")
 
-        if not reasons:
-            if scores["semanticScore"] > scores["keywordScore"]:
-                reasons.append("strong semantic similarity with your profile")
+        if not bits:
+            if semantic >= keyword:
+                bits.append("strong semantic similarity with your profile")
             else:
-                reasons.append("strong keyword match with your profile")
+                bits.append("strong keyword match with your profile")
 
-        return "; ".join(reasons[:4])
+        return "; ".join(bits[:4])

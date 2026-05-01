@@ -48,7 +48,7 @@ class PineconeService:
             self.pc.delete_index(index_name)
         except Exception:
             pass
-            
+
         self.pc.create_index(
             name=index_name,
             dimension=1024,
@@ -59,11 +59,10 @@ class PineconeService:
     def upsert_grant(self, grant: GrantData) -> list[dict]:
         records = build_pinecone_records(grant)
         vectors = []
-        
+
         for record in records:
             chunk_text = record.get("chunk_text", "")
-            
-            # Generate dense vector via Pinecone Integrated Inference (llama-text-embed-v2)
+
             dense_result = self.pc.inference.embed(
                 model="llama-text-embed-v2",
                 inputs=[chunk_text],
@@ -71,7 +70,6 @@ class PineconeService:
             )
             dense_embedding = dense_result[0].values
 
-            # Generate SPLADE sparse vector from chunk_text via Pinecone inference
             sparse_result = self.pc.inference.embed(
                 model="pinecone-sparse-english-v0",
                 inputs=[chunk_text],
@@ -83,7 +81,7 @@ class PineconeService:
             }
 
             metadata = record.copy()
-            metadata.pop("id", None) # Remove 'id' from metadata to prevent duplication
+            metadata.pop("id", None)
 
             vectors.append({
                 "id": record["id"],
@@ -97,10 +95,8 @@ class PineconeService:
 
     def delete_grant(self, grant_id: int) -> None:
         try:
-            # First try serverless metadata filter delete
             self.index.delete(namespace=self.namespace, filter={"grant_id": {"$eq": grant_id}})
         except Exception:
-            # Fallback: query and delete
             response = self.index.query(
                 namespace=self.namespace,
                 vector=[1e-5] * 1024,
@@ -111,8 +107,7 @@ class PineconeService:
             ids_to_delete = [match["id"] for match in response.get("matches", [])]
             if ids_to_delete:
                 self.index.delete(namespace=self.namespace, ids=ids_to_delete)
-        
-        # Also delete the legacy non-chunked ID for backward compatibility
+
         legacy_id = f"grant#{grant_id}"
         try:
             self.index.delete(namespace=self.namespace, ids=[legacy_id])
@@ -124,12 +119,10 @@ class PineconeService:
         query_text: str,
         top_k: int,
         metadata_filter: Optional[dict] = None,
-        use_rerank: bool = True,
+        use_rerank: bool = False,
         alpha: float = 0.7,
     ) -> List[SemanticHit]:
-        
         try:
-            # Generate dense query vector via Pinecone Integrated Inference
             dense_result = self.pc.inference.embed(
                 model="llama-text-embed-v2",
                 inputs=[query_text],
@@ -137,7 +130,6 @@ class PineconeService:
             )
             dense_embedding = dense_result[0].values
 
-            # Generate SPLADE sparse vector for query via Pinecone inference
             sparse_result = self.pc.inference.embed(
                 model="pinecone-sparse-english-v0",
                 inputs=[query_text],
@@ -151,7 +143,6 @@ class PineconeService:
             logger.error(f"Pinecone inference embed failed: {e}")
             raise RuntimeError(f"Pinecone inference failed: {e}") from e
 
-        # Apply alpha weighting
         weighted_dense = [v * alpha for v in dense_embedding]
         weighted_sparse = {
             "indices": sparse_vector["indices"],
@@ -159,7 +150,6 @@ class PineconeService:
         }
 
         try:
-            # Native pinecone query
             response = self.index.query(
                 namespace=self.namespace,
                 vector=weighted_dense,
@@ -185,15 +175,15 @@ class PineconeService:
         for match in response.get("matches", []):
             hit_metadata = match.get("metadata", {})
             grant_id = hit_metadata.get("grant_id")
-            
+
             if grant_id is None:
                 continue
-                
+
             grant_id = int(grant_id)
             if grant_id in seen_grants:
                 continue
             seen_grants.add(grant_id)
-                
+
             results.append(
                 SemanticHit(
                     grantId=grant_id,
@@ -204,3 +194,129 @@ class PineconeService:
 
         return results
 
+    def fetch_metadata_by_grant_ids(self, grant_ids: List[int]) -> Dict[int, Dict[str, Any]]:
+        """
+        Look up the first stored chunk for each grant_id and return its metadata.
+        Used to hydrate keyword-only candidates that were never returned by the
+        semantic channel.
+        """
+        if not grant_ids:
+            return {}
+
+        results: Dict[int, Dict[str, Any]] = {}
+        # Try the cheap path first: fetch by deterministic chunk0 id
+        ids_to_try = [f"grant#{gid}-chunk0" for gid in grant_ids]
+        try:
+            resp = self.index.fetch(ids=ids_to_try, namespace=self.namespace)
+            vectors = getattr(resp, "vectors", None)
+            if vectors is None and isinstance(resp, dict):
+                vectors = resp.get("vectors", {})
+            if vectors:
+                for _, vec in (vectors.items() if hasattr(vectors, "items") else vectors):
+                    md = getattr(vec, "metadata", None)
+                    if md is None and isinstance(vec, dict):
+                        md = vec.get("metadata")
+                    if md and md.get("grant_id") is not None:
+                        results[int(md["grant_id"])] = dict(md)
+        except Exception as e:
+            logger.warning(f"Pinecone fetch by chunk0 id failed: {e}")
+
+        # For any grant still missing, fall back to a metadata-filtered query
+        missing = [gid for gid in grant_ids if gid not in results]
+        for gid in missing:
+            try:
+                qresp = self.index.query(
+                    namespace=self.namespace,
+                    vector=[1e-5] * 1024,
+                    top_k=1,
+                    include_metadata=True,
+                    filter={"grant_id": {"$eq": gid}},
+                )
+                for match in qresp.get("matches", []):
+                    md = match.get("metadata") or {}
+                    if md.get("grant_id") is not None:
+                        results[int(md["grant_id"])] = dict(md)
+                        break
+            except Exception as e:
+                logger.warning(f"Pinecone metadata fallback fetch failed for grant {gid}: {e}")
+
+        return results
+
+    def rerank(
+        self,
+        query: str,
+        documents: List[Dict[str, Any]],
+        top_n: int,
+        text_field: str = "text",
+    ) -> List[Dict[str, Any]]:
+        """
+        Rerank documents against a query using bge-reranker-v2-m3 via Pinecone Inference.
+
+        Each document must contain a `text` field with the passage to rank.
+        Returns documents in reranked order, each augmented with `_rerank_score` and
+        `_rerank_rank` (1-indexed). Custom fields on the input docs (e.g. `_grant_id`)
+        are preserved by mapping back through the SDK's `index` attribute, since the
+        SDK only round-trips the declared `rank_fields` plus `id`.
+        """
+        if not documents:
+            return []
+
+        try:
+            response = self.pc.inference.rerank(
+                model=settings.pinecone_rerank_model,
+                query=query,
+                documents=documents,
+                top_n=min(top_n, len(documents)),
+                rank_fields=[text_field],
+                return_documents=True,
+                parameters={"truncate": "END"},
+            )
+        except Exception as e:
+            logger.error(f"Pinecone rerank failed, falling back to original order: {e}")
+            return documents[:top_n]
+
+        data = getattr(response, "data", None)
+        if data is None and isinstance(response, dict):
+            data = response.get("data", [])
+        if not data:
+            return documents[:top_n]
+
+        ranked: List[Dict[str, Any]] = []
+        for rank_idx, item in enumerate(data, start=1):
+            # Read score
+            score = getattr(item, "score", None)
+            if score is None and isinstance(item, dict):
+                score = item.get("score")
+
+            # Read source index — most reliable way to recover the original doc
+            src_idx = getattr(item, "index", None)
+            if src_idx is None and isinstance(item, dict):
+                src_idx = item.get("index")
+
+            base_doc: Optional[Dict[str, Any]] = None
+            if src_idx is not None and 0 <= int(src_idx) < len(documents):
+                base_doc = documents[int(src_idx)]
+            else:
+                # Fallback: try to convert the SDK-returned document to a dict
+                sdk_doc = getattr(item, "document", None)
+                if sdk_doc is None and isinstance(item, dict):
+                    sdk_doc = item.get("document")
+                if sdk_doc is not None:
+                    if isinstance(sdk_doc, dict):
+                        base_doc = sdk_doc
+                    elif hasattr(sdk_doc, "to_dict"):
+                        try:
+                            base_doc = sdk_doc.to_dict()
+                        except Exception:
+                            base_doc = None
+
+            if base_doc is None:
+                continue
+
+            ranked.append({
+                **base_doc,
+                "_rerank_score": float(score or 0.0),
+                "_rerank_rank": rank_idx,
+            })
+
+        return ranked or documents[:top_n]

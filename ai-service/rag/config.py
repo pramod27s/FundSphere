@@ -27,10 +27,17 @@ class Settings:
     pinecone_namespace: str = os.getenv("PINECONE_NAMESPACE", "grants")
     pinecone_rerank_model: str = os.getenv("PINECONE_RERANK_MODEL", "bge-reranker-v2-m3")
 
-
-    semantic_top_k: int = int(os.getenv("SEMANTIC_TOP_K", "30"))
+    # Retrieval sizing
+    semantic_top_k: int = int(os.getenv("SEMANTIC_TOP_K", "50"))
+    keyword_top_k: int = int(os.getenv("KEYWORD_TOP_K", "50"))
+    rrf_pool_size: int = int(os.getenv("RRF_POOL_SIZE", "30"))
+    rerank_top_k: int = int(os.getenv("RERANK_TOP_K", "15"))
     final_top_k: int = int(os.getenv("FINAL_TOP_K", "10"))
+    rrf_k: int = int(os.getenv("RRF_K", "60"))
+
     use_rerank: bool = _as_bool(os.getenv("USE_RERANK"), True)
+    use_soft_filters: bool = _as_bool(os.getenv("USE_SOFT_FILTERS"), True)
+    use_keyword_channel: bool = _as_bool(os.getenv("USE_KEYWORD_CHANNEL"), True)
 
     # Query Expansion Settings
     groq_api_key_query_expansion: str = os.getenv("GROQ_API_KEY_QUERY_EXPANSION", "")
@@ -42,18 +49,19 @@ class Settings:
     chunk_overlap_tokens: int = int(os.getenv("CHUNK_OVERLAP_TOKENS", "80"))
     enable_chunking: bool = _as_bool(os.getenv("ENABLE_CHUNKING"), True)
 
-    # LLM Judge Settings
+    # LLM Judge Settings — judge is now EXPLAIN-ONLY, never filters
     groq_api_key_llm_judge: str = os.getenv("GROQ_API_KEY_LLM_JUDGE", "")
     enable_llm_judge: bool = _as_bool(os.getenv("ENABLE_LLM_JUDGE"), True)
     llm_judge_model: str = os.getenv("LLM_JUDGE_MODEL", "openai/gpt-oss-120b")
     llm_judge_candidate_count: int = int(os.getenv("LLM_JUDGE_CANDIDATE_COUNT", "10"))
 
-    # Scoring Weights
-    weight_semantic: float = float(os.getenv("WEIGHT_SEMANTIC", "0.70"))
-    weight_eligibility: float = float(os.getenv("WEIGHT_ELIGIBILITY", "0.20"))
+    # 5-signal Scoring Weights (sum = 1.00)
+    weight_semantic: float = float(os.getenv("WEIGHT_SEMANTIC", "0.35"))
+    weight_eligibility: float = float(os.getenv("WEIGHT_ELIGIBILITY", "0.25"))
+    weight_keyword: float = float(os.getenv("WEIGHT_KEYWORD", "0.15"))
+    weight_funding: float = float(os.getenv("WEIGHT_FUNDING", "0.15"))
     weight_freshness: float = float(os.getenv("WEIGHT_FRESHNESS", "0.10"))
-    expired_penalty: float = float(os.getenv("EXPIRED_PENALTY", "0.15"))
-    freshness_decay_rate: float = float(os.getenv("FRESHNESS_DECAY_RATE", "0.012"))
+    expired_penalty: float = float(os.getenv("EXPIRED_PENALTY", "0.30"))
 
 
 settings = Settings()
