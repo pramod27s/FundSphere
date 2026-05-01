@@ -1,11 +1,70 @@
 import { Search, Menu } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import GrantList from './GrantList.tsx';
-import FilterSidebar from './FilterSidebar.tsx';
+import FilterSidebar, { type FilterState, EMPTY_FILTERS } from './FilterSidebar.tsx';
 import AnimatedLogo from '../common/AnimatedLogo.tsx';
 import CustomSelect from '../common/CustomSelect.tsx';
 import type { ResearcherResponse } from '../../services/researcherService';
 import { getDiscoveryGrants, type DiscoveryGrant } from '../../services/discoveryService';
+
+const INR_RATE: Record<string, number> = { INR: 1, USD: 83, EUR: 90, GBP: 105, AUD: 55, CAD: 62 };
+
+function toInr(amount: number, currency?: string): number {
+  const rate = INR_RATE[(currency ?? '').toUpperCase()] ?? 0;
+  return rate > 0 ? amount * rate : 0;
+}
+
+function applyFilters(grants: DiscoveryGrant[], f: FilterState): DiscoveryGrant[] {
+  return grants.filter((g) => {
+    if (f.grantTypes.length > 0) {
+      const text = `${g.title} ${g.tags.join(' ')} ${g.description}`.toLowerCase();
+      const match =
+        (f.grantTypes.includes('Research Projects') && /research|project/i.test(text)) ||
+        (f.grantTypes.includes('Fellowships') && /fellowship/i.test(text)) ||
+        (f.grantTypes.includes('Travel Grants') && /travel/i.test(text)) ||
+        (f.grantTypes.includes('Equipment / Lab') && /equipment|lab\b|instrument|apparatus/i.test(text));
+      if (!match) return false;
+    }
+
+    if (f.applicantTypes.length > 0) {
+      const text = `${g.eligibilityCriteria ?? ''} ${g.tags.join(' ')} ${g.description}`.toLowerCase();
+      const match =
+        (f.applicantTypes.includes('Early Career') && /early.?career|postdoc|young researcher|junior|early stage/i.test(text)) ||
+        (f.applicantTypes.includes('Students (PhD/MSc)') && /phd|m\.?sc|student|doctoral|graduate|post.?graduate/i.test(text)) ||
+        (f.applicantTypes.includes('Senior Researchers') && /senior|faculty|professor|principal investigator|\bpi\b/i.test(text)) ||
+        (f.applicantTypes.includes('Startups / Industry') && /startup|industry|company|sme|enterprise|commercial/i.test(text));
+      if (!match) return false;
+    }
+
+    if (f.fundingRanges.length > 0) {
+      const currency = g.fundingCurrencyRaw;
+      const rate = INR_RATE[(currency ?? '').toUpperCase()] ?? 0;
+      if (rate > 0 && (g.fundingAmountMinRaw !== undefined || g.fundingAmountMaxRaw !== undefined)) {
+        const representative = toInr(g.fundingAmountMaxRaw ?? g.fundingAmountMinRaw ?? 0, currency);
+        const match =
+          (f.fundingRanges.includes('< ₹5 Lakh') && representative < 500_000) ||
+          (f.fundingRanges.includes('₹5L - ₹25L') && representative >= 500_000 && representative <= 2_500_000) ||
+          (f.fundingRanges.includes('₹25L - ₹1 Cr') && representative > 2_500_000 && representative <= 10_000_000) ||
+          (f.fundingRanges.includes('> ₹1 Cr') && representative > 10_000_000);
+        if (!match) return false;
+      }
+    }
+
+    if (f.deadlineRanges.length > 0 && g.deadlineRaw) {
+      const deadlineMs = new Date(g.deadlineRaw).getTime();
+      if (!isNaN(deadlineMs)) {
+        const daysUntil = Math.ceil((deadlineMs - Date.now()) / 86_400_000);
+        const match =
+          (f.deadlineRanges.includes('Closing in < 30 days') && daysUntil >= 0 && daysUntil < 30) ||
+          (f.deadlineRanges.includes('Closing in 1-3 months') && daysUntil >= 30 && daysUntil <= 90) ||
+          (f.deadlineRanges.includes('Closing in > 3 months') && daysUntil > 90);
+        if (!match) return false;
+      }
+    }
+
+    return true;
+  });
+}
 
 interface GrantDiscoveryProps {
   researcher: ResearcherResponse | null;
@@ -21,6 +80,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
   const [dataSource, setDataSource] = useState<'ai' | 'core' | null>(null);
+  const [filterState, setFilterState] = useState<FilterState>(EMPTY_FILTERS);
 
   const loadGrants = async (queryOverride?: string, useRerank = false) => {
     if (!researcher) {
@@ -61,16 +121,18 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
   const sortedGrants = useMemo(() => {
     const copy = [...grants];
     if (sortBy === 'deadline') {
-      return copy.sort((a, b) => a.deadline.localeCompare(b.deadline));
+      copy.sort((a, b) => a.deadline.localeCompare(b.deadline));
+    } else if (sortBy === 'funding') {
+      copy.sort((a, b) => b.amount.localeCompare(a.amount));
+    } else if (sortBy === 'recent') {
+      copy.sort((a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''));
+    } else {
+      copy.sort((a, b) => b.matchScore - a.matchScore);
     }
-    if (sortBy === 'funding') {
-      return copy.sort((a, b) => b.amount.localeCompare(a.amount));
-    }
-    if (sortBy === 'recent') {
-      return copy.sort((a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''));
-    }
-    return copy.sort((a, b) => b.matchScore - a.matchScore);
+    return copy;
   }, [grants, sortBy]);
+
+  const filteredGrants = useMemo(() => applyFilters(sortedGrants, filterState), [sortedGrants, filterState]);
 
   return (
     <div className="flex h-screen bg-brand-50 w-full overflow-hidden relative">
@@ -84,7 +146,11 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
       <div className={`fixed inset-y-0 left-0 z-50 transform w-72 bg-white ${
         isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
       } md:relative md:translate-x-0 transition-transform duration-300 ease-in-out md:block h-full shrink-0 shadow-2xl md:shadow-none`}>
-        <FilterSidebar onClose={() => setIsSidebarOpen(false)} />
+        <FilterSidebar
+          filters={filterState}
+          onChange={setFilterState}
+          onClose={() => setIsSidebarOpen(false)}
+        />
       </div>
 
       <div className="flex-1 flex flex-col h-full overflow-hidden">
@@ -157,7 +223,9 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
               <div>
                 <h2 className="text-lg md:text-xl font-semibold text-brand-800">Top Matches for Your Profile</h2>
                 <p className="text-xs md:text-sm text-brand-500 mt-1">
-                  {isLoading ? 'Fetching opportunities...' : `Found ${sortedGrants.length} opportunities from ${dataSource === 'core' ? 'CoreBackend fallback' : 'AI ranking'}.`}
+                  {isLoading
+                    ? 'Fetching opportunities...'
+                    : `Showing ${filteredGrants.length}${filteredGrants.length !== sortedGrants.length ? ` of ${sortedGrants.length}` : ''} opportunities from ${dataSource === 'core' ? 'CoreBackend fallback' : 'AI ranking'}.`}
                 </p>
               </div>
 
@@ -206,8 +274,26 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
               </div>
             )}
 
-            <GrantList grants={sortedGrants} isLoading={isLoading} source={dataSource} />
-            
+            <GrantList grants={filteredGrants} isLoading={isLoading} source={dataSource} />
+
+            {!isLoading && filteredGrants.length === 0 && sortedGrants.length > 0 && (
+              <div className="rounded-2xl border-2 border-dashed border-brand-200 bg-brand-50 p-12 flex flex-col items-center justify-center text-center mt-4">
+                <div className="bg-white p-4 rounded-full shadow-sm border border-brand-100 mb-4">
+                  <Search className="w-8 h-8 text-brand-400" />
+                </div>
+                <h3 className="text-lg font-bold text-brand-900 mb-2">No grants match your filters</h3>
+                <p className="text-brand-500 max-w-sm mb-6">
+                  None of the {sortedGrants.length} loaded grants pass all selected filters. Try removing a filter or widening your criteria.
+                </p>
+                <button
+                  onClick={() => setFilterState(EMPTY_FILTERS)}
+                  className="px-6 py-2.5 bg-white border border-brand-200 hover:border-primary-300 hover:text-primary-600 text-brand-700 font-medium rounded-lg shadow-sm transition-all"
+                >
+                  Clear All Filters
+                </button>
+              </div>
+            )}
+
             {!isLoading && sortedGrants.length === 0 && (
               <div className="rounded-2xl border-2 border-dashed border-brand-200 bg-brand-50 p-12 flex flex-col items-center justify-center text-center mt-4">
                 <div className="bg-white p-4 rounded-full shadow-sm border border-brand-100 mb-4">
@@ -217,7 +303,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                 <p className="text-brand-500 max-w-sm mb-6">
                   We couldn't find any grants matching this specific profile and query. Try adjusting your research tags or broadening your search terms.
                 </p>
-                <button 
+                <button
                   onClick={() => {
                     setSearchQuery('');
                     void loadGrants('', false);
