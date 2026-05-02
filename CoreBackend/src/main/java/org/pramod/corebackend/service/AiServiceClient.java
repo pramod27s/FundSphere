@@ -6,16 +6,21 @@ package org.pramod.corebackend.service;
 
 import tools.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -56,6 +61,102 @@ public class AiServiceClient {
 
     public Object indexGrants(Object requestBody) {
         return post("/rag/index-grants", requestBody);
+    }
+
+    /**
+     * Forwards two PDFs (proposal + guidelines) and metadata as multipart/form-data
+     * to the FastAPI proposal-analysis endpoint and returns the parsed JSON.
+     */
+    public Object analyzeProposal(MultipartFile proposalPdf,
+                                  MultipartFile guidelinesPdf,
+                                  String grantTitle,
+                                  String mode) {
+        MultipartBodyBuilder builder = new MultipartBodyBuilder();
+        try {
+            builder.part("proposal_pdf", asNamedResource(proposalPdf))
+                    .filename(safeFilename(proposalPdf, "proposal.pdf"))
+                    .contentType(MediaType.APPLICATION_PDF);
+            builder.part("guidelines_pdf", asNamedResource(guidelinesPdf))
+                    .filename(safeFilename(guidelinesPdf, "guidelines.pdf"))
+                    .contentType(MediaType.APPLICATION_PDF);
+        } catch (IOException ex) {
+            throw new ResponseStatusException(BAD_GATEWAY,
+                    "Could not read uploaded PDF: " + ex.getMessage(), ex);
+        }
+        builder.part("grant_title", grantTitle == null ? "" : grantTitle);
+        builder.part("mode", mode == null || mode.isBlank() ? "simple" : mode);
+
+        MultiValueMap<String, org.springframework.http.HttpEntity<?>> body = builder.build();
+
+        try {
+            // NOTE: do NOT set Content-Type manually for multipart — Spring's
+            // FormHttpMessageConverter must set it itself so it can include
+            // the auto-generated boundary parameter.
+            String raw = restClient.post()
+                    .uri("/proposal/analyze")
+                    .headers(h -> {
+                        if (StringUtils.hasText(apiKey)) {
+                            h.set("X-API-KEY", apiKey);
+                        }
+                    })
+                    .accept(MediaType.APPLICATION_JSON)
+                    .body(body)
+                    .retrieve()
+                    .body(String.class);
+
+            if (raw == null || raw.isBlank()) {
+                throw new ResponseStatusException(BAD_GATEWAY,
+                        "AI service returned empty body for proposal analysis");
+            }
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> parsed = objectMapper.readValue(raw, Map.class);
+            return parsed;
+        } catch (RestClientResponseException ex) {
+            ex.printStackTrace();
+            throw new ResponseStatusException(BAD_GATEWAY,
+                    "AI service returned " + ex.getStatusCode().value() + ": " + ex.getResponseBodyAsString(), ex);
+        } catch (ResourceAccessException ex) {
+            ex.printStackTrace();
+            throw new ResponseStatusException(GATEWAY_TIMEOUT,
+                    "AI service timed out or is unreachable: " + ex.getMessage(), ex);
+        } catch (RestClientException ex) {
+            ex.printStackTrace();
+            throw new ResponseStatusException(BAD_GATEWAY,
+                    "AI service response could not be read: " + ex.getMessage(), ex);
+        } catch (tools.jackson.core.JacksonException ex) {
+            ex.printStackTrace();
+            throw new ResponseStatusException(BAD_GATEWAY,
+                    "AI service returned non-JSON body: " + ex.getMessage(), ex);
+        } catch (RuntimeException ex) {
+            ex.printStackTrace();
+            throw new ResponseStatusException(BAD_GATEWAY,
+                    "AI service call failed: " + ex.getMessage(), ex);
+        }
+    }
+
+    private static ByteArrayResource asNamedResource(MultipartFile file) throws IOException {
+        final String filename = safeFilename(file, "upload.pdf");
+        final byte[] bytes = file.getBytes();
+        return new ByteArrayResource(bytes) {
+            @Override
+            public String getFilename() {
+                return filename;
+            }
+
+            @Override
+            public long contentLength() {
+                return bytes.length;
+            }
+        };
+    }
+
+    private static String safeFilename(MultipartFile file, String fallback) {
+        if (file == null) {
+            return fallback;
+        }
+        String name = file.getOriginalFilename();
+        return StringUtils.hasText(name) ? name : fallback;
     }
 
     private Object post(String path, Object requestBody) {
