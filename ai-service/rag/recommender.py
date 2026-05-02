@@ -15,9 +15,14 @@ from .filters import (
     INSTITUTION_ALIASES,
     COUNTRY_ALIASES,
 )
+from .hyde import generate_hypothetical_grant
 from .llm_judge import explain_candidates
 from .pinecone_client import PineconeService
-from .profile_builder import build_user_query_text
+from .profile_builder import (
+    build_user_query_text,
+    build_profile_only_text,
+    build_query_only_text,
+)
 from .query_expander import expand_queries
 from .schemas import (
     RecommendationItem,
@@ -58,8 +63,20 @@ class RecommenderService:
         alpha = self._resolve_alpha(request, query_text)
         use_rerank = settings.use_rerank if request.useRerank is None else request.useRerank
 
+        # Stage 1.5 — HyDE: ask the LLM to write a hypothetical grant that
+        # would match the user's need. Bridges the vocabulary gap between
+        # researcher queries and real grant text. Cached internally.
+        hyde_doc = generate_hypothetical_grant(profile, request.userQuery)
+        if hyde_doc:
+            query_strings = self._inject_hyde(query_strings, hyde_doc)
+
         # Stage 2 — parallel retrieval channels
-        semantic_hits = self._semantic_channel(profile, query_strings, alpha)
+        if settings.enable_profile_query_split:
+            semantic_hits = self._semantic_channel_split(
+                profile, request.userQuery, query_strings, alpha, hyde_doc=hyde_doc
+            )
+        else:
+            semantic_hits = self._semantic_channel(profile, query_strings, alpha)
         keyword_hits = self._keyword_channel(profile, request, query_strings)
 
         # Stage 3 — RRF fusion across channels
@@ -82,7 +99,12 @@ class RecommenderService:
             return RecommendationResponse(queryText=query_text, results=[])
 
         # Stage 4 — reranker (Pinecone bge-reranker-v2-m3)
-        reranked = self._rerank_stage(query_text, fused, top_k=settings.rerank_top_k) if use_rerank else fused[: settings.rerank_top_k]
+        # When the structured prompt is enabled, give the reranker the *intent*
+        # (live query) as the anchor — that's what it should be measuring against.
+        rerank_query = (request.userQuery or "").strip() if settings.enable_structured_rerank_prompt else query_text
+        if not rerank_query:
+            rerank_query = query_text
+        reranked = self._rerank_stage(rerank_query, fused, top_k=settings.rerank_top_k) if use_rerank else fused[: settings.rerank_top_k]
 
         # Stage 5 — 5-signal business-rule scoring
         scored = self._score_candidates(profile, request.userQuery, reranked)
@@ -139,6 +161,138 @@ class RecommenderService:
                     merged[hit.grantId] = hit
 
         return sorted(merged.values(), key=lambda h: h.semanticScore, reverse=True)
+
+    @staticmethod
+    def _inject_hyde(query_strings: List[str], hyde_doc: str) -> List[str]:
+        """Add HyDE doc to the query list. If `HYDE_REPLACE_QUERY` is on, the
+        hypothetical doc replaces the existing strings entirely; otherwise it
+        rides alongside them so the original query still contributes."""
+        if settings.hyde_replace_query:
+            return [hyde_doc]
+        # Prepend so HyDE drives recall first; expansions still contribute.
+        return [hyde_doc] + [q for q in query_strings if q and q != hyde_doc]
+
+    def _semantic_channel_split(
+        self,
+        profile: UserProfile,
+        user_query: Optional[str],
+        query_strings: List[str],
+        alpha: float,
+        hyde_doc: Optional[str] = None,
+    ) -> List[SemanticHit]:
+        """
+        Profile/query split retrieval.
+
+        Runs TWO Pinecone retrievals — one anchored on the user's live query
+        (intent), one anchored on the static profile (fit) — then weighted-RRF
+        fuses them. The intent channel is up-weighted (default 2x) so the live
+        query dominates without losing the profile context entirely.
+
+        Falls back to the standard single-channel retrieval whenever the user
+        query is empty (then there is no intent to separate out).
+        """
+        live_query = (user_query or "").strip()
+        if not live_query:
+            return self._semantic_channel(profile, query_strings, alpha)
+
+        soft_filter = self._soft_filter(profile) if settings.use_soft_filters else None
+
+        # Channel A: intent (live user query, lightly grounded with interests/keywords).
+        # Use the LLM-expanded query strings here when available — they were
+        # generated from the live query and are intent-flavoured.
+        # If HyDE produced a hypothetical grant, prepend it — its embedding
+        # lives in the same space as real grants and drives recall hardest.
+        intent_queries: List[str] = []
+        if hyde_doc:
+            intent_queries.append(hyde_doc)
+        if query_strings and settings.enable_query_expansion:
+            intent_queries.extend(query_strings)
+        intent_queries.append(build_query_only_text(profile, live_query))
+        # Dedupe, preserve order
+        seen: set[str] = set()
+        intent_queries = [q for q in intent_queries if q and not (q in seen or seen.add(q))]
+
+        intent_hits = self._run_semantic_queries(intent_queries, alpha, soft_filter)
+
+        # Channel B: fit (profile-only, no live query). Heavier on dense recall
+        # of grants matching the researcher's standing background.
+        fit_query = build_profile_only_text(profile)
+        fit_hits = self._run_semantic_queries([fit_query], alpha, soft_filter) if fit_query else []
+
+        # Weighted RRF: each intent hit contributes intent_weight × 1/(k+rank);
+        # each fit hit contributes 1.0 × 1/(k+rank).
+        intent_weight = max(0.1, settings.profile_query_split_intent_weight)
+        return self._weighted_rrf_semantic(
+            channels=[(intent_hits, intent_weight), (fit_hits, 1.0)],
+            k=settings.rrf_k,
+            pool_size=settings.semantic_top_k,
+        )
+
+    def _run_semantic_queries(
+        self,
+        queries: List[str],
+        alpha: float,
+        soft_filter: Optional[dict],
+    ) -> List[SemanticHit]:
+        """Helper: run a list of queries through Pinecone, merge by best score."""
+        merged: Dict[int, SemanticHit] = {}
+        for q in queries:
+            try:
+                hits = self.pinecone_service.search(
+                    query_text=q,
+                    top_k=settings.semantic_top_k,
+                    metadata_filter=soft_filter,
+                    alpha=alpha,
+                )
+            except Exception as exc:
+                logger.error(f"Split-channel semantic search failed for q='{q[:60]}': {exc}")
+                hits = []
+
+            if len(hits) < 5 and soft_filter is not None:
+                try:
+                    extra = self.pinecone_service.search(
+                        query_text=q,
+                        top_k=settings.semantic_top_k,
+                        metadata_filter=None,
+                        alpha=alpha,
+                    )
+                    hits = self._merge_hits(hits, extra)
+                except Exception as exc:
+                    logger.warning(f"Split-channel semantic fallback failed: {exc}")
+
+            for hit in hits:
+                existing = merged.get(hit.grantId)
+                if existing is None or hit.semanticScore > existing.semanticScore:
+                    merged[hit.grantId] = hit
+
+        return sorted(merged.values(), key=lambda h: h.semanticScore, reverse=True)
+
+    @staticmethod
+    def _weighted_rrf_semantic(
+        channels: List[Tuple[List[SemanticHit], float]],
+        k: int,
+        pool_size: int,
+    ) -> List[SemanticHit]:
+        """RRF where each channel can contribute with a weight multiplier.
+        Used to fuse intent (heavy) and fit (light) inside the semantic stage."""
+        scores: Dict[int, float] = {}
+        best_hit: Dict[int, SemanticHit] = {}
+
+        for channel, weight in channels:
+            if weight <= 0 or not channel:
+                continue
+            for rank, hit in enumerate(channel, start=1):
+                gid = hit.grantId
+                scores[gid] = scores.get(gid, 0.0) + weight * (1.0 / (k + rank))
+                prev = best_hit.get(gid)
+                if prev is None or hit.semanticScore > prev.semanticScore:
+                    best_hit[gid] = hit
+
+        ordered = sorted(scores.items(), key=lambda kv: kv[1], reverse=True)
+        out: List[SemanticHit] = []
+        for gid, _ in ordered[:pool_size]:
+            out.append(best_hit[gid])
+        return out
 
     def _keyword_channel(
         self,
@@ -324,6 +478,9 @@ class RecommenderService:
 
     @staticmethod
     def _candidate_text_for_rerank(hit: SemanticHit) -> str:
+        if settings.enable_structured_rerank_prompt:
+            return RecommenderService._candidate_text_structured(hit)
+
         f = hit.fields or {}
         parts = []
         title = f.get("grant_title")
@@ -340,6 +497,50 @@ class RecommenderService:
             if val:
                 parts.append(f"{key}: {', '.join(val) if isinstance(val, list) else val}")
         return "\n".join(parts).strip()
+
+    @staticmethod
+    def _candidate_text_structured(hit: SemanticHit) -> str:
+        """Reranker-optimised format. Cross-encoders work much better on natural,
+        sentence-like prompts than on `key: value` dumps. Also caps the chunk so
+        the most relevant text isn't drowned by metadata."""
+        f = hit.fields or {}
+
+        def _csv(val) -> str:
+            if isinstance(val, list):
+                return ", ".join(str(v) for v in val if v)
+            return str(val) if val else ""
+
+        title = f.get("grant_title") or "Untitled grant"
+        agency = f.get("funding_agency") or "an unspecified agency"
+
+        # Trim chunk to keep the cross-encoder focused. ~200 tokens ≈ 1100 chars.
+        chunk_text = (f.get("chunk_text") or "").strip()
+        if len(chunk_text) > 1100:
+            chunk_text = chunk_text[:1100].rsplit(" ", 1)[0] + "…"
+
+        fields_csv = _csv(f.get("field"))
+        applicants_csv = _csv(f.get("eligible_applicants"))
+        countries_csv = _csv(f.get("eligible_countries"))
+        deadline = f.get("application_deadline") or ""
+        funding_lo = f.get("funding_min") or f.get("funding_amount_min") or ""
+        funding_hi = f.get("funding_max") or f.get("funding_amount_max") or ""
+
+        sentences: List[str] = []
+        sentences.append(f'Grant offered: "{title}" from {agency}.')
+        if fields_csv:
+            sentences.append(f"Field: {fields_csv}.")
+        if chunk_text:
+            sentences.append(f"Description: {chunk_text}")
+        if applicants_csv:
+            sentences.append(f"Eligible applicants: {applicants_csv}.")
+        if countries_csv:
+            sentences.append(f"Eligible countries: {countries_csv}.")
+        if funding_lo or funding_hi:
+            sentences.append(f"Funding range: {funding_lo or 'unspecified'} to {funding_hi or 'unspecified'}.")
+        if deadline:
+            sentences.append(f"Deadline: {deadline}.")
+
+        return " ".join(sentences).strip()
 
     # ---------- Stage 5: 5-signal scoring ----------
 

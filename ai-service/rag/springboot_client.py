@@ -56,6 +56,19 @@ class SpringBootClient:
         data = self._get(f"/api/ai/users/{user_id}/grant-profile")
         return UserProfile(**data)
 
+    def sample_profiles(self, count: int = 30) -> List[UserProfile]:
+        """Pull a random sample of real researcher profiles from CoreBackend.
+        Used by the auto-eval harness to benchmark on real users.
+        Returns [] if the endpoint is unavailable (older backend) — callers
+        should fall back to synthesized profiles."""
+        try:
+            data = self._get("/api/ai/users/sample-profiles", params={"count": count})
+        except Exception:
+            return []
+        if not isinstance(data, list):
+            return []
+        return [UserProfile(**item) for item in data]
+
     def keyword_search(
         self,
         query: str,
