@@ -4,6 +4,7 @@
  */
 package org.pramod.corebackend.service;
 
+import tools.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -25,11 +27,13 @@ public class AiServiceClient {
 
     private final RestClient restClient;
     private final String apiKey;
+    private final ObjectMapper objectMapper;
 
     public AiServiceClient(@Value("${integration.ai.base-url:http://localhost:8000}") String baseUrl,
                            @Value("${integration.ai.api-key:}") String apiKey,
                            @Value("${integration.ai.connect-timeout-ms:3000}") int connectTimeoutMs,
-                           @Value("${integration.ai.read-timeout-ms:20000}") int readTimeoutMs) {
+                           @Value("${integration.ai.read-timeout-ms:20000}") int readTimeoutMs,
+                           ObjectMapper objectMapper) {
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(connectTimeoutMs);
         requestFactory.setReadTimeout(readTimeoutMs);
@@ -39,6 +43,7 @@ public class AiServiceClient {
                 .requestFactory(requestFactory)
                 .build();
         this.apiKey = apiKey;
+        this.objectMapper = objectMapper;
     }
 
     public Object recommend(Object requestBody) {
@@ -64,13 +69,21 @@ public class AiServiceClient {
                 request = request.header("X-API-KEY", apiKey);
             }
 
-            // Letting RestClient deserialize to Map (via Spring's pre-registered Jackson
-            // converter) means the controller returns a real JSON object to the frontend.
-            // Returning a raw String here would be re-encoded as a JSON string literal,
-            // and the frontend's `payload.results` access would fail every time.
-            Map<String, Object> body = request.body(requestBody)
+            // Read the body as a raw String first, then parse JSON ourselves. This bypasses
+            // Spring's content-type negotiation so a misreported / missing Content-Type from
+            // the upstream (e.g. application/octet-stream when the connection is partially
+            // read) does not cause a generic body-extraction failure. The ai-service is
+            // trusted to always return JSON; if it ever doesn't, we surface a 502.
+            String raw = request.body(requestBody)
                     .retrieve()
-                    .body(new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {});
+                    .body(String.class);
+
+            if (raw == null || raw.isBlank()) {
+                return Map.of("results", List.of(), "no_results", true);
+            }
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> body = objectMapper.readValue(raw, Map.class);
 
             if (body == null || body.isEmpty()) {
                 return Map.of("results", List.of(), "no_results", true);
@@ -82,6 +95,12 @@ public class AiServiceClient {
         } catch (ResourceAccessException ex) {
             throw new ResponseStatusException(GATEWAY_TIMEOUT,
                     "AI service timed out or is unreachable", ex);
+        } catch (RestClientException ex) {
+            throw new ResponseStatusException(BAD_GATEWAY,
+                    "AI service response could not be read: " + ex.getMessage(), ex);
+        } catch (tools.jackson.core.JacksonException ex) {
+            throw new ResponseStatusException(BAD_GATEWAY,
+                    "AI service returned non-JSON body: " + ex.getMessage(), ex);
         }
     }
 }

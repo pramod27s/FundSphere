@@ -43,11 +43,11 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleRuntimeException(RuntimeException ex) {
         Map<String, Object> error = Map.of(
                 "timestamp", LocalDateTime.now().toString(),
-                "status", HttpStatus.NOT_FOUND.value(),
-                "error", "Not Found",
-                "message", ex.getMessage()
+                "status", HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                "error", HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),
+                "message", ex.getMessage() == null ? "Unexpected runtime error" : ex.getMessage()
         );
-        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+        return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     @ExceptionHandler(Exception.class)
