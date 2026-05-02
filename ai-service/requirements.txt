@@ -13,3 +13,6 @@ pinecone[grpc]
 curl_cffi
 pydantic==2.10.6
 openai==1.65.2
+pdfplumber
+pypdf
+python-multipart

@@ -53,6 +53,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/grants").permitAll()
                         .requestMatchers("/api/grants/**").authenticated()
                         .requestMatchers("/api/researchers/**").authenticated()
+                        .requestMatchers("/api/proposal/**").authenticated()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

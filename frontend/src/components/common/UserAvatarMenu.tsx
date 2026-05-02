@@ -80,7 +80,7 @@ export default function UserAvatarMenu({ onNavigate }: UserAvatarMenuProps) {
               className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-brand-600 hover:bg-brand-50 hover:text-brand-900 transition-colors"
             >
               <FileText className="w-4 h-4 text-primary-500 shrink-0" />
-              Writing Proposal
+              Proposal Assistant
             </button>
           </motion.div>
         )}
