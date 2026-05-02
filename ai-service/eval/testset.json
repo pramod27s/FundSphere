@@ -1,0 +1,59 @@
+{
+  "_comment": "Hand-labelled eval set for the FundSphere recommender. Each entry pairs a (profile, userQuery) with the grantIds you (the human) consider correct top results. Replace the placeholder grant IDs with real ones from your Pinecone index. See README.md for instructions.",
+  "cases": [
+    {
+      "id": "gis-flood-mapping",
+      "userQuery": "GIS platform to map flood-prone areas in rural communities",
+      "userProfile": {
+        "country": "India",
+        "applicantType": "FACULTY",
+        "institutionType": "UNIVERSITY",
+        "careerStage": "EARLY_CAREER",
+        "department": "Geography",
+        "researchBio": "I work on geospatial information systems for disaster risk reduction.",
+        "researchInterests": ["GIS", "REMOTE_SENSING", "DISASTER_MANAGEMENT"],
+        "keywords": ["flood mapping", "GIS", "remote sensing", "rural"],
+        "preferredMinAmount": 50000,
+        "preferredMaxAmount": 250000,
+        "preferredCurrency": "USD"
+      },
+      "expectedGrantIds": []
+    },
+    {
+      "id": "ai-drug-discovery",
+      "userQuery": "machine learning for drug discovery and protein folding",
+      "userProfile": {
+        "country": "United States",
+        "applicantType": "FACULTY",
+        "institutionType": "UNIVERSITY",
+        "careerStage": "MID_CAREER",
+        "department": "Computational Biology",
+        "researchBio": "Computational biologist applying deep learning to small-molecule drug design.",
+        "researchInterests": ["MACHINE_LEARNING", "BIOINFORMATICS", "DRUG_DISCOVERY"],
+        "keywords": ["protein folding", "ML", "drug discovery", "AlphaFold"],
+        "preferredMinAmount": 250000,
+        "preferredMaxAmount": 1000000,
+        "preferredCurrency": "USD"
+      },
+      "expectedGrantIds": []
+    },
+    {
+      "id": "climate-rural-india",
+      "userQuery": "climate adaptation projects for smallholder farmers",
+      "userProfile": {
+        "country": "India",
+        "applicantType": "POSTDOC",
+        "institutionType": "UNIVERSITY",
+        "careerStage": "EARLY_CAREER",
+        "department": "Agricultural Sciences",
+        "researchBio": "Postdoc working on climate-resilient agriculture in South Asia.",
+        "researchInterests": ["CLIMATE_CHANGE", "AGRICULTURE", "SUSTAINABILITY"],
+        "keywords": ["smallholder", "climate", "adaptation", "rural"],
+        "preferredMinAmount": 25000,
+        "preferredMaxAmount": 150000,
+        "preferredCurrency": "USD"
+      },
+      "expectedGrantIds": []
+    }
+  ]
+}

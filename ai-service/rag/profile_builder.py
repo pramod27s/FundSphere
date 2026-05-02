@@ -36,3 +36,31 @@ def build_user_query_text(profile: UserProfile, user_query: str | None = None) -
 
     # Join all profile signals into one prompt-like retrieval query.
     return " ".join(parts).strip()
+
+
+def build_profile_only_text(profile: UserProfile) -> str:
+    """Profile-only retrieval string. Captures *who the user is* and what they
+    chronically work on — used as the 'fit' channel in the profile/query split."""
+    return build_user_query_text(profile, user_query=None)
+
+
+def build_query_only_text(profile: UserProfile, user_query: str | None) -> str:
+    """Query-focused retrieval string. Captures *what the user wants right now*.
+    A small slice of the profile is appended as light grounding (interests +
+    keywords only), so the query embedding still benefits from domain context
+    without being drowned out by a long bio."""
+    user_query = (user_query or "").strip()
+    if not user_query:
+        # Fall back to profile-only when there is no live intent to focus on.
+        return build_profile_only_text(profile)
+
+    grounding: list[str] = []
+    if profile.researchInterests:
+        cleaned = [_humanize(i) for i in profile.researchInterests]
+        grounding.append(f"Researcher interests: {', '.join(cleaned)}.")
+    if profile.keywords:
+        grounding.append(f"Keywords: {', '.join(profile.keywords)}.")
+
+    parts = [f"Researcher is looking for: {user_query}."]
+    parts.extend(grounding)
+    return " ".join(parts).strip()

@@ -63,5 +63,29 @@ class Settings:
     weight_freshness: float = float(os.getenv("WEIGHT_FRESHNESS", "0.10"))
     expired_penalty: float = float(os.getenv("EXPIRED_PENALTY", "0.30"))
 
+    # --- Accuracy improvements (opt-in, default OFF for safe rollout) ---
+    # Split profile vs. user-query into two embedded retrievals, then RRF-fuse.
+    # When ON, the user's intent is no longer drowned out by long bios.
+    enable_profile_query_split: bool = _as_bool(os.getenv("ENABLE_PROFILE_QUERY_SPLIT"), False)
+    # RRF weight multiplier for the user-query channel relative to the profile channel.
+    # 1.0 = balanced; >1.0 = let the live query dominate.
+    profile_query_split_intent_weight: float = float(os.getenv("PROFILE_QUERY_SPLIT_INTENT_WEIGHT", "2.0"))
+    # Use the structured / natural-language reranker prompt instead of the raw concat dump.
+    enable_structured_rerank_prompt: bool = _as_bool(os.getenv("ENABLE_STRUCTURED_RERANK_PROMPT"), False)
+
+    # --- HyDE (Hypothetical Document Embedding) ---
+    # When ON, an LLM writes a fake-but-realistic grant announcement matching
+    # the user's need. We embed THAT instead of (or in addition to) the raw
+    # query, closing the vocabulary gap between user phrasing and grant text.
+    enable_hyde: bool = _as_bool(os.getenv("ENABLE_HYDE"), False)
+    # Dedicated key so HyDE token usage can be tracked separately.
+    # Falls back to query-expansion key, then judge key, in hyde.py.
+    groq_api_key_hyde: str = os.getenv("GROQ_API_KEY_HYDE", "")
+    hyde_model: str = os.getenv("HYDE_MODEL", "openai/gpt-oss-120b")
+    hyde_temperature: float = float(os.getenv("HYDE_TEMPERATURE", "0.4"))
+    # If True, the HyDE doc REPLACES the raw query in the intent channel.
+    # If False, both are run in parallel and fused.
+    hyde_replace_query: bool = _as_bool(os.getenv("HYDE_REPLACE_QUERY"), False)
+
 
 settings = Settings()

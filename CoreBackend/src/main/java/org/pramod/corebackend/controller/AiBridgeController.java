@@ -23,7 +23,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -98,6 +100,30 @@ public class AiBridgeController {
         AiUserProfileResponse response = aiProfileMapper.mapToAiUserProfile(researcher);
 
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Returns up to {@code count} randomly-sampled researcher profiles in the
+     * AI-friendly format. Used by the offline eval harness to benchmark the
+     * recommender against real users without manual labelling.
+     *
+     * @param count Maximum number of profiles to return (default 30, capped at 200).
+     * @param apiKey Internal integration key.
+     * @return List of AI-formatted user profiles.
+     */
+    @GetMapping("/users/sample-profiles")
+    public ResponseEntity<List<AiUserProfileResponse>> sampleProfiles(
+            @RequestParam(defaultValue = "30") int count,
+            @RequestHeader(value = "X-API-KEY", required = false) String apiKey) {
+        verifyApiKey(apiKey);
+        int capped = Math.max(1, Math.min(count, 200));
+        List<ResearcherResponse> all = new ArrayList<>(researcherService.getAllResearchers());
+        Collections.shuffle(all);
+        List<AiUserProfileResponse> sample = all.stream()
+                .limit(capped)
+                .map(aiProfileMapper::mapToAiUserProfile)
+                .toList();
+        return ResponseEntity.ok(sample);
     }
 
     /**
