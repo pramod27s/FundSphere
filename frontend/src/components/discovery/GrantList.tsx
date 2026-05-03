@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ShieldAlert, ShieldCheck, Users, TrendingUp, Calendar, ChevronRight, Sparkles, Search, Bookmark, BookmarkCheck } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, Users, TrendingUp, Calendar, ChevronRight, Sparkles, Bookmark, BookmarkCheck } from 'lucide-react';
 import GrantDetailsModal from './GrantDetailsModal.tsx';
 import type { DiscoveryGrant } from '../../services/discoveryService';
 import { useSavedGrants } from '../../hooks/useSavedGrants';
@@ -60,17 +60,6 @@ export default function GrantList({ grants, isLoading, source }: GrantListProps)
 
   return (
     <>
-      {!isAi && grants.length > 0 && (
-        <div className="mb-4 flex items-start gap-3 rounded-xl border border-amber-200/70 bg-gradient-to-r from-amber-50 to-amber-50/40 px-4 py-3 text-sm text-amber-900 shadow-[0_1px_2px_rgba(180,83,9,0.04),0_4px_12px_rgba(180,83,9,0.06)]">
-          <Search className="w-4 h-4 mt-0.5 text-amber-600 shrink-0" />
-          <span>
-            <span className="font-semibold">Browse mode.</span>{' '}
-            These grants haven&apos;t been ranked against your profile yet. Describe your project above and click{' '}
-            <span className="font-semibold">AI Match</span> to score them by relevance, eligibility, and funding fit.
-          </span>
-        </div>
-      )}
-
       <div className="flex flex-col gap-4" aria-live="polite">
         {grants.map((grant) => (
           isAi
@@ -247,7 +236,7 @@ function renderBrowseCard(
   return (
     <article
       key={grant.id}
-      className="bg-white/90 backdrop-blur-sm border border-brand-200/60 rounded-xl p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:shadow-[0_4px_8px_rgba(15,23,42,0.04),0_12px_28px_rgba(15,23,42,0.06)] hover:border-brand-300 hover:-translate-y-0.5 focus-within:ring-2 focus-within:ring-brand-300 transition-all duration-200 group cursor-pointer"
+      className="bg-white/90 backdrop-blur-sm border border-brand-200/60 rounded-xl p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:shadow-[0_4px_8px_rgba(13,148,136,0.06),0_16px_40px_rgba(13,148,136,0.10)] hover:border-primary-300/70 hover:-translate-y-0.5 focus-within:ring-2 focus-within:ring-primary-400/40 transition-all duration-200 group cursor-pointer"
       role="button"
       tabIndex={0}
       onClick={() => openDetails(grant)}

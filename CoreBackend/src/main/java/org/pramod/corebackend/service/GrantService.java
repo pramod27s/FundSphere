@@ -221,7 +221,7 @@ public class GrantService {
         entity.setLastScrapedAt(LocalDateTime.now());
     }
 
-    private GrantResponse mapToResponse(Grant grant) {
+    public GrantResponse mapToResponse(Grant grant) {
         return GrantResponse.builder()
                 .id(grant.getId())
                 .grantTitle(grant.getGrantTitle())

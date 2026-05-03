@@ -41,22 +41,32 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntimeException(RuntimeException ex) {
+        System.err.println("[GlobalExceptionHandler] RuntimeException: " + ex.getClass().getName());
+        ex.printStackTrace();
+        String message = ex.getMessage() == null
+                ? ex.getClass().getSimpleName()
+                : ex.getClass().getSimpleName() + ": " + ex.getMessage();
         Map<String, Object> error = Map.of(
                 "timestamp", LocalDateTime.now().toString(),
                 "status", HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 "error", HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),
-                "message", ex.getMessage() == null ? "Unexpected runtime error" : ex.getMessage()
+                "message", message
         );
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
+        System.err.println("[GlobalExceptionHandler] Exception: " + ex.getClass().getName());
+        ex.printStackTrace();
+        String message = ex.getMessage() == null
+                ? ex.getClass().getSimpleName()
+                : ex.getClass().getSimpleName() + ": " + ex.getMessage();
         Map<String, Object> error = Map.of(
                 "timestamp", LocalDateTime.now().toString(),
                 "status", HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 "error", "Internal Server Error",
-                "message", ex.getMessage()
+                "message", message
         );
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
