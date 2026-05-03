@@ -130,3 +130,49 @@
 .animate-fade-in-up {
   animation: fade-in-up 0.4s ease-out both;
 }
+
+/* ──────────────────────────────────────────────
+   Print stylesheet (used by the Proposal Assistant
+   "Save as PDF" action — window.print() reuses the
+   on-screen layout but strips chrome and forces a
+   plain-paper background)
+─────────────────────────────────────────────── */
+@media print {
+  body {
+    background: white !important;
+    background-image: none !important;
+  }
+
+  /* Hide app chrome that isn't part of the report. */
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* Drop the sticky header, drag-drop zones, etc. that
+     don't make sense on paper. */
+  .sticky {
+    position: static !important;
+  }
+
+  /* Cards: keep borders, drop heavy shadows / backdrop blurs. */
+  .proposal-report * {
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .proposal-report {
+    color: #0f172a;
+  }
+
+  /* Don't split a section card across pages if avoidable. */
+  .proposal-report .rounded-2xl,
+  .proposal-report li {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Force accordion section bodies to render on print. */
+  .proposal-report .section-card-body {
+    display: block !important;
+  }
+}

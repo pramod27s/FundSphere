@@ -114,9 +114,32 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
     }
   };
 
+  // Initial load (and on profile change): fetch the unranked browse list.
   useEffect(() => {
     void loadGrants('', false);
-  }, [researcher, topK]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [researcher]);
+
+  // Show-dropdown change:
+  //  - Browse mode: no refetch needed — `displayedGrants` slices client-side.
+  //  - AI mode: re-rank with the new topK so the server returns the right
+  //    number of ranked candidates (and rankings can differ at higher N).
+  useEffect(() => {
+    if (dataSource === 'ai') {
+      void loadGrants(searchQuery, true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [topK]);
+
+  // Clamp topK to the AI cap (20) when transitioning into AI mode, so a
+  // user sitting at 50/100 in browse mode doesn't accidentally pay for a
+  // huge ranking call when they hit AI Match.
+  useEffect(() => {
+    if (dataSource === 'ai' && topK > 20) {
+      setTopK(20);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataSource]);
 
   const sortedGrants = useMemo(() => {
     const copy = [...grants];
@@ -133,6 +156,14 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
   }, [grants, sortBy]);
 
   const filteredGrants = useMemo(() => applyFilters(sortedGrants, filterState), [sortedGrants, filterState]);
+
+  // Cap visible results at topK regardless of mode — in AI mode the server
+  // already returns at most topK rows so this is a no-op; in browse mode it
+  // makes the "Top N" dropdown actually work.
+  const displayedGrants = useMemo(
+    () => filteredGrants.slice(0, topK),
+    [filteredGrants, topK],
+  );
 
   return (
     <div className="flex h-screen w-full overflow-hidden relative bg-gradient-to-br from-brand-50 via-white to-primary-50/30">
@@ -170,7 +201,6 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                   <span className="text-teal-600">Fund</span>
                   <span className="text-brand-900">Sphere</span>
                 </h1>
-                <span className="hidden sm:inline-block text-[10px] font-semibold uppercase tracking-widest text-primary-600 bg-primary-50 px-2 py-0.5 rounded-md border border-primary-100">Discovery</span>
               </div>
             </div>
 
@@ -232,22 +262,32 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                 <p className="text-xs md:text-sm text-brand-500 mt-1.5 tabular-nums">
                   {isLoading
                     ? 'Fetching opportunities...'
-                    : <>Showing <span className="font-semibold text-brand-700">{filteredGrants.length}</span>{filteredGrants.length !== sortedGrants.length ? <> of <span className="font-semibold text-brand-700">{sortedGrants.length}</span></> : null} opportunities {dataSource && <>· <span className="text-primary-600 font-medium">{dataSource === 'core' ? 'CoreBackend fallback' : 'AI ranking'}</span></>}</>}
+                    : <>Showing <span className="font-semibold text-brand-700">{displayedGrants.length}</span>{displayedGrants.length !== filteredGrants.length ? <> of <span className="font-semibold text-brand-700">{filteredGrants.length}</span></> : null} opportunities {dataSource === 'ai' && <>· <span className="text-primary-600 font-medium">AI ranking</span></>}</>}
                 </p>
               </div>
 
               <div className="flex items-center gap-3 flex-wrap">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-brand-500 uppercase tracking-wider hidden sm:inline-block">Top</span>
+                  <span className="text-xs font-semibold text-brand-500 uppercase tracking-wider hidden sm:inline-block">Show</span>
                   <CustomSelect
                     value={topK}
                     onChange={(val) => setTopK(Number(val))}
                     width="w-24"
-                    options={[
-                      { value: 6, label: '6' },
-                      { value: 12, label: '12' },
-                      { value: 20, label: '20' },
-                    ]}
+                    options={
+                      dataSource === 'ai'
+                        ? [
+                            { value: 6, label: '6' },
+                            { value: 12, label: '12' },
+                            { value: 20, label: '20' },
+                          ]
+                        : [
+                            { value: 6, label: '6' },
+                            { value: 12, label: '12' },
+                            { value: 20, label: '20' },
+                            { value: 50, label: '50' },
+                            { value: 100, label: '100' },
+                          ]
+                    }
                   />
                 </div>
 
@@ -283,7 +323,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
               </div>
             )}
 
-            <GrantList grants={filteredGrants} isLoading={isLoading} source={dataSource} />
+            <GrantList grants={displayedGrants} isLoading={isLoading} source={dataSource} />
 
             {!isLoading && filteredGrants.length === 0 && sortedGrants.length > 0 && (
               <div className="rounded-2xl border border-brand-200/60 bg-white/60 backdrop-blur-sm p-12 flex flex-col items-center justify-center text-center mt-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(15,23,42,0.04)]">

@@ -19,7 +19,7 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
       {/* Modal Content */}
       <div className="bg-white rounded-2xl shadow-[0_25px_70px_rgba(15,23,42,0.25)] w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col relative z-10 animate-in fade-in zoom-in-95 duration-200 ring-1 ring-brand-200/50">
         {/* Header with gradient + decorative accent */}
-        <div className="relative flex items-start justify-between p-6 border-b border-brand-100 bg-gradient-to-br from-primary-50/60 via-white to-brand-50/40 overflow-hidden">
+        <div className="relative flex items-start justify-between p-6 border-b border-brand-100 bg-gradient-to-br from-primary-50/60 via-white to-brand-50/40">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary-400 via-primary-500 to-primary-600" />
           <div className="pr-10 relative">
             <span className="text-[10px] font-bold px-2.5 py-1 rounded-md bg-white text-brand-700 uppercase tracking-widest mb-3 inline-block border border-brand-200 shadow-sm">
@@ -40,8 +40,9 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
 
         {/* Scrollable Body */}
         <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar bg-gradient-to-b from-white to-brand-50/30">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
-              {/* Match Score */}
+            <div className={`grid grid-cols-1 gap-3 mb-8 ${isAi ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
+              {/* Match Score — only shown in AI mode */}
+              {isAi && (
               <div className="relative p-4 bg-white rounded-xl border border-primary-100/80 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(13,148,136,0.06)] overflow-hidden">
                   <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-primary-400 to-primary-600" />
                   <div className="flex items-center gap-2 text-brand-500 mb-1.5">
@@ -52,6 +53,7 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
                       {grant.matchScore}%
                   </div>
               </div>
+              )}
               {/* Deadline */}
               <div className="relative p-4 bg-white rounded-xl border border-brand-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.04)] overflow-hidden">
                   <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-brand-300 to-brand-500" />

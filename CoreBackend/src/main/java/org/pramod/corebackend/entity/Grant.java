@@ -87,6 +87,26 @@ public class Grant {
 
     private LocalDateTime lastScrapedAt;
 
+    // --- Pinecone reindex tracking ---
+    // Set true on every save/update; flipped to false only after a confirmed
+    // successful index in the vector DB. The scheduled sweeper drains stragglers.
+    @Builder.Default
+    @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private boolean needsReindex = false;
+
+    @Builder.Default
+    @Column(nullable = false, columnDefinition = "INTEGER DEFAULT 0")
+    private int reindexAttempts = 0;
+
+    @Column(length = 1000)
+    private String lastIndexError;
+
+    // Earliest time the sweeper is allowed to retry this row (exponential backoff
+    // after each failure). Null means "retry immediately on next sweep".
+    private LocalDateTime nextRetryAt;
+
+    private LocalDateTime indexedAt;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();

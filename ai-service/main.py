@@ -9,6 +9,7 @@ import traceback
 
 from rag.config import settings
 from rag.routes import router as rag_router
+from proposal.routes import router as proposal_router
 
 app = FastAPI(title="FundSphere AI Service")
 
@@ -16,6 +17,7 @@ if settings.require_internal_api_key and not settings.internal_api_key:
     raise RuntimeError("INTERNAL_API_KEY or SPRING_BOOT_API_KEY must be set when REQUIRE_INTERNAL_API_KEY=true")
 
 app.include_router(rag_router)
+app.include_router(proposal_router)
 
 
 def _is_exempt_path(path: str) -> bool:
