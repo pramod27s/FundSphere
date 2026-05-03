@@ -7,10 +7,12 @@ package org.pramod.corebackend.service;
 import tools.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpEntity;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.ResourceAccessException;
@@ -71,22 +73,19 @@ public class AiServiceClient {
                                   MultipartFile guidelinesPdf,
                                   String grantTitle,
                                   String mode) {
-        MultipartBodyBuilder builder = new MultipartBodyBuilder();
+        // Build multipart body using the classic (non-reactive) FormHttpMessageConverter
+        // shape: MultiValueMap<String, Object>. Each PDF part is wrapped in an HttpEntity
+        // so we can attach its Content-Disposition filename and Content-Type.
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         try {
-            builder.part("proposal_pdf", asNamedResource(proposalPdf))
-                    .filename(safeFilename(proposalPdf, "proposal.pdf"))
-                    .contentType(MediaType.APPLICATION_PDF);
-            builder.part("guidelines_pdf", asNamedResource(guidelinesPdf))
-                    .filename(safeFilename(guidelinesPdf, "guidelines.pdf"))
-                    .contentType(MediaType.APPLICATION_PDF);
+            body.add("proposal_pdf", buildPdfPart(proposalPdf, "proposal.pdf"));
+            body.add("guidelines_pdf", buildPdfPart(guidelinesPdf, "guidelines.pdf"));
         } catch (IOException ex) {
             throw new ResponseStatusException(BAD_GATEWAY,
                     "Could not read uploaded PDF: " + ex.getMessage(), ex);
         }
-        builder.part("grant_title", grantTitle == null ? "" : grantTitle);
-        builder.part("mode", mode == null || mode.isBlank() ? "simple" : mode);
-
-        MultiValueMap<String, org.springframework.http.HttpEntity<?>> body = builder.build();
+        body.add("grant_title", grantTitle == null ? "" : grantTitle);
+        body.add("mode", mode == null || mode.isBlank() ? "simple" : mode);
 
         try {
             // NOTE: do NOT set Content-Type manually for multipart — Spring's
@@ -135,10 +134,17 @@ public class AiServiceClient {
         }
     }
 
-    private static ByteArrayResource asNamedResource(MultipartFile file) throws IOException {
-        final String filename = safeFilename(file, "upload.pdf");
+    private static HttpEntity<ByteArrayResource> buildPdfPart(MultipartFile file, String fallbackName)
+            throws IOException {
+        String name = file.getOriginalFilename();
+        final String filename = StringUtils.hasText(name) ? name : fallbackName;
         final byte[] bytes = file.getBytes();
-        return new ByteArrayResource(bytes) {
+        // The resource's getFilename() drives the Content-Disposition filename.
+        // The form-field NAME is taken from the MultiValueMap key, so we must
+        // NOT set Content-Disposition here — Spring's FormHttpMessageConverter
+        // would otherwise leave our wrong "name" in place and FastAPI would
+        // reject the parts as missing.
+        ByteArrayResource resource = new ByteArrayResource(bytes) {
             @Override
             public String getFilename() {
                 return filename;
@@ -149,14 +155,9 @@ public class AiServiceClient {
                 return bytes.length;
             }
         };
-    }
-
-    private static String safeFilename(MultipartFile file, String fallback) {
-        if (file == null) {
-            return fallback;
-        }
-        String name = file.getOriginalFilename();
-        return StringUtils.hasText(name) ? name : fallback;
+        HttpHeaders partHeaders = new HttpHeaders();
+        partHeaders.setContentType(MediaType.APPLICATION_PDF);
+        return new HttpEntity<>(resource, partHeaders);
     }
 
     private Object post(String path, Object requestBody) {
