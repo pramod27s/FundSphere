@@ -16,3 +16,4 @@ openai==1.65.2
 pdfplumber
 pypdf
 python-multipart
+json-repair

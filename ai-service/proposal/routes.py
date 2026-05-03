@@ -5,6 +5,7 @@ import logging
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
+from . import analysis_cache
 from .analyzer import analyze_deep, analyze_simple
 from .pdf_extractor import extract_text_from_pdf
 from .schemas import ProposalAnalysisResponse
@@ -28,12 +29,20 @@ async def analyze_proposal(
     guidelines_pdf: UploadFile = File(...),
     grant_title: str = Form(default=""),
     mode: str = Form(default="simple"),
+    force: bool = Form(default=False),
 ):
     """Analyze a grant proposal PDF against a guidelines PDF.
 
     `mode`:
       - "simple" — single LLM call, ~10s
       - "deep"   — section-by-section analysis, ~30-90s
+
+    `force`:
+      - false (default) — return a cached result if the exact same
+        (proposal, guidelines, title, mode) tuple was analyzed before.
+        Same input → same output, instantly, no tokens spent.
+      - true — bypass the cache and re-run analysis (cache is updated
+        with the new result).
     """
     mode_normalized = (mode or "simple").strip().lower()
     if mode_normalized not in {"simple", "deep"}:
@@ -44,6 +53,14 @@ async def analyze_proposal(
 
     proposal_bytes = await _read_pdf_upload(proposal_pdf, label="proposal")
     guidelines_bytes = await _read_pdf_upload(guidelines_pdf, label="guidelines")
+
+    cache_key = analysis_cache.make_key(
+        proposal_bytes, guidelines_bytes, grant_title, mode_normalized
+    )
+    if not force:
+        cached = analysis_cache.get(cache_key)
+        if cached is not None:
+            return cached
 
     proposal_text = extract_text_from_pdf(proposal_bytes)
     guidelines_text = extract_text_from_pdf(guidelines_bytes)
@@ -74,8 +91,25 @@ async def analyze_proposal(
             result = await analyze_simple(proposal_text, guidelines_text, grant_title.strip())
     except Exception as exc:
         logger.exception("Proposal analysis failed")
+        msg = str(exc).lower()
+        # Detect "all LLM providers exhausted" and surface a meaningful 503 so
+        # the frontend can show a useful message instead of "Bad Gateway".
+        if (
+            "gemini + groq exhausted" in msg
+            or "resource_exhausted" in msg
+            or ("429" in msg and "groq" in msg)
+        ):
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "AI providers are temporarily rate-limited "
+                    "(daily quota reached). Please try again in a few minutes "
+                    "or switch to Quick mode which uses fewer calls."
+                ),
+            )
         raise HTTPException(status_code=500, detail=f"Proposal analysis failed: {exc}")
 
+    analysis_cache.put(cache_key, result)
     return result
 
 
