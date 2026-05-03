@@ -4,7 +4,6 @@
  */
 package org.pramod.corebackend.service;
 
-import lombok.RequiredArgsConstructor;
 import org.pramod.corebackend.dto.GrantRequest;
 import org.pramod.corebackend.dto.GrantResponse;
 import org.pramod.corebackend.entity.Grant;
@@ -15,9 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import org.springframework.web.client.RestTemplate;
-import org.springframework.context.annotation.Lazy;
-import java.util.Map;
-import java.util.HashMap;
 import java.util.concurrent.CompletableFuture;
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -30,14 +26,15 @@ import java.util.stream.Collectors;
 public class GrantService {
 
     private final GrantRepository grantRepository;
-    private final AiServiceClient aiServiceClient;
+    private final GrantIndexingService grantIndexingService;
 
     public record SaveOrUpdateResult(GrantResponse response, boolean created) {}
     public record KeywordSearchHit(Long grantId, double keywordScore) {}
 
-    public GrantService(GrantRepository grantRepository, @Lazy AiServiceClient aiServiceClient) {
+    public GrantService(GrantRepository grantRepository,
+                        GrantIndexingService grantIndexingService) {
         this.grantRepository = grantRepository;
-        this.aiServiceClient = aiServiceClient;
+        this.grantIndexingService = grantIndexingService;
     }
 
     /**
@@ -56,8 +53,12 @@ public class GrantService {
         if (existingOpt.isEmpty()) {
             // New grant — save it
             Grant grant = mapToEntity(request);
+            grant.setNeedsReindex(true);
+            grant.setReindexAttempts(0);
+            grant.setNextRetryAt(null);
+            grant.setLastIndexError(null);
             Grant saved = grantRepository.save(grant);
-            triggerPineconeIndexing(saved.getId());
+            grantIndexingService.tryIndexAsync(saved.getId());
             return new SaveOrUpdateResult(mapToResponse(saved), true);
         }
 
@@ -73,8 +74,12 @@ public class GrantService {
         updateEntity(existing, request);
         existing.setChecksum(request.getChecksum());
         existing.setLastScrapedAt(LocalDateTime.now());
+        existing.setNeedsReindex(true);
+        existing.setReindexAttempts(0);
+        existing.setNextRetryAt(null);
+        existing.setLastIndexError(null);
         Grant updated = grantRepository.save(existing);
-        triggerPineconeIndexing(updated.getId());
+        grantIndexingService.tryIndexAsync(updated.getId());
         return new SaveOrUpdateResult(mapToResponse(updated), false);
     }
 
@@ -97,8 +102,12 @@ public class GrantService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Grant not found with id: " + id));
 
         updateEntity(existing, request);
+        existing.setNeedsReindex(true);
+        existing.setReindexAttempts(0);
+        existing.setNextRetryAt(null);
+        existing.setLastIndexError(null);
         Grant updated = grantRepository.save(existing);
-        triggerPineconeIndexing(updated.getId());
+        grantIndexingService.tryIndexAsync(updated.getId());
         return mapToResponse(updated);
     }
 
@@ -141,18 +150,6 @@ public class GrantService {
                 .sorted((a, b) -> Double.compare(b.keywordScore(), a.keywordScore()))
                 .limit(Math.max(topK, 1))
                 .toList();
-    }
-
-    private void triggerPineconeIndexing(Long grantId) {
-        CompletableFuture.runAsync(() -> {
-            try {
-                Map<String, Long> request = new HashMap<>();
-                request.put("grantId", grantId);
-                aiServiceClient.indexGrant(request);
-            } catch (Exception e) {
-                System.err.println("Failed to index grant in Pinecone for grantId: " + grantId + " - " + e.getMessage());
-            }
-        });
     }
 
     private void triggerPineconeDeletion(Long grantId) {
