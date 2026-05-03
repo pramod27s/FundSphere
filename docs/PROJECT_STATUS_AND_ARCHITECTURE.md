@@ -48,6 +48,14 @@ The application is broken down into three tightly coupled domains:
   - **`schemas.py`**: Pydantic models enforcing strict JSON validation at the API boundaries.
   - **`springboot_client.py`**: Utility for Python to ping Java endpoints (closing the microservice loop for fetching profiles and keyword search hits).
 
+- **Proposal Analysis & Intelligence (`/ai-service/proposal/`):**
+  - **`routes.py`**: Exposes endpoints for proposal analysis and processing.
+  - **`analyzer.py` & `section_splitter.py`**: Analyzes grant proposal drafts, breaking them down into logical sections and evaluating them against grant requirements.
+  - **`gemini_client.py`**: Integration with Google Gemini for advanced AI-driven feedback and rewriting suggestions.
+  - **`pdf_extractor.py`**: Parses PDF documents uploaded by users to extract raw text for analysis.
+  - **`analysis_cache.py`**: Caches proposal analysis results to improve responsiveness and reduce LLM costs.
+  - **`schemas.py`**: Data validation models for proposal analysis requests and responses.
+
 ### B. Core Backend (`/CoreBackend`) - Java + Spring Boot
 
 **Core Responsibility:** The system of record. Manages secure user sessions (JWT), stores authoritative transactional data in PostgreSQL, and acts as the broker between the Frontend and the Python AI service.
@@ -59,15 +67,21 @@ The application is broken down into three tightly coupled domains:
 - **Exceptions (`/exception/`):**
   - **`GlobalExceptionHandler.java`**: Catches unhandled exceptions and formats standard JSON error responses.
 
+- **Controllers (`/controller/`):**
+  - **`ProposalController.java` & `SavedGrantController.java`**: Expose REST endpoints for frontend to interact with proposal management and bookmarked grants.
+  - **`GrantController.java`, `AuthController.java`, `AiBridgeController.java`**: Handle core routing for grants, authentication, and forwarding requests to the Python AI service.
+
 - **Domain Logic & Services (`/service/`):**
-  - **`GrantService.java`**: The core data manager. Receives data from the Python scraper, computes checksums, saves to DB, and asynchronously triggers Pinecone indexing. Also implements Java-side keyword search.
+  - **`GrantService.java`**: The core data manager. Receives data from the Python scraper, computes checksums, saves to DB.
+  - **`GrantIndexingService.java` & `ReindexSweeper.java`**: Dedicated services to manage asynchronous vector indexing in Pinecone, ensuring data consistency and handling sweep operations for stale or missed indices.
+  - **`SavedGrantService.java`**: Manages the business logic for users bookmarking and tracking specific grants.
   - **`AiServiceClient.java`**: The internal REST client. Configured to inject the `X-API-KEY` into the HTTP Headers to bypass the Python FastAPI middleware lock.
   - **`AuthService.java`**: Handles business logic for user registration, login, and JWT generation/validation.
   - **`ResearcherService.java`**: Manages CRUD operations for the Researcher profile entities.
   - **`AiProfileMapper.java`**: Utility to map internal database Researcher entities to the structured payloads expected by the AI Service.
 
 - **Repositories (`/repository/`):**
-  - **`AppUserRepository.java`, `GrantRepository.java`, `RefreshTokenRepository.java`, `ResearcherRepository.java`**: Spring Data JPA interfaces interacting directly with PostgreSQL for standard CRUD and complex queries.
+  - **`AppUserRepository.java`, `GrantRepository.java`, `RefreshTokenRepository.java`, `ResearcherRepository.java`, `SavedGrantRepository.java`**: Spring Data JPA interfaces interacting directly with PostgreSQL for standard CRUD and complex queries.
 
 - **Security Configuration (`/security/`):**
   - **`SecurityConfig.java`**: Defines filter chains, CORS policies, and interceptors.
@@ -94,6 +108,7 @@ The application is broken down into three tightly coupled domains:
   - **`authService.ts`**: Maps login and registration logic to Java's auth controllers.
   - **`discoveryService.ts`**: Fetches recommended grants and details from the backend endpoints.
   - **`researcherService.ts`**: Handles fetching and updating user profiles.
+  - **`proposalService.ts` & `savedGrantsService.ts`**: New service modules for managing the writing proposal workflow and tracking bookmarked grants.
 
 - **Hooks (`/src/hooks/`):**
   - **`useSavedGrants.ts`**: Custom React hook managing the state of bookmarked grants locally and remotely.
@@ -104,8 +119,8 @@ The application is broken down into three tightly coupled domains:
   - **`discovery/`** (`GrantDiscovery.tsx`, `GrantList.tsx`, `FilterSidebar.tsx`, `GrantDetailsModal.tsx`): The main UI consuming the RAG pipeline. Renders the AI-evaluated grant cards and detailed modals.
   - **`onboarding/`** (`OnboardingWizard.tsx` and `steps/*`): Multi-step form to collect a new user's profile, interests, and preferences upon first login.
   - **`profile/`** (`ResearcherProfile.tsx`): User settings. Manages fields and custom Avatar uploading (reading files using `FileReader` and saving base64 strings to `localStorage`).
-  - **`saved-grants/`** (`SavedGrants.tsx`): Displays grants the user has bookmarked.
-  - **`proposal/`** (`WritingProposal.tsx`): UI placeholder/component for assisting users in drafting grant proposals.
+  - **`saved-grants/`** (`SavedGrants.tsx`): Displays grants the user has bookmarked for future application.
+  - **`proposal/`** (`WritingProposal.tsx`): Comprehensive AI-assisted writing environment. Allows users to draft proposals, upload PDFs, and receive real-time granular feedback and rewrites powered by Gemini.
 
 ---
 
@@ -116,10 +131,19 @@ The application is broken down into three tightly coupled domains:
 1. Python's `smart_scheduler` activates and spends Firecrawl credits to parse a funding website.
 2. It structures the data into a schema and POSTs it to `http://localhost:8080/api/grants`.
 3. Java's `GrantService` checks PostgreSQL. If the URL is new, it saves the entity.
-4. Java asynchronously explicitly invokes `AiServiceClient.indexGrant()`, passing the new ID and attaching the `X-API-KEY`.
+4. `GrantIndexingService` explicitly invokes `AiServiceClient.indexGrant()`, passing the new ID and attaching the `X-API-KEY`.
 5. Python's `/rag/index-grant` receives the signal, pulls the data, embeds it into numeric vectors, and UPSERTs it into Pinecone.
+6. The `ReindexSweeper` periodically checks for any grants that failed to index and retries them.
 
-### Flow 2: JWT Security Lifecycle
+### Flow 2: AI-Assisted Proposal Writing (Gemini Integration)
+
+1. A user navigating to `/proposal` drafts text or uploads a PDF.
+2. The React frontend sends the data to `/api/proposals/analyze` on the Core Backend.
+3. The Core Backend acts as a bridge, forwarding the request to the `ai-service` via `/proposal/analyze`.
+4. The `ai-service` parses the PDF (`pdf_extractor.py`), splits the content (`section_splitter.py`), and sends it to Google Gemini (`gemini_client.py`).
+5. Detailed feedback, missing sections, and rewritten suggestions are returned back through the Java gateway to the Frontend for rendering.
+
+### Flow 3: JWT Security Lifecycle
 
 1. User logs in manually via the React Frontend.
 2. Java verifies credentials against PostgreSQL and issues short-lived Access Tokens and long-lived Refresh Tokens.
