@@ -1,6 +1,15 @@
 import { apiFetch } from './apiClient';
 
 export type SectionStatus = 'strong' | 'weak' | 'missing';
+export type CitationVerdict = 'pass' | 'partial' | 'fail';
+export type Severity = 'critical' | 'important' | 'minor';
+
+export interface Citation {
+  requirement: string;
+  proposal_excerpt: string;
+  verdict: CitationVerdict;
+  severity: Severity;
+}
 
 export interface SectionFeedback {
   section_name: string;
@@ -8,6 +17,14 @@ export interface SectionFeedback {
   score: number;
   feedback: string;
   suggestions: string[];
+  citations?: Citation[];
+}
+
+export interface ConsistencyIssue {
+  issue: string;
+  sections_involved: string[];
+  severity: Severity;
+  suggestion: string;
 }
 
 export interface ProposalAnalysis {
@@ -16,6 +33,7 @@ export interface ProposalAnalysis {
   section_feedback: SectionFeedback[];
   missing_sections: string[];
   key_suggestions: string[];
+  consistency_issues?: ConsistencyIssue[];
   mode: 'simple' | 'deep';
   grant_title: string;
 }
@@ -98,6 +116,19 @@ export function formatAnalysisAsMarkdown(analysis: ProposalAnalysis): string {
     lines.push('');
   }
 
+  if (analysis.consistency_issues && analysis.consistency_issues.length > 0) {
+    lines.push('## Cross-section consistency issues', '');
+    analysis.consistency_issues.forEach((ci) => {
+      const sev = ci.severity.toUpperCase();
+      const sections = ci.sections_involved.length
+        ? ` _(${ci.sections_involved.join(', ')})_`
+        : '';
+      lines.push(`- **[${sev}]** ${ci.issue}${sections}`);
+      if (ci.suggestion) lines.push(`  - Fix: ${ci.suggestion}`);
+    });
+    lines.push('');
+  }
+
   if (analysis.section_feedback.length > 0) {
     lines.push('## Section-by-section feedback', '');
     analysis.section_feedback.forEach((fb) => {
@@ -107,6 +138,16 @@ export function formatAnalysisAsMarkdown(analysis: ProposalAnalysis): string {
       if (fb.suggestions.length > 0) {
         lines.push('**Suggested improvements:**');
         fb.suggestions.forEach((s) => lines.push(`- ${s}`));
+        lines.push('');
+      }
+      if (fb.citations && fb.citations.length > 0) {
+        lines.push('**Compliance checklist:**');
+        fb.citations.forEach((c) => {
+          const mark = c.verdict === 'pass' ? '[PASS]' : c.verdict === 'partial' ? '[PARTIAL]' : '[FAIL]';
+          const sev = c.severity.toUpperCase();
+          lines.push(`- ${mark} _(${sev})_ ${c.requirement}`);
+          if (c.proposal_excerpt) lines.push(`  - Evidence: ${c.proposal_excerpt}`);
+        });
         lines.push('');
       }
     });

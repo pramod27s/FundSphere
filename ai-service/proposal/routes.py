@@ -60,6 +60,15 @@ async def analyze_proposal(
     if not force:
         cached = analysis_cache.get(cache_key)
         if cached is not None:
+            # Sanitize legacy cached entries: pre-lock quick-mode responses
+            # may still contain citations/consistency_issues that we now
+            # restrict to deep mode. Strip them on read so old cache entries
+            # don't show the deep-only checklist in the quick-mode UI.
+            if mode_normalized == "simple":
+                cached.pop("consistency_issues", None)
+                for fb in cached.get("section_feedback", []) or []:
+                    if isinstance(fb, dict):
+                        fb["citations"] = []
             return cached
 
     proposal_text = extract_text_from_pdf(proposal_bytes)
@@ -110,9 +119,31 @@ async def analyze_proposal(
                     "which uses fewer calls."
                 ),
             )
+        # Malformed LLM output (non-object response, can't be recovered).
+        # Surface as 502 — it's not really our fault and it's not rate-limit.
+        if "non-object response" in msg or "llm returned" in msg:
+            raise HTTPException(
+                status_code=502,
+                detail=(
+                    "AI provider returned an unexpected response shape. "
+                    "This is usually transient — please retry. If it persists, "
+                    "switch to Quick mode."
+                ),
+            )
         raise HTTPException(status_code=500, detail=f"Proposal analysis failed: {exc}")
 
-    analysis_cache.put(cache_key, result)
+    # Don't cache deep-mode results that secretly fell back to quick — otherwise
+    # the next "deep" upload of the same PDFs returns a stale quick-shaped
+    # result and the user thinks deep mode is broken. Falling back is usually
+    # transient (splitter rate-limited), so a retry deserves a fresh attempt.
+    result_mode = (result.get("mode") if isinstance(result, dict) else None) or mode_normalized
+    if mode_normalized == "deep" and result_mode != "deep":
+        logger.info(
+            "Deep request fell back to %s; skipping cache so retry can re-attempt deep.",
+            result_mode,
+        )
+    else:
+        analysis_cache.put(cache_key, result)
     return result
 
 

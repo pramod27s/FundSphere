@@ -3,14 +3,16 @@ from typing import List, Literal
 
 
 class Citation(BaseModel):
-    """A specific rubric requirement tied to a proposal excerpt.
+    """A rubric requirement, the proposal excerpt addressing it, and a verdict.
 
-    Forces the model to ground its scoring in concrete text rather than
-    drifting into generic feedback. Empty citations on a non-trivial section
-    is a signal that the model didn't actually engage with the rubric.
+    This IS the compliance checklist: each citation reads as one row of
+    "requirement → evidence → pass/partial/fail". Severity is copied from
+    the rubric so the frontend can sort fail+critical to the top.
     """
     requirement: str
     proposal_excerpt: str = ""
+    verdict: Literal["pass", "partial", "fail"] = "partial"
+    severity: Literal["critical", "important", "minor"] = "important"
 
 
 class SectionFeedback(BaseModel):
@@ -22,11 +24,25 @@ class SectionFeedback(BaseModel):
     citations: List[Citation] = Field(default_factory=list)
 
 
+class ConsistencyIssue(BaseModel):
+    """A contradiction or misalignment that spans MULTIPLE sections.
+
+    The kind of thing one-shot quick-mode review tends to miss — e.g. budget
+    totals that don't match the methodology's resource needs, timelines that
+    don't fit the work plan, outcomes that don't follow from the objectives.
+    """
+    issue: str
+    sections_involved: List[str] = Field(default_factory=list)
+    severity: Literal["critical", "important", "minor"] = "important"
+    suggestion: str = ""
+
+
 class ProposalAnalysisResponse(BaseModel):
     overall_score: int = Field(ge=0, le=100)
     summary: str
     section_feedback: List[SectionFeedback] = Field(default_factory=list)
     missing_sections: List[str] = Field(default_factory=list)
     key_suggestions: List[str] = Field(default_factory=list)
+    consistency_issues: List[ConsistencyIssue] = Field(default_factory=list)
     mode: str = "simple"
     grant_title: str = ""

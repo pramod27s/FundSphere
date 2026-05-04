@@ -20,6 +20,7 @@ from collections import OrderedDict
 from typing import List, Optional
 
 from pydantic import BaseModel, Field
+from typing import Literal
 
 from .gemini_client import generate_json
 
@@ -53,6 +54,9 @@ class RubricRequirement(BaseModel):
     requirement: str
     # Lowercase canonical section names this requirement applies to, or ["all"].
     applies_to: List[str] = Field(default_factory=lambda: ["all"])
+    # Severity is classified once at extraction time so every downstream
+    # call (section eval, consistency check) can reuse it without re-judging.
+    severity: Literal["critical", "important", "minor"] = "important"
 
 
 class GrantRubric(BaseModel):
@@ -85,7 +89,10 @@ class GrantRubric(BaseModel):
         reqs = self.for_section(section_name)
         if not reqs:
             return "(no rubric requirements specifically target this section — evaluate against general grant-proposal best practices)"
-        return "\n".join(f"R{i}. {r.requirement}" for i, r in enumerate(reqs, 1))
+        return "\n".join(
+            f"R{i} [severity={r.severity}]: {r.requirement}"
+            for i, r in enumerate(reqs, 1)
+        )
 
     def render_full_brief(self) -> str:
         parts: List[str] = []
@@ -95,7 +102,7 @@ class GrantRubric(BaseModel):
             lines = ["REQUIREMENTS:"]
             for i, r in enumerate(self.requirements, 1):
                 applies = ", ".join(r.applies_to) or "all"
-                lines.append(f"R{i} [{applies}]: {r.requirement}")
+                lines.append(f"R{i} [{applies}, severity={r.severity}]: {r.requirement}")
             parts.append("\n".join(lines))
         if self.formatting_rules:
             parts.append("FORMATTING:\n- " + "\n- ".join(self.formatting_rules))
@@ -188,12 +195,22 @@ Return ONLY a valid JSON object with this exact schema:
   "requirements": [
     {{
       "requirement": "<one concise imperative sentence stating what the proposal must do>",
-      "applies_to": ["<canonical section name>", "..."]
+      "applies_to": ["<canonical section name>", "..."],
+      "severity": "critical" | "important" | "minor"
     }}
   ],
   "formatting_rules": ["<page limit, font, margins, file format, etc.>"],
   "eligibility": ["<who can apply, geographic/institutional/career-stage restrictions>"]
 }}
+
+Severity guide (be deliberate — this drives how reviewers will be told to
+prioritize fixes):
+- "critical": failing this typically causes outright rejection. Eligibility,
+  page/word limits, required-section presence, deadline, mandatory format.
+- "important": meaningful score loss but not auto-rejection. Methodology
+  rigor, specificity, evidence backing claims, budget justification depth.
+- "minor": polish issues. Citation style, formatting consistency, small
+  clarity improvements.
 
 Rules:
 - "applies_to" must contain ONLY canonical lowercase section names from the
@@ -289,7 +306,15 @@ def _clean_requirements(value) -> List[RubricRequirement]:
                     applies.append(match)
         if not applies:
             applies = ["all"]
-        out.append(RubricRequirement(requirement=text, applies_to=applies))
+        sev_raw = item.get("severity")
+        sev = sev_raw.strip().lower() if isinstance(sev_raw, str) else ""
+        if sev not in {"critical", "important", "minor"}:
+            sev = "important"
+        out.append(RubricRequirement(
+            requirement=text,
+            applies_to=applies,
+            severity=sev,  # type: ignore[arg-type]
+        ))
     return out
 
 
