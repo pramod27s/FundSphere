@@ -3,6 +3,9 @@ import requests
 import json
 import uuid
 import hashlib
+import logging
+import random
+import time
 from datetime import datetime
 import sys
 
@@ -14,13 +17,66 @@ load_dotenv()
 if sys.stdout.encoding.lower() != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
 
+logger = logging.getLogger(__name__)
+
 FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY", "")
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8080").rstrip("/")
+
+# Firecrawl can fail transiently (504, 502, connection reset, timeout). We retry
+# only on those — never on 4xx, which are deterministic client errors that won't
+# improve with another attempt.
+FIRECRAWL_MAX_RETRIES = int(os.getenv("FIRECRAWL_MAX_RETRIES", "3"))
+FIRECRAWL_BACKOFF_BASE = float(os.getenv("FIRECRAWL_BACKOFF_BASE", "1.0"))
+FIRECRAWL_TIMEOUT_SECONDS = int(os.getenv("FIRECRAWL_TIMEOUT_SECONDS", "60"))
 
 
 def _require_firecrawl_key() -> str:
     if not FIRECRAWL_API_KEY:
         raise RuntimeError("FIRECRAWL_API_KEY env var must be set to call Firecrawl")
     return FIRECRAWL_API_KEY
+
+
+def _fetch_html(url: str, timeout: int = 15) -> str | None:
+    """Lightweight HTML fetch for the local crawler.
+
+    Replaces the previous `from scrape.scrape import fetch, fetch_selenium`
+    dependency (that module didn't exist in the repo, so the crawler was
+    silently returning zero candidates). Uses curl_cffi for TLS impersonation
+    so Cloudflare-protected pages still work, with a plain-requests fallback
+    if curl_cffi is unavailable.
+
+    Returns the HTML body on success, None on any failure (caller decides).
+    """
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        ),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+    }
+
+    try:
+        from curl_cffi import requests as cffi_requests
+        response = cffi_requests.get(
+            url, headers=headers, impersonate="chrome120", timeout=timeout
+        )
+        if 200 <= response.status_code < 300 and response.text:
+            return response.text
+        logger.warning("curl_cffi fetch %s returned status %s", url, response.status_code)
+    except Exception as exc:
+        logger.warning("curl_cffi fetch failed for %s: %s", url, exc)
+
+    # Last-resort fallback: plain requests. Some hosts will refuse without TLS
+    # impersonation, but for hosts that don't care it's good enough.
+    try:
+        response = requests.get(url, headers=headers, timeout=timeout)
+        if response.status_code == 200 and response.text:
+            return response.text
+    except Exception as exc:
+        logger.warning("plain requests fetch failed for %s: %s", url, exc)
+
+    return None
 
 # The schema definition we want Firecrawl to strictly extract for us
 GRANT_SCHEMA = {
@@ -61,27 +117,94 @@ GRANT_SCHEMA = {
     "required": ["grantTitle", "fundingAgency", "description"]
 }
 
+def _firecrawl_post(url: str, payload: dict) -> requests.Response | None:
+    """POST to Firecrawl with bounded retries on transient failures.
+
+    Retries on:
+      - 5xx responses (server errors are usually transient)
+      - 429 rate-limit (with the Retry-After hint when provided)
+      - Connection errors / read timeouts
+    Does NOT retry on 4xx (other than 429) — those are deterministic and
+    won't improve with another attempt.
+
+    Returns the final Response (success or non-retryable failure) or None
+    if all retries were exhausted with transport errors.
+    """
+    headers = {
+        "Authorization": f"Bearer {_require_firecrawl_key()}",
+        "Content-Type": "application/json",
+    }
+
+    last_exc: Exception | None = None
+    for attempt in range(1, FIRECRAWL_MAX_RETRIES + 1):
+        try:
+            response = requests.post(
+                "https://api.firecrawl.dev/v1/scrape",
+                headers=headers,
+                json=payload,
+                timeout=FIRECRAWL_TIMEOUT_SECONDS,
+            )
+        except (requests.ConnectionError, requests.Timeout) as exc:
+            last_exc = exc
+            sleep_for = _backoff_seconds(attempt)
+            print(f"[!] Firecrawl transport error (attempt {attempt}/{FIRECRAWL_MAX_RETRIES}): {exc}. Retrying in {sleep_for:.1f}s...")
+            time.sleep(sleep_for)
+            continue
+
+        if response.status_code < 500 and response.status_code != 429:
+            # Either success or a deterministic 4xx — return as-is.
+            return response
+
+        # Retryable: 5xx or 429.
+        if response.status_code == 429:
+            retry_after = _parse_retry_after(response.headers.get("Retry-After"))
+            sleep_for = retry_after if retry_after is not None else _backoff_seconds(attempt)
+            print(f"[!] Firecrawl rate-limited (attempt {attempt}/{FIRECRAWL_MAX_RETRIES}). Sleeping {sleep_for:.1f}s...")
+        else:
+            sleep_for = _backoff_seconds(attempt)
+            print(f"[!] Firecrawl {response.status_code} (attempt {attempt}/{FIRECRAWL_MAX_RETRIES}). Retrying in {sleep_for:.1f}s...")
+
+        if attempt < FIRECRAWL_MAX_RETRIES:
+            time.sleep(sleep_for)
+        else:
+            return response
+
+    if last_exc is not None:
+        print(f"[-] Firecrawl unreachable after {FIRECRAWL_MAX_RETRIES} attempts: {last_exc}")
+    return None
+
+
+def _backoff_seconds(attempt: int) -> float:
+    """Exponential backoff with jitter: base * 2^(attempt-1) +/- 25%."""
+    base = FIRECRAWL_BACKOFF_BASE * (2 ** (attempt - 1))
+    return base * (0.75 + random.random() * 0.5)
+
+
+def _parse_retry_after(value: str | None) -> float | None:
+    if not value:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def scrape_grant(url):
     print(f"[*] Asking Firecrawl to extract schema from {url}...")
-    
-    # We use v1/scrape as it features extraction cleanly. v2/scrape has similar features but v1 is standard for LLM extraction
-    response = requests.post(
-        "https://api.firecrawl.dev/v1/scrape",
-        headers={
-            "Authorization": f"Bearer {_require_firecrawl_key()}",
-            "Content-Type": "application/json"
-        },
-        json={
-            "url": url,
-            "formats": ["extract"],
-            "extract": {
-                "schema": GRANT_SCHEMA,
-                "systemPrompt": "You are extracting data for a semantic RAG search engine. Richness and specificity of text matter far more than brevity. Strictly follow the schema. For 'description': Write a detailed 4-6 sentence summary. Explicitly forbidden to write 1-2 sentence summaries. For 'objectives': Copy or closely paraphrase the stated goals directly from the page. If a dedicated objectives section exists, use it fully. For 'eligibilityCriteria': Include ALL conditions found (degree, nationality, age, institution, prior work) — never truncate. For 'researchThemes': Extract specific sub-domains, not broad fields (e.g. prefer 'Quantum Error Correction' over 'Physics'). For 'fundingScope': List what is covered AND what is explicitly excluded if mentioned. If a value isn't found, use null or an empty array. Use null ONLY if genuinely not found. Never fabricate or hallucinate values. If the URL contains a #fragment, extract ONLY the grant matching that fragment. Ensure you find the exact funding amount; do not leave it null if the text mentions amounts like '10 Lakhs', '80 lakh', '50%', or 'Rs. 50,000'. Extensively search the text for any monetary limits, cost caps, overheads, or percentages awarded. In eligibleApplicants, explicitly include degrees (e.g. PhD, MS, B.Tech) and positions (e.g. Postdoc, Researcher) mentioned in the guidelines. Your output will be directly embedded into a vector database. Richer, more specific text produces better search matches. Do not summarize aggressively."
-            }
-        },
-        timeout=60
-    )
-    
+
+    payload = {
+        "url": url,
+        "formats": ["extract"],
+        "extract": {
+            "schema": GRANT_SCHEMA,
+            "systemPrompt": "You are extracting data for a semantic RAG search engine. Richness and specificity of text matter far more than brevity. Strictly follow the schema. For 'description': Write a detailed 4-6 sentence summary. Explicitly forbidden to write 1-2 sentence summaries. For 'objectives': Copy or closely paraphrase the stated goals directly from the page. If a dedicated objectives section exists, use it fully. For 'eligibilityCriteria': Include ALL conditions found (degree, nationality, age, institution, prior work) — never truncate. For 'researchThemes': Extract specific sub-domains, not broad fields (e.g. prefer 'Quantum Error Correction' over 'Physics'). For 'fundingScope': List what is covered AND what is explicitly excluded if mentioned. If a value isn't found, use null or an empty array. Use null ONLY if genuinely not found. Never fabricate or hallucinate values. If the URL contains a #fragment, extract ONLY the grant matching that fragment. Ensure you find the exact funding amount; do not leave it null if the text mentions amounts like '10 Lakhs', '80 lakh', '50%', or 'Rs. 50,000'. Extensively search the text for any monetary limits, cost caps, overheads, or percentages awarded. In eligibleApplicants, explicitly include degrees (e.g. PhD, MS, B.Tech) and positions (e.g. Postdoc, Researcher) mentioned in the guidelines. Your output will be directly embedded into a vector database. Richer, more specific text produces better search matches. Do not summarize aggressively."
+        }
+    }
+
+    response = _firecrawl_post(url, payload)
+    if response is None:
+        return None
+
     if response.status_code == 200:
         data = response.json()
         if data.get("success") and "extract" in data.get("data", {}):
@@ -121,41 +244,27 @@ def scrape_grant(url):
 def crawl_for_grants(start_url, max_required=8):
     print(f"[*] Crawling {start_url} to discover up to {max_required} valid grant pages...")
     try:
-        import sys
-        import os
         from urllib.parse import urljoin
         from bs4 import BeautifulSoup
-        sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-        from scrape.scrape import fetch, fetch_selenium
-        
+
         visited = set()
         # queue stores tuples of (url, depth)
         queue = [(start_url, 0)]
         valid_candidates = []
-        
+
         while queue and len(valid_candidates) < max_required * 2:
             current_url, depth = queue.pop(0)
             if current_url in visited:
                 continue
-                
+
             visited.add(current_url)
             print(f"    -> Fetching {current_url} (Depth: {depth})")
-            
-            res = fetch(current_url)
-            if not res or ("text" not in res and res.get("status_code") != 200):
-                print(f"       Failed with basic fetch, falling back to Selenium for {current_url}...")
-                try:
-                    html_content = fetch_selenium(current_url, driver_path="scrape/chromedriver", wait=2.0)
-                    page_html = html_content
-                except Exception as e:
-                    print(f"       Selenium fetch also failed: {str(e)}")
-                    continue
-            else:
-                page_html = res.get("text", "")
-                
+
+            page_html = _fetch_html(current_url)
             if not page_html:
+                print(f"       Could not fetch {current_url} (skipping).")
                 continue
-                
+
             soup = BeautifulSoup(page_html, "lxml")
             
             # Find specific grant links using the accordion/link structure found on serb.gov.in
@@ -215,9 +324,16 @@ def crawl_for_grants(start_url, max_required=8):
                 if a["href"].startswith("#"):
                     continue
                 
-                # Basic ignore list
-                ignore_list = [".pdf", "assets", "contact", "about", "privacy", "terms", "login", "register", "faq", "committee", "structure", "proposal"]
+                # Basic ignore list. NOTE: PDFs are *allowed* — Firecrawl's
+                # /v1/scrape endpoint parses PDFs server-side and runs the
+                # same schema extraction. Many .gov.in grants are PDF-only,
+                # so we keep them in the candidate set.
+                ignore_list = ["assets", "contact", "about", "privacy", "terms", "login", "register", "faq", "committee", "structure", "proposal"]
                 if any(bad in l.lower() for bad in ignore_list):
+                    continue
+                # Skip non-PDF binary asset extensions; PDFs are handled.
+                lower_l = l.lower()
+                if any(lower_l.endswith(ext) for ext in (".zip", ".doc", ".docx", ".xls", ".xlsx", ".jpg", ".jpeg", ".png", ".gif")):
                     continue
                 
                 try:

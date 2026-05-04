@@ -1,13 +1,17 @@
 import { useState } from 'react';
 import { ShieldAlert, ShieldCheck, Users, TrendingUp, Calendar, ChevronRight, Sparkles, Bookmark, BookmarkCheck } from 'lucide-react';
 import GrantDetailsModal from './GrantDetailsModal.tsx';
+import FreshnessBadge from '../common/FreshnessBadge';
+import ProviderUpdatedInfo from '../common/ProviderUpdatedInfo';
 import type { DiscoveryGrant } from '../../services/discoveryService';
+import type { ResearcherResponse } from '../../services/researcherService';
 import { useSavedGrants } from '../../hooks/useSavedGrants';
 
 interface GrantListProps {
   grants: DiscoveryGrant[];
   isLoading?: boolean;
   source?: 'ai' | 'core' | null;
+  profile?: ResearcherResponse | null;
 }
 
 export function GrantSkeleton() {
@@ -41,7 +45,7 @@ export function GrantSkeleton() {
   );
 }
 
-export default function GrantList({ grants, isLoading, source }: GrantListProps) {
+export default function GrantList({ grants, isLoading, source, profile }: GrantListProps) {
   const [selectedGrant, setSelectedGrant] = useState<DiscoveryGrant | null>(null);
   const { isSaved, toggleSave } = useSavedGrants();
   const isAi = source === 'ai';
@@ -75,6 +79,7 @@ export default function GrantList({ grants, isLoading, source }: GrantListProps)
           source={source}
           isSaved={isSaved(selectedGrant.id)}
           onToggleSave={toggleSave}
+          profile={profile}
         />
       )}
     </>
@@ -209,8 +214,9 @@ function renderAiCard(
         </div>
 
         <div className="flex items-center w-full sm:w-auto justify-between sm:justify-end gap-6 border-t sm:border-t-0 border-brand-50 pt-2 sm:pt-0 mt-2 sm:mt-0">
-          <div className="text-xs text-brand-400">
-            {grant.updatedAt && `Updated: ${new Date(grant.updatedAt).toLocaleDateString()}`}
+          <div className="flex flex-col items-start sm:items-end gap-0.5">
+            <FreshnessBadge timestamp={grant.lastVerifiedAt ?? grant.lastScrapedAt ?? grant.updatedAt} />
+            <ProviderUpdatedInfo timestamp={grant.lastScrapedAt ?? grant.updatedAt} />
           </div>
           <button
             type="button"
@@ -249,15 +255,14 @@ function renderBrowseCard(
       aria-label={`Open details for ${grant.title}`}
     >
       <div className="flex items-start justify-between gap-4 mb-3">
-        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-brand-100 text-brand-700 uppercase tracking-widest">
-          {grant.funder}
-        </span>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-brand-400 whitespace-nowrap">
-            {grant.updatedAt && `Updated ${new Date(grant.updatedAt).toLocaleDateString()}`}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-brand-100 text-brand-700 uppercase tracking-widest">
+            {grant.funder}
           </span>
-          <BookmarkButton grant={grant} isSaved={isSaved} toggleSave={toggleSave} size="sm" />
+          <FreshnessBadge timestamp={grant.lastVerifiedAt ?? grant.lastScrapedAt ?? grant.updatedAt} />
+          <ProviderUpdatedInfo timestamp={grant.lastScrapedAt ?? grant.updatedAt} />
         </div>
+        <BookmarkButton grant={grant} isSaved={isSaved} toggleSave={toggleSave} size="sm" />
       </div>
 
       <h3 className="text-lg font-semibold text-brand-900 group-hover:text-primary-700 transition-colors line-clamp-2 wrap-break-word mb-2 tracking-tight">

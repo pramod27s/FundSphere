@@ -49,10 +49,12 @@ public class GrantService {
     public SaveOrUpdateResult saveOrUpdateGrant(GrantRequest request) {
         String normalizedGrantUrl = normalizeGrantUrl(request.getGrantUrl());
         Optional<Grant> existingOpt = findExistingByGrantUrl(normalizedGrantUrl);
+        LocalDateTime now = LocalDateTime.now();
 
         if (existingOpt.isEmpty()) {
             // New grant — save it
             Grant grant = mapToEntity(request);
+            grant.setLastVerifiedAt(now);
             grant.setNeedsReindex(true);
             grant.setReindexAttempts(0);
             grant.setNextRetryAt(null);
@@ -66,14 +68,19 @@ public class GrantService {
 
         // Grant exists — compare checksum
         if (existing.getChecksum() != null && existing.getChecksum().equals(request.getChecksum())) {
-            // Checksum is the same — no update needed
-            return new SaveOrUpdateResult(mapToResponse(existing), false);
+            // Checksum is the same — content hasn't changed, but the scraper
+            // *did* visit, so bump lastVerifiedAt for the freshness badge.
+            // No reindex needed since content is unchanged.
+            existing.setLastVerifiedAt(now);
+            Grant verified = grantRepository.save(existing);
+            return new SaveOrUpdateResult(mapToResponse(verified), false);
         }
 
-        // Checksum is different — update the grant
+        // Checksum is different — provider updated content, full update path
         updateEntity(existing, request);
         existing.setChecksum(request.getChecksum());
-        existing.setLastScrapedAt(LocalDateTime.now());
+        existing.setLastScrapedAt(now);
+        existing.setLastVerifiedAt(now);
         existing.setNeedsReindex(true);
         existing.setReindexAttempts(0);
         existing.setNextRetryAt(null);
@@ -81,6 +88,29 @@ public class GrantService {
         Grant updated = grantRepository.save(existing);
         grantIndexingService.tryIndexAsync(updated.getId());
         return new SaveOrUpdateResult(mapToResponse(updated), false);
+    }
+
+    /**
+     * Lightweight scraper hook: records that we visited this URL and the page
+     * is still live + matches our last checksum. Bumps lastVerifiedAt only —
+     * does NOT touch lastScrapedAt (which means "provider last changed
+     * content"), does NOT trigger Pinecone reindex (data is unchanged).
+     *
+     * Returns true if the grant was found and updated, false if no grant
+     * matches the URL (in which case the scheduler should fall through to
+     * a full scrape).
+     */
+    @Transactional
+    public boolean markVerifiedByUrl(String grantUrl) {
+        String normalizedGrantUrl = normalizeGrantUrl(grantUrl);
+        Optional<Grant> grantOpt = findExistingByGrantUrl(normalizedGrantUrl);
+        if (grantOpt.isEmpty()) {
+            return false;
+        }
+        Grant grant = grantOpt.get();
+        grant.setLastVerifiedAt(LocalDateTime.now());
+        grantRepository.save(grant);
+        return true;
     }
 
     public List<GrantResponse> getAllGrants() {
@@ -246,6 +276,7 @@ public class GrantService {
                 .createdAt(grant.getCreatedAt())
                 .updatedAt(grant.getUpdatedAt())
                 .lastScrapedAt(grant.getLastScrapedAt())
+                .lastVerifiedAt(grant.getLastVerifiedAt())
                 .build();
     }
 

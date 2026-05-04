@@ -43,4 +43,5 @@ public class GrantResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime lastScrapedAt;
+    private LocalDateTime lastVerifiedAt;
 }

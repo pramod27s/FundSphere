@@ -1,12 +1,28 @@
 /**
  * Frontend client for the persisted saved-grants API on Spring Boot.
  *
- * The Spring Boot endpoint returns the canonical Grant DTO; we map it
- * to the same DiscoveryGrant shape the rest of the app already uses,
- * so swap-in is invisible to consumers.
+ * The list endpoint now returns rich entries (grant + workflow status +
+ * personal notes + savedAt/updatedAt). Status defaults to INTERESTED on
+ * first save and is mutated via PATCH /api/saved-grants/{grantId}.
+ *
+ * The lightweight /ids endpoint still returns a bare number[] so the
+ * discovery page can do "is this grant saved?" checks cheaply without
+ * fetching the full grant payload of every saved row.
  */
 import { apiFetch } from './apiClient';
 import type { DiscoveryGrant } from './discoveryService';
+
+export type SavedGrantStatus = 'INTERESTED' | 'APPLYING' | 'SUBMITTED' | 'REJECTED';
+
+export interface SavedGrantEntry {
+  /** SavedGrant row id (NOT the grant id — that's nested under .grant.id). */
+  id: number;
+  grant: DiscoveryGrant;
+  status: SavedGrantStatus;
+  notes: string | null;
+  savedAt: string;
+  updatedAt: string;
+}
 
 interface CoreGrantResponse {
   id: number;
@@ -29,15 +45,25 @@ interface CoreGrantResponse {
   applicationLink?: string;
   updatedAt?: string;
   lastScrapedAt?: string;
+  lastVerifiedAt?: string;
 }
 
-export async function fetchSavedGrants(): Promise<DiscoveryGrant[]> {
+interface SavedGrantApiResponse {
+  id: number;
+  grant: CoreGrantResponse;
+  status: SavedGrantStatus;
+  notes: string | null;
+  savedAt: string;
+  updatedAt: string;
+}
+
+export async function fetchSavedGrants(): Promise<SavedGrantEntry[]> {
   const response = await apiFetch('/api/saved-grants');
   if (!response.ok) {
     throw new Error(`Failed to load saved grants: ${response.status}`);
   }
-  const grants: CoreGrantResponse[] = await response.json();
-  return grants.map(mapCoreGrantToDiscoveryGrant);
+  const rows: SavedGrantApiResponse[] = await response.json();
+  return rows.map(mapRow);
 }
 
 export async function fetchSavedGrantIds(): Promise<number[]> {
@@ -48,11 +74,13 @@ export async function fetchSavedGrantIds(): Promise<number[]> {
   return (await response.json()) as number[];
 }
 
-export async function saveGrantOnServer(grantId: number): Promise<void> {
+export async function saveGrantOnServer(grantId: number): Promise<SavedGrantEntry> {
   const response = await apiFetch(`/api/saved-grants/${grantId}`, { method: 'POST' });
   if (!response.ok) {
     throw new Error(`Failed to save grant: ${response.status}`);
   }
+  const row: SavedGrantApiResponse = await response.json();
+  return mapRow(row);
 }
 
 export async function unsaveGrantOnServer(grantId: number): Promise<void> {
@@ -62,9 +90,43 @@ export async function unsaveGrantOnServer(grantId: number): Promise<void> {
   }
 }
 
+/**
+ * Update workflow status and/or notes on an existing saved grant.
+ *
+ * - status omitted => server leaves it unchanged
+ * - notes omitted  => server leaves it unchanged
+ * - notes === ""   => server clears notes
+ */
+export async function updateSavedGrantOnServer(
+  grantId: number,
+  changes: { status?: SavedGrantStatus; notes?: string },
+): Promise<SavedGrantEntry> {
+  const response = await apiFetch(`/api/saved-grants/${grantId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(changes),
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to update saved grant: ${response.status}`);
+  }
+  const row: SavedGrantApiResponse = await response.json();
+  return mapRow(row);
+}
+
 // =============================================================================
-// Mapping helpers (kept here to avoid a circular import with discoveryService)
+// Mapping helpers
 // =============================================================================
+
+function mapRow(row: SavedGrantApiResponse): SavedGrantEntry {
+  return {
+    id: row.id,
+    grant: mapCoreGrantToDiscoveryGrant(row.grant),
+    status: row.status,
+    notes: row.notes,
+    savedAt: row.savedAt,
+    updatedAt: row.updatedAt,
+  };
+}
 
 function mapCoreGrantToDiscoveryGrant(grant: CoreGrantResponse): DiscoveryGrant {
   return {
@@ -88,6 +150,7 @@ function mapCoreGrantToDiscoveryGrant(grant: CoreGrantResponse): DiscoveryGrant 
     grantUrl: grant.grantUrl || '',
     updatedAt: grant.updatedAt,
     lastScrapedAt: grant.lastScrapedAt,
+    lastVerifiedAt: grant.lastVerifiedAt,
     fundingAmountMinRaw: grant.fundingAmountMin,
     fundingAmountMaxRaw: grant.fundingAmountMax,
     fundingCurrencyRaw: grant.fundingCurrency,

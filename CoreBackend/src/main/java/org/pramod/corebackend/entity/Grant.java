@@ -85,7 +85,23 @@ public class Grant {
 
     private LocalDateTime updatedAt;
 
+    /**
+     * Timestamp of the last time the *provider* updated this grant's content,
+     * detected via Firecrawl re-extraction. Frontend renders this as
+     * "Provider updated X ago" — answers "when did the source page last change?"
+     */
     private LocalDateTime lastScrapedAt;
+
+    /**
+     * Timestamp of the last time *our scraper* visited this URL and confirmed
+     * it's still live (whether content changed or not). Bumped on every hash
+     * check, not just on real content changes. Frontend renders this as
+     * "Verified X ago" — answers "is this data fresh?"
+     *
+     * Nullable so existing rows can be migrated without a hard default. When
+     * null, the frontend falls back to lastScrapedAt for the freshness badge.
+     */
+    private LocalDateTime lastVerifiedAt;
 
     // --- Pinecone reindex tracking ---
     // Set true on every save/update; flipped to false only after a confirmed
@@ -112,6 +128,7 @@ public class Grant {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
         this.lastScrapedAt = LocalDateTime.now();
+        this.lastVerifiedAt = LocalDateTime.now();
     }
 
     @PreUpdate

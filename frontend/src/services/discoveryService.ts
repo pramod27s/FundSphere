@@ -20,7 +20,10 @@ export interface DiscoveryGrant {
   applicationLink: string;
   grantUrl: string;
   updatedAt?: string;
+  /** When the provider last changed the source page (Firecrawl re-extracted). */
   lastScrapedAt?: string;
+  /** When our scraper last visited this URL — bumped on every hash check. */
+  lastVerifiedAt?: string;
   fundingAmountMinRaw?: number;
   fundingAmountMaxRaw?: number;
   fundingCurrencyRaw?: string;
@@ -76,6 +79,7 @@ interface CoreGrantResponse {
   applicationLink?: string;
   updatedAt?: string;
   lastScrapedAt?: string;
+  lastVerifiedAt?: string;
 }
 
 export async function getDiscoveryGrants(request: RecommendationRequest): Promise<DiscoveryResult> {
@@ -166,6 +170,7 @@ function mapRecommendationToGrant(item: RecommendationItem): DiscoveryGrant {
     grantUrl: asString(fields.grant_url) ?? '',
     updatedAt: asString(fields.updated_at),
     lastScrapedAt: asString(fields.last_scraped_at),
+    lastVerifiedAt: asString(fields.last_verified_at),
     fundingAmountMinRaw: asNumber(fields.funding_amount_min),
     fundingAmountMaxRaw: asNumber(fields.funding_amount_max),
     fundingCurrencyRaw: asString(fields.funding_currency),
@@ -195,6 +200,7 @@ function mapCoreGrantToDiscoveryGrant(grant: CoreGrantResponse): DiscoveryGrant 
     grantUrl: grant.grantUrl || '',
     updatedAt: grant.updatedAt,
     lastScrapedAt: grant.lastScrapedAt,
+    lastVerifiedAt: grant.lastVerifiedAt,
     fundingAmountMinRaw: grant.fundingAmountMin,
     fundingAmountMaxRaw: grant.fundingAmountMax,
     fundingCurrencyRaw: grant.fundingCurrency,

@@ -51,6 +51,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/ai/rag/index-grant", "/api/ai/rag/index-grants").permitAll()
                         .requestMatchers("/api/ai/rag/recommend").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/grants").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/grants/verify").permitAll()
                         .requestMatchers("/api/grants/**").authenticated()
                         .requestMatchers("/api/researchers/**").authenticated()
                         .requestMatchers("/api/proposal/**").authenticated()
@@ -83,7 +84,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of(frontendOrigin));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-API-KEY"));
         configuration.setExposedHeaders(List.of("Authorization"));
         configuration.setAllowCredentials(false);
