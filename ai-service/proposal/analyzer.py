@@ -17,7 +17,7 @@ from pydantic import ValidationError
 
 from .gemini_client import generate_json
 from .rubric import GrantRubric, get_rubric, match_section_to_canonical
-from .schemas import Citation, ProposalAnalysisResponse, SectionFeedback
+from .schemas import Citation, ConsistencyIssue, ProposalAnalysisResponse, SectionFeedback
 from .section_splitter import split_into_sections
 
 logger = logging.getLogger("proposal.analyzer")
@@ -56,13 +56,7 @@ no commentary):
       "status": "strong" | "weak" | "missing",
       "score": <integer 0-100>,
       "feedback": "<2-3 specific sentences citing actual rubric/guideline requirements>",
-      "suggestions": ["<actionable improvement>", "..."],
-      "citations": [
-        {{
-          "requirement": "<the rubric requirement being addressed, copied or closely paraphrased>",
-          "proposal_excerpt": "<short quote/paraphrase from the proposal showing whether the requirement is met, max 200 chars>"
-        }}
-      ]
+      "suggestions": ["<actionable improvement>", "..."]
     }}
   ],
   "missing_sections": ["<section name required by the rubric/guidelines but absent from the proposal>"],
@@ -79,9 +73,7 @@ include those too. Score and give suggestions for EVERY section listed —
 do not omit any.
 
 Rules:
-- Each non-missing section MUST include at least 2 actionable suggestions
-  AND at least one citation. A citation with an empty `proposal_excerpt`
-  is invalid — write "(not addressed)" if the requirement is uncovered.
+- Each non-missing section MUST include at least 2 actionable suggestions.
 - Be specific — reference exact rubric requirements that the proposal fails
   to satisfy. Do not include generic advice.
 - Status "missing" is only valid for absent sections; never for ones that exist.
@@ -163,6 +155,12 @@ async def analyze_simple(
     raw = await generate_json(prompt, temperature=0.2, max_output_tokens=8192, retries=1)
 
     response = _coerce_to_response(raw, mode="simple", grant_title=grant_title)
+    # Quick mode is locked to the basic shape — citations and consistency_issues
+    # are deep-mode-only differentiators. Defensive clear in case the model
+    # ignored the prompt and emitted them anyway.
+    response.consistency_issues = []
+    for fb in response.section_feedback:
+        fb.citations = []
     return response.model_dump()
 
 
@@ -193,19 +191,29 @@ Return ONLY one valid JSON object:
   "citations": [
     {{
       "requirement": "<the rubric requirement being addressed (copy or close paraphrase)>",
-      "proposal_excerpt": "<short quote or paraphrase from this section showing whether the requirement is met, max 200 chars>"
+      "proposal_excerpt": "<short quote or paraphrase from this section showing whether the requirement is met, max 200 chars>",
+      "verdict": "pass" | "partial" | "fail",
+      "severity": "critical" | "important" | "minor"
     }}
   ]
 }}
 
-Rules:
-- Cite at least one requirement per applicable rubric item, met or unmet.
-  Empty citations is invalid.
-- A citation's `proposal_excerpt` must be non-empty. If the section omits a
-  requirement entirely, write "(not addressed)" as the excerpt.
+Citations form the per-section compliance checklist. Rules:
+- Emit ONE citation per requirement listed above (every R# gets a row).
+- `verdict`: "pass" if the section fully addresses R#, "partial" if attempted
+  but incomplete or weak, "fail" if absent or wrong.
+- `severity`: COPY the [severity=...] tag from the corresponding R# above.
+  Do not re-classify severity.
+- `proposal_excerpt` must be non-empty. Write "(not addressed)" if R# is
+  uncovered. Otherwise quote or paraphrase the relevant text (≤200 chars).
+- If no rubric requirements were listed, evaluate against best practices
+  and emit at least 2 citations with verdict + severity.
+
+Other rules:
 - Status "missing" is not allowed — the section exists, you're reviewing it.
-- Score reflects coverage: meets nearly all = 85+, meets most = 65-84,
-  meets some = 40-64, meets few = under 40.
+- Score reflects coverage AND severity: a single critical fail should pull
+  a section into the "weak" range. All passes on important/critical = 85+,
+  most pass = 65-84, mixed = 40-64, mostly fail = under 40.
 """
 
 
@@ -260,6 +268,54 @@ Do not list "nice to have" extras. If nothing is missing, return an empty list.
 """
 
 
+CONSISTENCY_PROMPT = """You are checking a grant proposal for cross-section
+consistency — the kind of contradictions a per-section review tends to miss
+because each call only sees one section at a time.
+
+## RUBRIC (for context on what alignment looks like)
+{rubric_brief}
+
+## SECTIONS (excerpts — first ~1000 chars of each)
+{sections_brief}
+
+{grant_context}
+
+Identify SPECIFIC misalignments BETWEEN sections. Examples of what to look for:
+- Budget total or breakdown doesn't match resources implied by methodology
+- Timeline ends before deliverables in work plan would be completed
+- Expected outcomes don't logically follow from stated methodology/objectives
+- Team composition lacks expertise the methodology requires
+- Eligibility/career-stage claims contradicted by team or institution profile
+- Objectives don't align with research questions or problem statement
+- References cited in methodology absent from references section
+
+Do NOT list issues that exist within a single section (those are covered by
+the per-section review). Focus only on contradictions ACROSS sections.
+
+Return ONLY a JSON object:
+{{
+  "consistency_issues": [
+    {{
+      "issue": "<one sentence describing the contradiction>",
+      "sections_involved": ["<section name>", "<section name>"],
+      "severity": "critical" | "important" | "minor",
+      "suggestion": "<concrete fix the author can apply>"
+    }}
+  ]
+}}
+
+Severity guide:
+- "critical": will likely cause rejection (e.g. budget exceeds limit, scope
+  doesn't fit timeline at all, missing required expertise on team)
+- "important": meaningful score loss (e.g. outcomes don't quite follow from
+  methodology, budget breakdown vague)
+- "minor": polish-level inconsistencies
+
+Be conservative. If sections are coherent, return an empty list. Do NOT
+invent issues to fill the response.
+"""
+
+
 SUMMARY_PROMPT = """You are summarizing a multi-section grant-proposal review.
 
 Section results (JSON):
@@ -293,7 +349,19 @@ async def analyze_deep(
 
     # Step 2: split the proposal into named sections.
     sections = await split_into_sections(proposal_text)
-    if not sections:
+    # The splitter returns {"Full Proposal": <entire text>} as its sentinel
+    # failure fallback. Treat that as "splitter unavailable" — running deep
+    # mode on one giant chunk produces fake-deep output that looks worse than
+    # a clean quick-mode result, so degrade gracefully instead.
+    splitter_failed = (
+        not sections
+        or list(sections.keys()) == ["Full Proposal"]
+    )
+    if splitter_failed:
+        logger.warning(
+            "Section splitter unavailable (no usable sections returned); "
+            "falling back to quick analysis."
+        )
         return await analyze_simple(proposal_text, guidelines_text, grant_title)
 
     # Step 3: evaluate each section in parallel. With a rubric we send only
@@ -350,10 +418,21 @@ async def analyze_deep(
     scores = [fb.score for fb in section_feedback] or [0]
     overall_score = max(0, min(100, sum(scores) // len(scores)))
 
-    # Step 6: ask the LLM for a holistic summary + top suggestions.
-    summary, key_suggestions = await _summarize(
-        section_feedback, missing_sections, overall_score
+    # Step 6: in parallel — summary call AND cross-section consistency check.
+    # Both depend on section_feedback being done, neither depends on each
+    # other, so we kick them off together to keep wall-clock time down.
+    summary_task = _summarize(section_feedback, missing_sections, overall_score)
+    consistency_task = _check_consistency(sections, rubric, grant_context)
+    (summary, key_suggestions), consistency_issues = await asyncio.gather(
+        summary_task, consistency_task
     )
+
+    # Critical-severity consistency issues should bubble up into key_suggestions
+    # so the top-of-page advice doesn't ignore cross-cutting problems.
+    if consistency_issues:
+        key_suggestions = _merge_critical_issues_into_suggestions(
+            key_suggestions, consistency_issues
+        )
 
     return ProposalAnalysisResponse(
         overall_score=overall_score,
@@ -361,6 +440,7 @@ async def analyze_deep(
         section_feedback=section_feedback,
         missing_sections=missing_sections,
         key_suggestions=key_suggestions,
+        consistency_issues=consistency_issues,
         mode="deep",
         grant_title=grant_title,
     ).model_dump()
@@ -477,6 +557,90 @@ async def _summarize(
     return summary, suggestions[:5]
 
 
+async def _check_consistency(
+    sections: Dict[str, str],
+    rubric: Optional[GrantRubric],
+    grant_context: str,
+) -> List[ConsistencyIssue]:
+    """Cross-section consistency pass — one LLM call, deep-mode only.
+
+    We feed truncated section excerpts (not the full text) so the prompt
+    stays small. The rubric, when available, sets the bar for what
+    "consistent" looks like at the proposal level (eligibility, budget caps,
+    expected outcomes alignment, etc.).
+    """
+    if not sections or len(sections) < 2:
+        return []  # need at least two sections for cross-section findings
+
+    # First ~1000 chars per section is plenty to spot most contradictions.
+    # Total ~8 sections * 1000 chars = ~2000 tokens — well within budget.
+    parts: List[str] = []
+    for name, body in sections.items():
+        body = (body or "").strip()
+        if not body:
+            continue
+        excerpt = body[:1000]
+        if len(body) > 1000:
+            excerpt += " ..."
+        parts.append(f"### {name}\n{excerpt}")
+    sections_brief = "\n\n".join(parts)
+    if not sections_brief:
+        return []
+
+    rubric_brief = (
+        rubric.render_full_brief()
+        if rubric is not None
+        else "(no structured rubric — evaluate against general grant-proposal coherence)"
+    )
+
+    prompt = CONSISTENCY_PROMPT.format(
+        rubric_brief=rubric_brief,
+        sections_brief=sections_brief,
+        grant_context=grant_context,
+    )
+
+    try:
+        raw = await generate_json(prompt, temperature=0.2, max_output_tokens=1536, retries=1)
+    except Exception as exc:
+        logger.warning("Consistency check failed; returning empty: %s", exc)
+        return []
+
+    if isinstance(raw, list):
+        items = raw
+    elif isinstance(raw, dict):
+        items = raw.get("consistency_issues") or raw.get("issues") or []
+    else:
+        return []
+
+    return _coerce_consistency_issues(items)
+
+
+def _merge_critical_issues_into_suggestions(
+    key_suggestions: List[str],
+    issues: List[ConsistencyIssue],
+) -> List[str]:
+    """Promote critical-severity consistency issues into key_suggestions.
+
+    Without this, top-level advice ignores cross-cutting problems — a user
+    glancing only at the summary could miss the fact that their budget
+    contradicts their methodology.
+    """
+    critical_fixes = [
+        i.suggestion or i.issue
+        for i in issues
+        if i.severity == "critical" and (i.suggestion or i.issue)
+    ]
+    if not critical_fixes:
+        return key_suggestions
+    seen = set(s.strip().lower() for s in key_suggestions)
+    merged = list(key_suggestions)
+    for fix in critical_fixes:
+        if fix.strip().lower() not in seen:
+            merged.insert(0, fix)
+            seen.add(fix.strip().lower())
+    return merged[:5]
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -485,8 +649,15 @@ async def _summarize(
 def _coerce_to_response(
     raw: Any, *, mode: str, grant_title: str
 ) -> ProposalAnalysisResponse:
+    # Defensive: the LLM occasionally drifts from "return one JSON object"
+    # to "return a list" (we saw this happen on the section splitter too).
+    # Try to recover common shapes before giving up — a hard ValueError here
+    # would 500 the whole request and cascade into a Bad Gateway.
+    raw = _normalize_analysis_payload(raw)
     if not isinstance(raw, dict):
-        raise ValueError("Analyzer LLM returned a non-object response")
+        raise ValueError(
+            f"Analyzer LLM returned a non-object response (got {type(raw).__name__})"
+        )
 
     section_feedback_in = raw.get("section_feedback") or []
     section_feedback: List[SectionFeedback] = []
@@ -534,12 +705,19 @@ def _coerce_to_response(
     if not key_suggestions:
         key_suggestions = _fallback_suggestions(section_feedback)
 
+    consistency_issues = _coerce_consistency_issues(raw.get("consistency_issues"))
+    if consistency_issues:
+        key_suggestions = _merge_critical_issues_into_suggestions(
+            key_suggestions, consistency_issues
+        )
+
     return ProposalAnalysisResponse(
         overall_score=overall_score,
         summary=summary,
         section_feedback=section_feedback,
         missing_sections=missing_sections,
         key_suggestions=key_suggestions[:5],
+        consistency_issues=consistency_issues,
         mode=mode,
         grant_title=grant_title,
     )
@@ -568,6 +746,52 @@ def _clamp_int(value: Any, *, default: int) -> int:
     return max(0, min(100, n))
 
 
+_VALID_VERDICTS = {"pass", "partial", "fail"}
+_VALID_SEVERITIES = {"critical", "important", "minor"}
+
+
+def _normalize_analysis_payload(raw: Any) -> Any:
+    """Coerce the most common LLM-output drifts back into a dict shape.
+
+    Models occasionally return:
+      - {"analysis": {...}} or {"data": {...}} — wrapped under a single key
+      - [{...}] — single-element list containing the actual object
+      - [{section_feedback entries...}] — bare array of section feedback,
+        which we promote into {"section_feedback": [...]}
+    Anything we can't recover we leave as-is so the caller raises cleanly.
+    """
+    if isinstance(raw, dict) and len(raw) == 1:
+        only_val = next(iter(raw.values()))
+        if isinstance(only_val, dict) and (
+            "section_feedback" in only_val
+            or "overall_score" in only_val
+            or "summary" in only_val
+        ):
+            logger.info("Analyzer payload was wrapped in a single key; unwrapping.")
+            return only_val
+
+    if isinstance(raw, list):
+        if not raw:
+            return raw
+        if len(raw) == 1 and isinstance(raw[0], dict):
+            logger.info("Analyzer payload was a single-element list; unwrapping.")
+            return raw[0]
+        # Bare array of section-feedback-shaped objects: synthesize the wrapper.
+        if all(
+            isinstance(item, dict)
+            and ("section_name" in item or "section" in item or "name" in item)
+            for item in raw
+        ):
+            logger.info(
+                "Analyzer payload was a bare list of section objects (n=%d); "
+                "synthesizing top-level shape.",
+                len(raw),
+            )
+            return {"section_feedback": raw}
+
+    return raw
+
+
 def _coerce_citations(value: Any) -> List[Citation]:
     if not isinstance(value, list):
         return []
@@ -583,7 +807,41 @@ def _coerce_citations(value: Any) -> List[Citation]:
         # but models occasionally ignore that.
         if len(excerpt) > 400:
             excerpt = excerpt[:397] + "..."
-        out.append(Citation(requirement=requirement, proposal_excerpt=excerpt))
+        verdict_raw = str(item.get("verdict") or "").strip().lower()
+        verdict = verdict_raw if verdict_raw in _VALID_VERDICTS else "partial"
+        severity_raw = str(item.get("severity") or "").strip().lower()
+        severity = severity_raw if severity_raw in _VALID_SEVERITIES else "important"
+        out.append(Citation(
+            requirement=requirement,
+            proposal_excerpt=excerpt,
+            verdict=verdict,  # type: ignore[arg-type]
+            severity=severity,  # type: ignore[arg-type]
+        ))
+    return out
+
+
+def _coerce_consistency_issues(value: Any) -> List[ConsistencyIssue]:
+    if not isinstance(value, list):
+        return []
+    out: List[ConsistencyIssue] = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        issue_text = str(item.get("issue") or "").strip()
+        if not issue_text:
+            continue
+        sections_inv = _coerce_string_list(
+            item.get("sections_involved") or item.get("sections")
+        )
+        severity_raw = str(item.get("severity") or "").strip().lower()
+        severity = severity_raw if severity_raw in _VALID_SEVERITIES else "important"
+        suggestion = str(item.get("suggestion") or item.get("fix") or "").strip()
+        out.append(ConsistencyIssue(
+            issue=issue_text,
+            sections_involved=sections_inv,
+            severity=severity,  # type: ignore[arg-type]
+            suggestion=suggestion,
+        ))
     return out
 
 

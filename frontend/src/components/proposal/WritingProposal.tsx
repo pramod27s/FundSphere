@@ -24,11 +24,14 @@ import {
   downloadAnalysisAsMarkdown,
   type AnalysisDiff,
   type AnalysisMode,
+  type Citation,
+  type ConsistencyIssue,
   type ProposalAnalysis,
   type SectionDiff,
   type SectionFeedback,
   type SectionStatus,
   type SectionTransition,
+  type Severity,
 } from '../../services/proposalService';
 
 interface WritingProposalProps {
@@ -868,6 +871,9 @@ function ResultsView({
       {analysis.missing_sections.length > 0 && (
         <MissingSectionsBox missing={analysis.missing_sections} />
       )}
+      {analysis.consistency_issues && analysis.consistency_issues.length > 0 && (
+        <ConsistencyIssuesBox issues={analysis.consistency_issues} />
+      )}
       {analysis.key_suggestions.length > 0 && (
         <KeySuggestionsBox suggestions={analysis.key_suggestions} />
       )}
@@ -1051,6 +1057,7 @@ function SectionAccordion({ sections }: { sections: SectionFeedback[] }) {
 function SectionCard({ fb, defaultOpen }: { fb: SectionFeedback; defaultOpen: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
   const tone = statusTone(fb.status);
+  const citations = fb.citations ?? [];
 
   return (
     <div className="bg-white">
@@ -1071,6 +1078,11 @@ function SectionCard({ fb, defaultOpen }: { fb: SectionFeedback; defaultOpen: bo
             >
               {fb.status}
             </span>
+            {citations.length > 0 && (
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-brand-100 text-brand-700">
+                {citations.length} checks
+              </span>
+            )}
           </div>
           <ScoreBar score={fb.score} tone={tone} />
         </div>
@@ -1083,7 +1095,7 @@ function SectionCard({ fb, defaultOpen }: { fb: SectionFeedback; defaultOpen: bo
       >
         <p className="text-sm text-brand-700 leading-relaxed mb-3">{fb.feedback}</p>
         {fb.suggestions.length > 0 && (
-          <div>
+          <div className="mb-4">
             <p className="text-[10px] font-bold uppercase tracking-wider text-brand-500 mb-2">
               Suggested improvements
             </p>
@@ -1097,7 +1109,116 @@ function SectionCard({ fb, defaultOpen }: { fb: SectionFeedback; defaultOpen: bo
             </ul>
           </div>
         )}
+        {citations.length > 0 && <ComplianceChecklist citations={citations} />}
       </div>
+    </div>
+  );
+}
+
+function ComplianceChecklist({ citations }: { citations: Citation[] }) {
+  // Sort: failures first, then partial, then pass; within group critical>important>minor.
+  const sevRank: Record<Severity, number> = { critical: 0, important: 1, minor: 2 };
+  const verdictRank: Record<Citation['verdict'], number> = { fail: 0, partial: 1, pass: 2 };
+  const sorted = [...citations].sort((a, b) => {
+    const v = verdictRank[a.verdict] - verdictRank[b.verdict];
+    if (v !== 0) return v;
+    return sevRank[a.severity] - sevRank[b.severity];
+  });
+
+  return (
+    <div>
+      <p className="text-[10px] font-bold uppercase tracking-wider text-brand-500 mb-2">
+        Compliance checklist
+      </p>
+      <ul className="space-y-2">
+        {sorted.map((c, idx) => (
+          <li
+            key={idx}
+            className="flex items-start gap-3 text-sm rounded-lg border border-brand-100 px-3 py-2 bg-brand-50/40"
+          >
+            <VerdictIcon verdict={c.verdict} />
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-2 mb-1">
+                <span className="text-sm font-medium text-brand-900 leading-snug">{c.requirement}</span>
+                <SeverityPill severity={c.severity} />
+              </div>
+              {c.proposal_excerpt && (
+                <p className="text-xs text-brand-600 italic leading-relaxed">
+                  &ldquo;{c.proposal_excerpt}&rdquo;
+                </p>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function VerdictIcon({ verdict }: { verdict: Citation['verdict'] }) {
+  if (verdict === 'pass') {
+    return <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />;
+  }
+  if (verdict === 'partial') {
+    return <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />;
+  }
+  return <XCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />;
+}
+
+function SeverityPill({ severity }: { severity: Severity }) {
+  const tone = severityTone(severity);
+  return (
+    <span
+      className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${tone}`}
+    >
+      {severity}
+    </span>
+  );
+}
+
+function severityTone(severity: Severity): string {
+  if (severity === 'critical') return 'bg-red-100 text-red-700';
+  if (severity === 'important') return 'bg-amber-100 text-amber-700';
+  return 'bg-brand-100 text-brand-700';
+}
+
+function ConsistencyIssuesBox({ issues }: { issues: ConsistencyIssue[] }) {
+  // Critical first, important next, minor last.
+  const sevRank: Record<Severity, number> = { critical: 0, important: 1, minor: 2 };
+  const sorted = [...issues].sort((a, b) => sevRank[a.severity] - sevRank[b.severity]);
+  return (
+    <div className="bg-white border border-brand-100 rounded-2xl p-5">
+      <div className="flex items-center gap-2 mb-1">
+        <AlertTriangle className="w-4 h-4 text-amber-600" />
+        <p className="text-sm font-bold text-brand-900">Cross-section consistency issues</p>
+      </div>
+      <p className="text-xs text-brand-600 mb-4">
+        Contradictions between sections — these are the things one-pass review tends to miss.
+      </p>
+      <ul className="space-y-3">
+        {sorted.map((ci, idx) => (
+          <li
+            key={idx}
+            className="border border-brand-100 rounded-xl px-4 py-3 bg-brand-50/40"
+          >
+            <div className="flex flex-wrap items-center gap-2 mb-1.5">
+              <SeverityPill severity={ci.severity} />
+              {ci.sections_involved.length > 0 && (
+                <span className="text-[10px] font-medium text-brand-500 uppercase tracking-wider">
+                  {ci.sections_involved.join(' ↔ ')}
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-brand-900 font-medium leading-relaxed mb-1">{ci.issue}</p>
+            {ci.suggestion && (
+              <p className="text-xs text-brand-600 leading-relaxed">
+                <span className="font-bold uppercase tracking-wider text-brand-500">Fix:</span>{' '}
+                {ci.suggestion}
+              </p>
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

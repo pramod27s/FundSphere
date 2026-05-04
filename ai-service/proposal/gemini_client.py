@@ -21,14 +21,21 @@ _FALLBACK_MODEL = os.getenv("PROPOSAL_GEMINI_FALLBACK_MODEL", "")
 _API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or "AIzaSyC7-g3xrWm4XHk6NEYUCmbDfW-mLQJ-lEQ"
 
 _GROQ_API_KEY = os.getenv("GROQ_API_KEY_PROPOSAL") or os.getenv("GROQ_API_KEY")
-_GROQ_MODEL = os.getenv("PROPOSAL_GROQ_MODEL", "llama-3.3-70b-versatile")
+_GROQ_MODEL = os.getenv("PROPOSAL_GROQ_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct")
 _GROQ_BASE_URL = "https://api.groq.com/openai/v1"
-# Per-minute token budget for the Groq fallback model. Free-tier
-# `llama-3.3-70b-versatile` is 12000 TPM — enough headroom for quick-mode
-# and most splitter calls, not just small section evals. If input+output
+# Per-minute token budget for the Groq fallback model. If input+output
 # would exceed this we skip the call entirely rather than eating the
-# round-trip on a guaranteed 413.
-_GROQ_TPM_LIMIT = int(os.getenv("PROPOSAL_GROQ_TPM_LIMIT", "12000"))
+# round-trip on a guaranteed 413. Tune via PROPOSAL_GROQ_TPM_LIMIT — the
+# default (30000) matches `meta-llama/llama-4-scout-17b-16e-instruct`
+# free-tier limits, but verify against your account at
+# https://console.groq.com/settings/limits if you see pre-skip warnings.
+_GROQ_TPM_LIMIT = int(os.getenv("PROPOSAL_GROQ_TPM_LIMIT", "30000"))
+# Per-call output cap. Groq enforces a per-model ceiling on `max_tokens`
+# independent of TPM (Llama 4 Scout = 8192). Calls asking for more than
+# this 400-error before the model even runs, so we clamp callers down.
+# Override via env if your model allows higher (e.g. some 70B models
+# permit 32k).
+_GROQ_MAX_OUTPUT_TOKENS = int(os.getenv("PROPOSAL_GROQ_MAX_OUTPUT_TOKENS", "8192"))
 # System prompt + chat-format overhead we send alongside the user prompt.
 # Rough constant — exact value doesn't matter for a defensive check.
 _GROQ_OVERHEAD_TOKENS = 80
@@ -240,10 +247,14 @@ def _generate_groq_sync(
     client = _get_groq_client()
     if client is None:
         raise RuntimeError("Groq fallback unavailable: GROQ_API_KEY_PROPOSAL not set")
+    # Clamp to the Groq per-model output ceiling. Without this, callers
+    # (e.g. section splitter requesting 16384) get a hard 400 from Groq
+    # before the model runs.
+    clamped_max = min(max_output_tokens, _GROQ_MAX_OUTPUT_TOKENS)
     completion = client.chat.completions.create(
         model=model,
         temperature=temperature,
-        max_tokens=max_output_tokens,
+        max_tokens=clamped_max,
         response_format={"type": "json_object"},
         messages=[
             {
@@ -347,13 +358,15 @@ async def generate_json(
     if _GROQ_API_KEY:
         # Pre-check TPM budget. Groq counts input + max_output_tokens against
         # the per-minute quota; if we already know it'll 413 there's no point
-        # making the round-trip.
+        # making the round-trip. Use the clamped output cap, since that's
+        # what we'll actually send.
         estimated_input = _estimate_tokens(prompt) + _GROQ_OVERHEAD_TOKENS
-        projected_total = estimated_input + max_output_tokens
+        effective_max_output = min(max_output_tokens, _GROQ_MAX_OUTPUT_TOKENS)
+        projected_total = estimated_input + effective_max_output
         if projected_total > _GROQ_TPM_LIMIT:
             groq_skipped_reason = (
                 f"prompt too large for Groq fallback "
-                f"(~{estimated_input} input + {max_output_tokens} output tokens "
+                f"(~{estimated_input} input + {effective_max_output} output tokens "
                 f"= {projected_total}, exceeds {_GROQ_TPM_LIMIT} TPM limit on {_GROQ_MODEL})"
             )
             logger.warning("Skipping Groq fallback: %s", groq_skipped_reason)
