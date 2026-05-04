@@ -519,7 +519,7 @@ function AnalyzingState({ mode }: { mode: AnalysisMode }) {
           : 'Analyzing your proposal...'}
       </h2>
       <p className="text-sm text-brand-500 max-w-md leading-relaxed">
-        Gemini 2.5 Pro is reading the guidelines and your proposal carefully. This typically takes {eta}.
+        AI is reading the guidelines and your proposal carefully. This typically takes {eta}.
         Don't refresh the page.
       </p>
     </div>

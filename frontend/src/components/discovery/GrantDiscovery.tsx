@@ -323,7 +323,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
               </div>
             )}
 
-            <GrantList grants={displayedGrants} isLoading={isLoading} source={dataSource} />
+            <GrantList grants={displayedGrants} isLoading={isLoading} source={dataSource} profile={researcher} />
 
             {!isLoading && filteredGrants.length === 0 && sortedGrants.length > 0 && (
               <div className="rounded-2xl border border-brand-200/60 bg-white/60 backdrop-blur-sm p-12 flex flex-col items-center justify-center text-center mt-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(15,23,42,0.04)]">

@@ -96,15 +96,18 @@ async def analyze_proposal(
         # the frontend can show a useful message instead of "Bad Gateway".
         if (
             "gemini + groq exhausted" in msg
+            or "groq fallback skipped" in msg
             or "resource_exhausted" in msg
             or ("429" in msg and "groq" in msg)
+            or ("503" in msg and "gemini" in msg)
         ):
             raise HTTPException(
                 status_code=503,
                 detail=(
-                    "AI providers are temporarily rate-limited "
-                    "(daily quota reached). Please try again in a few minutes "
-                    "or switch to Quick mode which uses fewer calls."
+                    "AI providers are temporarily unavailable "
+                    "(rate limit or transient capacity issue). "
+                    "Please try again in a minute, or switch to Quick mode "
+                    "which uses fewer calls."
                 ),
             )
         raise HTTPException(status_code=500, detail=f"Proposal analysis failed: {exc}")

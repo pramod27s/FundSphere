@@ -1,5 +1,9 @@
 import { X, ShieldCheck, ShieldAlert, Calendar, TrendingUp, ExternalLink, BookmarkPlus, BookmarkCheck } from 'lucide-react';
 import type { DiscoveryGrant } from '../../services/discoveryService';
+import type { ResearcherResponse } from '../../services/researcherService';
+import FreshnessBadge from '../common/FreshnessBadge';
+import ProviderUpdatedInfo from '../common/ProviderUpdatedInfo';
+import MatchBreakdown from '../common/MatchBreakdown';
 
 interface GrantDetailsModalProps {
   grant: DiscoveryGrant;
@@ -7,9 +11,11 @@ interface GrantDetailsModalProps {
   source?: 'ai' | 'core' | null;
   isSaved?: boolean;
   onToggleSave?: (grant: DiscoveryGrant) => void;
+  /** Researcher profile, used to render the Why-this-match breakdown in AI mode. */
+  profile?: ResearcherResponse | null;
 }
 
-export default function GrantDetailsModal({ grant, onClose, source, isSaved = false, onToggleSave }: GrantDetailsModalProps) {
+export default function GrantDetailsModal({ grant, onClose, source, isSaved = false, onToggleSave, profile }: GrantDetailsModalProps) {
   const isAi = source === 'ai';
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
@@ -22,9 +28,13 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
         <div className="relative flex items-start justify-between p-6 border-b border-brand-100 bg-gradient-to-br from-primary-50/60 via-white to-brand-50/40">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary-400 via-primary-500 to-primary-600" />
           <div className="pr-10 relative">
-            <span className="text-[10px] font-bold px-2.5 py-1 rounded-md bg-white text-brand-700 uppercase tracking-widest mb-3 inline-block border border-brand-200 shadow-sm">
-              {grant.funder}
-            </span>
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className="text-[10px] font-bold px-2.5 py-1 rounded-md bg-white text-brand-700 uppercase tracking-widest inline-block border border-brand-200 shadow-sm">
+                {grant.funder}
+              </span>
+              <FreshnessBadge timestamp={grant.lastVerifiedAt ?? grant.lastScrapedAt ?? grant.updatedAt} size="full" />
+              <ProviderUpdatedInfo timestamp={grant.lastScrapedAt ?? grant.updatedAt} />
+            </div>
             <h2 className="text-xl sm:text-2xl font-bold text-brand-900 leading-tight tracking-tight">
               {grant.title}
             </h2>
@@ -84,6 +94,12 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
                       <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-primary-400 to-primary-600" />
                       <p className="pl-2">{grant.rationale}</p>
                   </div>
+              </div>
+            )}
+
+            {isAi && profile && (
+              <div className="mb-8">
+                <MatchBreakdown grant={grant} profile={profile} />
               </div>
             )}
 

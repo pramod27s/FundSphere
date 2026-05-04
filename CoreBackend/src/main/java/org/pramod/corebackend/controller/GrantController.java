@@ -91,4 +91,39 @@ public class GrantController {
         GrantResponse response = grantService.getGrantByUrl(grantUrl);
         return ResponseEntity.ok(response);
     }
+
+    /**
+     * Lightweight scraper hook: records that we visited this URL and confirmed
+     * its content hasn't changed (checksum matches our stored copy). Bumps
+     * lastVerifiedAt only — does NOT touch lastScrapedAt and does NOT trigger
+     * a Pinecone reindex.
+     *
+     * Body: {"grantUrl": "https://..."}
+     * Response: {"verified": true, "grantUrl": "...", "lastVerifiedAt": "..."}
+     *           or 404 if no grant matches the URL (caller should fall through
+     *           to a full scrape/POST).
+     */
+    @PostMapping("/verify")
+    public ResponseEntity<Map<String, Object>> verifyGrant(@RequestBody Map<String, String> body) {
+        String grantUrl = body == null ? null : body.get("grantUrl");
+        if (grantUrl == null || grantUrl.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "verified", false,
+                    "error", "grantUrl is required"
+            ));
+        }
+        boolean ok = grantService.markVerifiedByUrl(grantUrl);
+        if (!ok) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                    "verified", false,
+                    "grantUrl", grantUrl
+            ));
+        }
+        GrantResponse refreshed = grantService.getGrantByUrl(grantUrl);
+        return ResponseEntity.ok(Map.of(
+                "verified", true,
+                "grantUrl", grantUrl,
+                "lastVerifiedAt", refreshed.getLastVerifiedAt()
+        ));
+    }
 }

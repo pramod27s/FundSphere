@@ -21,8 +21,17 @@ _FALLBACK_MODEL = os.getenv("PROPOSAL_GEMINI_FALLBACK_MODEL", "")
 _API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or "AIzaSyC7-g3xrWm4XHk6NEYUCmbDfW-mLQJ-lEQ"
 
 _GROQ_API_KEY = os.getenv("GROQ_API_KEY_PROPOSAL") or os.getenv("GROQ_API_KEY")
-_GROQ_MODEL = os.getenv("PROPOSAL_GROQ_MODEL", "openai/gpt-oss-20b")
+_GROQ_MODEL = os.getenv("PROPOSAL_GROQ_MODEL", "llama-3.3-70b-versatile")
 _GROQ_BASE_URL = "https://api.groq.com/openai/v1"
+# Per-minute token budget for the Groq fallback model. Free-tier
+# `llama-3.3-70b-versatile` is 12000 TPM — enough headroom for quick-mode
+# and most splitter calls, not just small section evals. If input+output
+# would exceed this we skip the call entirely rather than eating the
+# round-trip on a guaranteed 413.
+_GROQ_TPM_LIMIT = int(os.getenv("PROPOSAL_GROQ_TPM_LIMIT", "12000"))
+# System prompt + chat-format overhead we send alongside the user prompt.
+# Rough constant — exact value doesn't matter for a defensive check.
+_GROQ_OVERHEAD_TOKENS = 80
 
 _client = None
 _groq_client = None
@@ -154,6 +163,18 @@ def _is_quota_error(exc: Exception) -> bool:
     return "429" in text or "resource_exhausted" in text or "quota" in text
 
 
+def _is_transient_error(exc: Exception) -> bool:
+    """503/504/timeout — Gemini reports these as 'high demand'; retry helps."""
+    text = str(exc).lower()
+    return (
+        "503" in text
+        or "504" in text
+        or "unavailable" in text
+        or "timeout" in text
+        or "deadline" in text
+    )
+
+
 # --- Gemini circuit breaker ---------------------------------------------------
 # Once Gemini returns a 429, every parallel call in deep-mode would otherwise
 # also waste a round-trip on Gemini before falling to Groq. The breaker remembers
@@ -198,6 +219,15 @@ def _is_in_cooldown(model: str) -> bool:
         logger.info("Gemini circuit breaker CLOSED for %s — retrying.", model)
         return False
     return True
+
+
+def _estimate_tokens(text: str) -> int:
+    """Cheap token estimate without pulling in tiktoken.
+
+    ~4 chars/token is the standard rule of thumb for English; we round up
+    slightly to stay on the conservative side of TPM limits.
+    """
+    return (len(text) + 3) // 4
 
 
 def _generate_groq_sync(
@@ -255,6 +285,13 @@ async def generate_json(
     last_error: Exception | None = None
     saw_quota_error = False
 
+    # Allow more attempts than `retries` for transient 503s — Gemini Flash
+    # frequently bounces back within 1-3s of "high demand" errors, and there's
+    # no useful fallback (Groq is too small for our prompts), so it's worth
+    # waiting a bit before giving up.
+    _MAX_TRANSIENT_RETRIES = 4
+    _BACKOFF_BASE_SECONDS = 1.0
+
     for used_model in candidates:
         # Circuit breaker: skip this Gemini model entirely if a recent 429 is
         # still in its retry-delay window. Saves a round-trip per parallel call.
@@ -263,7 +300,9 @@ async def generate_json(
             logger.info("Skipping %s — in quota cooldown.", used_model)
             continue
 
-        for attempt in range(retries + 1):
+        attempt = 0
+        max_attempts = retries + 1
+        while attempt < max_attempts:
             effective_prompt = (
                 prompt
                 if attempt == 0
@@ -282,40 +321,73 @@ async def generate_json(
                 last_error = exc
                 logger.warning(
                     "Gemini call failed (model=%s, attempt %d/%d): %s",
-                    used_model, attempt + 1, retries + 1, exc,
+                    used_model, attempt + 1, max_attempts, exc,
                 )
                 if _is_quota_error(exc):
                     saw_quota_error = True
                     _set_cooldown(used_model, exc)
                     logger.info("Quota error on %s — switching to next provider/model.", used_model)
                     break
+                if _is_transient_error(exc):
+                    # Stretch the budget on transient errors so 1-2 hiccups
+                    # don't drop us straight to the (size-blocked) Groq fallback.
+                    if max_attempts < _MAX_TRANSIENT_RETRIES:
+                        max_attempts = _MAX_TRANSIENT_RETRIES
+                    if attempt + 1 < max_attempts:
+                        delay = _BACKOFF_BASE_SECONDS * (2 ** attempt)
+                        logger.info(
+                            "Transient error on %s; sleeping %.1fs before retry %d/%d.",
+                            used_model, delay, attempt + 2, max_attempts,
+                        )
+                        await asyncio.sleep(delay)
+                attempt += 1
 
     # All Gemini candidates exhausted. Try Groq if configured.
+    groq_skipped_reason: str | None = None
     if _GROQ_API_KEY:
-        logger.info(
-            "Falling through to Groq (model=%s) after Gemini failure (quota=%s).",
-            _GROQ_MODEL, saw_quota_error,
-        )
-        for attempt in range(retries + 1):
-            effective_prompt = (
-                prompt
-                if attempt == 0
-                else prompt + "\n\nReturn ONLY valid JSON. No markdown, no commentary."
+        # Pre-check TPM budget. Groq counts input + max_output_tokens against
+        # the per-minute quota; if we already know it'll 413 there's no point
+        # making the round-trip.
+        estimated_input = _estimate_tokens(prompt) + _GROQ_OVERHEAD_TOKENS
+        projected_total = estimated_input + max_output_tokens
+        if projected_total > _GROQ_TPM_LIMIT:
+            groq_skipped_reason = (
+                f"prompt too large for Groq fallback "
+                f"(~{estimated_input} input + {max_output_tokens} output tokens "
+                f"= {projected_total}, exceeds {_GROQ_TPM_LIMIT} TPM limit on {_GROQ_MODEL})"
             )
-            try:
-                raw = await asyncio.to_thread(
-                    _generate_groq_sync,
-                    effective_prompt,
-                    model=_GROQ_MODEL,
-                    temperature=temperature,
-                    max_output_tokens=max_output_tokens,
+            logger.warning("Skipping Groq fallback: %s", groq_skipped_reason)
+        else:
+            logger.info(
+                "Falling through to Groq (model=%s) after Gemini failure (quota=%s).",
+                _GROQ_MODEL, saw_quota_error,
+            )
+            for attempt in range(retries + 1):
+                effective_prompt = (
+                    prompt
+                    if attempt == 0
+                    else prompt + "\n\nReturn ONLY valid JSON. No markdown, no commentary."
                 )
-                return _coerce_json(raw)
-            except Exception as exc:
-                last_error = exc
-                logger.warning(
-                    "Groq fallback call failed (model=%s, attempt %d/%d): %s",
-                    _GROQ_MODEL, attempt + 1, retries + 1, exc,
-                )
+                try:
+                    raw = await asyncio.to_thread(
+                        _generate_groq_sync,
+                        effective_prompt,
+                        model=_GROQ_MODEL,
+                        temperature=temperature,
+                        max_output_tokens=max_output_tokens,
+                    )
+                    return _coerce_json(raw)
+                except Exception as exc:
+                    last_error = exc
+                    logger.warning(
+                        "Groq fallback call failed (model=%s, attempt %d/%d): %s",
+                        _GROQ_MODEL, attempt + 1, retries + 1, exc,
+                    )
 
+    if groq_skipped_reason:
+        raise RuntimeError(
+            f"LLM generation failed: Gemini exhausted (quota={saw_quota_error}) "
+            f"and Groq fallback skipped — {groq_skipped_reason}. "
+            f"Last Gemini error: {last_error}"
+        )
     raise RuntimeError(f"LLM generation failed (Gemini + Groq exhausted): {last_error}")
