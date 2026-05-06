@@ -192,7 +192,7 @@ export default function GrantDiscovery({ researcher, onNavigate }: GrantDiscover
       </div>
 
       <div className="flex-1 flex flex-col h-full overflow-hidden">
-        <div className="hidden md:flex h-[72px] px-6 items-center justify-between border-b border-brand-100 bg-white/80 backdrop-blur-xl shrink-0 relative z-20">
+        <div className="hidden md:flex h-[64px] px-6 items-center justify-between border-b border-brand-100 bg-white/80 backdrop-blur-xl shrink-0 relative z-20">
           <div />
           {researcher && onNavigate && (
             <UserAvatarMenu onNavigate={onNavigate} researcherId={researcher.id} />
@@ -227,7 +227,7 @@ export default function GrantDiscovery({ researcher, onNavigate }: GrantDiscover
                 placeholder="Describe your research project..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full sm:pl-11 sm:pr-48 px-4 py-2 sm:py-2.5 bg-white border border-brand-200 rounded-xl focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 text-brand-900 placeholder:text-brand-400 text-sm md:text-base transition-all shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.04)] hover:border-brand-300"
+                className="w-full sm:pl-11 sm:pr-48 px-4 py-2 sm:py-3 bg-white border border-brand-200 rounded-xl focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 text-brand-900 placeholder:text-brand-400 text-sm md:text-base transition-all shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.04)] hover:border-brand-300"
               />
               <div className="flex w-full sm:w-auto sm:absolute sm:right-2 gap-2">
                 {dataSource === 'ai' && (
@@ -250,7 +250,7 @@ export default function GrantDiscovery({ researcher, onNavigate }: GrantDiscover
               </div>
             </div>
 
-            <div className="flex gap-2 mt-4 overflow-x-auto pb-1 scrollbar-hide items-center">
+            <div className="flex gap-2 mt-3 overflow-x-auto pb-0 scrollbar-hide items-center">
               <span className="text-[10px] font-semibold text-brand-500 py-1 uppercase tracking-widest shrink-0">Suggested</span>
               <span className="h-3 w-px bg-brand-200 shrink-0" />
               {['Climate Tech Startups', 'Postdoc Healthcare Grants', 'AI in Education Fellowships'].map((tag) => (
@@ -268,10 +268,10 @@ export default function GrantDiscovery({ researcher, onNavigate }: GrantDiscover
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 relative">
+        <main className="flex-1 overflow-y-auto px-4 md:px-8 pt-3 md:pt-4 pb-4 md:pb-8 relative">
           <div className="max-w-4xl mx-auto">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 sm:gap-6 mb-6">
-              <div>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 sm:gap-6 mb-3">
+              <div className="sm:pl-4">
                 <p className="text-xs md:text-sm text-brand-500 tabular-nums">
                   {isLoading
                     ? 'Fetching opportunities...'
