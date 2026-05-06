@@ -4,6 +4,7 @@ import GrantList from './GrantList.tsx';
 import FilterSidebar, { type FilterState, EMPTY_FILTERS } from './FilterSidebar.tsx';
 import AnimatedLogo from '../common/AnimatedLogo.tsx';
 import CustomSelect from '../common/CustomSelect.tsx';
+import UserAvatarMenu from '../common/UserAvatarMenu.tsx';
 import type { ResearcherResponse } from '../../services/researcherService';
 import { getDiscoveryGrants, type DiscoveryGrant } from '../../services/discoveryService';
 
@@ -68,11 +69,12 @@ function applyFilters(grants: DiscoveryGrant[], f: FilterState): DiscoveryGrant[
 
 interface GrantDiscoveryProps {
   researcher: ResearcherResponse | null;
+  onNavigate?: (page: 'profile' | 'saved-grants' | 'proposal') => void;
 }
 
-export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
+export default function GrantDiscovery({ researcher, onNavigate }: GrantDiscoveryProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('match');
+  const [sortBy, setSortBy] = useState('recent');
   const [topK, setTopK] = useState(12);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [grants, setGrants] = useState<DiscoveryGrant[]>([]);
@@ -138,6 +140,11 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
     if (dataSource === 'ai' && topK > 20) {
       setTopK(20);
     }
+    if (dataSource === 'ai') {
+      setSortBy('match');
+    } else if (sortBy === 'match') {
+      setSortBy('recent');
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataSource]);
 
@@ -185,19 +192,26 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
       </div>
 
       <div className="flex-1 flex flex-col h-full overflow-hidden">
-        <header className="px-4 md:px-8 py-4 md:py-6 bg-white/80 backdrop-blur-xl border-b border-brand-100/80 shrink-0 z-10 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+        <div className="hidden md:flex h-[72px] px-6 items-center justify-between border-b border-brand-100 bg-white/80 backdrop-blur-xl shrink-0 relative z-20">
+          <div />
+          {researcher && onNavigate && (
+            <UserAvatarMenu onNavigate={onNavigate} researcherId={researcher.id} />
+          )}
+        </div>
+
+        <header className="px-4 md:px-8 pt-4 md:pt-6 pb-3 md:pb-4 bg-white/80 backdrop-blur-xl border-b border-brand-100/80 shrink-0 z-10 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
           <div className="max-w-4xl mx-auto">
-            <div className="flex items-center gap-3 mb-5">
+            <div className="md:hidden flex items-center gap-3 mb-5">
               <button
                 onClick={() => setIsSidebarOpen(true)}
-                className="md:hidden p-2 -ml-2 text-brand-600 hover:text-brand-900 hover:bg-brand-100 rounded-lg transition-colors"
+                className="p-2 -ml-2 text-brand-600 hover:text-brand-900 hover:bg-brand-100 rounded-lg transition-colors"
                 aria-label="Open sidebar"
               >
                 <Menu className="w-6 h-6" />
               </button>
-              <AnimatedLogo className="w-8 h-8 md:w-10 md:h-10" />
+              <AnimatedLogo className="w-8 h-8" />
               <div className="flex items-baseline gap-2">
-                <h1 className="text-xl md:text-2xl font-bold tracking-tight">
+                <h1 className="text-xl font-bold tracking-tight">
                   <span className="text-teal-600">Fund</span>
                   <span className="text-brand-900">Sphere</span>
                 </h1>
@@ -213,7 +227,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                 placeholder="Describe your research project..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full sm:pl-12 sm:pr-56 px-4 py-3 sm:py-4 bg-white border border-brand-200 rounded-xl focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 text-brand-900 placeholder:text-brand-400 text-base md:text-lg transition-all shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.04)] hover:border-brand-300"
+                className="w-full sm:pl-11 sm:pr-48 px-4 py-2 sm:py-2.5 bg-white border border-brand-200 rounded-xl focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 text-brand-900 placeholder:text-brand-400 text-sm md:text-base transition-all shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.04)] hover:border-brand-300"
               />
               <div className="flex w-full sm:w-auto sm:absolute sm:right-2 gap-2">
                 {dataSource === 'ai' && (
@@ -222,14 +236,14 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                       setSearchQuery('');
                       void loadGrants('', false);
                     }}
-                    className="w-full sm:w-auto px-4 py-3 sm:py-2 bg-white text-brand-600 border border-brand-200 hover:bg-brand-50 hover:text-brand-900 hover:border-brand-300 rounded-xl sm:rounded-lg font-medium transition-all shadow-sm"
+                    className="w-full sm:w-auto px-3 py-2 sm:py-1.5 text-sm bg-white text-brand-600 border border-brand-200 hover:bg-brand-50 hover:text-brand-900 hover:border-brand-300 rounded-xl sm:rounded-lg font-medium transition-all shadow-sm"
                   >
                     Clear
                   </button>
                 )}
                 <button
                   onClick={() => void loadGrants(searchQuery, true)}
-                  className="w-full sm:w-auto px-6 py-3 sm:py-2 bg-gradient-to-br from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-xl sm:rounded-lg font-semibold transition-all shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30 active:scale-[0.97]"
+                  className="w-full sm:w-auto px-5 py-2 sm:py-1.5 text-sm bg-gradient-to-br from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-xl sm:rounded-lg font-semibold transition-all shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30 active:scale-[0.97]"
                 >
                   AI Match
                 </button>
@@ -258,21 +272,20 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
           <div className="max-w-4xl mx-auto">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 sm:gap-6 mb-6">
               <div>
-                <h2 className="text-xl md:text-2xl font-bold text-brand-900 tracking-tight">Top Matches for Your Profile</h2>
-                <p className="text-xs md:text-sm text-brand-500 mt-1.5 tabular-nums">
+                <p className="text-xs md:text-sm text-brand-500 tabular-nums">
                   {isLoading
                     ? 'Fetching opportunities...'
                     : <>Showing <span className="font-semibold text-brand-700">{displayedGrants.length}</span>{displayedGrants.length !== filteredGrants.length ? <> of <span className="font-semibold text-brand-700">{filteredGrants.length}</span></> : null} opportunities {dataSource === 'ai' && <>· <span className="text-primary-600 font-medium">AI ranking</span></>}</>}
                 </p>
               </div>
 
-              <div className="flex items-center gap-3 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-brand-500 uppercase tracking-wider hidden sm:inline-block">Show</span>
+              <div className="flex items-center gap-4 flex-wrap">
+                <div className="flex items-center gap-2 h-9">
+                  <span className="text-[11px] font-semibold text-brand-500 uppercase tracking-wider hidden sm:inline-block leading-none">Show</span>
                   <CustomSelect
                     value={topK}
                     onChange={(val) => setTopK(Number(val))}
-                    width="w-24"
+                    width="w-20"
                     options={
                       dataSource === 'ai'
                         ? [
@@ -291,14 +304,14 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                   />
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-brand-500 uppercase tracking-wider hidden sm:inline-block">Sort</span>
+                <div className="flex items-center gap-2 h-9">
+                  <span className="text-[11px] font-semibold text-brand-500 uppercase tracking-wider hidden sm:inline-block leading-none">Sort</span>
                   <CustomSelect
                     value={sortBy}
                     onChange={(val) => setSortBy(String(val))}
-                    width="w-56"
+                    width="w-52"
                     options={[
-                      { value: 'match', label: 'Match Score (Highest)' },
+                      ...(dataSource === 'ai' ? [{ value: 'match', label: 'Match Score (Highest)' }] : []),
                       { value: 'deadline', label: 'Deadline (Closing Soon)' },
                       { value: 'funding', label: 'Funding Amount (Highest)' },
                       { value: 'recent', label: 'Recently Updated' },

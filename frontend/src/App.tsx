@@ -106,11 +106,11 @@ function App() {
       ) : currentPage === 'discovery' ? (
         <div className="relative">
             {researcherData && (
-              <div className="absolute top-4 right-4 z-50">
-                <UserAvatarMenu onNavigate={(page) => setCurrentPage(page)} />
+              <div className="md:hidden absolute top-4 right-4 z-50">
+                <UserAvatarMenu onNavigate={(page) => setCurrentPage(page)} researcherId={researcherData.id} />
               </div>
             )}
-            <GrantDiscovery researcher={researcherData} />
+            <GrantDiscovery researcher={researcherData} onNavigate={(page) => setCurrentPage(page)} />
         </div>
       ) : null}
     </div>

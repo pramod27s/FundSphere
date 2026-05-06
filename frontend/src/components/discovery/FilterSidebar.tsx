@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { Filter, ChevronDown, Check, X, RotateCcw } from 'lucide-react';
+import AnimatedLogo from '../common/AnimatedLogo.tsx';
 
 export interface FilterState {
   grantTypes: string[];
@@ -102,15 +103,13 @@ export default function FilterSidebar({ filters, onChange, onClose }: FilterSide
 
   return (
     <aside className="w-full bg-white/80 backdrop-blur-xl border-r border-brand-100 h-full flex flex-col shrink-0">
-      <div className="px-5 py-5 border-b border-brand-100 bg-gradient-to-br from-white via-white to-primary-50/30 flex items-center justify-between">
+      <div className="px-5 border-b border-brand-100 bg-gradient-to-br from-white via-white to-primary-50/30 flex items-center justify-between h-[72px] shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-md shadow-primary-500/20">
-            <Filter className="w-4 h-4 text-white" />
-          </div>
-          <div>
-            <h2 className="text-sm font-bold text-brand-900 leading-none tracking-tight">Filters</h2>
-            <p className="text-[11px] text-brand-500 mt-1 leading-none">{activeCount > 0 ? `${activeCount} active` : 'Refine results'}</p>
-          </div>
+          <AnimatedLogo className="w-10 h-10" />
+          <h1 className="text-[22px] font-bold tracking-tight leading-none">
+            <span className="text-teal-600">Fund</span>
+            <span className="text-brand-900">Sphere</span>
+          </h1>
         </div>
         {onClose && (
           <button
@@ -123,7 +122,17 @@ export default function FilterSidebar({ filters, onChange, onClose }: FilterSide
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-5 py-5 custom-scrollbar">
+      <div className="px-5 pt-4 pb-3 flex items-center gap-2">
+        <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-sm shadow-primary-500/20">
+          <Filter className="w-3 h-3 text-white" />
+        </div>
+        <div>
+          <h2 className="text-sm font-bold text-brand-900 leading-none tracking-tight">Filters</h2>
+          <p className="text-[10px] text-brand-500 mt-1 leading-none">{activeCount > 0 ? `${activeCount} active` : 'Refine results'}</p>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-5 pt-3 pb-5 custom-scrollbar">
         <FilterSection title="Grant Type" count={filters.grantTypes.length}>
           {(['Research Projects', 'Fellowships', 'Travel Grants', 'Equipment / Lab'] as const).map((label) => (
             <Checkbox

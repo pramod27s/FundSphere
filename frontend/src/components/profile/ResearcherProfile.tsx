@@ -66,6 +66,7 @@ function ResearcherProfile({ researcher, onBack, onLogout }: ResearcherProfilePr
         setProfileImage(base64String);
         if (researcher?.id) {
           localStorage.setItem(`profile_image_${researcher.id}`, base64String);
+          window.dispatchEvent(new Event('profile:image-updated'));
         }
       };
       reader.readAsDataURL(file);

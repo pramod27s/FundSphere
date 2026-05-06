@@ -5,6 +5,7 @@ import { loadSession } from '../../services/authService';
 
 interface UserAvatarMenuProps {
   onNavigate: (page: 'profile' | 'saved-grants' | 'proposal') => void;
+  researcherId?: number;
 }
 
 function getInitials(fullName: string): string {
@@ -13,12 +14,34 @@ function getInitials(fullName: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-export default function UserAvatarMenu({ onNavigate }: UserAvatarMenuProps) {
+export default function UserAvatarMenu({ onNavigate, researcherId }: UserAvatarMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const session = loadSession();
   const initials = session ? getInitials(session.user.fullName) : '?';
+
+  const [profileImage, setProfileImage] = useState<string | null>(() =>
+    researcherId ? localStorage.getItem(`profile_image_${researcherId}`) : null,
+  );
+
+  useEffect(() => {
+    if (!researcherId) return;
+    const key = `profile_image_${researcherId}`;
+    setProfileImage(localStorage.getItem(key));
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === key) setProfileImage(e.newValue);
+    };
+    const handleLocalUpdate = () => setProfileImage(localStorage.getItem(key));
+
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('profile:image-updated', handleLocalUpdate);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('profile:image-updated', handleLocalUpdate);
+    };
+  }, [researcherId]);
 
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
@@ -38,14 +61,18 @@ export default function UserAvatarMenu({ onNavigate }: UserAvatarMenuProps) {
   };
 
   return (
-    <div className="relative" ref={containerRef}>
+    <div className="relative z-50" ref={containerRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 text-white text-sm font-semibold flex items-center justify-center shadow-md hover:ring-2 hover:ring-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-300 transition-all"
+        className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 text-white text-sm font-semibold flex items-center justify-center shadow-md hover:ring-2 hover:ring-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-300 transition-all overflow-hidden"
         aria-label="Open user menu"
         aria-expanded={isOpen}
       >
-        {initials}
+        {profileImage ? (
+          <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+        ) : (
+          initials
+        )}
       </button>
 
       <AnimatePresence>
@@ -55,7 +82,7 @@ export default function UserAvatarMenu({ onNavigate }: UserAvatarMenuProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute right-0 mt-2 w-52 bg-white/95 backdrop-blur-xl border border-brand-100 rounded-xl shadow-xl shadow-brand-900/5 py-1 overflow-hidden"
+            className="absolute right-0 mt-2 w-52 bg-white/95 backdrop-blur-xl border border-brand-100 rounded-xl shadow-xl shadow-brand-900/5 py-1 overflow-hidden z-50"
           >
             <button
               onClick={() => handleNavigate('profile')}

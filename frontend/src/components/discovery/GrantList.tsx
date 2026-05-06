@@ -254,15 +254,16 @@ function renderBrowseCard(
       }}
       aria-label={`Open details for ${grant.title}`}
     >
-      <div className="flex items-start justify-between gap-4 mb-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-brand-100 text-brand-700 uppercase tracking-widest">
-            {grant.funder}
-          </span>
-          <FreshnessBadge timestamp={grant.lastVerifiedAt ?? grant.lastScrapedAt ?? grant.updatedAt} />
-          <ProviderUpdatedInfo timestamp={grant.lastScrapedAt ?? grant.updatedAt} />
-        </div>
+      <div className="flex items-start justify-between gap-4 mb-2">
+        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-brand-100 text-brand-700 uppercase tracking-widest line-clamp-2 break-words">
+          {grant.funder}
+        </span>
         <BookmarkButton grant={grant} isSaved={isSaved} toggleSave={toggleSave} size="sm" />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        <FreshnessBadge timestamp={grant.lastVerifiedAt ?? grant.lastScrapedAt ?? grant.updatedAt} />
+        <ProviderUpdatedInfo timestamp={grant.lastScrapedAt ?? grant.updatedAt} />
       </div>
 
       <h3 className="text-lg font-semibold text-brand-900 group-hover:text-primary-700 transition-colors line-clamp-2 wrap-break-word mb-2 tracking-tight">
