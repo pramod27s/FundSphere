@@ -46,10 +46,7 @@ function App() {
       }
 
       console.error('Failed to resolve researcher profile:', error);
-      // Only default to onboarding on actual 404. Otherwise it might be a 500 or network error.
       alert('Unable to load profile. Please make sure the backend is running.');
-      clearSession();
-      setCurrentPage('auth');
     }
   };
 
