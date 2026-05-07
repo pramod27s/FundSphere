@@ -28,10 +28,12 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
         <div className="relative flex items-start justify-between p-6 border-b border-brand-100 bg-gradient-to-br from-primary-50/60 via-white to-brand-50/40">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary-400 via-primary-500 to-primary-600" />
           <div className="pr-10 relative">
-            <div className="flex flex-wrap items-center gap-2 mb-3">
+            <div className="mb-2">
               <span className="text-[10px] font-bold px-2.5 py-1 rounded-md bg-white text-brand-700 uppercase tracking-widest inline-block border border-brand-200 shadow-sm">
                 {grant.funder}
               </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 mb-3">
               <FreshnessBadge timestamp={grant.lastVerifiedAt ?? grant.lastScrapedAt ?? grant.updatedAt} size="full" />
               <ProviderUpdatedInfo timestamp={grant.lastScrapedAt ?? grant.updatedAt} />
             </div>

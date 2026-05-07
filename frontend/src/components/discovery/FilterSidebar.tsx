@@ -103,7 +103,7 @@ export default function FilterSidebar({ filters, onChange, onClose }: FilterSide
 
   return (
     <aside className="w-full bg-white/80 backdrop-blur-xl border-r border-brand-100 h-full flex flex-col shrink-0">
-      <div className="px-5 border-b border-brand-100 bg-gradient-to-br from-white via-white to-primary-50/30 flex items-center justify-between h-[64px] shrink-0">
+      <div className="pl-3 pr-5 border-b border-brand-100 bg-gradient-to-br from-white via-white to-primary-50/30 flex items-center justify-between h-[64px] shrink-0">
         <div className="flex items-center gap-2.5">
           <AnimatedLogo className="w-10 h-10" />
           <h1 className="text-[22px] font-bold tracking-tight leading-none">

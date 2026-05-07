@@ -171,6 +171,11 @@ function renderAiCard(
             )}
           </div>
 
+          <div className="flex flex-wrap items-center gap-2 mb-2.5">
+            <FreshnessBadge timestamp={grant.lastVerifiedAt ?? grant.lastScrapedAt ?? grant.updatedAt} />
+            <ProviderUpdatedInfo timestamp={grant.lastScrapedAt ?? grant.updatedAt} />
+          </div>
+
           <h3 className="text-xl font-bold text-brand-900 group-hover:text-primary-700 transition-colors line-clamp-2 wrap-break-word tracking-tight">
             {grant.title}
           </h3>
@@ -213,21 +218,15 @@ function renderAiCard(
           </div>
         </div>
 
-        <div className="flex items-center w-full sm:w-auto justify-between sm:justify-end gap-6 border-t sm:border-t-0 border-brand-50 pt-2 sm:pt-0 mt-2 sm:mt-0">
-          <div className="flex flex-col items-start sm:items-end gap-0.5">
-            <FreshnessBadge timestamp={grant.lastVerifiedAt ?? grant.lastScrapedAt ?? grant.updatedAt} />
-            <ProviderUpdatedInfo timestamp={grant.lastScrapedAt ?? grant.updatedAt} />
-          </div>
-          <button
-            type="button"
-            className="flex items-center gap-1 text-primary-600 hover:text-primary-700 font-semibold text-sm transition-colors cursor-pointer group/btn shrink-0"
-            onClick={(e) => { e.stopPropagation(); openDetails(grant); }}
-            aria-label={`View details for ${grant.title}`}
-          >
-            View Details
-            <ChevronRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-          </button>
-        </div>
+        <button
+          type="button"
+          className="flex items-center gap-1 text-primary-600 hover:text-primary-700 font-semibold text-sm transition-colors cursor-pointer group/btn shrink-0"
+          onClick={(e) => { e.stopPropagation(); openDetails(grant); }}
+          aria-label={`View details for ${grant.title}`}
+        >
+          View Details
+          <ChevronRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+        </button>
       </div>
     </article>
   );
