@@ -75,7 +75,7 @@ interface GrantDiscoveryProps {
 export default function GrantDiscovery({ researcher, onNavigate }: GrantDiscoveryProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('recent');
-  const [topK, setTopK] = useState(12);
+  const [topK, setTopK] = useState<number>(Infinity);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [grants, setGrants] = useState<DiscoveryGrant[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -135,9 +135,10 @@ export default function GrantDiscovery({ researcher, onNavigate }: GrantDiscover
 
   // Clamp topK to the AI cap (20) when transitioning into AI mode, so a
   // user sitting at 50/100 in browse mode doesn't accidentally pay for a
-  // huge ranking call when they hit AI Match.
+  // huge ranking call when they hit AI Match. The "Show All" sentinel
+  // (Infinity) is allowed through — the backend caps it at 50.
   useEffect(() => {
-    if (dataSource === 'ai' && topK > 20) {
+    if (dataSource === 'ai' && Number.isFinite(topK) && topK > 20) {
       setTopK(20);
     }
     if (dataSource === 'ai') {
@@ -292,6 +293,7 @@ export default function GrantDiscovery({ researcher, onNavigate }: GrantDiscover
                             { value: 6, label: '6' },
                             { value: 12, label: '12' },
                             { value: 20, label: '20' },
+                            { value: Infinity, label: 'All' },
                           ]
                         : [
                             { value: 6, label: '6' },
@@ -299,6 +301,7 @@ export default function GrantDiscovery({ researcher, onNavigate }: GrantDiscover
                             { value: 20, label: '20' },
                             { value: 50, label: '50' },
                             { value: 100, label: '100' },
+                            { value: Infinity, label: 'All' },
                           ]
                     }
                   />

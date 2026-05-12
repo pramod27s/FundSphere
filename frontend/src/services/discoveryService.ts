@@ -112,7 +112,12 @@ async function fetchAiRecommendations(request: RecommendationRequest): Promise<D
     },
     body: JSON.stringify({
       userQuery: request.userQuery,
-      topK: request.topK ?? 12,
+      // Sanitize: JSON.stringify(Infinity) → null, which the backend then
+      // treats as missing and falls back to its default (12). The "Show All"
+      // UI option sends Infinity; map it to 50 (CoreBackend's maxTopK). The
+      // actual returned count is then dictated by the AI service's
+      // RERANK_TOP_K env (tune there, not here).
+      topK: request.topK == null || !Number.isFinite(request.topK) ? 50 : request.topK,
       useRerank: request.useRerank === true,
     }),
   });

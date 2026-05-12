@@ -52,6 +52,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/ai/rag/recommend").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/grants").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/grants/verify").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/grants/urls").permitAll()
                         .requestMatchers("/api/grants/**").authenticated()
                         .requestMatchers("/api/researchers/**").authenticated()
                         .requestMatchers("/api/proposal/**").authenticated()

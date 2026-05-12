@@ -46,6 +46,18 @@ public class GrantController {
     }
 
     /**
+     * Lightweight endpoint used by the scraper to enumerate every grant URL
+     * already in the DB, so it can hash-check each one and bump
+     * lastVerifiedAt — even for grants whose source seed no longer links to
+     * them. PermitAll because it leaks no sensitive data (just URLs the
+     * provider already published) and lets the scheduler skip an auth dance.
+     */
+    @GetMapping("/urls")
+    public ResponseEntity<List<String>> getAllGrantUrls() {
+        return ResponseEntity.ok(grantService.getAllGrantUrls());
+    }
+
+    /**
      * Retrieves a specific grant by its unique ID.
      * @param id The primary key of the grant.
      * @return The requested GrantResponse.

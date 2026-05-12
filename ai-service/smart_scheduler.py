@@ -34,6 +34,35 @@ _backend_alive_cache: dict[str, float] = {}
 _BACKEND_ALIVE_TTL_SECONDS = 60
 
 
+def fetch_all_grant_urls() -> list[str]:
+    """Pull every grant URL already in CoreBackend.
+
+    Used so the scheduler can hash-check + verify each existing grant — not
+    just the URLs it freshly discovers from seed pages. Without this, grants
+    whose source seed no longer links to them never get their `lastVerifiedAt`
+    badge refreshed.
+
+    Costs zero Firecrawl tokens: the per-URL flow is just an HTML fetch + a
+    SHA-256 compare; only changed URLs trigger paid extraction.
+    """
+    try:
+        response = requests.get(f"{BACKEND_URL}/api/grants/urls", timeout=15)
+        if response.status_code != 200:
+            logger.warning(
+                f"/api/grants/urls returned {response.status_code}; "
+                f"skipping DB-wide verify sweep."
+            )
+            return []
+        data = response.json()
+        if not isinstance(data, list):
+            logger.warning(f"/api/grants/urls returned non-list payload; skipping.")
+            return []
+        return [u for u in data if isinstance(u, str) and u.strip()]
+    except Exception as exc:
+        logger.warning(f"Failed to fetch grant URLs from backend: {exc}")
+        return []
+
+
 def is_backend_alive(force: bool = False) -> bool:
     """Cheap probe to verify CoreBackend is reachable before spending Firecrawl tokens.
 
@@ -230,6 +259,8 @@ def run_smart_scraper(seed_urls, max_per_seed=8):
         "started_at": started_at,
         "seeds": list(seed_urls),
         "candidates_total": 0,
+        "candidates_from_seeds": 0,
+        "candidates_from_db_sweep": 0,
         "robots_blocked": 0,
         "unhashable": 0,
         "unchanged": 0,
@@ -284,6 +315,25 @@ def run_smart_scraper(seed_urls, max_per_seed=8):
                 candidates.append(seed)
         else:
             candidates.append(seed)
+
+    # Track seed-derived candidates separately for the summary
+    summary["candidates_from_seeds"] = len(set(candidates))
+
+    # DB-wide verify sweep: pull every grant URL already in CoreBackend and
+    # add them to the candidate set. Ensures the "Verified X ago" badge stays
+    # fresh for grants whose source seed no longer links to them. Costs zero
+    # Firecrawl tokens (only HTML hash-fetches + the cheap /verify endpoint
+    # for unchanged URLs).
+    db_urls = fetch_all_grant_urls()
+    seed_set = set(candidates)
+    new_from_db = [u for u in db_urls if u not in seed_set]
+    summary["candidates_from_db_sweep"] = len(new_from_db)
+    if new_from_db:
+        logger.info(
+            f"[*] DB sweep added {len(new_from_db)} grant URLs already in the "
+            f"database (will hash-check + verify)."
+        )
+        candidates.extend(new_from_db)
 
     # Deduplicate candidate URLs
     candidates = list(dict.fromkeys(candidates))

@@ -113,6 +113,14 @@ public class GrantService {
         return true;
     }
 
+    public List<String> getAllGrantUrls() {
+        return grantRepository.findAll()
+                .stream()
+                .map(Grant::getGrantUrl)
+                .filter(url -> url != null && !url.isBlank())
+                .toList();
+    }
+
     public List<GrantResponse> getAllGrants() {
         return grantRepository.findAll()
                 .stream()
