@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(./mvnw compile *)",
-      "Bash(npx --no-install tsc --noEmit)"
-    ]
-  }
-}
