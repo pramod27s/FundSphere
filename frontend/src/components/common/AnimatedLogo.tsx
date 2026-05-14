@@ -7,32 +7,44 @@ export interface AnimatedLogoProps {
   showText?: boolean;
 }
 
-// Main ring arc (sweeps bottom-left to top-right)
-const RING = "M 16 68 A 44 44 0 0 1 82 17";
+// ── Two independent elements, just like the screenshot ──────────────────────
+// 1) RING   — a nearly-complete thin teal circle with a small gap on the
+//             upper-right where the dot lives.
+// 2) SWOOSH — a separate teal crescent that sweeps from the lower-left,
+//             DOWN past the ring's bottom and UP toward the dot.
 
-// Bottom swoosh (crescent moon form)
-const SWOOSH = "M 16 68 C 25 96, 75 98, 89 62 C 68 85, 35 82, 16 68 Z";
+// Center 50,50. Perfect mathematical arcs and clipping paths. R=43.
+// Ring starts at top right (-45 deg) and loops CCW down deep into the Swoosh belly (130 deg) so no caps protrude.
+const RING = "M 79.3 20.7 A 41.5 41.5 0 1 0 23.3 81.8";
 
-// Orbital Dot
-const dot = { x: 88, y: 24 };
+// Swoosh starts EXACTLY touching the Ring's inner border on the left (145 deg) allowing it
+// to brilliantly thicken the arc without causing a blob protruding on the left side.
+// Outer ring matches R=43 to the right tip at -15 deg.
+const SWOOSH = "M 14.8 74.6 A 43 43 0 0 0 91.5 38.9 C 75 80, 45 85, 16.0 73.8 Z";
 
-// Helper to draw precise custom ascending bars with sloped/rounded tops
-const getBarPath = (x: number, w: number, bottom: number, h: number) => {
-  const right = x + w;
-  const topEdge = bottom - h;
-  return `M ${x} ${bottom}
-          L ${right} ${bottom}
-          L ${right} ${topEdge}
-          L ${x + 5} ${topEdge + 3}
-          Q ${x} ${topEdge + 5} ${x} ${topEdge + 10}
+// Precise orbital dot nested exactly between the tips
+const dot = { x: 89, y: 31.8 };
+
+// Ascending sleek bars: Flat flat right vertical edge, sharp right corner, sweeping left curve.
+// Bars are drawn straight down; an automated SVG Mask will slice a perfect gap under them!
+const getBarPath = (x: number, w: number, topY: number, r: number) => {
+  return `M ${x} 95
+          L ${x + w} 95
+          L ${x + w} ${topY}
+          Q ${x} ${topY} ${x} ${topY + r}
           Z`;
 };
 
+// Precisely fitted bars
 const BARS = [
-  getBarPath(26, 12, 74, 20),
-  getBarPath(43, 12, 74, 34),
-  getBarPath(60, 12, 74, 48),
+  getBarPath(24, 13, 50, 14),
+  getBarPath(43, 13, 36, 15),
+  getBarPath(62, 13, 23, 13),
 ];
+
+// Theme Colors
+const THEME_TEAL = "#0d9488"; // standard tailwind teal-600
+const THEME_NAVY = "#0f172a"; // standard tailwind slate-900
 
 export default function AnimatedLogo({
   className     = 'w-10 h-10',
@@ -45,124 +57,70 @@ export default function AnimatedLogo({
     <div className="flex items-center gap-3">
       <div className={`relative shrink-0 overflow-visible ${className}`}>
         <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible">
+
           <defs>
-            {/* Ring gradient: dark-teal lower-left → bright-teal upper-right */}
-            <linearGradient
-              id="fs-ring-grad"
-              x1="16" y1="68" x2="88" y2="24"
-              gradientUnits="userSpaceOnUse"
-            >
-              <stop offset="0%"   stopColor="#0d9488" />
-              <stop offset="55%"  stopColor="#14b8a6" />
-              <stop offset="100%" stopColor="#2dd4bf" />
-            </linearGradient>
-
-            {/* Swoosh gradient: left → right */}
-            <linearGradient
-              id="fs-swoosh-grad"
-              x1="16" y1="68" x2="89" y2="62"
-              gradientUnits="userSpaceOnUse"
-            >
-              <stop offset="0%"   stopColor="#0f766e" />
-              <stop offset="100%" stopColor="#0d9488" />
-            </linearGradient>
-
-            {/* Glow filter for dot */}
-            <filter id="fs-dot-glow" x="-120%" y="-120%" width="340%" height="340%">
-              <feGaussianBlur stdDeviation="2.2" result="b" />
-              <feMerge>
-                <feMergeNode in="b" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-
-            {/* Drop shadow for swoosh */}
-            <filter id="fs-swoosh-shadow" x="-20%" y="-60%" width="140%" height="220%">
-              <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#0f766e" floodOpacity="0.35" />
-            </filter>
+            <mask id="fs-bar-mask">
+              <rect x="0" y="0" width="100" height="100" fill="white" />
+              {/* Perfectly cleanly slices everything identical to the swoosh's inner curve, minus a beautifully even 1.5px vertical offset! */}
+              <path d="M 110 110 L 110 30 L 93.0 38.5 C 75 80, 45 85, 16.0 73.8 L -10 73.8 L -10 110 Z" fill="black" transform="translate(0, -1.8)" />
+            </mask>
           </defs>
 
-          {/* ── Main ring arc ── */}
+          {/* ── 1) Bars - Nested beneath AND masked to smoothly curve above the swoosh ── */}
+          <g mask="url(#fs-bar-mask)">
+            {BARS.map((barPath, i) => (
+              <motion.path
+                key={i}
+                d={barPath}
+                fill={THEME_NAVY}
+                style={{ transformOrigin: '50% 100%', transformBox: 'fill-box' }}
+                initial={{ scaleY: 0, opacity: 0 }}
+                animate={{ scaleY: 1, opacity: 1 }}
+                transition={{
+                  delay: 0.45 + i * 0.13,
+                  duration: 0.5,
+                  type: 'spring',
+                  stiffness: 220,
+                  damping: 16,
+                }}
+              />
+            ))}
+          </g>
+
+          {/* ── 2) Main ring (thin stroke) ── */}
           <motion.path
             d={RING}
             fill="none"
-            stroke="url(#fs-ring-grad)"
-            strokeWidth="4.5"
+            stroke={THEME_TEAL}
+            strokeWidth="3"
             strokeLinecap="round"
             initial={{ pathLength: 0, opacity: 0 }}
             animate={{ pathLength: 1, opacity: 1 }}
-            transition={{ duration: 0.85, ease: 'easeInOut' }}
+            transition={{ duration: 1.0, ease: 'easeInOut' }}
             onAnimationComplete={() => setRingDone(true)}
           />
 
-          {/* ── Bars (grow up from bottom) ── */}
-          {BARS.map((barPath, i) => (
-            <motion.path
-              key={i}
-              d={barPath}
-              fill="#0f172a"
-              style={{ transformOrigin: '50% 100%', transformBox: 'fill-box' }}
-              initial={{ scaleY: 0, opacity: 0 }}
-              animate={{ scaleY: 1, opacity: 1 }}
-              transition={{
-                delay: 0.45 + i * 0.13,
-                duration: 0.5,
-                type: 'spring',
-                stiffness: 220,
-                damping: 16,
-              }}
-            />
-          ))}
-
-          {/* ── Swoosh (rendered after bars so it sits on top) ── */}
+          {/* ── 3) Swoosh (Crescent) - Razor sharp tips correctly restored ── */}
           <motion.path
             d={SWOOSH}
-            fill="url(#fs-swoosh-grad)"
-            filter="url(#fs-swoosh-shadow)"
-            style={{ transformOrigin: 'center', transformBox: 'fill-box' }}
-            initial={{ opacity: 0, scale: 0.8, y: 5 }}
+            fill={THEME_TEAL}
+            initial={{ opacity: 0, scale: 0.9, y: 4 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.7, ease: 'easeOut' }}
           />
 
-          {/* ── Dot at 1 o'clock with ripple ── */}
+          {/* ── 4) Dot at 2 o'clock with ripple ── */}
           {ringDone && (
             <>
               <motion.circle
                 cx={dot.x}
                 cy={dot.y}
-                r={5}
-                fill="#14b8a6"
-                filter="url(#fs-dot-glow)"
-                style={{
-                  transformOrigin: 'center',
-                  transformBox: 'fill-box',
-                }}
+                r={4.5}
+                fill={THEME_TEAL}
+                style={{ transformOrigin: 'center', transformBox: 'fill-box' }}
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.38, type: 'spring', stiffness: 320, damping: 14 }}
-              />
-              {/* Ripple */}
-              <motion.circle
-                cx={dot.x}
-                cy={dot.y}
-                r={5}
-                fill="none"
-                stroke="#2dd4bf"
-                strokeWidth="1.8"
-                style={{
-                  transformOrigin: 'center',
-                  transformBox: 'fill-box',
-                }}
-                initial={{ scale: 1, opacity: 0.7 }}
-                animate={{ scale: 3.6, opacity: 0 }}
-                transition={{
-                  delay: 0.4,
-                  duration: 1.6,
-                  repeat: Infinity,
-                  repeatDelay: 1.1,
-                  ease: 'easeOut',
-                }}
+                transition={{ duration: 0.45, type: 'spring', stiffness: 320, damping: 13 }}
               />
             </>
           )}
