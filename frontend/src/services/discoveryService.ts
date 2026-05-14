@@ -1,4 +1,5 @@
 import { apiFetch } from './apiClient';
+import { formatFundingRange } from '../utils/formatFunding';
 
 export interface DiscoveryGrant {
   id: number;
@@ -251,40 +252,7 @@ function formatDate(value?: string): string {
 }
 
 function formatFunding(min?: number, max?: number, currency?: string): string {
-  const code = normalizeCurrencyCode(currency);
-  const formatter = new Intl.NumberFormat(undefined, {
-    style: 'currency',
-    currency: code,
-    maximumFractionDigits: 0,
-  });
-
-  if (typeof min === 'number' && typeof max === 'number') {
-    return `${formatter.format(min)} - ${formatter.format(max)}`;
-  }
-  if (typeof min === 'number') {
-    return `From ${formatter.format(min)}`;
-  }
-  if (typeof max === 'number') {
-    return `Up to ${formatter.format(max)}`;
-  }
-  return 'Funding amount not specified';
-}
-
-function normalizeCurrencyCode(raw?: string): string {
-  if (!raw || !raw.trim()) {
-    return 'USD';
-  }
-
-  const value = raw.trim().toUpperCase();
-  if (value === 'RS' || value === 'INR' || value === 'RUPEE' || value === 'RUPEES' || value === '₹') {
-    return 'INR';
-  }
-  if (value === '$' || value === 'US$' || value === 'DOLLAR' || value === 'DOLLARS') {
-    return 'USD';
-  }
-
-  // Intl expects 3-letter ISO-4217; default safely if backend sends non-standard values.
-  return /^[A-Z]{3}$/.test(value) ? value : 'USD';
+  return formatFundingRange(min, max, currency);
 }
 
 function asString(value: unknown): string | undefined {

@@ -11,6 +11,7 @@
  */
 import { apiFetch } from './apiClient';
 import type { DiscoveryGrant } from './discoveryService';
+import { formatFundingRange } from '../utils/formatFunding';
 
 export type SavedGrantStatus = 'INTERESTED' | 'APPLYING' | 'SUBMITTED' | 'REJECTED';
 
@@ -166,26 +167,7 @@ function formatDate(value?: string): string {
 }
 
 function formatFunding(min?: number, max?: number, currency?: string): string {
-  const code = normalizeCurrencyCode(currency);
-  const formatter = new Intl.NumberFormat(undefined, {
-    style: 'currency',
-    currency: code,
-    maximumFractionDigits: 0,
-  });
-  if (typeof min === 'number' && typeof max === 'number') {
-    return `${formatter.format(min)} - ${formatter.format(max)}`;
-  }
-  if (typeof min === 'number') return `From ${formatter.format(min)}`;
-  if (typeof max === 'number') return `Up to ${formatter.format(max)}`;
-  return 'Funding amount not specified';
-}
-
-function normalizeCurrencyCode(raw?: string): string {
-  if (!raw || !raw.trim()) return 'USD';
-  const value = raw.trim().toUpperCase();
-  if (['RS', 'INR', 'RUPEE', 'RUPEES', '₹'].includes(value)) return 'INR';
-  if (['$', 'US$', 'DOLLAR', 'DOLLARS'].includes(value)) return 'USD';
-  return /^[A-Z]{3}$/.test(value) ? value : 'USD';
+  return formatFundingRange(min, max, currency);
 }
 
 function splitTextList(value?: string): string[] {

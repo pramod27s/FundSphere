@@ -11,6 +11,7 @@
  * the local cache is cleared.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 import {
   fetchSavedGrantIds,
   fetchSavedGrants,
@@ -126,12 +127,14 @@ export function useSavedGrants() {
       try {
         if (wasSaved) {
           await unsaveGrantOnServer(grant.id);
+          toast.success('Removed from saved grants');
         } else {
           const real = await saveGrantOnServer(grant.id);
           // Replace the synthetic optimistic entry with the real one.
           setSavedGrants((prev) =>
             prev.map((e) => (e.grant.id === grant.id ? real : e)),
           );
+          toast.success('Saved to your grants');
         }
       } catch (e) {
         // Rollback on failure
@@ -146,7 +149,9 @@ export function useSavedGrants() {
             ? [synthetic, ...prev.filter((e) => e.grant.id !== grant.id)]
             : prev.filter((e) => e.grant.id !== grant.id),
         );
-        setError(e instanceof Error ? e.message : 'Failed to update saved grant');
+        const message = e instanceof Error ? e.message : 'Failed to update saved grant';
+        setError(message);
+        toast.error(wasSaved ? 'Could not unsave — please try again' : 'Could not save — please try again');
       } finally {
         inFlight.current.delete(grant.id);
       }
@@ -180,12 +185,15 @@ export function useSavedGrants() {
       try {
         const updated = await updateSavedGrantOnServer(grantId, changes);
         setSavedGrants((prev) => prev.map((e) => (e.grant.id === grantId ? updated : e)));
+        if (changes.status !== undefined) toast.success('Status updated');
+        else if (changes.notes !== undefined) toast.success('Notes saved');
       } catch (e) {
         if (previous) {
           // Rollback to previous state on failure
           setSavedGrants((prev) => prev.map((row) => (row.grant.id === grantId ? previous : row)));
         }
         setError(e instanceof Error ? e.message : 'Failed to update saved grant');
+        toast.error('Could not save changes — please try again');
         throw e;
       }
     },

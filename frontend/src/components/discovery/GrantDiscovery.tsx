@@ -1,4 +1,4 @@
-import { Search, Menu } from 'lucide-react';
+import { Search, Menu, SlidersHorizontal, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import GrantList from './GrantList.tsx';
 import FilterSidebar, { type FilterState, EMPTY_FILTERS } from './FilterSidebar.tsx';
@@ -342,46 +342,121 @@ export default function GrantDiscovery({ researcher, onNavigate }: GrantDiscover
             <GrantList grants={displayedGrants} isLoading={isLoading} source={dataSource} profile={researcher} />
 
             {!isLoading && filteredGrants.length === 0 && sortedGrants.length > 0 && (
-              <div className="rounded-2xl border border-brand-200/60 bg-white/60 backdrop-blur-sm p-12 flex flex-col items-center justify-center text-center mt-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(15,23,42,0.04)]">
-                <div className="bg-gradient-to-br from-brand-50 to-white p-5 rounded-2xl shadow-inner border border-brand-100 mb-4">
-                  <Search className="w-8 h-8 text-brand-400" />
-                </div>
-                <h3 className="text-lg font-bold text-brand-900 mb-2 tracking-tight">No grants match your filters</h3>
-                <p className="text-brand-500 max-w-sm mb-6 text-sm">
-                  None of the {sortedGrants.length} loaded grants pass all selected filters. Try removing a filter or widening your criteria.
-                </p>
-                <button
-                  onClick={() => setFilterState(EMPTY_FILTERS)}
-                  className="px-6 py-2.5 bg-white border border-brand-200 hover:border-primary-300 hover:text-primary-700 hover:bg-primary-50 text-brand-700 font-semibold rounded-xl shadow-sm hover:shadow-md transition-all"
-                >
-                  Clear All Filters
-                </button>
-              </div>
+              <FilteredEmptyState
+                totalLoaded={sortedGrants.length}
+                filters={filterState}
+                onRemoveFilter={(key, value) =>
+                  setFilterState({ ...filterState, [key]: filterState[key].filter((v) => v !== value) })
+                }
+                onClearAll={() => setFilterState(EMPTY_FILTERS)}
+              />
             )}
 
             {!isLoading && sortedGrants.length === 0 && (
-              <div className="rounded-2xl border border-brand-200/60 bg-white/60 backdrop-blur-sm p-12 flex flex-col items-center justify-center text-center mt-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(15,23,42,0.04)]">
-                <div className="bg-gradient-to-br from-primary-50 to-white p-5 rounded-2xl shadow-inner border border-primary-100 mb-4">
-                  <Search className="w-8 h-8 text-primary-400" />
-                </div>
-                <h3 className="text-lg font-bold text-brand-900 mb-2 tracking-tight">No exact matches found</h3>
-                <p className="text-brand-500 max-w-sm mb-6 text-sm">
-                  We couldn't find any grants matching this specific profile and query. Try adjusting your research tags or broadening your search terms.
-                </p>
-                <button
-                  onClick={() => {
-                    setSearchQuery('');
-                    void loadGrants('', false);
-                  }}
-                  className="px-6 py-2.5 bg-white border border-brand-200 hover:border-primary-300 hover:text-primary-700 hover:bg-primary-50 text-brand-700 font-semibold rounded-xl shadow-sm hover:shadow-md transition-all"
-                >
-                  Clear Search & View All
-                </button>
-              </div>
+              <NoResultsEmptyState
+                searchQuery={searchQuery}
+                onClearSearch={() => {
+                  setSearchQuery('');
+                  void loadGrants('', false);
+                }}
+              />
             )}
           </div>
         </main>
       </div>
+    </div>
+  );
+}
+
+const FILTER_LABELS: Record<keyof FilterState, string> = {
+  grantTypes: 'Type',
+  applicantTypes: 'Applicant',
+  fundingRanges: 'Funding',
+  deadlineRanges: 'Deadline',
+};
+
+function FilteredEmptyState({
+  totalLoaded,
+  filters,
+  onRemoveFilter,
+  onClearAll,
+}: {
+  totalLoaded: number;
+  filters: FilterState;
+  onRemoveFilter: (key: keyof FilterState, value: string) => void;
+  onClearAll: () => void;
+}) {
+  const activeChips: Array<{ key: keyof FilterState; value: string }> = (
+    Object.keys(filters) as Array<keyof FilterState>
+  ).flatMap((key) => filters[key].map((value) => ({ key, value })));
+
+  return (
+    <div className="rounded-2xl border border-brand-200/60 bg-white/60 backdrop-blur-sm p-10 flex flex-col items-center justify-center text-center mt-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(15,23,42,0.04)]">
+      <div className="bg-gradient-to-br from-brand-50 to-white p-5 rounded-2xl shadow-inner border border-brand-100 mb-4">
+        <SlidersHorizontal className="w-8 h-8 text-brand-400" />
+      </div>
+      <h3 className="text-lg font-bold text-brand-900 mb-2 tracking-tight">
+        No grants match your filters
+      </h3>
+      <p className="text-brand-500 max-w-md mb-5 text-sm">
+        {totalLoaded} grants loaded, but your filters filtered all of them out. Remove one to widen your results:
+      </p>
+      <div className="flex flex-wrap gap-2 justify-center max-w-xl mb-6">
+        {activeChips.map(({ key, value }) => (
+          <button
+            key={`${key}-${value}`}
+            type="button"
+            onClick={() => onRemoveFilter(key, value)}
+            className="group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-white border border-brand-200 text-brand-700 hover:border-red-300 hover:bg-red-50 hover:text-red-700 transition-all shadow-sm"
+            aria-label={`Remove ${FILTER_LABELS[key]} filter ${value}`}
+          >
+            <span className="text-[10px] uppercase tracking-wider text-brand-400 group-hover:text-red-400">
+              {FILTER_LABELS[key]}
+            </span>
+            <span>{value}</span>
+            <X className="w-3 h-3 opacity-50 group-hover:opacity-100" />
+          </button>
+        ))}
+      </div>
+      <button
+        onClick={onClearAll}
+        className="px-6 py-2.5 bg-white border border-brand-200 hover:border-primary-300 hover:text-primary-700 hover:bg-primary-50 text-brand-700 font-semibold rounded-xl shadow-sm hover:shadow-md transition-all text-sm"
+      >
+        Clear all filters
+      </button>
+    </div>
+  );
+}
+
+function NoResultsEmptyState({
+  searchQuery,
+  onClearSearch,
+}: {
+  searchQuery: string;
+  onClearSearch: () => void;
+}) {
+  return (
+    <div className="rounded-2xl border border-brand-200/60 bg-white/60 backdrop-blur-sm p-12 flex flex-col items-center justify-center text-center mt-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(15,23,42,0.04)]">
+      <div className="bg-gradient-to-br from-primary-50 to-white p-5 rounded-2xl shadow-inner border border-primary-100 mb-4">
+        <Search className="w-8 h-8 text-primary-400" />
+      </div>
+      <h3 className="text-lg font-bold text-brand-900 mb-2 tracking-tight">
+        No grants found
+      </h3>
+      <p className="text-brand-500 max-w-md mb-5 text-sm">
+        {searchQuery
+          ? <>Nothing matched <span className="font-semibold text-brand-700">"{searchQuery}"</span>. Try broader terms — e.g. "machine learning" instead of "transformer pretraining".</>
+          : <>We couldn't find any grants right now. Check back soon, or try the AI Match button with a description of your research.</>
+        }
+      </p>
+      {searchQuery && (
+        <button
+          onClick={onClearSearch}
+          className="px-6 py-2.5 bg-white border border-brand-200 hover:border-primary-300 hover:text-primary-700 hover:bg-primary-50 text-brand-700 font-semibold rounded-xl shadow-sm hover:shadow-md transition-all text-sm"
+        >
+          Clear search & view all
+        </button>
+      )}
     </div>
   );
 }
