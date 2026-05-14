@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Bookmark, FileText } from 'lucide-react';
 import { loadSession } from '../../services/authService';
 
 interface UserAvatarMenuProps {
-  onNavigate: (page: 'profile' | 'saved-grants' | 'proposal') => void;
   researcherId?: number;
 }
 
@@ -14,7 +14,8 @@ function getInitials(fullName: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-export default function UserAvatarMenu({ onNavigate, researcherId }: UserAvatarMenuProps) {
+export default function UserAvatarMenu({ researcherId }: UserAvatarMenuProps) {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -57,7 +58,12 @@ export default function UserAvatarMenu({ onNavigate, researcherId }: UserAvatarM
 
   const handleNavigate = (page: 'profile' | 'saved-grants' | 'proposal') => {
     setIsOpen(false);
-    onNavigate(page);
+    const pathMap = {
+      profile: '/profile',
+      'saved-grants': '/saved',
+      proposal: '/proposal',
+    } as const;
+    navigate(pathMap[page]);
   };
 
   return (

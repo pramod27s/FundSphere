@@ -1,15 +1,23 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, Lock, ArrowRight, UserPlus } from 'lucide-react';
+import { Mail, Lock, ArrowRight, UserPlus, Eye, EyeOff } from 'lucide-react';
+import { login, saveSession } from '../../services/authService';
 
 interface LoginProps {
-  onLoginSuccess: () => void;
+  /**
+   * Called after the session has been persisted. May return a Promise —
+   * the Login button stays in its loading state until it resolves, so
+   * the user sees feedback while the parent fetches their profile and
+   * routes them.
+   */
+  onLoginSuccess: () => void | Promise<void>;
   onNavigateToRegister: () => void;
 }
 
 export default function Login({ onLoginSuccess, onNavigateToRegister }: LoginProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -19,13 +27,14 @@ export default function Login({ onLoginSuccess, onNavigateToRegister }: LoginPro
     setIsLoading(true);
 
     try {
-      const { login, saveSession } = await import('../../services/authService');
       const session = await login({ email, password });
       saveSession(session);
-      onLoginSuccess();
-    } catch (err: any) {
-      setErrorMsg(err.message || 'An error occurred during login. Please try again.');
-    } finally {
+      // Keep the loading state through the parent's post-login work
+      // (profile fetch + route decision) so the button doesn't flicker
+      // back to "Sign In" before the redirect happens.
+      await onLoginSuccess();
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'An error occurred during login. Please try again.');
       setIsLoading(false);
     }
   };
@@ -80,13 +89,22 @@ export default function Login({ onLoginSuccess, onNavigateToRegister }: LoginPro
                   <Lock size={20} />
                 </div>
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-3 border border-brand-100 rounded-xl bg-white/50 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all outline-none text-brand-900 placeholder:text-brand-800/40 shadow-sm"
+                  className="block w-full pl-10 pr-10 py-3 border border-brand-100 rounded-xl bg-white/50 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all outline-none text-brand-900 placeholder:text-brand-800/40 shadow-sm"
                   placeholder="••••••••"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-pressed={showPassword}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-brand-800/40 hover:text-primary-600 focus:outline-none focus:text-primary-600 transition-colors"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </div>
           </div>
@@ -94,7 +112,7 @@ export default function Login({ onLoginSuccess, onNavigateToRegister }: LoginPro
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full flex items-center justify-center py-3.5 px-4 rounded-xl text-white bg-linear-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 shadow-lg shadow-primary-500/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transform transition-all active:scale-[0.98] font-bold text-lg group disabled:opacity-70 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center py-3.5 px-4 rounded-xl text-white bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 shadow-lg shadow-primary-500/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transform transition-all active:scale-[0.98] font-bold text-lg group disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {isLoading ? 'Signing In...' : 'Sign In'}
             {!isLoading && <ArrowRight size={20} className="ml-2 group-hover:translate-x-1 transition-transform" />}

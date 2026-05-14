@@ -17,7 +17,7 @@ export default function StepAccountInfo({
   const passwordsMatch = !confirmPassword || password === confirmPassword;
 
   return (
-    <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="flex flex-col gap-4">
       <p className="text-brand-500 mb-2">Please provide your basic login credentials.</p>
       
       <div>

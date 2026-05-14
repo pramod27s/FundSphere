@@ -359,8 +359,22 @@ function SavedGrantCard({ entry, onOpenDetails, onUnsave, onChangeStatus, onSave
             className="w-full bg-white border border-brand-200 rounded-md p-2 text-sm text-brand-800 placeholder:text-brand-400 focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-200 resize-y"
           />
           <div className="flex items-center justify-between mt-2">
-            <span className="text-[10px] text-brand-400 tabular-nums">
+            <span
+              className={`text-[10px] tabular-nums font-medium ${
+                draftNotes.length >= 4000
+                  ? 'text-red-600'
+                  : draftNotes.length >= 3800
+                    ? 'text-amber-600'
+                    : 'text-brand-400'
+              }`}
+            >
               {draftNotes.length}/4000
+              {draftNotes.length >= 3800 && draftNotes.length < 4000 && (
+                <span className="ml-1 normal-case">· {4000 - draftNotes.length} chars left</span>
+              )}
+              {draftNotes.length >= 4000 && (
+                <span className="ml-1 normal-case">· limit reached</span>
+              )}
             </span>
             <div className="flex gap-2">
               <button

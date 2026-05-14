@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion';
 import { X, ShieldCheck, ShieldAlert, Calendar, TrendingUp, ExternalLink, BookmarkPlus, BookmarkCheck } from 'lucide-react';
 import type { DiscoveryGrant } from '../../services/discoveryService';
 import type { ResearcherResponse } from '../../services/researcherService';
@@ -23,7 +24,11 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
       <div className="absolute inset-0 bg-brand-900/50 backdrop-blur-md transition-opacity" onClick={onClose} />
 
       {/* Modal Content */}
-      <div className="bg-white rounded-2xl shadow-[0_25px_70px_rgba(15,23,42,0.25)] w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col relative z-10 animate-in fade-in zoom-in-95 duration-200 ring-1 ring-brand-200/50">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+        className="bg-white rounded-2xl shadow-[0_25px_70px_rgba(15,23,42,0.25)] w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col relative z-10 ring-1 ring-brand-200/50">
         {/* Header with gradient + decorative accent */}
         <div className="relative flex items-start justify-between p-6 border-b border-brand-100 bg-gradient-to-br from-primary-50/60 via-white to-brand-50/40">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary-400 via-primary-500 to-primary-600" />
@@ -189,19 +194,28 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
                   : <><BookmarkPlus className="w-4 h-4" /> Save</>
                 }
             </button>
-            <button
-                onClick={() => {
-                  const target = grant.applicationLink || grant.grantUrl;
-                  if (target) {
-                    window.open(target, '_blank', 'noopener,noreferrer');
-                  }
-                }}
-                className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-semibold text-white bg-gradient-to-br from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-            >
-                Apply on provider site <ExternalLink className="w-4 h-4" />
-            </button>
+            {(() => {
+              const target = grant.applicationLink || grant.grantUrl;
+              const disabled = !target;
+              return (
+                <button
+                  onClick={() => {
+                    if (target) window.open(target, '_blank', 'noopener,noreferrer');
+                  }}
+                  disabled={disabled}
+                  title={disabled ? 'Provider did not publish an application link' : undefined}
+                  className={`w-full sm:w-auto px-6 py-2.5 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
+                    disabled
+                      ? 'bg-brand-100 text-brand-400 cursor-not-allowed border border-brand-200'
+                      : 'text-white bg-gradient-to-br from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30 active:scale-[0.98]'
+                  }`}
+                >
+                  {disabled ? 'No application link available' : <>Apply on provider site <ExternalLink className="w-4 h-4" /></>}
+                </button>
+              );
+            })()}
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

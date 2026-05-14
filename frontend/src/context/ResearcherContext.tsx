@@ -1,0 +1,139 @@
+/**
+ * Shared researcher-profile state for the routed app.
+ *
+ * Three logical states for the researcher value:
+ *   - `undefined` → not yet fetched (initial mount / post-login)
+ *   - `null`      → fetched but no profile exists yet (404 → onboarding)
+ *   - object      → fully loaded, can render protected pages
+ *
+ * RequireResearcher reads this and decides whether to render the route,
+ * redirect to /onboarding, or bounce to /auth.
+ */
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { clearSession, loadSession } from '../services/authService';
+import { getMyResearcher, type ResearcherResponse } from '../services/researcherService';
+
+type ResearcherState = ResearcherResponse | null | undefined;
+
+interface ResearcherContextValue {
+  researcher: ResearcherState;
+  setResearcher: (r: ResearcherResponse | null) => void;
+  ensureLoaded: () => Promise<ResearcherState>;
+  /**
+   * Force a re-fetch even if we already have a cached value. Use after
+   * any event that invalidates the cache — login, logout, profile edit.
+   */
+  refresh: () => Promise<ResearcherState>;
+}
+
+const ResearcherContext = createContext<ResearcherContextValue | undefined>(undefined);
+
+export function ResearcherProvider({ children }: { children: ReactNode }) {
+  const [researcher, setResearcherState] = useState<ResearcherState>(undefined);
+  const inFlight = useRef<Promise<ResearcherState> | null>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Global auth-expiry listener — if any API call fires the
+  // `auth:unauthorized` event, drop the cached profile and bounce to /auth.
+  useEffect(() => {
+    const onUnauthorized = () => {
+      setResearcherState(null);
+      if (location.pathname !== '/auth') {
+        toast.error('Your session has expired. Please log in again.');
+        navigate('/auth', { replace: true });
+      }
+    };
+    window.addEventListener('auth:unauthorized', onUnauthorized);
+    return () => window.removeEventListener('auth:unauthorized', onUnauthorized);
+  }, [navigate, location.pathname]);
+
+  const setResearcher = useCallback((r: ResearcherResponse | null) => {
+    setResearcherState(r);
+  }, []);
+
+  /**
+   * Always hits the API — used by both ensureLoaded (on a cache miss) and
+   * refresh (to bypass the cache). Concurrent callers share the in-flight
+   * promise to avoid duplicate /api/researchers/me requests.
+   *
+   * Returns:
+   *   - ResearcherResponse on success
+   *   - null on 404 (caller should redirect to /onboarding)
+   *   - null + clearSession + nav to /auth on 401/403
+   */
+  const fetchProfile = useCallback(async (): Promise<ResearcherState> => {
+    if (!loadSession()) {
+      setResearcherState(null);
+      return null;
+    }
+    if (inFlight.current) return inFlight.current;
+
+    inFlight.current = (async () => {
+      try {
+        const profile = await getMyResearcher();
+        setResearcherState(profile);
+        return profile;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : '';
+        if (message.includes('404')) {
+          setResearcherState(null);
+          return null;
+        }
+        if (message.includes('401') || message.includes('403')) {
+          clearSession();
+          setResearcherState(null);
+          return null;
+        }
+        console.error('Failed to resolve researcher profile:', error);
+        toast.error('Unable to load profile. Make sure the backend is running.');
+        setResearcherState(null);
+        return null;
+      } finally {
+        inFlight.current = null;
+      }
+    })();
+
+    return inFlight.current;
+  }, []);
+
+  /**
+   * Lazily fetch only if we haven't already. Returns the cached value
+   * (including a cached `null` for "no profile") without re-hitting the API.
+   * Use `refresh()` when the cache may be stale (login, logout, profile edit).
+   */
+  const ensureLoaded = useCallback(async (): Promise<ResearcherState> => {
+    if (researcher !== undefined) return researcher;
+    return fetchProfile();
+  }, [researcher, fetchProfile]);
+
+  const refresh = useCallback(async (): Promise<ResearcherState> => {
+    setResearcherState(undefined);
+    inFlight.current = null;
+    return fetchProfile();
+  }, [fetchProfile]);
+
+  const value = useMemo(
+    () => ({ researcher, setResearcher, ensureLoaded, refresh }),
+    [researcher, setResearcher, ensureLoaded, refresh],
+  );
+
+  return <ResearcherContext.Provider value={value}>{children}</ResearcherContext.Provider>;
+}
+
+export function useResearcher() {
+  const ctx = useContext(ResearcherContext);
+  if (!ctx) throw new Error('useResearcher must be used inside ResearcherProvider');
+  return ctx;
+}

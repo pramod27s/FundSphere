@@ -1,141 +1,301 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Toaster, toast } from 'react-hot-toast';
+import { Navigate, Outlet, Route, Routes, useLocation, useNavigate, useNavigationType } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
-import { Toaster } from 'react-hot-toast';
 import OnboardingWizard from './components/onboarding/OnboardingWizard.tsx';
 import GrantDiscovery from './components/discovery/GrantDiscovery.tsx';
 import ResearcherProfile from './components/profile/ResearcherProfile.tsx';
 import SplashScreen from './components/common/SplashScreen.tsx';
 import AuthPage from './components/auth/AuthPage.tsx';
-import UserAvatarMenu from './components/common/UserAvatarMenu.tsx';
 import SavedGrants from './components/saved-grants/SavedGrants.tsx';
 import WritingProposal from './components/proposal/WritingProposal.tsx';
-import { getMyResearcher, type ResearcherResponse } from './services/researcherService';
 import { loadSession, clearSession } from './services/authService';
+import { ResearcherProvider, useResearcher } from './context/ResearcherContext';
 
-function App() {
-  const [currentPage, setCurrentPage] = useState<'splash' | 'auth' | 'onboarding' | 'discovery' | 'profile' | 'saved-grants' | 'proposal'>('splash');
-  const [researcherData, setResearcherData] = useState<ResearcherResponse | null>(null);
+const SPLASH_FLAG = 'fundsphere.splash.shown';
+const SCROLL_KEY_PREFIX = 'fundsphere.scroll.';
+
+/**
+ * Manual scroll-position memory across navigations. <BrowserRouter> doesn't
+ * include React Router's built-in <ScrollRestoration> (that's data-router
+ * only), so we do it ourselves:
+ *  - PUSH/REPLACE → scroll to top (you're going somewhere new)
+ *  - POP (back/forward) → restore the position saved when you last left
+ *
+ * Positions are keyed on history `location.key` and stored in
+ * sessionStorage so they survive a same-tab refresh too.
+ */
+function ScrollRestoration() {
+  const location = useLocation();
+  const navigationType = useNavigationType();
+  const previousKey = useRef<string>(location.key);
+
+  // Save current scroll before unmount of this route (i.e. just before
+  // the next location commits).
+  useEffect(() => {
+    return () => {
+      try {
+        sessionStorage.setItem(
+          SCROLL_KEY_PREFIX + previousKey.current,
+          String(window.scrollY),
+        );
+      } catch {
+        // sessionStorage might be full or disabled — non-fatal.
+      }
+    };
+  }, [location.key]);
 
   useEffect(() => {
-    const handleUnauthorized = () => {
-      setResearcherData(null);
-      setCurrentPage('auth');
-    };
-    window.addEventListener('auth:unauthorized', handleUnauthorized);
-    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
-  }, []);
-
-  const routeLoggedInUser = async () => {
-    try {
-      const profile = await getMyResearcher();
-      setResearcherData(profile);
-      setCurrentPage('discovery');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : '';
-
-      if (message.includes('404')) {
-        // New user without onboarding profile should be sent to onboarding.
-        setCurrentPage('onboarding');
-        return;
-      }
-
-      if (message.includes('401') || message.includes('403')){
-        alert('Your session has expired. Please log in again.');
-        clearSession();
-        setCurrentPage('auth');
-        return;
-      }
-
-      console.error('Failed to resolve researcher profile:', error);
-      alert('Unable to load profile. Please make sure the backend is running.');
+    if (navigationType === 'POP') {
+      const saved = sessionStorage.getItem(SCROLL_KEY_PREFIX + location.key);
+      window.scrollTo({ top: saved ? Number(saved) : 0, behavior: 'instant' as ScrollBehavior });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
     }
+    previousKey.current = location.key;
+  }, [location.key, navigationType]);
+
+  return null;
+}
+
+/**
+ * Root layout: provides the researcher context to all routes, owns the
+ * single <Toaster>, and applies the centred flex layout used by /auth
+ * and /onboarding (the other routes paint full-bleed and override it).
+ */
+function RootLayout() {
+  const location = useLocation();
+  const centred = location.pathname === '/auth' || location.pathname === '/onboarding';
+  return (
+    <ResearcherProvider>
+      <ScrollRestoration />
+      <div
+        className={`min-h-screen flex flex-col ${
+          centred ? 'justify-center items-center p-4 sm:p-6 lg:p-8' : ''
+        }`}
+      >
+        <Toaster
+          position="bottom-right"
+          gutter={8}
+          toastOptions={{
+            duration: 2800,
+            style: {
+              background: 'white',
+              color: '#0f172a',
+              border: '1px solid rgb(226 232 240)',
+              borderRadius: '12px',
+              boxShadow: '0 4px 16px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04)',
+              fontSize: '14px',
+              fontWeight: 500,
+              padding: '10px 14px',
+            },
+            success: { iconTheme: { primary: '#0d9488', secondary: 'white' } },
+            error: { iconTheme: { primary: '#dc2626', secondary: 'white' } },
+          }}
+        />
+        <Outlet />
+      </div>
+    </ResearcherProvider>
+  );
+}
+
+/**
+ * `/` — shows the splash once per browser session, then sends the user to
+ * the right starting route. Refreshes on inner pages don't re-trigger the
+ * splash (the flag is sessionStorage-scoped).
+ */
+function RootRedirect() {
+  const navigate = useNavigate();
+  const { ensureLoaded } = useResearcher();
+  const alreadyShown = typeof sessionStorage !== 'undefined' && sessionStorage.getItem(SPLASH_FLAG) === '1';
+  const [showSplash, setShowSplash] = useState(!alreadyShown);
+
+  useEffect(() => {
+    if (showSplash) return;
+    void route();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showSplash]);
+
+  const route = async () => {
+    if (!loadSession()) {
+      navigate('/auth', { replace: true });
+      return;
+    }
+    const profile = await ensureLoaded();
+    navigate(profile ? '/discovery' : '/onboarding', { replace: true });
   };
 
-  const handleOnboardingComplete = (data: ResearcherResponse) => {
-    setResearcherData(data);
-    setCurrentPage('discovery');
+  if (showSplash) {
+    return (
+      <AnimatePresence mode="wait">
+        <SplashScreen
+          key="splash"
+          onComplete={() => {
+            sessionStorage.setItem(SPLASH_FLAG, '1');
+            setShowSplash(false);
+          }}
+        />
+      </AnimatePresence>
+    );
+  }
+  return null;
+}
+
+/**
+ * Guards every authenticated route. Lazily fetches the researcher profile
+ * if it hasn't been loaded yet (e.g. user deep-linked to /discovery on a
+ * fresh refresh).
+ */
+function RequireResearcher() {
+  const { researcher, ensureLoaded } = useResearcher();
+  const [resolved, setResolved] = useState(researcher !== undefined);
+
+  useEffect(() => {
+    if (researcher !== undefined) {
+      setResolved(true);
+      return;
+    }
+    void (async () => {
+      await ensureLoaded();
+      setResolved(true);
+    })();
+  }, [researcher, ensureLoaded]);
+
+  if (!resolved) return null; // No flash — fetch is sub-second
+  if (!loadSession()) return <Navigate to="/auth" replace />;
+  if (researcher === null) return <Navigate to="/onboarding" replace />;
+  if (!researcher) return null;
+  return <Outlet />;
+}
+
+/**
+ * `/auth` — public for unauthenticated visitors. If the user is already
+ * logged in, kick them through the same route-decision the SplashScreen
+ * uses so they land on /discovery or /onboarding rather than re-seeing
+ * the login form.
+ */
+function AuthRoute() {
+  const navigate = useNavigate();
+  const { researcher, ensureLoaded, refresh } = useResearcher();
+  const [resolved, setResolved] = useState(researcher !== undefined);
+
+  // On first mount: if a session already exists, resolve the profile and
+  // redirect. This handles "user types /auth while logged in".
+  useEffect(() => {
+    if (researcher !== undefined) {
+      setResolved(true);
+      return;
+    }
+    if (!loadSession()) {
+      setResolved(true);
+      return;
+    }
+    void (async () => {
+      await ensureLoaded();
+      setResolved(true);
+    })();
+  }, [researcher, ensureLoaded]);
+
+  if (!resolved) return null;
+  if (researcher) return <Navigate to="/discovery" replace />;
+  if (researcher === null && loadSession()) return <Navigate to="/onboarding" replace />;
+
+  // refresh() bypasses any cached `null` left over from a previous logout,
+  // so a returning user with a profile lands on /discovery, not /onboarding.
+  const handleAuthenticated = async () => {
+    const profile = await refresh();
+    navigate(profile ? '/discovery' : '/onboarding', { replace: true });
   };
 
-  const handleAuthSuccess = () => {
-    void routeLoggedInUser();
-  };
+  return <AuthPage onAuthenticated={handleAuthenticated} />;
+}
 
-  const handleLogout = () => {
-    clearSession();
-    setResearcherData(null);
-    setCurrentPage('auth');
-  };
+/**
+ * `/onboarding` — only reachable when authenticated AND missing a
+ * researcher row. Lazily fetches the profile if not yet loaded so a
+ * direct URL hit doesn't slip past the existing-profile check.
+ */
+function OnboardingRoute() {
+  const navigate = useNavigate();
+  const { researcher, ensureLoaded, setResearcher } = useResearcher();
+  const [resolved, setResolved] = useState(researcher !== undefined);
+
+  useEffect(() => {
+    if (researcher !== undefined) {
+      setResolved(true);
+      return;
+    }
+    void (async () => {
+      await ensureLoaded();
+      setResolved(true);
+    })();
+  }, [researcher, ensureLoaded]);
+
+  if (!loadSession()) return <Navigate to="/auth" replace />;
+  if (!resolved) return null;
+  // Existing profile — wizard would create a duplicate, so bounce.
+  if (researcher) return <Navigate to="/discovery" replace />;
 
   return (
-    <div className={`min-h-screen flex flex-col ${['onboarding', 'auth'].includes(currentPage) ? 'justify-center items-center p-4 sm:p-6 lg:p-8' : ''}`}>
-      <Toaster
-        position="bottom-right"
-        gutter={8}
-        toastOptions={{
-          duration: 2800,
-          style: {
-            background: 'white',
-            color: '#0f172a',
-            border: '1px solid rgb(226 232 240)',
-            borderRadius: '12px',
-            boxShadow: '0 4px 16px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04)',
-            fontSize: '14px',
-            fontWeight: 500,
-            padding: '10px 14px',
-          },
-          success: {
-            iconTheme: { primary: '#0d9488', secondary: 'white' },
-          },
-          error: {
-            iconTheme: { primary: '#dc2626', secondary: 'white' },
-          },
+    <div className="w-full max-w-3xl">
+      <OnboardingWizard
+        onComplete={(data) => {
+          setResearcher(data);
+          navigate('/discovery', { replace: true });
         }}
       />
-
-      <AnimatePresence mode="wait">
-        {currentPage === 'splash' && (
-          <SplashScreen 
-            key="splash" 
-            onComplete={() => {
-              const session = loadSession();
-              if (!session) {
-                setCurrentPage('auth');
-                return;
-              }
-              void routeLoggedInUser();
-            }}
-          />
-        )}
-      </AnimatePresence>
-
-      {currentPage === 'auth' ? (
-        <AuthPage onAuthenticated={handleAuthSuccess} />
-      ) : currentPage === 'onboarding' ? (
-        <div className="w-full max-w-3xl">
-          <OnboardingWizard onComplete={handleOnboardingComplete} />
-        </div>
-      ) : currentPage === 'profile' && researcherData ? (
-        <ResearcherProfile
-          researcher={researcherData}
-          onBack={() => setCurrentPage('discovery')}
-          onLogout={handleLogout}
-        />
-      ) : currentPage === 'saved-grants' && researcherData ? (
-        <SavedGrants onBack={() => setCurrentPage('discovery')} />
-      ) : currentPage === 'proposal' && researcherData ? (
-        <WritingProposal onBack={() => setCurrentPage('discovery')} />
-      ) : currentPage === 'discovery' ? (
-        <div className="relative">
-            {researcherData && (
-              <div className="md:hidden absolute top-4 right-4 z-50">
-                <UserAvatarMenu onNavigate={(page) => setCurrentPage(page)} researcherId={researcherData.id} />
-              </div>
-            )}
-            <GrantDiscovery researcher={researcherData} onNavigate={(page) => setCurrentPage(page)} />
-        </div>
-      ) : null}
     </div>
   );
 }
 
-export default App;
+function DiscoveryRoute() {
+  const { researcher } = useResearcher();
+  return <GrantDiscovery researcher={researcher ?? null} />;
+}
+
+function ProfileRoute() {
+  const navigate = useNavigate();
+  const { researcher, setResearcher } = useResearcher();
+  if (!researcher) return null;
+  return (
+    <ResearcherProfile
+      researcher={researcher}
+      onBack={() => navigate('/discovery')}
+      onLogout={() => {
+        clearSession();
+        setResearcher(null);
+        navigate('/auth', { replace: true });
+        toast.success('You\'ve been logged out');
+      }}
+    />
+  );
+}
+
+function SavedRoute() {
+  const navigate = useNavigate();
+  return <SavedGrants onBack={() => navigate('/discovery')} />;
+}
+
+function ProposalRoute() {
+  const navigate = useNavigate();
+  return <WritingProposal onBack={() => navigate('/discovery')} />;
+}
+
+export default function App() {
+  return (
+    <Routes>
+      <Route element={<RootLayout />}>
+        <Route path="/" element={<RootRedirect />} />
+        <Route path="/auth" element={<AuthRoute />} />
+        <Route path="/onboarding" element={<OnboardingRoute />} />
+        <Route element={<RequireResearcher />}>
+          <Route path="/discovery" element={<DiscoveryRoute />} />
+          <Route path="/saved" element={<SavedRoute />} />
+          <Route path="/proposal" element={<ProposalRoute />} />
+          <Route path="/profile" element={<ProfileRoute />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
+    </Routes>
+  );
+}

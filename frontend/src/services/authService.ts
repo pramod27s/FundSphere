@@ -42,9 +42,14 @@ export function saveSession(session: AuthSession): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
 }
 
+/**
+ * Clear the persisted session. Pure local-state cleanup — does NOT
+ * dispatch `auth:unauthorized`. Use this for explicit user-initiated
+ * logout. The unauthorized event is reserved for genuine server-side
+ * 401/403 responses (see apiClient.refreshSession).
+ */
 export function clearSession(): void {
   localStorage.removeItem(STORAGE_KEY);
-  window.dispatchEvent(new Event('auth:unauthorized'));
 }
 
 export async function register(payload: RegisterPayload): Promise<AuthSession> {

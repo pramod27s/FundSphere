@@ -50,7 +50,7 @@ async function refreshSession(): Promise<AuthSession | null> {
 
   const existing = loadSession();
   if (!existing?.refreshToken) {
-    clearSession();
+    expireSession();
     return null;
   }
 
@@ -60,7 +60,7 @@ async function refreshSession(): Promise<AuthSession | null> {
       return next;
     })
     .catch(() => {
-      clearSession();
+      expireSession();
       return null;
     })
     .finally(() => {
@@ -68,4 +68,14 @@ async function refreshSession(): Promise<AuthSession | null> {
     });
 
   return refreshPromise;
+}
+
+/**
+ * Server told us the session is dead and we couldn't recover — drop the
+ * cached tokens and notify the app (ResearcherContext bounces to /auth).
+ * Distinct from a user-initiated logout, which uses clearSession() alone.
+ */
+function expireSession(): void {
+  clearSession();
+  window.dispatchEvent(new Event('auth:unauthorized'));
 }

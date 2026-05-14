@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, Lock, ArrowRight, UserPlus, LogIn, User } from 'lucide-react';
+import { Mail, Lock, ArrowRight, UserPlus, LogIn, User, Eye, EyeOff } from 'lucide-react';
+import { register, saveSession } from '../../services/authService';
 
 interface RegisterProps {
-  onRegisterSuccess: () => void;
+  /** May return a Promise — see LoginProps.onLoginSuccess for rationale. */
+  onRegisterSuccess: () => void | Promise<void>;
   onNavigateToLogin: () => void;
 }
 
@@ -11,6 +13,7 @@ export default function Register({ onRegisterSuccess, onNavigateToLogin }: Regis
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -20,13 +23,12 @@ export default function Register({ onRegisterSuccess, onNavigateToLogin }: Regis
     setIsLoading(true);
 
     try {
-      const { register, saveSession } = await import('../../services/authService');
       const session = await register({ email, password, fullName: name });
       saveSession(session);
-      onRegisterSuccess();
-    } catch (err: any) {
-      setErrorMsg(err.message || 'An error occurred during registration. Please try again.');
-    } finally {
+      // Keep loading through the parent's profile fetch + navigate.
+      await onRegisterSuccess();
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'An error occurred during registration. Please try again.');
       setIsLoading(false);
     }
   };
@@ -95,14 +97,23 @@ export default function Register({ onRegisterSuccess, onNavigateToLogin }: Regis
                   <Lock size={20} />
                 </div>
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-3 border border-brand-100 rounded-xl bg-white/50 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all outline-none text-brand-900 placeholder:text-brand-800/40 shadow-sm"
-                  placeholder="••••••••"
+                  className="block w-full pl-10 pr-10 py-3 border border-brand-100 rounded-xl bg-white/50 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all outline-none text-brand-900 placeholder:text-brand-800/40 shadow-sm"
+                  placeholder="At least 8 characters"
                   required
                   minLength={8}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-pressed={showPassword}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-brand-800/40 hover:text-primary-600 focus:outline-none focus:text-primary-600 transition-colors"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </div>
           </div>
@@ -110,7 +121,7 @@ export default function Register({ onRegisterSuccess, onNavigateToLogin }: Regis
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full flex items-center justify-center py-3.5 px-4 rounded-xl text-white bg-linear-to-r from-brand-900 to-brand-800 hover:from-black hover:to-brand-900 shadow-lg shadow-brand-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-900 transform transition-all active:scale-[0.98] font-bold text-lg group mt-2 disabled:opacity-70 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center py-3.5 px-4 rounded-xl text-white bg-gradient-to-r from-brand-900 to-brand-800 hover:from-black hover:to-brand-900 shadow-lg shadow-brand-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-900 transform transition-all active:scale-[0.98] font-bold text-lg group mt-2 disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {isLoading ? 'Signing Up...' : 'Sign Up'}
             {!isLoading && <ArrowRight size={20} className="ml-2 group-hover:translate-x-1 transition-transform" />}

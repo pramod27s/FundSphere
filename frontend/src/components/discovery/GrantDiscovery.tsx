@@ -15,6 +15,31 @@ function toInr(amount: number, currency?: string): number {
   return rate > 0 ? amount * rate : 0;
 }
 
+/**
+ * Sort key for "deadline (closing soonest)". Grants without a parsable
+ * deadline sink to the bottom; past deadlines also bury after future ones
+ * so the user always sees actionable rows first.
+ */
+function deadlineMs(g: DiscoveryGrant): number {
+  if (!g.deadlineRaw) return Number.POSITIVE_INFINITY;
+  const t = new Date(g.deadlineRaw).getTime();
+  if (Number.isNaN(t)) return Number.POSITIVE_INFINITY;
+  if (t < Date.now()) return t + 1e15;
+  return t;
+}
+
+/**
+ * Sort key for "funding (highest)". Uses the max raw amount converted to
+ * INR, so a $50,000 USD grant outranks a ₹10 Lakh grant. Unspecified
+ * amounts sort to the bottom.
+ */
+function fundingInrValue(g: DiscoveryGrant): number {
+  const raw = g.fundingAmountMaxRaw ?? g.fundingAmountMinRaw;
+  if (typeof raw !== 'number') return -1;
+  const inr = toInr(raw, g.fundingCurrencyRaw);
+  return inr > 0 ? inr : raw;
+}
+
 function applyFilters(grants: DiscoveryGrant[], f: FilterState): DiscoveryGrant[] {
   return grants.filter((g) => {
     if (f.grantTypes.length > 0) {
@@ -69,10 +94,9 @@ function applyFilters(grants: DiscoveryGrant[], f: FilterState): DiscoveryGrant[
 
 interface GrantDiscoveryProps {
   researcher: ResearcherResponse | null;
-  onNavigate?: (page: 'profile' | 'saved-grants' | 'proposal') => void;
 }
 
-export default function GrantDiscovery({ researcher, onNavigate }: GrantDiscoveryProps) {
+export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('recent');
   const [topK, setTopK] = useState<number>(Infinity);
@@ -152,9 +176,10 @@ export default function GrantDiscovery({ researcher, onNavigate }: GrantDiscover
   const sortedGrants = useMemo(() => {
     const copy = [...grants];
     if (sortBy === 'deadline') {
-      copy.sort((a, b) => a.deadline.localeCompare(b.deadline));
+      copy.sort((a, b) => deadlineMs(a) - deadlineMs(b));
     } else if (sortBy === 'funding') {
-      copy.sort((a, b) => b.amount.localeCompare(a.amount));
+      // Sort on raw INR-normalized amounts, not the formatted string.
+      copy.sort((a, b) => fundingInrValue(b) - fundingInrValue(a));
     } else if (sortBy === 'recent') {
       copy.sort((a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''));
     } else {
@@ -175,6 +200,12 @@ export default function GrantDiscovery({ researcher, onNavigate }: GrantDiscover
 
   return (
     <div className="flex h-screen w-full overflow-hidden relative bg-gradient-to-br from-brand-50 via-white to-primary-50/30">
+      {researcher && (
+        <div className="md:hidden absolute top-4 right-4 z-50">
+          <UserAvatarMenu researcherId={researcher.id} />
+        </div>
+      )}
+
       {isSidebarOpen && (
         <div
           className="fixed inset-0 bg-brand-900/40 backdrop-blur-sm z-40 md:hidden"
@@ -195,14 +226,17 @@ export default function GrantDiscovery({ researcher, onNavigate }: GrantDiscover
       <div className="flex-1 flex flex-col h-full overflow-hidden">
         <div className="hidden md:flex h-[64px] px-6 items-center justify-between border-b border-brand-100 bg-white/80 backdrop-blur-xl shrink-0 relative z-20">
           <div />
-          {researcher && onNavigate && (
-            <UserAvatarMenu onNavigate={onNavigate} researcherId={researcher.id} />
-          )}
+          {researcher && <UserAvatarMenu researcherId={researcher.id} />}
         </div>
 
         <header className="px-4 md:px-8 pt-4 md:pt-6 pb-3 md:pb-4 bg-white/80 backdrop-blur-xl border-b border-brand-100/80 shrink-0 z-10 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
           <div className="max-w-4xl mx-auto">
-            <div className="md:hidden flex items-center gap-3 mb-5">
+            <div
+              className={`md:hidden flex items-center gap-3 mb-5 transition-opacity duration-200 ${
+                isSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
+              }`}
+              aria-hidden={isSidebarOpen}
+            >
               <button
                 onClick={() => setIsSidebarOpen(true)}
                 className="p-2 -ml-2 text-brand-600 hover:text-brand-900 hover:bg-brand-100 rounded-lg transition-colors"
@@ -225,7 +259,7 @@ export default function GrantDiscovery({ researcher, onNavigate }: GrantDiscover
               </div>
               <input
                 type="text"
-                placeholder="Describe your research project..."
+                placeholder="Describe your research, then hit AI Match"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full sm:pl-11 sm:pr-48 px-4 py-2 sm:py-3 bg-white border border-brand-200 rounded-xl focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 text-brand-900 placeholder:text-brand-400 text-sm md:text-base transition-all shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.04)] hover:border-brand-300"
@@ -254,7 +288,14 @@ export default function GrantDiscovery({ researcher, onNavigate }: GrantDiscover
             <div className="flex gap-2 mt-3 overflow-x-auto pb-0 scrollbar-hide items-center">
               <span className="text-[10px] font-semibold text-brand-500 py-1 uppercase tracking-widest shrink-0">Suggested</span>
               <span className="h-3 w-px bg-brand-200 shrink-0" />
-              {['Climate Tech Startups', 'Postdoc Healthcare Grants', 'AI in Education Fellowships'].map((tag) => (
+              {[
+                'SERB CRG',
+                'INSPIRE Faculty',
+                'BIRAC BIG',
+                'DST Climate',
+                'ICMR Adhoc',
+                'Women in Science (WOS-A)',
+              ].map((tag) => (
                 <button
                   key={tag}
                   onClick={() => {

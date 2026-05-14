@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ShieldAlert, ShieldCheck, Users, TrendingUp, Calendar, ChevronRight, Sparkles, Bookmark, BookmarkCheck } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, TrendingUp, Calendar, ChevronRight, Sparkles, Bookmark, BookmarkCheck } from 'lucide-react';
 import GrantDetailsModal from './GrantDetailsModal.tsx';
 import FreshnessBadge from '../common/FreshnessBadge';
 import ProviderUpdatedInfo from '../common/ProviderUpdatedInfo';
@@ -211,10 +211,6 @@ function renderAiCard(
           </div>
           <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-100 rounded-lg text-green-700">
             <span className="text-sm font-bold text-green-700 whitespace-nowrap tabular-nums">{grant.amount}</span>
-          </div>
-          <div className="hidden md:flex items-center gap-2 whitespace-nowrap pl-1">
-            <Users className="w-4 h-4 text-brand-400" />
-            <span className="text-sm text-brand-500">Find Collaborator</span>
           </div>
         </div>
 
