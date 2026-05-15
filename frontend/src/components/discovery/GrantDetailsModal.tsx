@@ -5,6 +5,9 @@ import type { ResearcherResponse } from '../../services/researcherService';
 import FreshnessBadge from '../common/FreshnessBadge';
 import ProviderUpdatedInfo from '../common/ProviderUpdatedInfo';
 import MatchBreakdown from '../common/MatchBreakdown';
+import { formatRelativeDeadline } from '../../utils/formatDeadline';
+import GlossaryText from '../common/GlossaryText';
+import WhatsAppShareButton from '../common/WhatsAppShareButton';
 
 interface GrantDetailsModalProps {
   grant: DiscoveryGrant;
@@ -18,6 +21,11 @@ interface GrantDetailsModalProps {
 
 export default function GrantDetailsModal({ grant, onClose, source, isSaved = false, onToggleSave, profile }: GrantDetailsModalProps) {
   const isAi = source === 'ai';
+  const deadline = formatRelativeDeadline(grant.deadlineRaw);
+  const deadlineTone =
+    deadline.tone === 'overdue' ? 'text-red-700'
+    : deadline.tone === 'urgent' ? 'text-amber-700'
+    : 'text-brand-900';
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
       {/* Backdrop */}
@@ -72,15 +80,20 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
               </div>
               )}
               {/* Deadline */}
-              <div className="relative p-4 bg-white rounded-xl border border-brand-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.04)] overflow-hidden">
+              <div className="relative p-4 bg-white rounded-xl border border-brand-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.04)] overflow-hidden" title={deadline.tooltip || undefined}>
                   <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-brand-300 to-brand-500" />
                   <div className="flex items-center gap-2 text-brand-500 mb-1.5">
                       <Calendar className="w-3.5 h-3.5" />
                       <span className="text-[11px] font-semibold uppercase tracking-wider">Deadline</span>
                   </div>
-                  <div className="text-xl font-bold text-brand-900 tabular-nums">
-                      {grant.deadline}
+                  <div className={`text-xl font-bold tabular-nums ${deadlineTone}`}>
+                      {deadline.label}
                   </div>
+                  {deadline.tooltip && (
+                    <div className="text-[11px] text-brand-400 mt-0.5 tabular-nums">
+                      {deadline.tooltip}
+                    </div>
+                  )}
               </div>
               {/* Funding Amount */}
               <div className="relative p-4 bg-white rounded-xl border border-green-100/80 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(34,197,94,0.06)] overflow-hidden">
@@ -99,7 +112,7 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
                   <h3 className="text-base font-bold text-brand-900 mb-3 tracking-tight uppercase tracking-wider text-xs text-brand-500">AI Match Rationale</h3>
                   <div className="relative bg-gradient-to-br from-primary-50 via-primary-50/60 to-white border border-primary-100/80 rounded-xl p-5 text-primary-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] overflow-hidden">
                       <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-primary-400 to-primary-600" />
-                      <p className="pl-2">{grant.rationale}</p>
+                      <GlossaryText as="p" className="pl-2">{grant.rationale}</GlossaryText>
                   </div>
               </div>
             )}
@@ -148,18 +161,20 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
 
             <div className="mt-8 pt-8 border-t border-brand-100/80">
                 <h3 className="text-xs font-semibold text-brand-500 uppercase tracking-wider mb-3">Objectives</h3>
-                <p className="text-brand-700 leading-relaxed text-sm md:text-base">{grant.objectives || 'Objectives not explicitly specified. Review the description or guidelines for details.'}</p>
+                <GlossaryText as="p" className="text-brand-700 leading-relaxed text-sm md:text-base">
+                  {grant.objectives || 'Objectives not explicitly specified. Review the description or guidelines for details.'}
+                </GlossaryText>
             </div>
 
             <div className="mt-8 pt-8 border-t border-brand-100/80">
                 <h3 className="text-xs font-semibold text-brand-500 uppercase tracking-wider mb-3">Grant Description</h3>
-                <p className="text-brand-700 leading-relaxed text-sm md:text-base">{grant.description}</p>
+                <GlossaryText as="p" className="text-brand-700 leading-relaxed text-sm md:text-base">{grant.description}</GlossaryText>
             </div>
 
             <div className="mt-8 pt-8 border-t border-brand-100/80 grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                     <h3 className="text-xs font-semibold text-brand-500 uppercase tracking-wider mb-2">Funding Scope</h3>
-                    <p className="text-brand-700 leading-relaxed text-sm">{grant.fundingScope || 'Not specified. Please check provider site.'}</p>
+                    <GlossaryText as="p" className="text-brand-700 leading-relaxed text-sm">{grant.fundingScope || 'Not specified. Please check provider site.'}</GlossaryText>
                 </div>
                 <div>
                     <h3 className="text-xs font-semibold text-brand-500 uppercase tracking-wider mb-2">Duration</h3>
@@ -170,17 +185,18 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
             <div className="mt-8 pt-8 border-t border-brand-100/80 grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                     <h3 className="text-xs font-semibold text-brand-500 uppercase tracking-wider mb-2">Eligibility Criteria</h3>
-                    <p className="text-brand-700 leading-relaxed text-sm">{grant.eligibilityCriteria || 'Not fully detailed here. Please check provider site.'}</p>
+                    <GlossaryText as="p" className="text-brand-700 leading-relaxed text-sm">{grant.eligibilityCriteria || 'Not fully detailed here. Please check provider site.'}</GlossaryText>
                 </div>
                 <div>
                     <h3 className="text-xs font-semibold text-brand-500 uppercase tracking-wider mb-2">Selection Process</h3>
-                    <p className="text-brand-700 leading-relaxed text-sm">{grant.selectionCriteria || 'Not explicitly specified.'}</p>
+                    <GlossaryText as="p" className="text-brand-700 leading-relaxed text-sm">{grant.selectionCriteria || 'Not explicitly specified.'}</GlossaryText>
                 </div>
             </div>
         </div>
 
         {/* Footer actions */}
         <div className="p-4 sm:p-5 border-t border-brand-100 bg-white/80 backdrop-blur-md flex flex-col-reverse sm:flex-row gap-3 justify-end items-center">
+            <WhatsAppShareButton grant={grant} size="md" showLabel />
             <button
                 onClick={() => onToggleSave?.(grant)}
                 className={`w-full sm:w-auto px-5 py-2.5 rounded-xl font-semibold border transition-all flex items-center justify-center gap-2 active:scale-[0.98] ${

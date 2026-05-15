@@ -6,6 +6,8 @@ import ProviderUpdatedInfo from '../common/ProviderUpdatedInfo';
 import type { DiscoveryGrant } from '../../services/discoveryService';
 import type { ResearcherResponse } from '../../services/researcherService';
 import { useSavedGrants } from '../../hooks/useSavedGrants';
+import { DEADLINE_TONE_CLASSES, formatRelativeDeadline } from '../../utils/formatDeadline';
+import WhatsAppShareButton from '../common/WhatsAppShareButton';
 
 interface GrantListProps {
   grants: DiscoveryGrant[];
@@ -105,6 +107,7 @@ function BookmarkButton({
       onClick={(e) => { e.stopPropagation(); toggleSave(grant); }}
       aria-label={saved ? `Unsave ${grant.title}` : `Save ${grant.title}`}
       aria-pressed={saved}
+      title={saved ? 'Remove from saved' : 'Save grant'}
       className={`p-1.5 rounded-lg transition-colors shrink-0 ${
         saved
           ? 'text-primary-600 bg-primary-50 hover:bg-primary-100'
@@ -189,7 +192,10 @@ function renderAiCard(
           </div>
         </div>
 
-        <BookmarkButton grant={grant} isSaved={isSaved} toggleSave={toggleSave} />
+        <div className="flex items-center gap-0.5">
+          <WhatsAppShareButton grant={grant} />
+          <BookmarkButton grant={grant} isSaved={isSaved} toggleSave={toggleSave} />
+        </div>
       </div>
 
       <div className="mb-5 relative overflow-hidden bg-gradient-to-br from-primary-50/80 via-primary-50/40 to-white border border-primary-100/70 rounded-xl p-4 text-sm text-brand-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] transition-all">
@@ -205,10 +211,18 @@ function renderAiCard(
 
       <div className="flex flex-wrap items-center justify-between gap-4 mt-auto border-t border-brand-100 pt-4">
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-brand-50/80 border border-brand-100 rounded-lg text-brand-700">
-            <Calendar className="w-4 h-4 text-brand-500" />
-            <span className="text-sm font-medium whitespace-nowrap">Due {grant.deadline}</span>
-          </div>
+          {(() => {
+            const d = formatRelativeDeadline(grant.deadlineRaw);
+            return (
+              <div
+                className={`flex items-center gap-2 px-3 py-1.5 border rounded-lg ${DEADLINE_TONE_CLASSES[d.tone]}`}
+                title={d.tooltip || undefined}
+              >
+                <Calendar className="w-4 h-4 opacity-80" />
+                <span className="text-sm font-medium whitespace-nowrap">{d.label}</span>
+              </div>
+            );
+          })()}
           <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-100 rounded-lg text-green-700">
             <span className="text-sm font-bold text-green-700 whitespace-nowrap tabular-nums">{grant.amount}</span>
           </div>
@@ -253,7 +267,10 @@ function renderBrowseCard(
         <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-brand-100 text-brand-700 uppercase tracking-widest line-clamp-2 break-words">
           {grant.funder}
         </span>
-        <BookmarkButton grant={grant} isSaved={isSaved} toggleSave={toggleSave} size="sm" />
+        <div className="flex items-center gap-0.5">
+          <WhatsAppShareButton grant={grant} size="sm" />
+          <BookmarkButton grant={grant} isSaved={isSaved} toggleSave={toggleSave} size="sm" />
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2 mb-3">
@@ -277,10 +294,19 @@ function renderBrowseCard(
 
       <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-brand-100/80 text-sm">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-brand-600">
-          <span className="inline-flex items-center gap-1.5">
-            <Calendar className="w-3.5 h-3.5 text-brand-400" />
-            Due {grant.deadline}
-          </span>
+          {(() => {
+            const d = formatRelativeDeadline(grant.deadlineRaw);
+            const toneText =
+              d.tone === 'overdue' ? 'text-red-700 font-medium'
+              : d.tone === 'urgent' ? 'text-amber-800 font-medium'
+              : 'text-brand-600';
+            return (
+              <span className={`inline-flex items-center gap-1.5 ${toneText}`} title={d.tooltip || undefined}>
+                <Calendar className="w-3.5 h-3.5 opacity-70" />
+                {d.label}
+              </span>
+            );
+          })()}
           <span className="font-semibold text-green-700 whitespace-nowrap tabular-nums">{grant.amount}</span>
         </div>
         <button

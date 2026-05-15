@@ -9,6 +9,8 @@ import SplashScreen from './components/common/SplashScreen.tsx';
 import AuthPage from './components/auth/AuthPage.tsx';
 import SavedGrants from './components/saved-grants/SavedGrants.tsx';
 import WritingProposal from './components/proposal/WritingProposal.tsx';
+import BackendErrorScreen from './components/common/BackendErrorScreen.tsx';
+import ScrollToTopButton from './components/common/ScrollToTopButton.tsx';
 import { loadSession, clearSession } from './services/authService';
 import { ResearcherProvider, useResearcher } from './context/ResearcherContext';
 
@@ -94,6 +96,7 @@ function RootLayout() {
           }}
         />
         <Outlet />
+        <ScrollToTopButton />
       </div>
     </ResearcherProvider>
   );
@@ -106,7 +109,7 @@ function RootLayout() {
  */
 function RootRedirect() {
   const navigate = useNavigate();
-  const { ensureLoaded } = useResearcher();
+  const { ensureLoaded, refresh, error } = useResearcher();
   const alreadyShown = typeof sessionStorage !== 'undefined' && sessionStorage.getItem(SPLASH_FLAG) === '1';
   const [showSplash, setShowSplash] = useState(!alreadyShown);
 
@@ -122,7 +125,12 @@ function RootRedirect() {
       return;
     }
     const profile = await ensureLoaded();
-    navigate(profile ? '/discovery' : '/onboarding', { replace: true });
+    // Only route if the fetch actually succeeded. Errors are handled
+    // by the render branch below — we don't want to push the user to
+    // /onboarding just because the backend is down.
+    if (profile !== undefined) {
+      navigate(profile ? '/discovery' : '/onboarding', { replace: true });
+    }
   };
 
   if (showSplash) {
@@ -138,6 +146,19 @@ function RootRedirect() {
       </AnimatePresence>
     );
   }
+  if (error) {
+    return (
+      <BackendErrorScreen
+        message={error}
+        onRetry={() => refresh().then((profile) => {
+          if (profile !== undefined) {
+            navigate(profile ? '/discovery' : '/onboarding', { replace: true });
+          }
+        })}
+        onSignOut={() => navigate('/auth', { replace: true })}
+      />
+    );
+  }
   return null;
 }
 
@@ -147,7 +168,8 @@ function RootRedirect() {
  * fresh refresh).
  */
 function RequireResearcher() {
-  const { researcher, ensureLoaded } = useResearcher();
+  const navigate = useNavigate();
+  const { researcher, ensureLoaded, refresh, error } = useResearcher();
   const [resolved, setResolved] = useState(researcher !== undefined);
 
   useEffect(() => {
@@ -162,6 +184,15 @@ function RequireResearcher() {
   }, [researcher, ensureLoaded]);
 
   if (!resolved) return null; // No flash — fetch is sub-second
+  if (error) {
+    return (
+      <BackendErrorScreen
+        message={error}
+        onRetry={() => refresh()}
+        onSignOut={() => navigate('/auth', { replace: true })}
+      />
+    );
+  }
   if (!loadSession()) return <Navigate to="/auth" replace />;
   if (researcher === null) return <Navigate to="/onboarding" replace />;
   if (!researcher) return null;
@@ -217,7 +248,7 @@ function AuthRoute() {
  */
 function OnboardingRoute() {
   const navigate = useNavigate();
-  const { researcher, ensureLoaded, setResearcher } = useResearcher();
+  const { researcher, ensureLoaded, refresh, setResearcher, error } = useResearcher();
   const [resolved, setResolved] = useState(researcher !== undefined);
 
   useEffect(() => {
@@ -233,6 +264,15 @@ function OnboardingRoute() {
 
   if (!loadSession()) return <Navigate to="/auth" replace />;
   if (!resolved) return null;
+  if (error) {
+    return (
+      <BackendErrorScreen
+        message={error}
+        onRetry={() => refresh()}
+        onSignOut={() => navigate('/auth', { replace: true })}
+      />
+    );
+  }
   // Existing profile — wizard would create a duplicate, so bounce.
   if (researcher) return <Navigate to="/discovery" replace />;
 

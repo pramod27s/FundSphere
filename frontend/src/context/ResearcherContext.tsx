@@ -28,6 +28,13 @@ type ResearcherState = ResearcherResponse | null | undefined;
 
 interface ResearcherContextValue {
   researcher: ResearcherState;
+  /**
+   * Non-null when the last fetch failed for a reason that ISN'T "no
+   * profile" or "unauthenticated" — i.e. network down, server crash,
+   * timeout. Distinct from the `researcher = null` case so route guards
+   * can show a retry screen instead of bouncing the user to /onboarding.
+   */
+  error: string | null;
   setResearcher: (r: ResearcherResponse | null) => void;
   ensureLoaded: () => Promise<ResearcherState>;
   /**
@@ -41,6 +48,7 @@ const ResearcherContext = createContext<ResearcherContextValue | undefined>(unde
 
 export function ResearcherProvider({ children }: { children: ReactNode }) {
   const [researcher, setResearcherState] = useState<ResearcherState>(undefined);
+  const [error, setError] = useState<string | null>(null);
   const inFlight = useRef<Promise<ResearcherState> | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -60,6 +68,7 @@ export function ResearcherProvider({ children }: { children: ReactNode }) {
   }, [navigate, location.pathname]);
 
   const setResearcher = useCallback((r: ResearcherResponse | null) => {
+    setError(null);
     setResearcherState(r);
   }, []);
 
@@ -75,6 +84,7 @@ export function ResearcherProvider({ children }: { children: ReactNode }) {
    */
   const fetchProfile = useCallback(async (): Promise<ResearcherState> => {
     if (!loadSession()) {
+      setError(null);
       setResearcherState(null);
       return null;
     }
@@ -83,23 +93,33 @@ export function ResearcherProvider({ children }: { children: ReactNode }) {
     inFlight.current = (async () => {
       try {
         const profile = await getMyResearcher();
+        setError(null);
         setResearcherState(profile);
         return profile;
-      } catch (error) {
-        const message = error instanceof Error ? error.message : '';
+      } catch (err) {
+        const message = err instanceof Error ? err.message : '';
         if (message.includes('404')) {
+          // No profile yet — legitimate state, not a fetch failure.
+          setError(null);
           setResearcherState(null);
           return null;
         }
         if (message.includes('401') || message.includes('403')) {
+          // Auth issue — handled by the unauthorized listener; clear the
+          // session and the error so /auth doesn't show a stale banner.
+          setError(null);
           clearSession();
           setResearcherState(null);
           return null;
         }
-        console.error('Failed to resolve researcher profile:', error);
-        toast.error('Unable to load profile. Make sure the backend is running.');
-        setResearcherState(null);
-        return null;
+        // Real fetch failure (backend down, network out, 5xx). Leave
+        // researcher as `undefined` so route guards know we haven't
+        // resolved it — they'll render the retry screen on `error`
+        // rather than treating null as "no profile" and routing to
+        // /onboarding.
+        console.error('Failed to resolve researcher profile:', err);
+        setError('Unable to reach the FundSphere server. Check the backend is running and try again.');
+        return undefined;
       } finally {
         inFlight.current = null;
       }
@@ -125,8 +145,8 @@ export function ResearcherProvider({ children }: { children: ReactNode }) {
   }, [fetchProfile]);
 
   const value = useMemo(
-    () => ({ researcher, setResearcher, ensureLoaded, refresh }),
-    [researcher, setResearcher, ensureLoaded, refresh],
+    () => ({ researcher, error, setResearcher, ensureLoaded, refresh }),
+    [researcher, error, setResearcher, ensureLoaded, refresh],
   );
 
   return <ResearcherContext.Provider value={value}>{children}</ResearcherContext.Provider>;

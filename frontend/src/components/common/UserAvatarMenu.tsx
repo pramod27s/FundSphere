@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Bookmark, FileText } from 'lucide-react';
 import { loadSession } from '../../services/authService';
+import { useSavedGrantIds } from '../../hooks/useSavedGrants';
 
 interface UserAvatarMenuProps {
   researcherId?: number;
@@ -21,6 +22,11 @@ export default function UserAvatarMenu({ researcherId }: UserAvatarMenuProps) {
 
   const session = loadSession();
   const initials = session ? getInitials(session.user.fullName) : '?';
+
+  // Lightweight saved-grant count — just IDs, no full payload fetch.
+  const { savedIds } = useSavedGrantIds();
+  const savedCount = savedIds.size;
+  const savedDisplay = savedCount > 9 ? '9+' : String(savedCount);
 
   const [profileImage, setProfileImage] = useState<string | null>(() =>
     researcherId ? localStorage.getItem(`profile_image_${researcherId}`) : null,
@@ -105,7 +111,12 @@ export default function UserAvatarMenu({ researcherId }: UserAvatarMenuProps) {
               className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-brand-600 hover:bg-brand-50 hover:text-brand-900 transition-colors"
             >
               <Bookmark className="w-4 h-4 text-primary-500 shrink-0" />
-              Saved Grants
+              <span className="flex-1 text-left">Saved Grants</span>
+              {savedCount > 0 && (
+                <span className="text-[10px] font-bold tabular-nums bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                  {savedDisplay}
+                </span>
+              )}
             </button>
 
             <button

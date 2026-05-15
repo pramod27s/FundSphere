@@ -1,10 +1,12 @@
 import { Search, Menu, SlidersHorizontal, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import GrantList from './GrantList.tsx';
 import FilterSidebar, { type FilterState, EMPTY_FILTERS } from './FilterSidebar.tsx';
 import AnimatedLogo from '../common/AnimatedLogo.tsx';
 import CustomSelect from '../common/CustomSelect.tsx';
 import UserAvatarMenu from '../common/UserAvatarMenu.tsx';
+import ScrollToTopButton from '../common/ScrollToTopButton.tsx';
+import TopLoadingBar from '../common/TopLoadingBar.tsx';
 import type { ResearcherResponse } from '../../services/researcherService';
 import { getDiscoveryGrants, type DiscoveryGrant } from '../../services/discoveryService';
 
@@ -101,6 +103,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
   const [sortBy, setSortBy] = useState('recent');
   const [topK, setTopK] = useState<number>(Infinity);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const mainScrollRef = useRef<HTMLElement>(null);
   const [grants, setGrants] = useState<DiscoveryGrant[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -200,6 +203,13 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
 
   return (
     <div className="flex h-screen w-full overflow-hidden relative bg-gradient-to-br from-brand-50 via-white to-primary-50/30">
+      <TopLoadingBar visible={isLoading} />
+
+      {/* Pinned to viewport but listens to main's internal scroll. The
+          RootLayout's window-scroll button never shows here because the
+          window itself doesn't scroll on /discovery. */}
+      <ScrollToTopButton scrollTarget={mainScrollRef} />
+
       {researcher && (
         <div className="md:hidden absolute top-4 right-4 z-50">
           <UserAvatarMenu researcherId={researcher.id} />
@@ -265,17 +275,26 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                 className="w-full sm:pl-11 sm:pr-48 px-4 py-2 sm:py-3 bg-white border border-brand-200 rounded-xl focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 text-brand-900 placeholder:text-brand-400 text-sm md:text-base transition-all shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.04)] hover:border-brand-300"
               />
               <div className="flex w-full sm:w-auto sm:absolute sm:right-2 gap-2">
-                {dataSource === 'ai' && (
-                  <button
-                    onClick={() => {
-                      setSearchQuery('');
-                      void loadGrants('', false);
-                    }}
-                    className="w-full sm:w-auto px-3 py-2 sm:py-1.5 text-sm bg-white text-brand-600 border border-brand-200 hover:bg-brand-50 hover:text-brand-900 hover:border-brand-300 rounded-xl sm:rounded-lg font-medium transition-all shadow-sm"
-                  >
-                    Clear
-                  </button>
-                )}
+                {/* Clear button is always rendered so the row's width is
+                    stable across browse/AI mode swaps — only its visibility
+                    toggles. This avoids the suggested-tags row below
+                    shifting when the user first hits AI Match. */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    void loadGrants('', false);
+                  }}
+                  aria-hidden={dataSource !== 'ai'}
+                  tabIndex={dataSource === 'ai' ? 0 : -1}
+                  className={`w-full sm:w-auto px-3 py-2 sm:py-1.5 text-sm bg-white text-brand-600 border border-brand-200 hover:bg-brand-50 hover:text-brand-900 hover:border-brand-300 rounded-xl sm:rounded-lg font-medium transition-opacity shadow-sm ${
+                    dataSource === 'ai'
+                      ? 'opacity-100 pointer-events-auto'
+                      : 'opacity-0 pointer-events-none'
+                  }`}
+                >
+                  Clear
+                </button>
                 <button
                   onClick={() => void loadGrants(searchQuery, true)}
                   className="w-full sm:w-auto px-5 py-2 sm:py-1.5 text-sm bg-gradient-to-br from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-xl sm:rounded-lg font-semibold transition-all shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30 active:scale-[0.97]"
@@ -310,7 +329,10 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto px-4 md:px-8 pt-3 md:pt-4 pb-4 md:pb-8 relative">
+        <main
+          ref={mainScrollRef}
+          className="flex-1 overflow-y-auto px-4 md:px-8 pt-3 md:pt-4 pb-4 md:pb-8 relative"
+        >
           <div className="max-w-4xl mx-auto">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 sm:gap-6 mb-3">
               <div className="sm:pl-4">

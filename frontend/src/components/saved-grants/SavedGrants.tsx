@@ -15,6 +15,8 @@ import FreshnessBadge from '../common/FreshnessBadge';
 import ProviderUpdatedInfo from '../common/ProviderUpdatedInfo';
 import type { SavedGrantEntry, SavedGrantStatus } from '../../services/savedGrantsService';
 import type { DiscoveryGrant } from '../../services/discoveryService';
+import { formatRelativeDeadline } from '../../utils/formatDeadline';
+import WhatsAppShareButton from '../common/WhatsAppShareButton';
 
 interface SavedGrantsProps {
   onBack: () => void;
@@ -108,7 +110,7 @@ export default function SavedGrants({ onBack }: SavedGrantsProps) {
           className="flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-900 transition-colors px-2 py-1.5 -ml-2 rounded-lg hover:bg-brand-100"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span className="hidden sm:inline">Back</span>
+          <span>Back</span>
         </button>
         <div className="h-5 w-px bg-brand-200" />
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
@@ -116,13 +118,13 @@ export default function SavedGrants({ onBack }: SavedGrantsProps) {
             <Bookmark className="w-4 h-4 text-white" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-base font-bold text-brand-900 tracking-tight leading-none">
+            <h1 className="text-base font-bold text-brand-900 tracking-tight leading-none truncate">
               Saved Grants
             </h1>
-            <p className="text-[11px] text-brand-500 mt-1 leading-none tabular-nums">
+            <p className="text-[11px] text-brand-500 mt-1 leading-none tabular-nums truncate">
               {counts.ALL === 0
                 ? 'No grants saved yet'
-                : `${counts.ALL} ${counts.ALL === 1 ? 'grant' : 'grants'} bookmarked`}
+                : `${counts.ALL} ${counts.ALL === 1 ? 'grant' : 'grants'} saved`}
             </p>
           </div>
         </div>
@@ -240,16 +242,19 @@ function SavedGrantCard({ entry, onOpenDetails, onUnsave, onChangeStatus, onSave
           <FreshnessBadge timestamp={grant.lastVerifiedAt ?? grant.lastScrapedAt} />
           <ProviderUpdatedInfo timestamp={grant.lastScrapedAt} />
         </div>
-        <button
-          type="button"
-          onClick={onUnsave}
-          aria-label={`Unsave ${grant.title}`}
-          aria-pressed={true}
-          className="p-1.5 rounded-lg text-primary-600 bg-primary-50 hover:bg-red-50 hover:text-red-600 transition-colors shrink-0"
-          title="Remove from saved"
-        >
-          <BookmarkCheck className="w-3.5 h-3.5" />
-        </button>
+        <div className="flex items-center gap-0.5">
+          <WhatsAppShareButton grant={grant} size="sm" />
+          <button
+            type="button"
+            onClick={onUnsave}
+            aria-label={`Unsave ${grant.title}`}
+            aria-pressed={true}
+            className="p-1.5 rounded-lg text-primary-600 bg-primary-50 hover:bg-red-50 hover:text-red-600 transition-colors shrink-0"
+            title="Remove from saved"
+          >
+            <BookmarkCheck className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
       {/* Title */}
@@ -411,10 +416,19 @@ function SavedGrantCard({ entry, onOpenDetails, onUnsave, onChangeStatus, onSave
       {/* Bottom row: deadline / amount / details link */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-brand-100/80 text-sm">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-brand-600">
-          <span className="inline-flex items-center gap-1.5">
-            <Calendar className="w-3.5 h-3.5 text-brand-400" />
-            Due {grant.deadline}
-          </span>
+          {(() => {
+            const d = formatRelativeDeadline(grant.deadlineRaw);
+            const tone =
+              d.tone === 'overdue' ? 'text-red-700 font-medium'
+              : d.tone === 'urgent' ? 'text-amber-800 font-medium'
+              : 'text-brand-600';
+            return (
+              <span className={`inline-flex items-center gap-1.5 ${tone}`} title={d.tooltip || undefined}>
+                <Calendar className="w-3.5 h-3.5 opacity-70" />
+                {d.label}
+              </span>
+            );
+          })()}
           <span className="font-semibold text-green-700 whitespace-nowrap tabular-nums">
             {grant.amount}
           </span>
@@ -456,9 +470,11 @@ function SortDropdown({ sortKey, onChange }: { sortKey: SortKey; onChange: (s: S
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-brand-700 bg-white border border-brand-200 hover:bg-brand-50 transition shadow-sm"
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-brand-700 bg-white border border-brand-200 hover:bg-brand-50 transition shadow-sm shrink-0"
+        aria-label={`Sort: ${labels[sortKey]}`}
       >
-        Sort: <span className="font-semibold">{labels[sortKey]}</span>
+        <span className="hidden sm:inline">Sort:</span>
+        <span className="font-semibold">{labels[sortKey]}</span>
         <ChevronDown className="w-3 h-3 opacity-60" />
       </button>
       {open && (

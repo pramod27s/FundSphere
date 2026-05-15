@@ -158,7 +158,7 @@ export default function WritingProposal({ onBack }: WritingProposalProps) {
           className="flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-900 transition-colors px-2 py-1.5 -ml-2 rounded-lg hover:bg-brand-100"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span className="hidden sm:inline">Back</span>
+          <span>Back</span>
         </button>
         <div className="h-5 w-px bg-brand-200" />
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
