@@ -1,7 +1,11 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, ArrowRight, UserPlus, LogIn, User, Eye, EyeOff } from 'lucide-react';
-import { register, saveSession } from '../../services/authService';
+import { friendlyAuthError, register, saveSession } from '../../services/authService';
+import PasswordStrengthMeter from './PasswordStrengthMeter';
+import type { PasswordScore } from '../../utils/passwordStrength';
+
+const MIN_PASSWORD_SCORE: PasswordScore = 2; // "Fair" — blocks "Very weak" and "Weak"
 
 interface RegisterProps {
   /** May return a Promise — see LoginProps.onLoginSuccess for rationale. */
@@ -13,12 +17,27 @@ export default function Register({ onRegisterSuccess, onNavigateToLogin }: Regis
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordScore, setPasswordScore] = useState<PasswordScore>(0);
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Context fed into the strength evaluator so "password = my own name" or
+  // "password = local-part of my email" gets flagged.
+  const passwordContext = useMemo(
+    () => ({ email, fullName: name }),
+    [email, name],
+  );
+
+  const passwordTooWeak = password.length > 0 && passwordScore < MIN_PASSWORD_SCORE;
+  const canSubmit = !isLoading && password.length >= 8 && passwordScore >= MIN_PASSWORD_SCORE;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (passwordTooWeak) {
+      setErrorMsg('Please pick a stronger password before continuing.');
+      return;
+    }
     setErrorMsg('');
     setIsLoading(true);
 
@@ -28,7 +47,7 @@ export default function Register({ onRegisterSuccess, onNavigateToLogin }: Regis
       // Keep loading through the parent's profile fetch + navigate.
       await onRegisterSuccess();
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'An error occurred during registration. Please try again.');
+      setErrorMsg(friendlyAuthError(err, 'register'));
       setIsLoading(false);
     }
   };
@@ -115,13 +134,19 @@ export default function Register({ onRegisterSuccess, onNavigateToLogin }: Regis
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+              <PasswordStrengthMeter
+                password={password}
+                context={passwordContext}
+                onScoreChange={setPasswordScore}
+              />
             </div>
           </div>
 
           <button
             type="submit"
-            disabled={isLoading}
-            className="w-full flex items-center justify-center py-3.5 px-4 rounded-xl text-white bg-gradient-to-r from-brand-900 to-brand-800 hover:from-black hover:to-brand-900 shadow-lg shadow-brand-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-900 transform transition-all active:scale-[0.98] font-bold text-lg group mt-2 disabled:opacity-70 disabled:cursor-not-allowed"
+            disabled={!canSubmit}
+            title={passwordTooWeak ? 'Strengthen your password to continue' : undefined}
+            className="w-full flex items-center justify-center py-3.5 px-4 rounded-xl text-white bg-gradient-to-r from-brand-900 to-brand-800 hover:from-black hover:to-brand-900 shadow-lg shadow-brand-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-900 transform transition-all active:scale-[0.98] font-bold text-lg group mt-2 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:from-brand-900 disabled:hover:to-brand-800"
           >
             {isLoading ? 'Signing Up...' : 'Sign Up'}
             {!isLoading && <ArrowRight size={20} className="ml-2 group-hover:translate-x-1 transition-transform" />}

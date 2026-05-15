@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, ArrowRight, UserPlus, Eye, EyeOff } from 'lucide-react';
-import { login, saveSession } from '../../services/authService';
+import { friendlyAuthError, login, saveSession } from '../../services/authService';
 
 interface LoginProps {
   /**
@@ -34,7 +34,7 @@ export default function Login({ onLoginSuccess, onNavigateToRegister }: LoginPro
       // back to "Sign In" before the redirect happens.
       await onLoginSuccess();
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'An error occurred during login. Please try again.');
+      setErrorMsg(friendlyAuthError(err, 'login'));
       setIsLoading(false);
     }
   };
