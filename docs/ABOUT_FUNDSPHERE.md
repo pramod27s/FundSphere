@@ -10,7 +10,8 @@
 - Replaces keyword-only searches with deep semantic understanding of a user's research bio, interests, and constraints.
 - Generates an **Explainable AI Rationale** for every match (e.g., *"Strong semantic overlap in climate tech and explicitly matches your PhD applicant profile"*).
 - **Hybrid Search Engine** using Reciprocal Rank Fusion (RRF) — combines PostgreSQL keyword search with Pinecone vector search.
-- Final score calculated from: Semantic similarity (45%), Keyword match (25%), Eligibility (15%), Deadline Freshness (10%).
+- Final score calculated from **5 signals**: Semantic similarity (35%), Eligibility (25%), Keyword match (15%), Funding fit (15%), Deadline Freshness (10%).
+- **HyDE (Hypothetical Document Embeddings)** — generates a synthetic ideal-grant document from the user query to improve Pinecone recall before the real search.
 
 ### 2. AI Proposal Assistant
 - Accepts a **draft proposal PDF** and a **grant guidelines PDF**, then returns structured per-section compliance feedback.

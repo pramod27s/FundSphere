@@ -1,103 +1,306 @@
 # FundSphere: Complete System Architecture & Operational Status
 
+*Last updated: 2026-05-16*
+
+---
+
 ## 1. Executive Summary
-**FundSphere** is an advanced, automated platform designed to discover, index, and recommend academic and institutional funding opportunities. 
-It operates on a highly decentralized microservices architecture integrating web scraping (via Firecrawl), a relational persistence layer (PostgreSQL), and an AI-driven Semantic Search engine backed by a Vector Database (Pinecone).
 
-The application is broken down into three tightly coupled domains:
-1. **Frontend (Client)**: React/Vite/TypeScript.
-2. **Core Backend (Transactional)**: Java/Spring Boot.
-3. **AI Service (Scraping & RAG)**: Python/FastAPI.
+**FundSphere** is an automated platform for discovering, indexing, and recommending academic and institutional funding opportunities. It operates on a three-tier microservices architecture:
 
----
+1. **Frontend (Client)** — React 18 / Vite / TypeScript, styled with Tailwind CSS + Framer Motion
+2. **Core Backend (Transactional)** — Java 17 / Spring Boot, JWT auth, PostgreSQL via JPA
+3. **AI Service (Scraping, RAG, Proposal Analysis)** — Python 3 / FastAPI, Firecrawl, Pinecone, Google Gemini
 
-## 2. Granular System Architecture & Directory Map
-
-### A. AI Web Scraper & Vector Service (`/ai-service`) - Python + FastAPI
-**Core Responsibility:** Handles continuous data ingestion from the internet, structures unstructured HTML, generates text embeddings via LLMs, manages Pinecone insertion, and evaluates search queries.
-
-* **Execution & Lifecycle:**
-  * **`run_scraper.bat`**: Windows entry point to spawn the Python virtual environment and launch the scheduler.
-  * **`main.py`**: The FastAPI server. Mounts the API routers, establishes the `internal_api_key_middleware` (mandating the `X-API-KEY` header for internal Java-to-Python requests), and handles startup events.
-  * **`smart_scheduler.py`**: The asynchronous daemon. Runs periodically, querying the internet via the Firecrawl API, parsing the payload, and sending it as structured JSON to the Java Backend via `/api/grants`.
-  * **`firecrawl_scraper.py`**: Encapsulates the network calls directly to Firecrawl (requires `FIRECRAWL_API_KEY`).
-  * **`index_all_grants.py`**: An administrative fallback script that requests *all* existing grants from PostgreSQL and bulk-inserts them into Pinecone.
-
-* **The RAG Engine (`/ai-service/rag/`):**
-  * **`routes.py`**: Exposes FastAPI endpoints mapping to RAG services (e.g., `POST /rag/index-grant`, `POST /rag/search`).
-  * **`pinecone_client.py`**: Wraps the Pinecone SDK, managing index initialization, dimensions (e.g. 768 or 1536), and batch upsertions.
-  * **`indexer.py`**: Converts raw JSON Grant items into dense embedding vectors using an Embedding Model (e.g., OpenAI or HuggingFace) before passing them to the pinecone client.
-  * **`document_builder.py`**: Constructs the unified context strings. (e.g., merging "Title + Description + Eligibility" into a single string to optimize the LLM's spatial understanding).
-  * **`filters.py`**: Parses exact-match user parameters (Country, Institution Type) into query metadata that Pinecone natively understands for pre-filtering.
-  * **`query_expander.py`**: Uses an LLM to take a simple user query ("Cancer research") and semantically expand it ("Oncology, tumors, metastasis, clinical trials") before hitting the Vector DB.
-  * **`llm_judge.py`**: A secondary reranking step. Post-retrieval, an LLM evaluates the fetched documents strictly against the user's profile and query to score and filter false-positives.
-  * **`profile_builder.py`**: Converts the Researcher's profile attributes into vector embeddings to enable "For You" passive recommendations.
-  * **`recommender.py`**: The orchestrator. Combines `query_expander`, `indexer`, and `llm_judge` into a single pipeline to return the final list of grants to the user.
-  * **`schemas.py`**: Pydantic models enforcing strict JSON validation at the boundaries.
-  * **`springboot_client.py`**: Utility for Python to ping Java endpoints (closing the microservice loop).
-
-### B. Core Backend (`/CoreBackend`) - Java + Spring Boot
-**Core Responsibility:** The system of record. Manages secure user sessions (JWT), stores authoritative transactional data in PostgreSQL, and acts as the broker between the Frontend and the Python AI service.
-
-* **Configuration & Setup:**
-  * **`pom.xml` / `mvnw`**: Maven build scripts managing dependencies (Spring Web, Spring Security, Spring Data JPA, Postgres Driver).
-  * **`src/main/resources/application.properties`**: Environment variables configuring Database URIs, Hibernate dialects, JWT Secrets, server port (`8080`), and AI Service URLs.
-
-* **Domain Logic (`src/main/java/org/pramod/corebackend/`):**
-  * **`service/GrantService.java`**: The core data manager. 
-    * `saveOrUpdateGrant()`: Receives data from the Python scraper. Computes checksums on Grants. If new, saves to DB. If existing but modified (checksum mismatch), it updates. 
-    * `triggerPineconeIndexing()`: Spawns an asynchronous `CompletableFuture` thread to ping the Python RAG service for vectorization.
-  * **`service/AiServiceClient.java`**: The internal REST client. Configured specifically to inject the `X-API-KEY` into the HTTP Headers to bypass the Python FastAPI middleware lock.
-  * ***(Standard MVC Layers)***:
-    * **Controllers**: Map `GET/POST` requests from React.
-    * **Repositories**: Spring Data JPA interfaces interacting directly with PostgreSQL.
-    * **Entities**: Java classes annotated with `@Entity` representing DB schemas (Users, Grants, Profiles).
-    * **Security Configuration**: Defines filter chains, CORS policies, and intercepts incoming requests to validate 'Bearer' JWTs.
-
-### C. Frontend (`/frontend`) - React + TypeScript + Vite
-**Core Responsibility:** The UI/UX presentation layer. Consumes back-end data, manages local UI state, and handles token lifecycles and navigation.
-
-* **Build & Config:**
-  * **`package.json` & `vite.config.ts`**: NPM scripts and Vite build rules.
-  * **`tailwind.config.js`**: Utility styling framework setup.
-
-* **React Core (`src/main.tsx` & `src/App.tsx`):**
-  * Houses the React Router. Controls guarded routes.
-  * Contains the global fallback logic to catch JWT authorization failures (throwing an alert and pushing the user to `/login`).
-
-* **Services (`/src/services/`):**
-  * **`apiClient.ts`**: The Axios instance. It tracks response payloads globally. Critically, it intercepts `401 Unauthorized` and `403 Forbidden` errors, parses the tokens, and attempts a background `/refresh` token request to keep sessions alive transparently.
-  * **`authService.ts`**: Maps login, layout, and registration components directly to Java's auth controllers, extracting meaningful human-readable network errors payload objects.
-
-* **Components (`/src/components/`):**
-  * **`auth/`**: Registration and Login components. Implements state tracking for `isLoading` and `errorMsg`, offering real-time user feedback during authentication attempts.
-  * **`profile/`**: User settings. Includes features like formatting monetary strings locally (e.g., converting to `INR`) and a custom Avatar uploader that reads files using a FileReader and saves the base64 encoded string to `localStorage`. Utilizes lazy state initialization (`useState(() => ...)`) to aggressively avoid React re-render penalties.
-  * **`discovery/`**: The frontend consumer of the RAG pipeline. Passes user strings to the backend and renders structured, AI-evaluated grant cards.
+All three tiers are in production-ready condition and communicating end-to-end.
 
 ---
 
-## 3. Data Pipelines & Operational Flow
+## 2. Directory Map & Component Inventory
 
-### Flow 1: Automated Ingestion (Scraping -> DB -> Vector Sync)
-1. Python's `smart_scheduler` activates and spends Firecrawl credits to parse a funding website.
-2. It structures the data into a schema and POSTs it to `http://localhost:8080/api/grants`.
-3. Java's `GrantService` checks PostgreSQL. If the URL is new, it saves the entity.
-4. Java asynchronously explicitly invokes `AiServiceClient.indexGrant()`, passing the new ID and attaching the `X-API-KEY`.
-5. Python's `/rag/index-grant` receives the signal, pulls the data, embeds it into numeric vectors, and UPSERTs it into Pinecone.
+### A. AI Service (`/ai-service`) — Python + FastAPI
 
-### Flow 2: JWT Security Lifecycle
-1. User logs in manually via the React Frontend.
-2. Java verifies credentials against PostgreSQL and issues short-lived Access Tokens and long-lived Refresh Tokens.
-3. React stores these in memory/localStorage. `apiClient.ts` auto-injects them into headers on every subsequent fetch.
-4. If a session expires, Spring Boot throws a `403 Forbidden`. React's interceptor catches this, pauses the failed request, silently fetches a new token, and retries the request without interrupting the user.
+**54 source files across 4 modules.** FastAPI server mounts three routers: RAG, Proposal, and a health check. All internal endpoints require the `X-API-KEY` header (enforced by `internal_api_key_middleware`).
+
+#### Root-level utilities
+| File | Purpose |
+|---|---|
+| `main.py` | FastAPI entry point; registers RAG and Proposal routers; `startup` event initialises Pinecone |
+| `smart_scheduler.py` | Async daemon — polls Firecrawl on a cron, POSTs discovered grants to Java at `POST /api/grants` |
+| `firecrawl_scraper.py` | Wraps Firecrawl SDK with exponential-backoff retry logic; requires `FIRECRAWL_API_KEY` |
+| `index_all_grants.py` | Admin script — bulk-fetches all grants from PostgreSQL and upserts into Pinecone |
+| `rename_index.py` | Utility for migrating Pinecone index names |
+| `test_ai_fetch.py` / `test_upsert.py` | Integration smoke tests for the AI ↔ Java bridge and vector upsert pipeline |
+| `scraper_state.json` | Persisted Firecrawl pagination state across scheduler restarts |
+
+#### RAG Module (`/ai-service/rag/`)
+| File | Purpose |
+|---|---|
+| `routes.py` | `POST /rag/index-grant`, `POST /rag/search`, `POST /rag/recommend` |
+| `config.py` | Centralised env-var loading (Pinecone key, index name, embedding model, etc.) |
+| `pinecone_client.py` | Pinecone SDK wrapper — index init, dimension validation, batch upsert |
+| `indexer.py` | Converts Grant JSON → dense embedding vectors; delegates to `pinecone_client` |
+| `document_builder.py` | Merges `Title + Description + Eligibility + Tags` into a single LLM-optimised string |
+| `filters.py` | Translates user params (country, institution type, funding range) into Pinecone metadata filters |
+| `query_expander.py` | LLM-powered query expansion ("Cancer research" → "Oncology, clinical trials, metastasis…") |
+| `hyde.py` | Hypothetical Document Embeddings — generates a synthetic ideal-grant document to improve recall |
+| `llm_judge.py` | Post-retrieval reranker: LLM scores fetched grants against the researcher's profile and query |
+| `profile_builder.py` | Embeds researcher profile attributes for passive "For You" recommendations |
+| `recommender.py` | Pipeline orchestrator: `query_expander → indexer → llm_judge → ranked results` |
+| `schemas.py` | Pydantic request/response models for RAG endpoints |
+| `springboot_client.py` | HTTP utility for Python → Java callbacks |
+
+#### Proposal Assistant Module (`/ai-service/proposal/`)
+| File | Purpose |
+|---|---|
+| `routes.py` | `POST /proposal/analyze` — multipart upload (proposal PDF + guidelines PDF) |
+| `schemas.py` | Pydantic models: `SectionFeedback`, `ProposalAnalysisResponse` |
+| `pdf_extractor.py` | PDF text extraction; pdfplumber primary, pypdf fallback |
+| `section_splitter.py` | LLM-based section identifier (Abstract, Methodology, Budget, Timeline, …) |
+| `analyzer.py` | Two-mode analysis engine: `analyze_simple` (1 LLM call, ~10 s) and `analyze_deep` (parallel per-section eval, ~30–90 s) |
+| `gemini_client.py` | Async Gemini 2.5 Pro/Flash wrapper; auto-falls back to `gemini-2.5-flash` on 429 quota errors |
+| `rubric.py` | Section-scoring rubric definitions |
+| `analysis_cache.py` | In-memory caching layer to avoid re-running identical analysis requests |
+
+#### Evaluation Module (`/ai-service/eval/`)
+| File | Purpose |
+|---|---|
+| `auto_eval.py` | Automated evaluation of recommendation quality against labelled ground truth |
+| `run_eval.py` | Test harness to execute evaluation suites |
+| `suggest_labels.py` | LLM-assisted label generation for building ground-truth datasets |
 
 ---
 
-## 4. Current State & Fixes Applied
+### B. Core Backend (`/CoreBackend`) — Java 17 + Spring Boot
 
-*   **Security & RAG Sync:** The vulnerability where Java was unable to trigger Pinecone updates due to missing API keys has been fully resolved (`GrantService` refactored to use `AiServiceClient`).
-*   **Token Refresh Integration:** `403` HTTP status handling added directly into the Vite interceptors. The pipeline is hardened against expired JWTs causing UI crashes.
-*   **React Optimization & UI:** Avatar uploading successfully configured without looping effects, and INR metrics properly integrated into Researcher profiles.
+**54 Java source files.** Server runs on port `8080`. Hibernate `ddl-auto=update` manages schema migrations automatically.
 
-## 5. Next Steps Preparedness
-With the three layers communicating stably (Scraping → SQL persistence → AI Vector mapping → Secure UI fetching), you have a strong, highly defensive foundation to implement the next major modules securely.
+#### Security Layer
+| File | Purpose |
+|---|---|
+| `SecurityConfig.java` | JWT filter chain; CORS policy; route authorization rules |
+| `JwtService.java` | Access-token and refresh-token generation, validation, and rotation |
+| `JwtAuthenticationFilter.java` | Per-request Bearer token extraction and principal injection |
+| `CustomUserDetailsService.java` | Loads `AppUser` from DB for Spring Security |
+| `UserPrincipal.java` | Custom `Authentication` principal exposing `userId` |
+| `GlobalExceptionHandler.java` | `@RestControllerAdvice` — maps exceptions to structured JSON errors with stack-trace logging |
+
+#### Controllers (6 REST endpoints)
+| Controller | Routes |
+|---|---|
+| `AuthController` | `POST /api/auth/register`, `/login`, `/refresh` |
+| `GrantController` | `GET /api/grants`, `POST /api/grants`, `GET /api/grants/{id}` |
+| `ResearcherController` | `GET/PUT /api/researcher/profile` |
+| `SavedGrantController` | `GET /api/saved-grants`, `GET /ids`, `POST /{id}`, `DELETE /{id}` |
+| `ProposalController` | `POST /api/proposal/analyze` (JWT-protected, multipart) |
+| `AiBridgeController` | Relay endpoint forwarding frontend RAG requests to the AI Service |
+
+#### Services
+| Service | Responsibility |
+|---|---|
+| `AuthService` | Credential verification, token issuance, refresh-token rotation |
+| `GrantService` | Checksum-based upsert of incoming scraped grants; exposes `mapToResponse()` (public) |
+| `GrantIndexingService` | Async `CompletableFuture` wrapper that calls Python's `/rag/index-grant` after a grant is saved |
+| `ReindexSweeper` | Scheduled background task — periodically re-indexes stale grants into Pinecone |
+| `ResearcherService` | Researcher profile CRUD |
+| `SavedGrantService` | Idempotent save (no-op if already saved); N+1-safe fetch via `join fetch` |
+| `AiServiceClient` | Internal HTTP client — injects `X-API-KEY`; handles multipart forwarding for Proposal analysis |
+| `AiProfileMapper` | Transforms `ResearcherProfile` attributes into the `AiUserProfileResponse` DTO for embedding |
+
+#### Entities (5 JPA tables)
+| Entity | Table | Key Columns |
+|---|---|---|
+| `AppUser` | `app_users` | `id`, `email`, `password_hash`, `role` |
+| `Researcher` | `researchers` | `id`, `user_id` (FK), profile fields (field, position, funding prefs) |
+| `Grant` | `grants` | `id`, `url`, `checksum`, `deadline`, `funding_amount`, `provider` |
+| `SavedGrant` | `saved_grants` | Unique `(user_id, grant_id)`, indexed on both columns |
+| `RefreshToken` | `refresh_tokens` | `token`, `user_id`, `expires_at`, `revoked` |
+
+#### DTOs
+- **Auth:** `LoginRequest`, `RegisterRequest`, `AuthResponse`, `RefreshTokenRequest`
+- **AI Bridge:** `AiGrantIndexableResponse`, `AiKeywordCandidateResponse`, `AiKeywordSearchRequest`, `AiUserProfileResponse`
+- **Domain:** `GrantRequest`, `GrantResponse`, `ResearcherRequest`, `ResearcherResponse`, `SavedGrantResponse`, `SavedGrantUpdateRequest`
+
+#### Enums (7)
+`Role`, `UserType`, `GrantType`, `PrimaryField`, `EducationLevel`, `Position`, `SavedGrantStatus`
+
+---
+
+### C. Frontend (`/frontend`) — React 18 + TypeScript + Vite
+
+**58 source files.** Navigation is **state-based** (not React Router) — a `currentPage` union type in `App.tsx` controls which page renders. Build output: ~448 KB JS, ~79 KB CSS.
+
+#### App Shell
+| File | Purpose |
+|---|---|
+| `App.tsx` | Root shell — state machine for `currentPage`, auth guard, splash screen, `auth:unauthorized` event listener |
+| `context/ResearcherContext.tsx` | React Context providing researcher profile and onboarding state globally |
+
+#### Components
+
+**Auth (`auth/`)**
+- `AuthPage.tsx` — wrapper switching between Login and Register
+- `Login.tsx`, `Register.tsx` — forms with `isLoading` / `errorMsg` state
+- `PasswordStrengthMeter.tsx` — real-time password rule feedback
+
+**Common (`common/`)**
+- `AnimatedLogo.tsx` — globe with dual orbital rings and ripple-dot animations
+- `SplashScreen.tsx` — initial loading screen with brand animation
+- `TopLoadingBar.tsx` — global progress indicator for async operations
+- `UserAvatarMenu.tsx` — avatar dropdown (initials derived from session); links to Profile, Saved Grants, Proposal Assistant
+- `BackendErrorScreen.tsx` — full-page error state for backend connectivity failures
+- `ScrollToTopButton.tsx`, `GlossaryText.tsx`, `CustomSelect.tsx`
+- `MatchBreakdown.tsx` — per-field grant match score visualisation
+- `FreshnessBadge.tsx` — data recency indicator on grant cards
+- `ProviderUpdatedInfo.tsx` — grant provider metadata chip
+- `WhatsAppShareButton.tsx` — one-tap grant sharing via WhatsApp
+
+**Grant Discovery (`discovery/`)**
+- `GrantDiscovery.tsx` — main search interface; Browse and AI Match modes; Show-count dropdown (6/12/20/50/100; capped at 20 in AI mode)
+- `GrantList.tsx` — paginated card list with shimmer skeleton, `BookmarkButton` (calls `useSavedGrants`)
+- `GrantDetailsModal.tsx` — full-detail modal; Save/Saved toggle; 3-column stat grid
+- `FilterSidebar.tsx` — sidebar with icon-tile header, active-filter count pills, gradient checkboxes
+
+**Onboarding (`onboarding/`)**
+- `OnboardingWizard.tsx` + 8 step components: UserType → AccountInfo → ResearchArea → Experience → FundingPrefs → Location → Organization → Notifications
+
+**Profile (`profile/`)**
+- `ResearcherProfile.tsx` — hero section, `StatCard`/`DetailCard` helpers, completion-progress bar, notification timeline
+
+**Proposal Assistant (`proposal/`)**
+- `WritingProposal.tsx` — full PDF-upload + analysis UI: drag-drop dual file zones, Quick/Deep mode toggle, animated SVG score ring, missing-sections warning, sortable section accordion (missing → weak → strong), Markdown export, Print-to-PDF (via `window.print()` + `@media print`), revision flow with `DiffSummaryCard` showing score delta and per-section transitions
+
+**Saved Grants (`saved-grants/`)**
+- `SavedGrants.tsx` — server-backed bookmark list; per-card Unsave button; `GrantDetailsModal` on click; animated empty state
+
+#### Services
+| Service | Responsibility |
+|---|---|
+| `apiClient.ts` | Axios instance; injects Bearer token; intercepts 401/403 for silent token refresh; skips `Content-Type` override when body is `FormData` |
+| `authService.ts` | Login, register, refresh, `loadSession()`, `saveSession()`, `clearSession()` |
+| `discoveryService.ts` | Grant search, browse, and filter API calls |
+| `proposalService.ts` | `analyzeProposal()`, `formatAnalysisAsMarkdown()`, `downloadAnalysisAsMarkdown()`, `diffAnalyses()` |
+| `researcherService.ts` | Researcher profile read/update |
+| `savedGrantsService.ts` | Save/unsave; maps `GrantResponse` → `DiscoveryGrant` |
+
+#### Custom Hook
+- `useSavedGrants.ts` — server-backed saved grants with optimistic toggle + rollback on failure; one-time localStorage migration on first run; exports `useSavedGrantIds()` lightweight variant
+
+#### Utilities
+`formatDeadline.ts`, `formatFunding.ts`, `glossary.ts`, `passwordStrength.ts`, `shareGrant.ts`
+
+---
+
+## 3. Data Pipelines & Operational Flows
+
+### Flow 1: Automated Grant Ingestion
+```
+smart_scheduler  →  Firecrawl API  →  POST /api/grants (Java)
+                                           ↓
+                                     GrantService.saveOrUpdateGrant()
+                                     (checksum comparison → upsert)
+                                           ↓
+                                     GrantIndexingService (async)
+                                           ↓
+                                     AiServiceClient → POST /rag/index-grant (Python)
+                                           ↓
+                                     indexer → Pinecone upsert
+```
+
+### Flow 2: AI Grant Discovery (RAG)
+```
+React (GrantDiscovery)
+  → POST /api/grants/search (Java, JWT)
+  → AiBridgeController → AiServiceClient → POST /rag/search (Python, X-API-KEY)
+  → query_expander → HyDE → Pinecone similarity search
+  → filters → llm_judge (Gemini rerank)
+  → ranked GrantResponse[] → React card list
+```
+
+### Flow 3: Proposal Assistant
+```
+React (WritingProposal)
+  → POST /api/proposal/analyze  multipart (Java, JWT)
+  → ProposalController → AiServiceClient (LinkedMultiValueMap multipart)
+  → POST /proposal/analyze (Python, X-API-KEY)
+  → pdf_extractor → section_splitter → analyzer (simple or deep)
+  → gemini_client → Gemini 2.5 Pro / Flash fallback
+  → ProposalAnalysisResponse JSON
+  → proposalService.ts decodes → score ring + section accordion + diff card
+```
+
+### Flow 4: JWT Security Lifecycle
+```
+Login → Java issues access token (short-lived) + refresh token (long-lived)
+React stores tokens → apiClient injects Bearer on every request
+403 received → apiClient pauses request → silent POST /auth/refresh
+             → new access token → retry original request (transparent to user)
+auth:unauthorized event → App.tsx → redirect to login
+```
+
+### Flow 5: Saved Grants (Server-Backed)
+```
+GrantList / SavedGrants
+  → useSavedGrants.toggleSave(grantId)  [optimistic UI update]
+  → POST or DELETE /api/saved-grants/{id}  (Java, JWT)
+  → SavedGrantService  (idempotent, unique constraint at DB level)
+  → rollback client state on HTTP error
+Legacy migration: on first load, localStorage fundsphere.saved.grants
+  entries are uploaded to the server, then localStorage is cleared.
+```
+
+---
+
+## 4. Completed Features & Resolved Issues
+
+| Area | Status |
+|---|---|
+| RAG pipeline (Pinecone indexing, query expansion, HyDE, LLM reranking) | Complete |
+| Proposal Assistant (PDF upload, Gemini analysis, diff/revision flow) | Complete |
+| Saved Grants — PostgreSQL persistence with optimistic UI | Complete |
+| JWT auth with silent refresh and `auth:unauthorized` auto-redirect | Complete |
+| Onboarding wizard (8-step researcher profile) | Complete |
+| Animated logo, glassmorphic UI, shimmer skeletons | Complete |
+| Markdown export + Print-to-PDF for proposal reports | Complete |
+| RAG evaluation harness (`eval/`) with auto-eval and label suggestion | Complete |
+| `ReindexSweeper` — scheduled background re-indexing of stale grants | Complete |
+| `GlobalExceptionHandler` with stack-trace logging | Complete |
+| `apiClient.ts` FormData multipart fix (no forced `Content-Type`) | Complete |
+| Spring Boot multipart AiServiceClient fix (`LinkedMultiValueMap`) | Complete |
+| Gemini 2.5 Pro → Flash quota fallback | Complete |
+| WhatsApp grant sharing, Glossary tooltips, FreshnessBadge UI | Complete |
+
+---
+
+## 5. Build Verification
+
+| Layer | Command | Result |
+|---|---|---|
+| Frontend | `npx tsc --noEmit` + `vite build` | Clean; 448 KB JS / 79 KB CSS |
+| CoreBackend | `mvn clean compile` | Clean; 54 source files |
+| AI Service | FastAPI startup + `/proposal/health` | 200 OK |
+
+---
+
+## 6. Environment Variables Required
+
+| Service | Variable | Purpose |
+|---|---|---|
+| AI Service | `FIRECRAWL_API_KEY` | Web scraping credits |
+| AI Service | `PINECONE_API_KEY`, `PINECONE_INDEX_NAME` | Vector DB |
+| AI Service | `GEMINI_API_KEY` | Proposal analysis LLM |
+| AI Service | `PROPOSAL_GEMINI_MODEL` / `PROPOSAL_GEMINI_FALLBACK_MODEL` | Model selection |
+| AI Service | `INTERNAL_API_KEY` | Shared secret with Java (`X-API-KEY` header) |
+| CoreBackend | `SPRING_DATASOURCE_URL/USERNAME/PASSWORD` | PostgreSQL |
+| CoreBackend | `JWT_SECRET` | Token signing |
+| CoreBackend | `AI_SERVICE_URL` | Python FastAPI base URL |
+| CoreBackend | `INTERNAL_API_KEY` | Must match AI Service value |
+
+---
+
+## 7. Known Constraints
+
+- Free-tier `gemini-2.5-pro` has 0 RPD quota; traffic is served by `gemini-2.5-flash` via the auto-fallback.
+- Firecrawl credits are finite — `smart_scheduler` rate-limits itself via `scraper_state.json`.
+- Pinecone free tier limits index size; `ReindexSweeper` avoids redundant upserts via checksum comparison.
+- `ddl-auto=update` is used for development convenience; production deployment should migrate to Flyway/Liquibase.

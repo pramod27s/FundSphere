@@ -26,9 +26,11 @@ FundSphere is a three-tier system with a clean separation between user-facing UI
 ## Key Features
 
 - **AI-Powered Grant Matching (RAG)** — semantic understanding of a researcher's bio, interests, and constraints, with explainable rationale per match.
-- **Hybrid Search with Reciprocal Rank Fusion** — combines PostgreSQL keyword search and Pinecone vector search, reranked by Freshness, Eligibility, and Expired Penalty modifiers.
+- **Hybrid Search with Reciprocal Rank Fusion** — combines PostgreSQL keyword search and Pinecone vector search (with HyDE for improved recall), reranked across 5 signals: semantic similarity, eligibility, keyword match, funding fit, and deadline freshness.
+- **AI Proposal Assistant** — upload a draft proposal PDF and grant guidelines PDF; get structured per-section compliance feedback (Quick ~10 s / Deep ~30–90 s), a revision diff card, and Markdown/PDF export.
 - **Two-Pass Delta Scraping** — SHA-256 hash check on agency pages first (zero-cost monitor); only when content changes does Firecrawl extract structured grant data into a strict schema.
 - **Rich Researcher Profiles** — career stage, institution type, country, funding preferences, and notification controls drive personalization.
+- **Saved Grants** — bookmark any grant; persisted in PostgreSQL with optimistic UI and rollback.
 
 ## How AI Match Works
 
@@ -36,9 +38,10 @@ FundSphere is a three-tier system with a clean separation between user-facing UI
 2. `CoreBackend` hydrates the researcher's full profile from Postgres → forwards to `ai-service`
 3. `ai-service` embeds the profile + query, searches Pinecone with hard metadata filters (country, applicantType)
 4. Vector hits are merged with keyword hits, then scored:
-   - Semantic similarity 45%
-   - Keyword match 25%
-   - Eligibility 15%
+   - Semantic similarity 35%
+   - Eligibility 25%
+   - Keyword match 15%
+   - Funding fit 15%
    - Deadline freshness 10%
 5. Ranked results return through `CoreBackend` → rendered as match cards with percentage + AI reasoning
 
@@ -72,7 +75,7 @@ FundSphere/
 - Java 17+ and Maven
 - Python 3.11+
 - PostgreSQL 14+
-- Pinecone API key, Firecrawl API key
+- Pinecone API key, Firecrawl API key, Google Gemini API key
 
 ### Frontend
 ```bash
@@ -98,9 +101,9 @@ Each service reads its config from a local `.env` (or `application.properties` f
 
 ## Documentation
 
-- [`ABOUT_FUNDSPHERE.md`](ABOUT_FUNDSPHERE.md) — extended product overview
-- [`docs/`](docs/) — architecture and design notes
-- [`LLM_PROPOSAL_ASSISTANT_ARCHITECTURE_1.md`](LLM_PROPOSAL_ASSISTANT_ARCHITECTURE_1.md) — proposal assistant design
+- [`docs/ABOUT_FUNDSPHERE.md`](docs/ABOUT_FUNDSPHERE.md) — extended product overview
+- [`docs/PROJECT_STATUS_AND_ARCHITECTURE.md`](docs/PROJECT_STATUS_AND_ARCHITECTURE.md) — full component inventory and data flows
+- [`docs/LLM_PROPOSAL_ASSISTANT_ARCHITECTURE_1.md`](docs/LLM_PROPOSAL_ASSISTANT_ARCHITECTURE_1.md) — proposal assistant design
 
 ## License
 
