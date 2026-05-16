@@ -6,9 +6,13 @@ Usage (from ai-service/):
     python -m eval.run_eval --testset path.json
     python -m eval.run_eval --top-k 10 --csv out.csv
 
-Computes Recall@K, MRR, and per-case rank of the first expected grant.
-Compare runs by running once with the flag OFF, then again with the flag ON
-(e.g. ENABLE_PROFILE_QUERY_SPLIT=true) and diff the printed metrics.
+Computes Recall@K, MRR, NDCG@K, and per-case rank of the first expected
+grant. Compare runs by running once with the flag OFF, then again with the
+flag ON (e.g. ENABLE_PROFILE_QUERY_SPLIT=true) and diff the printed metrics.
+
+NDCG@K here is the *binary* variant: gain = 1 if the returned grant is in
+`expectedGrantIds`, else 0, normalized by the ideal-ranking DCG. For the
+graded-rating (0-3) NDCG, see auto_eval.ndcg_at_k.
 
 The runner imports the recommender directly — it does NOT go through HTTP —
 so you can run it locally without a frontend.
@@ -17,6 +21,7 @@ so you can run it locally without a frontend.
 import argparse
 import json
 import logging
+import math
 import os
 import sys
 import time
@@ -80,6 +85,28 @@ def mrr(returned: List[int], expected: List[int]) -> float:
     return 1.0 / rank if rank else 0.0
 
 
+def ndcg_at_k(returned: List[int], expected: List[int], k: int) -> float:
+    """Binary NDCG@K for hand-labelled testsets.
+
+    Gain = 1 if the returned grant is in `expected`, else 0. Discount is the
+    standard 1/log2(rank + 1). NaN when no expected grants are supplied,
+    matching recall_at_k's empty-label behaviour.
+
+    For graded ratings (0-3 scale), see auto_eval.ndcg_at_k — this function
+    is deliberately the simpler binary variant since run_eval cases only
+    label a grant as expected-or-not.
+    """
+    if not expected:
+        return float("nan")
+    expected_set = set(expected)
+    gains = [1 if gid in expected_set else 0 for gid in returned[:k]]
+    dcg = sum(g / math.log2(i + 2) for i, g in enumerate(gains))
+    # Ideal: every expected hit packed at the top (capped at k).
+    ideal_hits = min(len(expected), k)
+    idcg = sum(1.0 / math.log2(i + 2) for i in range(ideal_hits))
+    return (dcg / idcg) if idcg > 0 else float("nan")
+
+
 def fmt_pct(x: float) -> str:
     if x != x:  # NaN
         return "  N/A "
@@ -121,10 +148,11 @@ def main() -> None:
     rows: List[Dict[str, Any]] = []
     recalls: List[float] = []
     mrrs: List[float] = []
+    ndcgs: List[float] = []
     latencies_ms: List[float] = []
 
-    print(f"{'case_id':<28} {'expected':>8} {'r@K':>6} {'mrr':>6} {'first':>5} {'lat(ms)':>8}")
-    print("-" * 78)
+    print(f"{'case_id':<28} {'expected':>8} {'r@K':>6} {'mrr':>6} {'ndcg':>6} {'first':>5} {'lat(ms)':>8}")
+    print("-" * 86)
 
     for case in cases:
         case_id = case.get("id", "(no-id)")
@@ -142,16 +170,24 @@ def main() -> None:
         if expected:
             r = recall_at_k(returned, expected, args.top_k)
             m = mrr(returned, expected)
+            n = ndcg_at_k(returned, expected, args.top_k)
             first = first_hit_rank(returned, expected)
             recalls.append(r)
             mrrs.append(m)
+            if n == n:  # not NaN
+                ndcgs.append(n)
         else:
             r = float("nan")
             m = float("nan")
+            n = float("nan")
             first = None
 
         first_str = str(first) if first else "  -  "
-        print(f"{case_id:<28} {len(expected):>8} {fmt_pct(r):>6} {m:>6.3f} {first_str:>5} {latency_ms:>8.0f}")
+        ndcg_str = f"{n:6.3f}" if n == n else "  N/A "
+        print(
+            f"{case_id:<28} {len(expected):>8} {fmt_pct(r):>6} {m:>6.3f} "
+            f"{ndcg_str:>6} {first_str:>5} {latency_ms:>8.0f}"
+        )
 
         rows.append({
             "case_id": case_id,
@@ -159,23 +195,27 @@ def main() -> None:
             "returned_count": len(returned),
             "recall_at_k": r,
             "mrr": m,
+            "ndcg_at_k": n,
             "first_hit_rank": first,
             "latency_ms": round(latency_ms, 1),
             "returned_ids": returned[: args.top_k],
         })
 
-    print("-" * 78)
+    print("-" * 86)
     if recalls:
         mean_r = sum(recalls) / len(recalls)
         mean_m = sum(mrrs) / len(mrrs)
+        mean_n = sum(ndcgs) / len(ndcgs) if ndcgs else float("nan")
         print(f"  Recall@{args.top_k:<3}                       : {fmt_pct(mean_r)}  ({len(recalls)} labelled cases)")
         print(f"  MRR                              : {mean_m:.3f}")
+        if ndcgs:
+            print(f"  NDCG@{args.top_k:<3}                         : {mean_n:.3f}  ({len(ndcgs)} labelled cases)")
     else:
         print("  No labelled cases — fill in 'expectedGrantIds' in the testset to get scores.")
     if latencies_ms:
         avg_lat = sum(latencies_ms) / len(latencies_ms)
         print(f"  Avg latency                      : {avg_lat:.0f} ms")
-    print("=" * 78)
+    print("=" * 86)
 
     if args.csv:
         import csv

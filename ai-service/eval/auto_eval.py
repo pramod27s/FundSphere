@@ -38,7 +38,7 @@ from typing import Any, Dict, List, Optional, Tuple
 # Allow `python eval/auto_eval.py` from ai-service/
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from openai import OpenAI  # noqa: E402
+from openai import OpenAI, RateLimitError  # noqa: E402
 
 from rag.config import settings  # noqa: E402
 from rag.pinecone_client import PineconeService  # noqa: E402
@@ -73,13 +73,46 @@ def _llm_client() -> Tuple[OpenAI, str]:
 
 
 def _chat(client: OpenAI, model: str, system: str, user: str, temperature: float = 0.4, max_tokens: int = 1500) -> str:
-    resp = client.chat.completions.create(
-        model=model,
-        temperature=temperature,
-        max_tokens=max_tokens,
-        messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
-    )
-    return (resp.choices[0].message.content or "").strip()
+    """Single LLM call with bounded exponential backoff on 429 rate limits.
+
+    Groq free-tier TPM limits (8000 on gpt-oss-120b) blow through after 2-3
+    judge calls without throttling. Rather than crash the entire eval run,
+    we honour the API's `Please try again in Xms` hint when present and
+    otherwise back off with a doubling delay capped at 60s.
+    """
+    delay = 1.5  # seconds; doubles each retry, capped at 60
+    max_attempts = 6
+    for attempt in range(1, max_attempts + 1):
+        try:
+            resp = client.chat.completions.create(
+                model=model,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
+            )
+            return (resp.choices[0].message.content or "").strip()
+        except RateLimitError as exc:
+            # Try to parse the server's suggested wait time from the message;
+            # patterns like "Please try again in 772.5ms" / "in 4.2s".
+            wait = _parse_retry_hint(str(exc)) or delay
+            wait = min(wait, 60.0)
+            if attempt == max_attempts:
+                log.warning("429 after %d attempts, giving up. Returning empty.", attempt)
+                return ""
+            print(f"      ⏳ rate-limited (attempt {attempt}/{max_attempts}); sleeping {wait:.1f}s…", flush=True)
+            time.sleep(wait)
+            delay = min(delay * 2, 60.0)
+    return ""
+
+
+def _parse_retry_hint(msg: str) -> Optional[float]:
+    """Pull the `Please try again in Xms/Xs` value out of a Groq 429 message."""
+    import re
+    m = re.search(r"try again in\s+([\d.]+)\s*(ms|s)\b", msg, re.IGNORECASE)
+    if not m:
+        return None
+    value = float(m.group(1))
+    return value / 1000.0 if m.group(2).lower() == "ms" else value
 
 
 def _safe_json_parse(text: str) -> Optional[Any]:
@@ -189,7 +222,28 @@ def invent_query(client: OpenAI, model: str, profile: UserProfile) -> str:
         temperature=0.7, max_tokens=80,
     )
     # Strip leading/trailing quotes some models add
-    return text.strip().strip('"').strip("'")
+    cleaned = text.strip().strip('"').strip("'")
+    # Some models (or rate-limited retries) return empty content. Falling back
+    # to a profile-derived query keeps the recommender's intent channel useful
+    # rather than scoring on empty input.
+    if not cleaned:
+        return _fallback_query(profile)
+    return cleaned
+
+
+def _fallback_query(profile: UserProfile) -> str:
+    """Synthesize a plausible query when the LLM returns empty."""
+    interests = (profile.researchInterests or [])[:2]
+    keywords = (profile.keywords or [])[:2]
+    topics = interests + keywords
+    if topics:
+        return f"Looking for grants in {', '.join(topics)}"
+    if profile.researchBio:
+        # First sentence of the bio is a reasonable proxy for "what they care about"
+        first_sentence = profile.researchBio.split('.')[0].strip()
+        if first_sentence:
+            return first_sentence[:120]
+    return "research funding opportunities"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -236,6 +290,9 @@ def judge_candidates(
     candidates_block = []
     for it in items:
         f = it.fields or {}
+        # Summary trimmed to ~240 chars to stay within Groq's 8000 TPM budget
+        # — 10 candidates × 500 chars each was pushing each judge call to
+        # 6-7K tokens and blowing through the per-minute limit by case 3.
         candidates_block.append({
             "grantId": it.grantId,
             "title": it.title or f.get("grant_title") or "",
@@ -243,7 +300,7 @@ def judge_candidates(
             "field": f.get("field") or [],
             "eligible_applicants": f.get("eligible_applicants") or [],
             "eligible_countries": f.get("eligible_countries") or [],
-            "summary": (f.get("chunk_text") or "")[:500],
+            "summary": (f.get("chunk_text") or "")[:240],
         })
 
     user_payload = {
@@ -263,7 +320,10 @@ def judge_candidates(
     raw = _chat(
         client, model, _JUDGE_SYSTEM,
         json.dumps(user_payload, indent=2),
-        temperature=0.0, max_tokens=4000,
+        # Judge outputs ~10 small JSON objects (~600 tokens total). 4000 was
+        # over-allocating and counting against TPM. 1200 leaves slack
+        # without truncating any realistic response.
+        temperature=0.0, max_tokens=1200,
     )
     parsed = _safe_json_parse(raw)
     if not isinstance(parsed, list):

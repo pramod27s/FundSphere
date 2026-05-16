@@ -128,17 +128,33 @@ FundSphere RAG eval
   ENABLE_PROFILE_QUERY_SPLIT    : False
   …
 ==============================================================================
-case_id                      expected    r@K    mrr first  lat(ms)
+case_id                      expected    r@K    mrr   ndcg first  lat(ms)
 ------------------------------------------------------------------------------
-gis-flood-mapping                   3   66.7%  0.500    2     842
-ai-drug-discovery                   3  100.0%  1.000    1     901
-climate-rural-india                 3   33.3%  0.250    4     788
+gis-flood-mapping                   3   66.7%  0.500  0.612     2     842
+ai-drug-discovery                   3  100.0%  1.000  1.000     1     901
+climate-rural-india                 3   33.3%  0.250  0.387     4     788
 ------------------------------------------------------------------------------
   Recall@10                        :  66.7%  (3 labelled cases)
   MRR                              : 0.583
+  NDCG@10                          : 0.666  (3 labelled cases)
   Avg latency                      : 844 ms
 ==============================================================================
 ```
+
+### How to read the metrics
+
+- **Recall@K** — out of all expected grants, how many appeared in top-K?
+  Ignores position. Hit at rank 1 and at rank 10 count the same.
+- **MRR** — `1 / rank` of the *first* expected hit. Heavily rewards getting one
+  great result very early; useless for distinguishing "great + many" from
+  "great + one".
+- **NDCG@K** — full ranking quality. Penalises pushing relevant grants down
+  the list (logarithmic discount). The metric most directly tied to user
+  experience: it cares both *how many* expected grants appeared AND *where*.
+
+If you can only watch one number, watch NDCG@K. The other two are useful
+when NDCG moves and you want to understand whether it was a positional
+shift (MRR) or a coverage shift (Recall).
 
 ## Adding more cases
 
