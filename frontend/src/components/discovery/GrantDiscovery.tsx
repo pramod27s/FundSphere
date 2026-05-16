@@ -44,6 +44,10 @@ function fundingInrValue(g: DiscoveryGrant): number {
 
 function applyFilters(grants: DiscoveryGrant[], f: FilterState): DiscoveryGrant[] {
   return grants.filter((g) => {
+    if (f.funders.length > 0 && !f.funders.includes(g.funder)) {
+      return false;
+    }
+
     if (f.grantTypes.length > 0) {
       const text = `${g.title} ${g.tags.join(' ')} ${g.description}`.toLowerCase();
       const match =
@@ -193,6 +197,16 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
 
   const filteredGrants = useMemo(() => applyFilters(sortedGrants, filterState), [sortedGrants, filterState]);
 
+  // Unique funders from the currently-loaded grants. Drives the
+  // searchable Funding Agency filter in the sidebar.
+  const availableFunders = useMemo(() => {
+    const set = new Set<string>();
+    grants.forEach((g) => {
+      if (g.funder && g.funder !== 'Unknown Agency') set.add(g.funder);
+    });
+    return Array.from(set);
+  }, [grants]);
+
   // Cap visible results at topK regardless of mode — in AI mode the server
   // already returns at most topK rows so this is a no-op; in browse mode it
   // makes the "Top N" dropdown actually work.
@@ -230,6 +244,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
           filters={filterState}
           onChange={setFilterState}
           onClose={() => setIsSidebarOpen(false)}
+          availableFunders={availableFunders}
         />
       </div>
 
@@ -436,6 +451,7 @@ const FILTER_LABELS: Record<keyof FilterState, string> = {
   applicantTypes: 'Applicant',
   fundingRanges: 'Funding',
   deadlineRanges: 'Deadline',
+  funders: 'Agency',
 };
 
 function FilteredEmptyState({

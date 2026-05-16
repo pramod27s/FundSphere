@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { useState } from 'react';
-import { Filter, ChevronDown, Check, X, RotateCcw } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Filter, ChevronDown, Check, X, RotateCcw, Search } from 'lucide-react';
 import AnimatedLogo from '../common/AnimatedLogo.tsx';
 
 export interface FilterState {
@@ -8,6 +8,7 @@ export interface FilterState {
   applicantTypes: string[];
   fundingRanges: string[];
   deadlineRanges: string[];
+  funders: string[];
 }
 
 export const EMPTY_FILTERS: FilterState = {
@@ -15,6 +16,7 @@ export const EMPTY_FILTERS: FilterState = {
   applicantTypes: [],
   fundingRanges: [],
   deadlineRanges: [],
+  funders: [],
 };
 
 function toggleItem(arr: string[], value: string): string[] {
@@ -88,9 +90,15 @@ interface FilterSidebarProps {
   filters: FilterState;
   onChange: (filters: FilterState) => void;
   onClose?: () => void;
+  /**
+   * Unique funder names derived from the currently-loaded grants. Sorted
+   * with the user's already-selected funders pinned at the top so they
+   * stay visible even after filtering wipes out other rows.
+   */
+  availableFunders?: string[];
 }
 
-export default function FilterSidebar({ filters, onChange, onClose }: FilterSidebarProps) {
+export default function FilterSidebar({ filters, onChange, onClose, availableFunders = [] }: FilterSidebarProps) {
   const toggle = (key: keyof FilterState, value: string) => {
     onChange({ ...filters, [key]: toggleItem(filters[key], value) });
   };
@@ -99,7 +107,30 @@ export default function FilterSidebar({ filters, onChange, onClose }: FilterSide
     filters.grantTypes.length +
     filters.applicantTypes.length +
     filters.fundingRanges.length +
-    filters.deadlineRanges.length;
+    filters.deadlineRanges.length +
+    filters.funders.length;
+
+  const [funderQuery, setFunderQuery] = useState('');
+
+  // Sort: selected funders first (so the user can always see what they've
+  // ticked), then alphabetical for the rest. Search filter applies on top.
+  const sortedFunders = useMemo(() => {
+    const selected = new Set(filters.funders);
+    const all = Array.from(new Set([...filters.funders, ...availableFunders]));
+    return all.sort((a, b) => {
+      const aSel = selected.has(a);
+      const bSel = selected.has(b);
+      if (aSel && !bSel) return -1;
+      if (!aSel && bSel) return 1;
+      return a.localeCompare(b);
+    });
+  }, [availableFunders, filters.funders]);
+
+  const visibleFunders = useMemo(() => {
+    const q = funderQuery.trim().toLowerCase();
+    if (!q) return sortedFunders;
+    return sortedFunders.filter((f) => f.toLowerCase().includes(q));
+  }, [sortedFunders, funderQuery]);
 
   return (
     <aside className="w-full bg-white/80 backdrop-blur-xl border-r border-brand-100 h-full flex flex-col shrink-0">
@@ -176,6 +207,44 @@ export default function FilterSidebar({ filters, onChange, onClose }: FilterSide
             />
           ))}
         </FilterSection>
+
+        {sortedFunders.length > 0 && (
+          <FilterSection title="Funding Agency" count={filters.funders.length}>
+            <div className="relative mb-2">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-brand-400 pointer-events-none" />
+              <input
+                type="search"
+                value={funderQuery}
+                onChange={(e) => setFunderQuery(e.target.value)}
+                placeholder="Search agencies..."
+                className="w-full pl-8 pr-2 py-1.5 text-xs bg-white border border-brand-200 rounded-lg focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100 placeholder:text-brand-400"
+              />
+            </div>
+            <div className="max-h-56 overflow-y-auto -mx-2 px-2 scrollbar-thin">
+              {visibleFunders.length === 0 ? (
+                <p className="text-xs text-brand-400 py-2 px-2 italic">No agencies match "{funderQuery}".</p>
+              ) : (
+                visibleFunders.map((funder) => (
+                  <Checkbox
+                    key={funder}
+                    label={funder}
+                    checked={filters.funders.includes(funder)}
+                    onToggle={() => toggle('funders', funder)}
+                  />
+                ))
+              )}
+            </div>
+            {filters.funders.length > 0 && (
+              <button
+                type="button"
+                onClick={() => onChange({ ...filters, funders: [] })}
+                className="text-[11px] text-brand-500 hover:text-primary-600 font-medium mt-2 ml-1 transition-colors"
+              >
+                Clear {filters.funders.length} agency selection{filters.funders.length === 1 ? '' : 's'}
+              </button>
+            )}
+          </FilterSection>
+        )}
       </div>
 
       <div className="p-4 border-t border-brand-100 bg-gradient-to-t from-brand-50/60 to-transparent">
