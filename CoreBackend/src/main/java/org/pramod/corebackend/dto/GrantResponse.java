@@ -24,6 +24,10 @@ public class GrantResponse {
     private String description;
     private String grantUrl;
     private LocalDateTime applicationDeadline;
+    private LocalDateTime openingDate;
+    private LocalDateTime loiDeadline;
+    private LocalDateTime decisionDate;
+    private LocalDateTime projectStartDate;
     private BigDecimal fundingAmountMin;
     private BigDecimal fundingAmountMax;
     private String fundingCurrency;
@@ -40,6 +44,11 @@ public class GrantResponse {
     private String selectionCriteria;
     private String grantDuration;
     private String researchThemes;
+    private Boolean requiresPhd;
+    private Integer minExperienceYears;
+    private String citizenshipRequired;
+    private String grantType;
+    private String targetCareerStages;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime lastScrapedAt;

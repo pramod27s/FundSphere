@@ -59,6 +59,13 @@ def build_grant_document(grant: GrantData) -> str:
     if getattr(grant, "selectionCriteria", None):
         parts.append(f"Selection Criteria: {_clean_str(grant.selectionCriteria)}")
 
+    if getattr(grant, "grantType", None):
+        parts.append(f"Grant Type: {_clean_str(grant.grantType)}")
+
+    stages = _clean_list(getattr(grant, "targetCareerStages", []))
+    if stages:
+        parts.append(f"Target Career Stages: {', '.join(stages)}")
+
     themes = _clean_list(getattr(grant, "researchThemes", []))
     if themes:
         parts.append(f"Themes: {', '.join(themes)}")
@@ -166,6 +173,12 @@ def build_pinecone_records(grant: GrantData) -> list[dict]:
         "min_experience_years": getattr(grant, "minExperienceYears", None),
         "citizenship_required": _clean_list(getattr(grant, "citizenshipRequired", [])),
         "max_funding_per_applicant": getattr(grant, "maxFundingPerApplicant", None),
+        "grant_type": _clean_str(getattr(grant, "grantType", None)),
+        "target_career_stages": _clean_list(getattr(grant, "targetCareerStages", [])),
+        "opening_date": _clean_str(getattr(grant, "openingDate", None)),
+        "loi_deadline": _clean_str(getattr(grant, "loiDeadline", None)),
+        "decision_date": _clean_str(getattr(grant, "decisionDate", None)),
+        "project_start_date": _clean_str(getattr(grant, "projectStartDate", None)),
     }
 
     # Pinecone metadata should be flat and should not contain null values.

@@ -28,6 +28,10 @@ public class AiGrantIndexableResponse {
     private String description;
     private String grantUrl;
     private LocalDateTime applicationDeadline;
+    private LocalDateTime openingDate;
+    private LocalDateTime loiDeadline;
+    private LocalDateTime decisionDate;
+    private LocalDateTime projectStartDate;
     private BigDecimal fundingAmountMin;
     private BigDecimal fundingAmountMax;
     private String fundingCurrency;
@@ -41,6 +45,14 @@ public class AiGrantIndexableResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime lastScrapedAt;
+
+    // Structured eligibility constraints, surfaced to the AI service as
+    // Pinecone metadata so the recommender can apply hard-filter scoring.
+    private Boolean requiresPhd;
+    private Integer minExperienceYears;
+    private List<String> citizenshipRequired;
+    private String grantType;
+    private List<String> targetCareerStages;
 }
 
 

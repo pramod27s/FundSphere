@@ -7,12 +7,14 @@ package org.pramod.corebackend.controller;
 import lombok.RequiredArgsConstructor;
 import org.pramod.corebackend.dto.ResearcherRequest;
 import org.pramod.corebackend.dto.ResearcherResponse;
+import org.pramod.corebackend.dto.OrcidEnrichmentResponse;
 import org.pramod.corebackend.enums.PrimaryField;
 import org.pramod.corebackend.enums.UserType;
 import org.pramod.corebackend.security.UserPrincipal;
 import org.pramod.corebackend.service.AiServiceClient;
 import org.pramod.corebackend.service.GrantService;
 import org.pramod.corebackend.service.ResearcherService;
+import org.pramod.corebackend.service.OrcidEnrichmentService;
 import org.pramod.corebackend.service.AiProfileMapper;
 import org.pramod.corebackend.dto.ai.AiUserProfileResponse;
 import org.pramod.corebackend.dto.ai.AiKeywordCandidateResponse;
@@ -35,6 +37,7 @@ public class ResearcherController {
     private final AiServiceClient aiServiceClient;
     private final GrantService grantService;
     private final AiProfileMapper aiProfileMapper;
+    private final OrcidEnrichmentService orcidEnrichmentService;
 
     /**
      * Creates or updates the researcher profile for the currently authenticated user.
@@ -47,6 +50,19 @@ public class ResearcherController {
                                                                @RequestBody ResearcherRequest request) {
         ResearcherResponse response = researcherService.createOrUpdateForUser(principal.getId(), request);
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Onboarding helper: fetches a public ORCID record and returns suggested
+     * profile fields (research summary, keywords) to prefill the form. Optional
+     * and fail-open — a bad iD or lookup failure returns found=false with a
+     * message, not an error.
+     * Body: { "orcidId": "0000-0002-1825-0097" }
+     */
+    @PostMapping("/enrich/orcid")
+    public ResponseEntity<OrcidEnrichmentResponse> enrichFromOrcid(@RequestBody Map<String, String> body) {
+        String orcidId = body == null ? null : body.get("orcidId");
+        return ResponseEntity.ok(orcidEnrichmentService.enrich(orcidId));
     }
 
     /**

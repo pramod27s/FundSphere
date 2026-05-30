@@ -90,6 +90,58 @@ export function formatRelativeDeadline(raw: string | undefined | null): Deadline
   };
 }
 
+export interface KeyDateFormat {
+  /** Absolute date, e.g. "Mar 15, 2026". Empty when unparseable/missing. */
+  abs: string;
+  /** Relative hint, e.g. "in 2 weeks", "in 3 months", "passed", "today". */
+  hint: string;
+  /** True when the date is in the past. */
+  isPast: boolean;
+}
+
+/**
+ * Generic relative-date formatter for the application timeline (opening date,
+ * LOI deadline, decision date, project start). Unlike `formatRelativeDeadline`
+ * it is verb-neutral — the surrounding label ("Opens", "Decision") supplies the
+ * verb — so it reads correctly for any milestone, not just the closing date.
+ */
+export function formatKeyDate(raw: string | undefined | null): KeyDateFormat | null {
+  if (!raw) return null;
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return null;
+
+  const abs = parsed.toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+  });
+
+  const diffMs = parsed.getTime() - Date.now();
+  const days = Math.round(Math.abs(diffMs) / DAY);
+  const past = diffMs < 0;
+
+  let hint: string;
+  if (days === 0) {
+    hint = 'today';
+  } else {
+    let span: string;
+    if (days <= 21) span = days === 1 ? '1 day' : `${days} days`;
+    else if (days <= 60) {
+      const w = Math.round(days / 7);
+      span = w === 1 ? '1 week' : `${w} weeks`;
+    } else if (days <= 365) {
+      const m = Math.round(days / 30);
+      span = m === 1 ? '1 month' : `${m} months`;
+    } else {
+      const y = Math.round(days / 365);
+      span = y === 1 ? '1 year' : `${y} years`;
+    }
+    hint = past ? `${span} ago` : `in ${span}`;
+  }
+
+  return { abs, hint, isPast: past };
+}
+
 /**
  * Tailwind class fragments for the chip's text + bg + border, keyed on
  * tone. Kept here so every consumer renders deadlines consistently.

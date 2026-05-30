@@ -3,6 +3,7 @@
 type StepProps = {
   yearsExperience: string;
   educationLevel: string;
+  hasCompletedPhd: string;
   previousGrants: string;
   updateFields: (fields: Partial<StepProps>) => void;
 };
@@ -16,7 +17,7 @@ const eduLevels = [
 ];
 
 export default function StepExperience({
-  yearsExperience, educationLevel, previousGrants, updateFields
+  yearsExperience, educationLevel, hasCompletedPhd, previousGrants, updateFields
 }: StepProps) {
   const inputClass = "w-full px-4 py-2.5 rounded-lg border border-brand-200 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-colors bg-white/50";
   const labelClass = "block text-sm font-medium text-brand-700 mb-1.5";
@@ -59,6 +60,27 @@ export default function StepExperience({
               </button>
             )
           })}
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <label className={labelClass}>Have you completed a PhD / doctorate?</label>
+        <p className="text-xs text-brand-500 mb-2">Some grants require a completed doctorate — this is different from currently studying for one.</p>
+        <div className="flex gap-4 mt-1">
+          {["Yes", "No"].map(opt => (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => updateFields({ hasCompletedPhd: opt })}
+              className={`flex-1 py-2.5 rounded-lg border transition-all font-medium ${
+                hasCompletedPhd === opt
+                  ? 'bg-primary-50 text-primary-700 border-primary-500 shadow-sm'
+                  : 'bg-white border-brand-200 text-brand-700 hover:border-primary-300'
+              }`}
+            >
+              {opt}
+            </button>
+          ))}
         </div>
       </div>
 

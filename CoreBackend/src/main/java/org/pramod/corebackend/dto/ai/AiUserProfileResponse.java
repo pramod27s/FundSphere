@@ -32,6 +32,13 @@ public class AiUserProfileResponse {
     private BigDecimal preferredMinAmount;
     private BigDecimal preferredMaxAmount;
     private String preferredCurrency;
+
+    // Eligibility signals, matched against grants' structured constraints by
+    // the recommender. Derived from existing onboarding data (no new input).
+    private Boolean hasPhd;
+    private Integer yearsOfExperience;
+    private String citizenship;
+    private String preferredGrantType;
 }
 
 

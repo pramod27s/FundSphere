@@ -150,6 +150,12 @@ function renderAiCard(
               {grant.funder}
             </span>
 
+            {grant.grantType && (
+              <span className="text-[10px] font-bold px-2.5 py-1 rounded-md bg-primary-50 text-primary-700 border border-primary-200 uppercase tracking-widest">
+                {grant.grantType}
+              </span>
+            )}
+
             <div className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold shadow-sm tabular-nums ${
               grant.matchScore > 85 ? 'bg-gradient-to-r from-primary-50 to-primary-100/70 text-primary-700 border border-primary-200' : 'bg-brand-50 text-brand-700 border border-brand-200'
             }`}>
@@ -264,9 +270,16 @@ function renderBrowseCard(
       aria-label={`Open details for ${grant.title}`}
     >
       <div className="flex items-start justify-between gap-4 mb-2">
-        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-brand-100 text-brand-700 uppercase tracking-widest line-clamp-2 break-words">
-          {grant.funder}
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-brand-100 text-brand-700 uppercase tracking-widest line-clamp-2 break-words">
+            {grant.funder}
+          </span>
+          {grant.grantType && (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-primary-50 text-primary-700 border border-primary-200 uppercase tracking-widest">
+              {grant.grantType}
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-0.5">
           <WhatsAppShareButton grant={grant} size="sm" />
           <BookmarkButton grant={grant} isSaved={isSaved} toggleSave={toggleSave} size="sm" />

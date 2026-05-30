@@ -63,6 +63,26 @@ class Settings:
     weight_freshness: float = float(os.getenv("WEIGHT_FRESHNESS", "0.10"))
     expired_penalty: float = float(os.getenv("EXPIRED_PENALTY", "0.30"))
 
+    # Drop grants whose application deadline has already passed — they aren't
+    # actionable, so showing them wastes a result slot. Grants with no/unknown
+    # deadline are kept. When this is ON the expired_penalty rarely fires (the
+    # rows are removed first); it remains as a fallback if this is disabled.
+    exclude_expired_grants: bool = _as_bool(os.getenv("EXCLUDE_EXPIRED_GRANTS"), True)
+
+    # Positive-only preference nudges, applied on top of the normalized 5-signal
+    # sum (final score is clamped to [0,1]). They reward grants matching the
+    # researcher's preferred funding mechanism / career stage without penalizing
+    # non-matches, so they can't introduce false negatives.
+    grant_type_match_bonus: float = float(os.getenv("GRANT_TYPE_MATCH_BONUS", "0.05"))
+    career_stage_match_bonus: float = float(os.getenv("CAREER_STAGE_MATCH_BONUS", "0.05"))
+
+    # --- Per-segment scoring weights (4b, opt-in, default OFF) ---
+    # When ON, the 5 base weights are swapped for an applicant-type-specific
+    # preset (see _SEGMENT_WEIGHT_PRESETS in recommender.py). Conservative
+    # domain nudges, not yet validated by the eval harness (2b); unknown
+    # segments fall back to the global weights above. Reversible via this flag.
+    enable_segment_weights: bool = _as_bool(os.getenv("ENABLE_SEGMENT_WEIGHTS"), False)
+
     # --- Accuracy improvements (opt-in, default OFF for safe rollout) ---
     # Split profile vs. user-query into two embedded retrievals, then RRF-fuse.
     # When ON, the user's intent is no longer drowned out by long bios.

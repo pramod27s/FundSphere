@@ -1,16 +1,19 @@
 import os
+import re
 import json
 import hashlib
 import argparse
 import logging
 import time
 import xml.etree.ElementTree as ET
+from datetime import datetime
 from urllib.parse import urlparse, urljoin
 from urllib.robotparser import RobotFileParser
 
 import requests
 from bs4 import BeautifulSoup
 from curl_cffi import requests as cffi_requests
+from dateutil import parser as date_parser
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -32,6 +35,186 @@ SCRAPER_USER_AGENT = os.getenv(
 
 _backend_alive_cache: dict[str, float] = {}
 _BACKEND_ALIVE_TTL_SECONDS = 60
+
+# Politeness: minimum seconds between requests to the SAME domain. A site's
+# robots.txt Crawl-delay (when present) overrides this upward.
+CRAWL_DELAY_SECONDS = float(os.getenv("CRAWL_DELAY_SECONDS", "1.0"))
+_last_request_at: dict[str, float] = {}
+
+# SPA fallback: when a page exposes too little static text to hash, optionally
+# render it with a headless browser (Selenium) so JS-built grant pages aren't
+# silently skipped. Degrades gracefully to the old "skip" behaviour if Selenium
+# or a browser driver isn't available.
+SPA_RENDER_FALLBACK = os.getenv("SPA_RENDER_FALLBACK", "true").strip().lower() not in ("false", "0", "no")
+
+# Where per-run summaries are appended for lightweight observability.
+RUNS_FILE = os.path.join(os.path.dirname(__file__), "scraper_runs.json")
+_MAX_PERSISTED_RUNS = int(os.getenv("SCRAPER_MAX_PERSISTED_RUNS", "50"))
+
+# Deadline strings that mean "no concrete date" — never coerce these to a date.
+_NON_DATE_DEADLINES = {"null", "none", "n/a", "na", "tba", "tbd", "rolling", "ongoing", "open", "various"}
+
+# Indian + international magnitude words → multiplier.
+_AMOUNT_MULTIPLIER_PATTERNS = [
+    (re.compile(r"\b(?:lakh|lac|lakhs)\b"), 100_000),
+    (re.compile(r"\b(?:crore|cr)\b"), 10_000_000),
+    (re.compile(r"\b(?:million|mn)\b|\d+\s*m\b"), 1_000_000),
+    (re.compile(r"\b(?:billion|bn)\b|\d+\s*b\b"), 1_000_000_000),
+    (re.compile(r"\d+\s*k\b|\bthousand\b"), 1_000),
+]
+
+
+def _parse_amount(val, prefer: str = "min"):
+    """Parse a funding-amount string into a float.
+
+    Handles:
+      - thousands separators ("$1,250,000")
+      - magnitude words ("10 lakh", "1.5 crore", "$5M", "200k")
+      - ranges ("between 5 and 10 lakhs", "$10,000 - $50,000") — returns the
+        lower bound for prefer="min" and the upper bound for prefer="max"
+        (the old code grabbed the first number for both, so "5 to 10 lakh"
+        scored as 5 lakh max).
+
+    Returns None when no number can be found.
+    """
+    if val is None:
+        return None
+    if isinstance(val, (int, float)):
+        return float(val)
+
+    s = str(val).lower().replace(",", "")
+    nums = re.findall(r"\d+(?:\.\d+)?", s)
+    if not nums:
+        return None
+    try:
+        values = [float(n) for n in nums]
+    except ValueError:
+        return None
+
+    multiplier = 1
+    for pattern, mult in _AMOUNT_MULTIPLIER_PATTERNS:
+        if pattern.search(s):
+            multiplier = mult
+            break
+    values = [v * multiplier for v in values]
+
+    return min(values) if prefer == "min" else max(values)
+
+
+_TRUE_WORDS = {"true", "yes", "required", "mandatory", "1"}
+_FALSE_WORDS = {"false", "no", "not required", "optional", "0"}
+
+
+def _coerce_bool(val):
+    """Normalize Firecrawl's requiresPhd into True/False/None. Models sometimes
+    return strings ('yes', 'required') instead of a JSON boolean."""
+    if val is None or isinstance(val, bool):
+        return val
+    s = str(val).strip().lower()
+    if s in _TRUE_WORDS:
+        return True
+    if s in _FALSE_WORDS:
+        return False
+    return None
+
+
+def _coerce_years(val):
+    """Normalize minExperienceYears into an int, tolerating '3 years' style
+    strings. Returns None when no number is present."""
+    if val is None:
+        return None
+    if isinstance(val, bool):
+        return None
+    if isinstance(val, (int, float)):
+        return int(val)
+    m = re.search(r"\d+", str(val))
+    return int(m.group()) if m else None
+
+
+def _normalize_deadline(val):
+    """Parse an arbitrary deadline string into 'YYYY-MM-DDTHH:MM:SS' (no tz),
+    matching Java's LocalDateTime format, or None if not confidently a date.
+
+    The old code only accepted a literal 'YYYY-MM-DD' and dropped everything
+    else, so common formats like 'March 15, 2026' or '15/03/2026' were lost.
+    We now parse fuzzily but require a 4-digit year so dateutil can't invent a
+    date from a bare 'Friday' or a lone day number.
+    """
+    if val is None:
+        return None
+    s = str(val).strip()
+    if not s or s.lower() in _NON_DATE_DEADLINES or "not specified" in s.lower():
+        return None
+    if not re.search(r"(?:19|20)\d{2}", s):
+        return None
+    try:
+        # default supplies end-of-day for date-only strings, so a same-day
+        # deadline isn't treated as already expired at midnight.
+        dt = date_parser.parse(s, fuzzy=True, default=datetime(2000, 1, 1, 23, 59, 59))
+    except (ValueError, OverflowError, TypeError):
+        return None
+    return dt.strftime("%Y-%m-%dT%H:%M:%S")
+
+
+def _throttle(url: str) -> None:
+    """Sleep just enough to honour the per-domain crawl delay before hitting a
+    host again. Keeps us a polite crawler and avoids tripping rate limits."""
+    host = (urlparse(url).netloc or "").lower()
+    if not host:
+        return
+    delay = CRAWL_DELAY_SECONDS
+    rp = _get_robots_for(url)
+    if rp is not None:
+        try:
+            robots_delay = rp.crawl_delay(SCRAPER_USER_AGENT)
+            if robots_delay:
+                delay = max(delay, float(robots_delay))
+        except Exception:
+            pass
+    last = _last_request_at.get(host)
+    if last is not None:
+        wait = delay - (time.time() - last)
+        if wait > 0:
+            time.sleep(wait)
+    _last_request_at[host] = time.time()
+
+
+def _render_text_with_selenium(url: str) -> str | None:
+    """Headless-browser fetch for JS-rendered pages. Returns visible text, or
+    None on any failure (no Selenium, no driver, timeout). Never raises."""
+    driver = None
+    try:
+        from selenium import webdriver
+        from selenium.webdriver.chrome.options import Options
+
+        opts = Options()
+        opts.add_argument("--headless=new")
+        opts.add_argument("--disable-gpu")
+        opts.add_argument("--no-sandbox")
+        opts.add_argument("--disable-dev-shm-usage")
+        opts.add_argument(f"--user-agent={SCRAPER_USER_AGENT}")
+
+        driver = webdriver.Chrome(options=opts)
+        driver.set_page_load_timeout(30)
+        driver.get(url)
+        # Brief settle for late-rendering content.
+        time.sleep(2)
+        html = driver.page_source or ""
+    except Exception as exc:
+        logger.warning(f"Selenium render failed for {url}: {exc} (SPA page will be skipped).")
+        return None
+    finally:
+        if driver is not None:
+            try:
+                driver.quit()
+            except Exception:
+                pass
+
+    soup = BeautifulSoup(html, "html.parser")
+    target = soup.find("main") or soup.find("body") or soup
+    for tag in target(["script", "style", "footer", "nav", "header"]):
+        tag.decompose()
+    return target.get_text(separator=" ", strip=True)
 
 
 def fetch_all_grant_urls() -> list[str]:
@@ -101,6 +284,29 @@ def save_state(state):
     """Save the updated hashes for URLs."""
     with open(STATE_FILE, "w", encoding="utf-8") as f:
         json.dump(state, f, indent=2)
+
+
+def persist_run_summary(summary: dict) -> None:
+    """Append this run's summary to RUNS_FILE (capped, newest last) so scraper
+    health is inspectable without scraping logs. Best-effort; never raises."""
+    try:
+        history = []
+        if os.path.exists(RUNS_FILE):
+            try:
+                with open(RUNS_FILE, "r", encoding="utf-8") as f:
+                    loaded = json.load(f)
+                if isinstance(loaded, list):
+                    history = loaded
+            except Exception:
+                history = []
+        # Drop the verbose seeds list to keep the file compact; keep errors tail.
+        compact = {k: v for k, v in summary.items() if k != "seeds"}
+        history.append(compact)
+        history = history[-_MAX_PERSISTED_RUNS:]
+        with open(RUNS_FILE, "w", encoding="utf-8") as f:
+            json.dump(history, f, indent=2)
+    except Exception as exc:
+        logger.warning(f"Could not persist run summary: {exc}")
 
 
 # --- robots.txt -------------------------------------------------------------
@@ -241,12 +447,16 @@ def get_page_hash(url):
 
     page_text = extract_pure_text(html_content)
 
-    # SPA pages with very little static text cannot be hashed reliably.
-    if page_text and len(page_text) < 300:
-        logger.info(f"Page text length < 300 for {url}; treating as unhashable SPA.")
-        return None
-
-    if not page_text:
+    # SPA pages expose too little static text to hash reliably. Before giving
+    # up (which used to silently skip JS-rendered grant pages forever), try a
+    # headless-browser render so the page still gets monitored + scraped.
+    if not page_text or len(page_text) < 300:
+        if SPA_RENDER_FALLBACK:
+            logger.info(f"Static text thin for {url} ({len(page_text or '')} chars); trying headless render...")
+            rendered = _render_text_with_selenium(url)
+            if rendered and len(rendered) >= 300:
+                return hashlib.sha256(rendered.encode("utf-8")).hexdigest()
+        logger.info(f"Page {url} is unhashable (insufficient text after fallback).")
         return None
 
     return hashlib.sha256(page_text.encode('utf-8')).hexdigest()
@@ -286,6 +496,7 @@ def run_smart_scraper(seed_urls, max_per_seed=8):
             f"[!] CoreBackend at {BACKEND_URL} is not reachable. "
             f"Aborting run before any Firecrawl tokens are spent."
         )
+        persist_run_summary(summary)
         return summary
 
     state = load_state()
@@ -349,6 +560,9 @@ def run_smart_scraper(seed_urls, max_per_seed=8):
             logger.warning(f"    -> robots.txt disallows {url} for our user-agent. Skipping.")
             continue
 
+        # 0.5 Politeness: honour per-domain crawl delay (and robots Crawl-delay).
+        _throttle(url)
+
         # 1. Get the free hash (Pass 1)
         current_hash = get_page_hash(url)
         if not current_hash:
@@ -379,66 +593,35 @@ def run_smart_scraper(seed_urls, max_per_seed=8):
 
             # Optional: ensure basic fields are present so we don't push empty dicts
             if grant_data and grant_data.get("grantTitle") and grant_data.get("fundingAgency"):
-                import re
-
                 # 1. Convert lists to comma-separated strings for Java backend
-                for field in ["eligibleCountries", "eligibleApplicants", "institutionType", "field", "researchThemes"]:
+                for field in ["eligibleCountries", "eligibleApplicants", "institutionType", "field", "researchThemes", "citizenshipRequired", "targetCareerStages"]:
                     val = grant_data.get(field)
                     if isinstance(val, list):
                         grant_data[field] = ", ".join(str(v) for v in val)
                     elif val is None:
                         grant_data[field] = None
 
-                # 2. Extract numeric amount for Java's BigDecimal and handle Lakhs/Crores
-                def parse_amount(val):
-                    if not val: return None
-                    if isinstance(val, (int, float)): return val
+                # 2. Numeric funding amounts for Java's BigDecimal. Range-aware:
+                #    the min field keeps the low bound, the max field the high.
+                grant_data["fundingAmountMin"] = _parse_amount(grant_data.get("fundingAmountMin"), prefer="min")
+                grant_data["fundingAmountMax"] = _parse_amount(grant_data.get("fundingAmountMax"), prefer="max")
 
-                    s = str(val).lower().replace(',', '')
-                    # Look for numbers, optionally with decimals, ignoring lone periods
-                    nums = re.findall(r'\d+(?:\.\d+)?', s)
-                    if not nums: return None
+                # 3. Dates → Java LocalDateTime "yyyy-MM-dd'T'HH:mm:ss".
+                #    Accepts free-form dates ("March 15, 2026", "15/03/2026").
+                for date_field in ("applicationDeadline", "openingDate", "loiDeadline",
+                                   "decisionDate", "projectStartDate"):
+                    grant_data[date_field] = _normalize_deadline(grant_data.get(date_field))
 
-                    # Double check it parses correctly
-                    try:
-                        base_val = float(nums[0])
-                    except ValueError:
-                        return None
+                # 4. Structured eligibility constraints (drive the recommender's
+                #    hard-filter guards). Coerce loose model output to clean types.
+                grant_data["requiresPhd"] = _coerce_bool(grant_data.get("requiresPhd"))
+                grant_data["minExperienceYears"] = _coerce_years(grant_data.get("minExperienceYears"))
 
-                    # Apply multipliers based on Indian and International numbering words
-                    if 'lakh' in s or 'lac' in s:
-                        base_val *= 100000
-                    elif 'crore' in s or re.search(r'\bcr\b', s):
-                        base_val *= 10000000
-                    elif 'million' in s or re.search(r'\d+\s*m\b', s):
-                        base_val *= 1000000
-                    elif 'billion' in s or re.search(r'\d+\s*b\b', s):
-                        base_val *= 1000000000
-                    elif re.search(r'\d+\s*k\b', s):
-                        base_val *= 1000
-
-                    return base_val
-
-                grant_data["fundingAmountMin"] = parse_amount(grant_data.get("fundingAmountMin"))
-                grant_data["fundingAmountMax"] = parse_amount(grant_data.get("fundingAmountMax"))
-
-                # 3. Handle applicationDeadline - Java expects LocalDateTime "yyyy-MM-dd'T'HH:mm:ss"
-                deadline = grant_data.get("applicationDeadline")
-                if not deadline or "Not Specified" in str(deadline):
-                     grant_data["applicationDeadline"] = None
-                else:
-                     deadline_str = str(deadline).strip()
-                     # If it looks like a valid YYYY-MM-DD but misses time, append time
-                     if re.match(r"^\d{4}-\d{2}-\d{2}$", deadline_str):
-                         grant_data["applicationDeadline"] = f"{deadline_str}T23:59:59"
-                     elif "T" not in deadline_str:
-                         grant_data["applicationDeadline"] = None
-
-                # 4. Handle grantUrl missing mapping
+                # 5. Handle grantUrl missing mapping
                 if not grant_data.get("grantUrl"):
                      grant_data["grantUrl"] = url
 
-                # 5. Clean up the payload so Spring Boot's Jackson doesn't throw UnrecognizedPropertyException
+                # 6. Clean up the payload so Spring Boot's Jackson doesn't throw UnrecognizedPropertyException
                 expected_keys = {
                     "grantTitle", "fundingAgency", "programName", "description",
                     "grantUrl", "applicationDeadline", "fundingAmountMin",
@@ -446,7 +629,10 @@ def run_smart_scraper(seed_urls, max_per_seed=8):
                     "eligibleApplicants", "institutionType", "field",
                     "applicationLink", "checksum", "tags",
                     "objectives", "fundingScope", "eligibilityCriteria",
-                    "selectionCriteria", "grantDuration", "researchThemes"
+                    "selectionCriteria", "grantDuration", "researchThemes",
+                    "requiresPhd", "minExperienceYears", "citizenshipRequired",
+                    "grantType", "targetCareerStages",
+                    "openingDate", "loiDeadline", "decisionDate", "projectStartDate"
                 }
 
                 clean_payload = {k: v for k, v in grant_data.items() if k in expected_keys}
@@ -519,6 +705,7 @@ def run_smart_scraper(seed_urls, max_per_seed=8):
         for err in summary["errors"]:
             logger.info("  - %s", err)
     logger.info("=" * 60)
+    persist_run_summary(summary)
     return summary
 
 if __name__ == "__main__":

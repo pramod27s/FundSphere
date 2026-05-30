@@ -39,6 +39,19 @@ public class Grant {
 
     private LocalDateTime applicationDeadline;
 
+    // --- Additional key dates (for the application timeline display) ---
+    /** When applications open / the call goes live. */
+    private LocalDateTime openingDate;
+
+    /** Letter-of-Intent / pre-proposal deadline (two-stage programs). */
+    private LocalDateTime loiDeadline;
+
+    /** When award decisions are announced / applicants notified. */
+    private LocalDateTime decisionDate;
+
+    /** Expected project / funding start date for awarded grants. */
+    private LocalDateTime projectStartDate;
+
     private BigDecimal fundingAmountMin;
 
     private BigDecimal fundingAmountMax;
@@ -69,6 +82,24 @@ public class Grant {
 
     @Column(columnDefinition = "TEXT")
     private String researchThemes;
+
+    // --- Structured eligibility constraints (parsed from eligibilityCriteria
+    // at scrape time). Feed the AI recommender's hard-filter scoring. ---
+    private Boolean requiresPhd;
+
+    private Integer minExperienceYears;
+
+    /** Comma-separated citizenship/nationality requirements, e.g. "India,United States". */
+    @Column(columnDefinition = "TEXT")
+    private String citizenshipRequired;
+
+    /** Funding mechanism, e.g. "Fellowship", "Research Grant" — matched against
+     * the researcher's preferred grant type. */
+    private String grantType;
+
+    /** Comma-separated career stages the grant targets, e.g. "Early Career,Postdoc". */
+    @Column(columnDefinition = "TEXT")
+    private String targetCareerStages;
 
     private String applicationLink;
 

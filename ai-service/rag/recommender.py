@@ -8,6 +8,8 @@ from .filters import (
     freshness_score,
     funding_fit,
     keyword_overlap_score,
+    grant_type_fit,
+    career_stage_fit,
     _expand_aliases,
     _norm,
     _norm_set,
@@ -35,6 +37,25 @@ from .schemas import (
 from .springboot_client import SpringBootClient
 
 logger = logging.getLogger("rag.recommender")
+
+
+# Per-segment weight presets (4b). Each is a conservative nudge (±≤0.10) around
+# the global defaults (0.35/0.25/0.15/0.15/0.10) and sums to 1.0. Enabled via
+# ENABLE_SEGMENT_WEIGHTS; unknown/missing segments fall back to the global
+# settings weights. These are domain hypotheses — NOT yet validated by the eval
+# harness (2b) — so they are deliberately small and fully reversible.
+_SEGMENT_WEIGHT_PRESETS: Dict[str, Dict[str, float]] = {
+    # Academics (independent researchers, professors/faculty): research-fit
+    # dominates, funding fit matters least.
+    "academic": {"semantic": 0.42, "eligibility": 0.23, "keyword": 0.15, "funding": 0.10, "freshness": 0.10},
+    # Students: eligibility restrictions and deadline urgency matter most;
+    # funding-amount fit matters least.
+    "student": {"semantic": 0.33, "eligibility": 0.30, "keyword": 0.15, "funding": 0.07, "freshness": 0.15},
+    # Startups / companies: funding fit and commercialization keywords lead.
+    "startup": {"semantic": 0.30, "eligibility": 0.20, "keyword": 0.18, "funding": 0.25, "freshness": 0.07},
+    # NGOs / nonprofits: funding fit plus sector/geography eligibility.
+    "ngo": {"semantic": 0.30, "eligibility": 0.28, "keyword": 0.15, "funding": 0.20, "freshness": 0.07},
+}
 
 
 class RecommenderService:
@@ -108,6 +129,17 @@ class RecommenderService:
 
         # Stage 5 — 5-signal business-rule scoring
         scored = self._score_candidates(profile, request.userQuery, reranked)
+
+        # Drop grants whose application deadline has already passed — they're not
+        # actionable. Grants with no/unknown deadline are kept (deadline_is_open
+        # returns True for those). Strict by design: a closed grant is useless to
+        # surface even if it's a strong semantic match.
+        if settings.exclude_expired_grants:
+            before = len(scored)
+            scored = [it for it in scored if deadline_is_open(it.fields.get("application_deadline"))]
+            if before != len(scored):
+                logger.debug("Filtered %d expired grant(s) from results.", before - len(scored))
+
         scored.sort(key=lambda x: x.finalScore, reverse=True)
         top_items = scored[:target_top_k]
 
@@ -552,6 +584,9 @@ class RecommenderService:
     ) -> List[RecommendationItem]:
         items: List[RecommendationItem] = []
 
+        # Resolve scoring weights once per request (global, or per-segment when enabled).
+        weights = self._resolve_weights(profile)
+
         rerank_scores = [c.fields.get("_rerank_score") for c in candidates if c.fields.get("_rerank_score") is not None]
         rr_min = min(rerank_scores) if rerank_scores else 0.0
         rr_max = max(rerank_scores) if rerank_scores else 1.0
@@ -581,19 +616,30 @@ class RecommenderService:
             deadline = fields.get("application_deadline")
             penalty = settings.expired_penalty if (deadline and not deadline_is_open(deadline)) else 0.0
 
+            # Positive-only preference nudges (never penalize a non-match).
+            gt_fit = grant_type_fit(profile, fields)
+            grant_type_bonus = settings.grant_type_match_bonus if gt_fit >= 1.0 else 0.0
+            cs_fit = career_stage_fit(profile, fields)
+            career_stage_bonus = settings.career_stage_match_bonus * cs_fit if cs_fit > 0.5 else 0.0
+
             final = (
-                settings.weight_semantic * semantic
-                + settings.weight_eligibility * elig
-                + settings.weight_keyword * keyword
-                + settings.weight_funding * funding
-                + settings.weight_freshness * fresh
+                weights["semantic"] * semantic
+                + weights["eligibility"] * elig
+                + weights["keyword"] * keyword
+                + weights["funding"] * funding
+                + weights["freshness"] * fresh
                 - penalty
+                + grant_type_bonus
+                + career_stage_bonus
             )
+            # Clamp so the displayed match percentage stays within 0–100%.
+            final = max(0.0, min(1.0, final))
 
             logger.debug(
                 f"GrantId={hit.grantId} | Sem={semantic:.3f} | Eli={elig:.3f} | "
                 f"Kw={keyword:.3f} | Fund={funding:.3f} | Fresh={fresh:.3f} | "
-                f"Pen={penalty:.2f} | Final={final:.3f}"
+                f"Pen={penalty:.2f} | GtB={grant_type_bonus:.2f} | CsB={career_stage_bonus:.2f} | "
+                f"Final={final:.3f}"
             )
 
             items.append(
@@ -614,6 +660,42 @@ class RecommenderService:
         return items
 
     # ---------- Helpers ----------
+
+    @staticmethod
+    def _segment_for(profile: UserProfile) -> Optional[str]:
+        """Map a profile's applicant type to a weight-preset segment, or None
+        (→ global weights). Substring matching keeps it robust to casing and
+        the humanized enum form (e.g. 'Professor Faculty', 'Startup Company')."""
+        at = _norm(getattr(profile, "applicantType", None))
+        if not at:
+            return None
+        if "student" in at:
+            return "student"
+        if "startup" in at or "company" in at:
+            return "startup"
+        if "nonprofit" in at or "ngo" in at:
+            return "ngo"
+        if "professor" in at or "faculty" in at or "researcher" in at or "academic" in at:
+            return "academic"
+        return None
+
+    def _resolve_weights(self, profile: UserProfile) -> Dict[str, float]:
+        """The 5 scoring weights for this profile. Global defaults unless segment
+        weights are enabled AND the profile maps to a known segment."""
+        base = {
+            "semantic": settings.weight_semantic,
+            "eligibility": settings.weight_eligibility,
+            "keyword": settings.weight_keyword,
+            "funding": settings.weight_funding,
+            "freshness": settings.weight_freshness,
+        }
+        if not settings.enable_segment_weights:
+            return base
+        seg = self._segment_for(profile)
+        if seg and seg in _SEGMENT_WEIGHT_PRESETS:
+            logger.debug("Applying '%s' segment weights for applicantType=%r", seg, profile.applicantType)
+            return dict(_SEGMENT_WEIGHT_PRESETS[seg])
+        return base
 
     @staticmethod
     def _resolve_alpha(request: RecommendationRequest, query_text: str) -> float:

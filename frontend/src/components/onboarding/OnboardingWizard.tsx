@@ -25,13 +25,18 @@ export type FormData = {
   orgName: string;
   department: string;
   role: string;
+  institutionType: string;
   // Step 4
   primaryField: string;
+  additionalFields: string[];
   keywords: string;
+  researchSummary: string;
+  orcidId: string;
   // Step 5
   country: string;
   state: string;
   city: string;
+  citizenship: string;
   // Step 6
   minFunding: string;
   maxFunding: string;
@@ -39,6 +44,7 @@ export type FormData = {
   // Step 7
   yearsExperience: string;
   educationLevel: string;
+  hasCompletedPhd: string;
   previousGrants: string;
   // Step 8
   notifyNewGrants: boolean;
@@ -48,10 +54,11 @@ export type FormData = {
 
 const initialData: FormData = {
   fullName: '', email: '', password: '', confirmPassword: '', phoneNumber: '',
-  userType: '', orgName: '', department: '', role: '',
-  primaryField: '', keywords: '', country: '', state: '', city: '',
+  userType: '', orgName: '', department: '', role: '', institutionType: '',
+  primaryField: '', additionalFields: [], keywords: '', researchSummary: '', orcidId: '',
+  country: '', state: '', city: '', citizenship: '',
   minFunding: '', maxFunding: '', grantType: '',
-  yearsExperience: '', educationLevel: '', previousGrants: '',
+  yearsExperience: '', educationLevel: '', hasCompletedPhd: '', previousGrants: '',
   notifyNewGrants: true, notifyDeadlines: true, notifyWeekly: true,
 };
 
@@ -121,21 +128,34 @@ export default function OnboardingWizard({ onComplete }: { onComplete: (data: Re
         position = null;
       }
 
+      // "Completed PhD" — explicit when answered; otherwise infer from the
+      // chosen education level (Postdoc/PhD imply a doctorate is in hand).
+      let hasCompletedPhd: boolean | null = null;
+      if (formData.hasCompletedPhd === "Yes") hasCompletedPhd = true;
+      else if (formData.hasCompletedPhd === "No") hasCompletedPhd = false;
+      else if (formData.educationLevel === "Postdoc") hasCompletedPhd = true;
+
       const payload: ResearcherRequest = {
         userType: formData.userType.toUpperCase().replace(/\s+\/\s+/g, "_").replace(/\s+/g, "_"),
         institutionName: formData.orgName,
         department: formData.department,
         position: position,
+        institutionType: formData.institutionType || null,
         primaryField: formData.primaryField.toUpperCase().replace(/\s+/g, "_"),
+        additionalFields: formData.additionalFields,
         keywords: formData.keywords.split(',').map(k => k.trim()).filter(k => k),
+        researchSummary: formData.researchSummary.trim(),
+        orcidId: formData.orcidId.trim(),
         country: formData.country,
         state: formData.state,
         city: formData.city,
+        citizenship: formData.citizenship || formData.country,
         minFundingAmount: Number(formData.minFunding),
         maxFundingAmount: Number(formData.maxFunding),
         preferredGrantType: formData.grantType.toUpperCase().replace(/\s+/g, "_"),
         yearsOfExperience: yearsExp,
         educationLevel: eduLevel as any,
+        hasCompletedPhd: hasCompletedPhd,
         previousGrantsReceived: formData.previousGrants === "Yes",
         emailNotifications: formData.notifyNewGrants,
         deadlineReminders: formData.notifyDeadlines,

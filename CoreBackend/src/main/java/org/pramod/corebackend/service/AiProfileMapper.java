@@ -2,6 +2,7 @@ package org.pramod.corebackend.service;
 
 import org.pramod.corebackend.dto.ResearcherResponse;
 import org.pramod.corebackend.dto.ai.AiUserProfileResponse;
+import org.pramod.corebackend.enums.EducationLevel;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -14,7 +15,7 @@ public class AiProfileMapper {
         return AiUserProfileResponse.builder()
                 .userId(researcher.getId())
                 .country(researcher.getCountry())
-                .institutionType(inferInstitutionType(researcher.getInstitutionName()))
+                .institutionType(resolveInstitutionType(researcher))
                 .applicantType(researcher.getUserType() == null ? null : humanizeEnum(researcher.getUserType().name()))
                 .careerStage(researcher.getPosition() == null ? null : humanizeEnum(researcher.getPosition().name()))
                 .department(researcher.getDepartment())
@@ -24,7 +25,55 @@ public class AiProfileMapper {
                 .preferredMinAmount(researcher.getMinFundingAmount())
                 .preferredMaxAmount(researcher.getMaxFundingAmount())
                 .preferredCurrency("USD")
+                // Eligibility signals. Prefer the explicit onboarding fields;
+                // fall back to derivations for researchers created before these
+                // columns existed.
+                //  - hasPhd: explicit "completed PhD" flag, else inferred from education level
+                //  - yearsOfExperience: collected directly in onboarding
+                //  - citizenship: explicit field, else falls back to country of residence
+                .hasPhd(resolveHasPhd(researcher))
+                .yearsOfExperience(researcher.getYearsOfExperience())
+                .citizenship(hasText(researcher.getCitizenship())
+                        ? researcher.getCitizenship()
+                        : researcher.getCountry())
+                // Previously collected at onboarding but never sent to the
+                // recommender — now humanized so it can match a grant's type.
+                .preferredGrantType(researcher.getPreferredGrantType() == null
+                        ? null
+                        : humanizeEnum(researcher.getPreferredGrantType().name()))
                 .build();
+    }
+
+    /**
+     * Prefer the explicit completed-PhD flag. For older profiles that predate
+     * it, fall back to education level (PHD ⇒ has PhD) — imperfect because that
+     * enum conflates "pursuing" with "completed", which is exactly why the
+     * explicit flag now exists.
+     */
+    private Boolean resolveHasPhd(ResearcherResponse researcher) {
+        if (researcher.getHasCompletedPhd() != null) {
+            return researcher.getHasCompletedPhd();
+        }
+        EducationLevel educationLevel = researcher.getEducationLevel();
+        if (educationLevel == null) {
+            return null;
+        }
+        return educationLevel == EducationLevel.PHD;
+    }
+
+    /**
+     * Prefer the explicit institution-type selection; fall back to guessing
+     * from the institution name for profiles created before the field existed.
+     */
+    private String resolveInstitutionType(ResearcherResponse researcher) {
+        if (researcher.getInstitutionType() != null) {
+            return humanizeEnum(researcher.getInstitutionType().name());
+        }
+        return inferInstitutionType(researcher.getInstitutionName());
+    }
+
+    private boolean hasText(String s) {
+        return s != null && !s.isBlank();
     }
 
     public String buildQueryText(AiUserProfileResponse profile) {
@@ -49,6 +98,18 @@ public class AiProfileMapper {
 
     private String buildResearchBio(ResearcherResponse researcher) {
         StringBuilder bio = new StringBuilder();
+
+        // Lead with the researcher's own free-text summary when available — it
+        // is the richest semantic signal and embeds far better than the
+        // structured context that follows.
+        String summary = researcher.getResearchSummary();
+        if (summary != null && !summary.isBlank()) {
+            bio.append(summary.trim());
+            if (!summary.trim().endsWith(".")) {
+                bio.append(".");
+            }
+            bio.append(" ");
+        }
 
         String position = researcher.getPosition() != null ? humanizeEnum(researcher.getPosition().name()) : null;
         String field = researcher.getPrimaryField() != null ? humanizeEnum(researcher.getPrimaryField().name()) : null;
@@ -118,6 +179,13 @@ public class AiProfileMapper {
         List<String> interests = new ArrayList<>();
         if (researcher.getPrimaryField() != null) {
             interests.add(humanizeEnum(researcher.getPrimaryField().name()));
+        }
+        if (researcher.getAdditionalFields() != null) {
+            for (String field : researcher.getAdditionalFields()) {
+                if (field != null && !field.isBlank() && !interests.contains(field.trim())) {
+                    interests.add(field.trim());
+                }
+            }
         }
         if (researcher.getKeywords() != null) {
             for (String keyword : researcher.getKeywords()) {

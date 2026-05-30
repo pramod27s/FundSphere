@@ -117,16 +117,22 @@ public class ResearcherService {
                 .institutionName(request.getInstitutionName())
                 .department(request.getDepartment())
                 .position(request.getPosition())
+                .institutionType(request.getInstitutionType())
                 .primaryField(request.getPrimaryField())
+                .additionalFields(request.getAdditionalFields())
                 .keywords(request.getKeywords())
+                .researchSummary(request.getResearchSummary())
+                .orcidId(request.getOrcidId())
                 .country(request.getCountry())
                 .state(request.getState())
                 .city(request.getCity())
+                .citizenship(request.getCitizenship())
                 .minFundingAmount(request.getMinFundingAmount())
                 .maxFundingAmount(request.getMaxFundingAmount())
                 .preferredGrantType(request.getPreferredGrantType())
                 .yearsOfExperience(request.getYearsOfExperience())
                 .educationLevel(request.getEducationLevel())
+                .hasCompletedPhd(request.getHasCompletedPhd())
                 .previousGrantsReceived(request.getPreviousGrantsReceived() != null ? request.getPreviousGrantsReceived() : false)
                 .emailNotifications(request.getEmailNotifications() != null ? request.getEmailNotifications() : false)
                 .deadlineReminders(request.getDeadlineReminders() != null ? request.getDeadlineReminders() : false)
@@ -139,16 +145,22 @@ public class ResearcherService {
         entity.setInstitutionName(request.getInstitutionName());
         entity.setDepartment(request.getDepartment());
         entity.setPosition(request.getPosition());
+        entity.setInstitutionType(request.getInstitutionType());
         entity.setPrimaryField(request.getPrimaryField());
+        entity.setAdditionalFields(request.getAdditionalFields());
         entity.setKeywords(request.getKeywords());
+        entity.setResearchSummary(request.getResearchSummary());
+        entity.setOrcidId(request.getOrcidId());
         entity.setCountry(request.getCountry());
         entity.setState(request.getState());
         entity.setCity(request.getCity());
+        entity.setCitizenship(request.getCitizenship());
         entity.setMinFundingAmount(request.getMinFundingAmount());
         entity.setMaxFundingAmount(request.getMaxFundingAmount());
         entity.setPreferredGrantType(request.getPreferredGrantType());
         entity.setYearsOfExperience(request.getYearsOfExperience());
         entity.setEducationLevel(request.getEducationLevel());
+        entity.setHasCompletedPhd(request.getHasCompletedPhd());
         if (request.getPreviousGrantsReceived() != null) {
             entity.setPreviousGrantsReceived(request.getPreviousGrantsReceived());
         }
@@ -170,16 +182,22 @@ public class ResearcherService {
                 .institutionName(entity.getInstitutionName())
                 .department(entity.getDepartment())
                 .position(entity.getPosition())
+                .institutionType(entity.getInstitutionType())
                 .primaryField(entity.getPrimaryField())
+                .additionalFields(entity.getAdditionalFields())
                 .keywords(entity.getKeywords())
+                .researchSummary(entity.getResearchSummary())
+                .orcidId(entity.getOrcidId())
                 .country(entity.getCountry())
                 .state(entity.getState())
                 .city(entity.getCity())
+                .citizenship(entity.getCitizenship())
                 .minFundingAmount(entity.getMinFundingAmount())
                 .maxFundingAmount(entity.getMaxFundingAmount())
                 .preferredGrantType(entity.getPreferredGrantType())
                 .yearsOfExperience(entity.getYearsOfExperience())
                 .educationLevel(entity.getEducationLevel())
+                .hasCompletedPhd(entity.getHasCompletedPhd())
                 .previousGrantsReceived(entity.getPreviousGrantsReceived())
                 .emailNotifications(entity.getEmailNotifications())
                 .deadlineReminders(entity.getDeadlineReminders())

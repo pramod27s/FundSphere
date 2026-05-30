@@ -27,15 +27,20 @@ public class ResearcherResponse {
     private String institutionName;
     private String department;
     private Position position;
+    private InstitutionType institutionType;
 
     // Research / Interest Area
     private PrimaryField primaryField;
+    private List<String> additionalFields;
     private List<String> keywords;
+    private String researchSummary;
+    private String orcidId;
 
     // Location Information
     private String country;
     private String state;
     private String city;
+    private String citizenship;
 
     // Funding Preferences
     private BigDecimal minFundingAmount;
@@ -45,6 +50,7 @@ public class ResearcherResponse {
     // Experience / Background
     private Integer yearsOfExperience;
     private EducationLevel educationLevel;
+    private Boolean hasCompletedPhd;
     private Boolean previousGrantsReceived;
 
     // Notification Preferences

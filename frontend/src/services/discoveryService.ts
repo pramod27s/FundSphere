@@ -18,8 +18,17 @@ export interface DiscoveryGrant {
   selectionCriteria?: string;
   grantDuration?: string;
   researchThemes?: string[];
+  /** Funding mechanism, e.g. "Fellowship". */
+  grantType?: string;
+  /** Career stages the grant targets, e.g. ["Early Career", "Postdoc"]. */
+  targetCareerStages?: string[];
   applicationLink: string;
   grantUrl: string;
+  /** Additional key dates (ISO strings) for the application timeline. */
+  openingDate?: string;
+  loiDeadline?: string;
+  decisionDate?: string;
+  projectStartDate?: string;
   updatedAt?: string;
   /** When the provider last changed the source page (Firecrawl re-extracted). */
   lastScrapedAt?: string;
@@ -70,8 +79,14 @@ interface CoreGrantResponse {
   selectionCriteria?: string;
   grantDuration?: string;
   researchThemes?: string;
+  grantType?: string;
+  targetCareerStages?: string;
   grantUrl: string;
   applicationDeadline?: string;
+  openingDate?: string;
+  loiDeadline?: string;
+  decisionDate?: string;
+  projectStartDate?: string;
   fundingAmountMin?: number;
   fundingAmountMax?: number;
   fundingCurrency?: string;
@@ -172,8 +187,14 @@ function mapRecommendationToGrant(item: RecommendationItem): DiscoveryGrant {
     selectionCriteria: asString(fields.selection_criteria),
     grantDuration: asString(fields.grant_duration),
     researchThemes: asStringArray(fields.research_themes),
+    grantType: asString(fields.grant_type),
+    targetCareerStages: asStringArray(fields.target_career_stages),
     applicationLink: asString(fields.application_link) ?? '',
     grantUrl: asString(fields.grant_url) ?? '',
+    openingDate: asString(fields.opening_date),
+    loiDeadline: asString(fields.loi_deadline),
+    decisionDate: asString(fields.decision_date),
+    projectStartDate: asString(fields.project_start_date),
     updatedAt: asString(fields.updated_at),
     lastScrapedAt: asString(fields.last_scraped_at),
     lastVerifiedAt: asString(fields.last_verified_at),
@@ -202,8 +223,14 @@ function mapCoreGrantToDiscoveryGrant(grant: CoreGrantResponse): DiscoveryGrant 
     selectionCriteria: grant.selectionCriteria,
     grantDuration: grant.grantDuration,
     researchThemes: splitTextList(grant.researchThemes),
+    grantType: grant.grantType,
+    targetCareerStages: splitTextList(grant.targetCareerStages),
     applicationLink: grant.applicationLink || '',
     grantUrl: grant.grantUrl || '',
+    openingDate: grant.openingDate,
+    loiDeadline: grant.loiDeadline,
+    decisionDate: grant.decisionDate,
+    projectStartDate: grant.projectStartDate,
     updatedAt: grant.updatedAt,
     lastScrapedAt: grant.lastScrapedAt,
     lastVerifiedAt: grant.lastVerifiedAt,

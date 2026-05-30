@@ -4,6 +4,7 @@ type StepProps = {
   orgName: string;
   department: string;
   role: string;
+  institutionType: string;
   updateFields: (fields: Partial<StepProps>) => void;
 };
 
@@ -16,8 +17,21 @@ const roles = [
   "Other"
 ];
 
+// value = backend enum (InstitutionType), label = human text.
+const institutionTypes = [
+  { value: "UNIVERSITY", label: "University" },
+  { value: "COLLEGE", label: "College" },
+  { value: "RESEARCH_INSTITUTE", label: "Research Institute" },
+  { value: "GOVERNMENT_LAB", label: "Government Lab" },
+  { value: "HOSPITAL", label: "Hospital / Medical" },
+  { value: "STARTUP", label: "Startup" },
+  { value: "INDUSTRY", label: "Industry / Company" },
+  { value: "NGO", label: "NGO / Non-profit" },
+  { value: "OTHER", label: "Other" },
+];
+
 export default function StepOrganization({
-  orgName, department, role, updateFields
+  orgName, department, role, institutionType, updateFields
 }: StepProps) {
   const inputClass = "w-full px-4 py-2.5 rounded-lg border border-brand-200 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-colors bg-white/50";
   const labelClass = "block text-sm font-medium text-brand-700 mb-1.5";
@@ -48,6 +62,21 @@ export default function StepOrganization({
           onChange={e => updateFields({ department: e.target.value })} 
           className={inputClass} 
         />
+      </div>
+
+      <div>
+        <label className={labelClass}>Institution Type</label>
+        <p className="text-xs text-brand-500 mb-1.5">Helps us match grants restricted to certain organization types.</p>
+        <select
+          value={institutionType}
+          onChange={e => updateFields({ institutionType: e.target.value })}
+          className={inputClass}
+        >
+          <option value="">Select type (optional)</option>
+          {institutionTypes.map(t => (
+            <option key={t.value} value={t.value}>{t.label}</option>
+          ))}
+        </select>
       </div>
 
       <div>

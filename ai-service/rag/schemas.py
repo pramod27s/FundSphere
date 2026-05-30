@@ -34,6 +34,12 @@ class GrantData(BaseModel):
     minExperienceYears: Optional[int] = None
     citizenshipRequired: Optional[List[str]] = None
     maxFundingPerApplicant: Optional[float] = None
+    grantType: Optional[str] = Field(default=None, max_length=100)
+    targetCareerStages: Optional[List[str]] = None
+    openingDate: Optional[str] = Field(default=None, max_length=100)
+    loiDeadline: Optional[str] = Field(default=None, max_length=100)
+    decisionDate: Optional[str] = Field(default=None, max_length=100)
+    projectStartDate: Optional[str] = Field(default=None, max_length=100)
 
 
 class UserProfile(BaseModel):
@@ -53,6 +59,7 @@ class UserProfile(BaseModel):
     hasPhd: Optional[bool] = None
     yearsOfExperience: Optional[int] = None
     citizenship: Optional[str] = None
+    preferredGrantType: Optional[str] = Field(default=None, max_length=100)
 
 
 class KeywordCandidate(BaseModel):

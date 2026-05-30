@@ -23,6 +23,10 @@ public class GrantRequest {
     private String description;
     private String grantUrl;
     private LocalDateTime applicationDeadline;
+    private LocalDateTime openingDate;
+    private LocalDateTime loiDeadline;
+    private LocalDateTime decisionDate;
+    private LocalDateTime projectStartDate;
     private BigDecimal fundingAmountMin;
     private BigDecimal fundingAmountMax;
     private String fundingCurrency;
@@ -40,4 +44,13 @@ public class GrantRequest {
     private String selectionCriteria;
     private String grantDuration;
     private String researchThemes;
+
+    // Structured eligibility constraints (from the scraper).
+    private Boolean requiresPhd;
+    private Integer minExperienceYears;
+    private String citizenshipRequired;
+
+    // Funding mechanism + career-stage targeting (from the scraper).
+    private String grantType;
+    private String targetCareerStages;
 }

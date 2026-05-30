@@ -112,10 +112,69 @@ GRANT_SCHEMA = {
         # Improves RAG by allowing length-based matching if specified
         "grantDuration": {"type": ["string", "null"], "description": "Duration of the funded project e.g. '1 year', '3 years', 'up to 36 months'."},
         # Improves RAG by providing dense, high-value keyword targets for vector search instead of broad domains
-        "researchThemes": {"type": ["array", "null"], "items": {"type": "string"}, "description": "Specific research sub-domains and focus areas — prefer granular themes like 'Computer Vision for Agriculture' or 'Rural Healthcare AI' over broad terms like just 'AI' or 'Healthcare'."}
+        "researchThemes": {"type": ["array", "null"], "items": {"type": "string"}, "description": "Specific research sub-domains and focus areas — prefer granular themes like 'Computer Vision for Agriculture' or 'Rural Healthcare AI' over broad terms like just 'AI' or 'Healthcare'."},
+
+        # --- STRUCTURED ELIGIBILITY CONSTRAINTS ---
+        # Parsed out of the eligibility text so the recommender can apply hard
+        # filters (PhD requirement, minimum experience, citizenship) instead of
+        # relying on fuzzy text matching alone.
+        "requiresPhd": {"type": ["boolean", "null"], "description": "true ONLY if a completed PhD/doctorate is explicitly required to apply. false if the text explicitly allows non-PhD applicants (students, Master's, etc.). null if not stated."},
+        "minExperienceYears": {"type": ["integer", "null"], "description": "Minimum years of professional/research experience required to apply, as an integer. null if not stated."},
+        "citizenshipRequired": {"type": ["array", "null"], "items": {"type": "string"}, "description": "Country/nationality names the applicant MUST hold citizenship of to be eligible (distinct from where the work happens). Empty/null if there is no citizenship restriction."},
+
+        # --- FUNDING MECHANISM + CAREER-STAGE TARGETING ---
+        # Lets the recommender match the researcher's preferred grant type and
+        # career stage, instead of relying on fuzzy text overlap.
+        "grantType": {"type": ["string", "null"], "description": "The funding mechanism, normalized to ONE of: 'Research Grant', 'Fellowship', 'Travel Grant', 'Scholarship', 'Startup Funding', 'Equipment Grant', 'Conference/Seminar Grant', 'Other'. Pick the closest match to how the call describes itself. null if genuinely unclear."},
+        "targetCareerStages": {"type": ["array", "null"], "items": {"type": "string"}, "description": "Career stages the grant is aimed at, e.g. ['PhD Student', 'Postdoc', 'Early Career', 'Mid Career', 'Senior', 'Faculty']. Use ['Any'] if explicitly open to all stages. Empty/null if the call does not restrict or mention career stage."},
+
+        # --- KEY DATES (beyond the main application deadline) ---
+        # Power a timeline / "opens in 2 weeks" display. ISO 8601 where possible.
+        "openingDate": {"type": ["string", "null"], "description": "Date applications OPEN / the call goes live. ISO format (YYYY-MM-DD) if possible. null if not stated."},
+        "loiDeadline": {"type": ["string", "null"], "description": "Letter of Intent / pre-proposal / concept-note deadline, if the program has a two-stage process. ISO format if possible. null if not stated."},
+        "decisionDate": {"type": ["string", "null"], "description": "Date results / award decisions are announced or applicants are notified. ISO format if possible. null if not stated."},
+        "projectStartDate": {"type": ["string", "null"], "description": "Expected project / funding start date for awarded grants. ISO format if possible. null if not stated."}
     },
     "required": ["grantTitle", "fundingAgency", "description"]
 }
+
+# Fields that define a grant's *content*. The checksum is derived from these so
+# that ANY meaningful change (deadline, funding amount, eligibility, scope, …)
+# flips the checksum and forces CoreBackend to update the stored record.
+#
+# Previously the checksum was sha256(title-agency), which meant a grant whose
+# deadline or amount changed — but whose title/agency stayed the same — was
+# re-scraped (paying Firecrawl) and then silently discarded by CoreBackend as
+# "unchanged". Hashing the actual content fields fixes that staleness bug.
+_CHECKSUM_FIELDS = (
+    "grantTitle", "fundingAgency", "programName", "description",
+    "applicationDeadline", "fundingAmountMin", "fundingAmountMax",
+    "fundingCurrency", "eligibleCountries", "eligibleApplicants",
+    "institutionType", "field", "applicationLink", "tags",
+    "objectives", "fundingScope", "eligibilityCriteria",
+    "selectionCriteria", "grantDuration", "researchThemes",
+    "requiresPhd", "minExperienceYears", "citizenshipRequired",
+    "grantType", "targetCareerStages",
+    "openingDate", "loiDeadline", "decisionDate", "projectStartDate",
+)
+
+
+def _normalize_for_checksum(value) -> str:
+    """Stable, whitespace/order-insensitive string form of a field value."""
+    if value is None:
+        return ""
+    if isinstance(value, (list, tuple)):
+        # Order-insensitive: a re-ordered list isn't a content change.
+        items = sorted(_normalize_for_checksum(v) for v in value)
+        return "|".join(i for i in items if i)
+    return " ".join(str(value).strip().lower().split())
+
+
+def _compute_content_checksum(extract: dict) -> str:
+    """SHA-256 over the normalized content fields (see _CHECKSUM_FIELDS)."""
+    parts = [f"{k}={_normalize_for_checksum(extract.get(k))}" for k in _CHECKSUM_FIELDS]
+    return hashlib.sha256("\n".join(parts).encode("utf-8")).hexdigest()
+
 
 def _firecrawl_post(url: str, payload: dict) -> requests.Response | None:
     """POST to Firecrawl with bounded retries on transient failures.
@@ -197,7 +256,7 @@ def scrape_grant(url):
         "formats": ["extract"],
         "extract": {
             "schema": GRANT_SCHEMA,
-            "systemPrompt": "You are extracting data for a semantic RAG search engine. Richness and specificity of text matter far more than brevity. Strictly follow the schema. For 'description': Write a detailed 4-6 sentence summary. Explicitly forbidden to write 1-2 sentence summaries. For 'objectives': Copy or closely paraphrase the stated goals directly from the page. If a dedicated objectives section exists, use it fully. For 'eligibilityCriteria': Include ALL conditions found (degree, nationality, age, institution, prior work) — never truncate. For 'researchThemes': Extract specific sub-domains, not broad fields (e.g. prefer 'Quantum Error Correction' over 'Physics'). For 'fundingScope': List what is covered AND what is explicitly excluded if mentioned. If a value isn't found, use null or an empty array. Use null ONLY if genuinely not found. Never fabricate or hallucinate values. If the URL contains a #fragment, extract ONLY the grant matching that fragment. Ensure you find the exact funding amount; do not leave it null if the text mentions amounts like '10 Lakhs', '80 lakh', '50%', or 'Rs. 50,000'. Extensively search the text for any monetary limits, cost caps, overheads, or percentages awarded. In eligibleApplicants, explicitly include degrees (e.g. PhD, MS, B.Tech) and positions (e.g. Postdoc, Researcher) mentioned in the guidelines. Your output will be directly embedded into a vector database. Richer, more specific text produces better search matches. Do not summarize aggressively."
+            "systemPrompt": "You are extracting data for a semantic RAG search engine. Richness and specificity of text matter far more than brevity. Strictly follow the schema. For 'description': Write a detailed 4-6 sentence summary. Explicitly forbidden to write 1-2 sentence summaries. For 'objectives': Copy or closely paraphrase the stated goals directly from the page. If a dedicated objectives section exists, use it fully. For 'eligibilityCriteria': Include ALL conditions found (degree, nationality, age, institution, prior work) — never truncate. For 'researchThemes': Extract specific sub-domains, not broad fields (e.g. prefer 'Quantum Error Correction' over 'Physics'). For 'fundingScope': List what is covered AND what is explicitly excluded if mentioned. If a value isn't found, use null or an empty array. Use null ONLY if genuinely not found. Never fabricate or hallucinate values. If the URL contains a #fragment, extract ONLY the grant matching that fragment. Ensure you find the exact funding amount; do not leave it null if the text mentions amounts like '10 Lakhs', '80 lakh', '50%', or 'Rs. 50,000'. Extensively search the text for any monetary limits, cost caps, overheads, or percentages awarded. In eligibleApplicants, explicitly include degrees (e.g. PhD, MS, B.Tech) and positions (e.g. Postdoc, Researcher) mentioned in the guidelines. For 'requiresPhd': set true ONLY when a completed PhD/doctorate is explicitly mandatory; set false when the text explicitly admits non-PhD applicants; use null when the requirement is unstated — never guess. For 'minExperienceYears': extract the minimum required years of experience as a plain integer only if explicitly stated, else null. For 'citizenshipRequired': list nationality/citizenship restrictions only (e.g. 'must be an Indian citizen' -> ['India']); leave empty when the call is open regardless of nationality. For 'grantType': choose the single closest mechanism from the allowed list (Research Grant, Fellowship, Travel Grant, Scholarship, Startup Funding, Equipment Grant, Conference/Seminar Grant, Other). For 'targetCareerStages': list the career stages addressed (e.g. 'open to early-career researchers within 5 years of PhD' -> ['Early Career']); use ['Any'] when explicitly open to all, and leave empty when unstated. For the key dates ('openingDate', 'loiDeadline', 'decisionDate', 'projectStartDate'): extract each only if explicitly stated, preferring ISO format (YYYY-MM-DD); use null when a given date is not mentioned — never invent or guess dates. Your output will be directly embedded into a vector database. Richer, more specific text produces better search matches. Do not summarize aggressively."
         }
     }
 
@@ -230,9 +289,10 @@ def scrape_grant(url):
             extract["updatedAt"] = None
             extract["lastScrapedAt"] = datetime.utcnow().isoformat()
             
-            # Basic checksum
-            hash_str = f"{extract.get('grantTitle', '')}-{extract.get('fundingAgency', '')}"
-            extract["checksum"] = hashlib.sha256(hash_str.encode()).hexdigest()
+            # Content-derived checksum: any change to a meaningful field flips
+            # it, so CoreBackend correctly updates the record instead of treating
+            # a freshly re-extracted grant as "unchanged".
+            extract["checksum"] = _compute_content_checksum(extract)
             
             return extract
         else:
@@ -240,6 +300,33 @@ def scrape_grant(url):
     else:
         print(f"[-] API Error {response.status_code}: {response.text}")
     return None
+
+# Per-domain CSS selectors for anchors that wrap a grant link. The crawler is
+# otherwise generic (keyword scan over all <a> tags); this registry lets us add
+# site-specific structure without hardcoding it into the crawl loop. Match is by
+# domain substring, so "serb.gov.in" covers "www.serb.gov.in" too. Add a new
+# site by appending an entry here — no other code change required.
+SITE_LINK_SELECTORS: dict[str, list[str]] = {
+    "serb.gov.in": ["a.awards_btn"],
+}
+
+# Keywords that mark an anchor's text as a likely grant link.
+GRANT_LINK_KEYWORDS = [
+    "grant", "fellowship", "award", "scheme", "fund", "scholarship",
+    "support", "artificial intelligence", "conference", "seminar",
+    "call for proposal",
+]
+
+
+def _selectors_for(url: str) -> list[str]:
+    from urllib.parse import urlparse
+    host = (urlparse(url).netloc or "").lower()
+    selectors: list[str] = []
+    for domain, sels in SITE_LINK_SELECTORS.items():
+        if domain in host:
+            selectors.extend(sels)
+    return selectors
+
 
 def crawl_for_grants(start_url, max_required=8):
     print(f"[*] Crawling {start_url} to discover up to {max_required} valid grant pages...")
@@ -266,54 +353,52 @@ def crawl_for_grants(start_url, max_required=8):
                 continue
 
             soup = BeautifulSoup(page_html, "lxml")
-            
-            # Find specific grant links using the accordion/link structure found on serb.gov.in
-            for a in soup.select("a.awards_btn"):
-                # Ensure it contains a grant title
-                link_div = a.find("div", class_="link")
-                if not link_div:
-                    continue
-                
-                # Check for actual grant keywords in the title text
-                grant_title = link_div.text.strip().lower()
-                grant_keywords = ["grant", "fellowship", "award", "scheme", "fund", "scholarship", "support", "artificial intelligence", "conference", "seminar", "call for proposal"]
 
-                if not any(kw in grant_title for kw in grant_keywords):
-                    continue
+            # For printing safely on Windows terminals
+            def safe_print(*args):
+                try:
+                    print(*args)
+                except UnicodeEncodeError:
+                    print(" ".join(str(a) for a in args).encode("utf-8", "ignore").decode("utf-8"))
 
-                href = a.get("href")
-                if not href:
-                    continue
-                
-                # For fragments indicating specific grants (like #CRG), we append them as unique URLs so Firecrawl extracts each specific grant.
-                fragment = href
-                
-                # Sometime href is "#accordion". Let's append the actual grant title as a fragment if so,
-                # to instruct Firecrawl properly. 
-                if fragment == "#accordion":
-                    import urllib.parse
-                    try:
-                        safe_title = urllib.parse.quote(link_div.text.strip())
-                    except:
-                        safe_title = "accordion"
-                    l = f"{current_url}#{safe_title}"
-                else:
-                    from urllib.parse import urljoin
-                    l = urljoin(current_url, fragment)
-                
-                # For printing safely on Windows terminals
-                def safe_print(*args):
-                    try:
-                        print(*args)
-                    except UnicodeEncodeError:
-                        print(" ".join(str(a) for a in args).encode("utf-8", "ignore").decode("utf-8"))
+            # Site-specific structured links (configured per domain). On sites
+            # with no registered selectors this loop is simply skipped and the
+            # generic keyword scan below handles discovery.
+            for selector in _selectors_for(current_url):
+                for a in soup.select(selector):
+                    # Title text: prefer a nested <div class="link"> (SERB-style
+                    # accordion), else fall back to the anchor's own text.
+                    link_div = a.find("div", class_="link")
+                    title_source = link_div if link_div is not None else a
+                    grant_title = title_source.get_text(strip=True).lower()
+                    if not grant_title:
+                        continue
 
-                if l not in valid_candidates and l not in visited:
-                    valid_candidates.append(l)
-                    try:
-                        safe_print(f"       Found grant accordion target: {link_div.text.strip()} -> {l}")
-                    except Exception:
-                        pass
+                    if not any(kw in grant_title for kw in GRANT_LINK_KEYWORDS):
+                        continue
+
+                    href = a.get("href")
+                    if not href:
+                        continue
+
+                    # An "#accordion" href points at the same page; encode the
+                    # grant title as a fragment so Firecrawl extracts THIS grant.
+                    if href == "#accordion":
+                        import urllib.parse
+                        try:
+                            safe_title = urllib.parse.quote(title_source.get_text(strip=True))
+                        except Exception:
+                            safe_title = "accordion"
+                        l = f"{current_url}#{safe_title}"
+                    else:
+                        l = urljoin(current_url, href)
+
+                    if l not in valid_candidates and l not in visited:
+                        valid_candidates.append(l)
+                        try:
+                            safe_print(f"       Found structured grant target: {title_source.get_text(strip=True)} -> {l}")
+                        except Exception:
+                            pass
 
             # Catch standard href links that explicitly mention grant keywords in text
             # but only if they are clearly grants (avoid menu items)
@@ -343,13 +428,6 @@ def crawl_for_grants(start_url, max_required=8):
 
                 if not text:
                     continue
-                
-                # For printing safely on Windows terminals
-                def safe_print(*args):
-                    try:
-                        print(*args)
-                    except UnicodeEncodeError:
-                        print(" ".join(str(a) for a in args).encode("utf-8", "ignore").decode("utf-8"))
 
                 is_grant = False
                 grant_keywords = ["fellowship", "research grant", "award", "scholarship", "funding", "call for proposal", "grants for artificial intelligence", "grants for conference"]

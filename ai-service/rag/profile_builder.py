@@ -31,6 +31,8 @@ def build_user_query_text(profile: UserProfile, user_query: str | None = None) -
         parts.append(
             f"Preferred funding amount: {profile.preferredMinAmount or 0} to {profile.preferredMaxAmount or 'any'} {profile.preferredCurrency or ''}."
         )
+    if getattr(profile, "preferredGrantType", None):
+        parts.append(f"Preferred grant type: {_humanize(profile.preferredGrantType)}.")
     if user_query:
         parts.append(f"Current user need: {user_query}")
 

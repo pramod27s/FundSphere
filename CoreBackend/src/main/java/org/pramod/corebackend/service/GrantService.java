@@ -211,6 +211,10 @@ public class GrantService {
                 .description(request.getDescription())
                 .grantUrl(normalizeGrantUrl(request.getGrantUrl()))
                 .applicationDeadline(request.getApplicationDeadline())
+                .openingDate(request.getOpeningDate())
+                .loiDeadline(request.getLoiDeadline())
+                .decisionDate(request.getDecisionDate())
+                .projectStartDate(request.getProjectStartDate())
                 .fundingAmountMin(request.getFundingAmountMin())
                 .fundingAmountMax(request.getFundingAmountMax())
                 .fundingCurrency(request.getFundingCurrency())
@@ -227,6 +231,11 @@ public class GrantService {
                 .selectionCriteria(request.getSelectionCriteria())
                 .grantDuration(request.getGrantDuration())
                 .researchThemes(request.getResearchThemes())
+                .requiresPhd(request.getRequiresPhd())
+                .minExperienceYears(request.getMinExperienceYears())
+                .citizenshipRequired(request.getCitizenshipRequired())
+                .grantType(request.getGrantType())
+                .targetCareerStages(request.getTargetCareerStages())
                 .build();
     }
 
@@ -237,6 +246,10 @@ public class GrantService {
         entity.setDescription(request.getDescription());
         entity.setGrantUrl(normalizeGrantUrl(request.getGrantUrl()));
         entity.setApplicationDeadline(request.getApplicationDeadline());
+        entity.setOpeningDate(request.getOpeningDate());
+        entity.setLoiDeadline(request.getLoiDeadline());
+        entity.setDecisionDate(request.getDecisionDate());
+        entity.setProjectStartDate(request.getProjectStartDate());
         entity.setFundingAmountMin(request.getFundingAmountMin());
         entity.setFundingAmountMax(request.getFundingAmountMax());
         entity.setFundingCurrency(request.getFundingCurrency());
@@ -253,6 +266,11 @@ public class GrantService {
         entity.setSelectionCriteria(request.getSelectionCriteria());
         entity.setGrantDuration(request.getGrantDuration());
         entity.setResearchThemes(request.getResearchThemes());
+        entity.setRequiresPhd(request.getRequiresPhd());
+        entity.setMinExperienceYears(request.getMinExperienceYears());
+        entity.setCitizenshipRequired(request.getCitizenshipRequired());
+        entity.setGrantType(request.getGrantType());
+        entity.setTargetCareerStages(request.getTargetCareerStages());
         entity.setLastScrapedAt(LocalDateTime.now());
     }
 
@@ -265,6 +283,10 @@ public class GrantService {
                 .description(grant.getDescription())
                 .grantUrl(grant.getGrantUrl())
                 .applicationDeadline(grant.getApplicationDeadline())
+                .openingDate(grant.getOpeningDate())
+                .loiDeadline(grant.getLoiDeadline())
+                .decisionDate(grant.getDecisionDate())
+                .projectStartDate(grant.getProjectStartDate())
                 .fundingAmountMin(grant.getFundingAmountMin())
                 .fundingAmountMax(grant.getFundingAmountMax())
                 .fundingCurrency(grant.getFundingCurrency())
@@ -281,6 +303,11 @@ public class GrantService {
                 .selectionCriteria(grant.getSelectionCriteria())
                 .grantDuration(grant.getGrantDuration())
                 .researchThemes(grant.getResearchThemes())
+                .requiresPhd(grant.getRequiresPhd())
+                .minExperienceYears(grant.getMinExperienceYears())
+                .citizenshipRequired(grant.getCitizenshipRequired())
+                .grantType(grant.getGrantType())
+                .targetCareerStages(grant.getTargetCareerStages())
                 .createdAt(grant.getCreatedAt())
                 .updatedAt(grant.getUpdatedAt())
                 .lastScrapedAt(grant.getLastScrapedAt())

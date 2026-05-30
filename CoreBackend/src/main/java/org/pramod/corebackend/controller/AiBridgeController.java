@@ -65,6 +65,10 @@ public class AiBridgeController {
                 .description(grant.getDescription())
                 .grantUrl(grant.getGrantUrl())
                 .applicationDeadline(grant.getApplicationDeadline())
+                .openingDate(grant.getOpeningDate())
+                .loiDeadline(grant.getLoiDeadline())
+                .decisionDate(grant.getDecisionDate())
+                .projectStartDate(grant.getProjectStartDate())
                 .fundingAmountMin(grant.getFundingAmountMin())
                 .fundingAmountMax(grant.getFundingAmountMax())
                 .fundingCurrency(grant.getFundingCurrency())
@@ -78,6 +82,11 @@ public class AiBridgeController {
                 .createdAt(grant.getCreatedAt())
                 .updatedAt(grant.getUpdatedAt())
                 .lastScrapedAt(grant.getLastScrapedAt())
+                .requiresPhd(grant.getRequiresPhd())
+                .minExperienceYears(grant.getMinExperienceYears())
+                .citizenshipRequired(toList(grant.getCitizenshipRequired()))
+                .grantType(grant.getGrantType())
+                .targetCareerStages(toList(grant.getTargetCareerStages()))
                 .build();
 
         return ResponseEntity.ok(response);

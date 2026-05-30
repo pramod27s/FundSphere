@@ -293,3 +293,48 @@ def keyword_overlap_score(profile: UserProfile, query: str | None, grant_fields:
 
     hits = sum(1 for t in tokens if t and t in haystack)
     return min(1.0, hits / max(len(tokens), 1))
+
+
+def grant_type_fit(profile: UserProfile, grant_fields: dict) -> float:
+    """
+    Preference alignment between the researcher's preferred grant type and the
+    grant's funding mechanism. Returns 1.0 on match, 0.0 on a clear mismatch,
+    and 0.5 (neutral) when either side is unknown — applied downstream as a
+    positive-only nudge, so a mismatch is never penalized (preferences are
+    soft, not eligibility).
+    """
+    pref = _norm(getattr(profile, "preferredGrantType", None))
+    gt = _norm(grant_fields.get("grant_type"))
+    if not pref or not gt:
+        return 0.5
+    if pref == gt or pref in gt or gt in pref:
+        return 1.0
+    return 0.0
+
+
+def career_stage_fit(profile: UserProfile, grant_fields: dict) -> float:
+    """
+    Soft match between the researcher's career stage and the stages a grant
+    targets. 1.0 = direct match or grant open to any stage; 0.7 = alias match
+    (e.g. "PhD student" ~ "student"); 0.5 = grant doesn't restrict stage or we
+    can't tell (neutral); 0.0 = grant restricts and the researcher doesn't fit.
+
+    Kept as a positive-only signal upstream so the coarse Position→stage
+    mapping can't produce false eligibility penalties.
+    """
+    targets = _norm_set(grant_fields.get("target_career_stages", []))
+    if not targets:
+        return 0.5  # grant places no career-stage restriction
+    if targets & {"any", "all", "any stage", "all stages", "all career stages"}:
+        return 1.0
+    hay = {_norm(profile.careerStage), _norm(profile.applicantType)} - {""}
+    if not hay:
+        return 0.5
+    if hay & targets:
+        return 1.0
+    expanded: set[str] = set()
+    for h in hay:
+        expanded |= _expand_aliases(h, APPLICANT_ALIASES)
+    if expanded & targets:
+        return 0.7
+    return 0.0

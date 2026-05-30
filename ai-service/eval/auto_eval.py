@@ -51,6 +51,54 @@ log = logging.getLogger("auto_eval")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Token-saving persistence: freeze the test set + cache LLM judgments.
+#
+#   testset_frozen.json — profiles + their LLM-invented queries, generated ONCE.
+#                         Reused on every run (0 tokens) so comparisons are
+#                         apples-to-apples. Regenerate with --refresh.
+#   labels_cache.json   — LLM relevance ratings keyed by (case_id, grantId).
+#                         Only NEW candidates get judged; persisted after every
+#                         case so a crash/rate-limit/laptop-close resumes cleanly.
+# ─────────────────────────────────────────────────────────────────────────────
+
+TESTSET_PATH = Path(__file__).resolve().parent / "testset_frozen.json"
+LABELS_PATH = Path(__file__).resolve().parent / "labels_cache.json"
+
+
+def load_frozen_cases() -> List[Dict[str, Any]]:
+    if TESTSET_PATH.exists():
+        try:
+            data = json.loads(TESTSET_PATH.read_text(encoding="utf-8"))
+            cases = data.get("cases", [])
+            if isinstance(cases, list) and cases:
+                return cases
+        except Exception as exc:
+            log.warning("Could not read frozen testset (%s); will rebuild.", exc)
+    return []
+
+
+def save_frozen_cases(cases: List[Dict[str, Any]]) -> None:
+    TESTSET_PATH.write_text(
+        json.dumps({"cases": cases}, indent=2, default=str), encoding="utf-8"
+    )
+
+
+def load_label_cache() -> Dict[str, Dict[str, Any]]:
+    if LABELS_PATH.exists():
+        try:
+            data = json.loads(LABELS_PATH.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                return data
+        except Exception as exc:
+            log.warning("Could not read label cache (%s); starting fresh.", exc)
+    return {}
+
+
+def save_label_cache(cache: Dict[str, Dict[str, Any]]) -> None:
+    LABELS_PATH.write_text(json.dumps(cache, indent=2, default=str), encoding="utf-8")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # LLM helper (single client used for query gen + relevance judging)
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -247,6 +295,62 @@ def _fallback_query(profile: UserProfile) -> str:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Step 1–2 combined: build OR reuse the frozen (profile, query) test set
+# ─────────────────────────────────────────────────────────────────────────────
+
+def build_or_load_cases(
+    spring: SpringBootClient,
+    llm: OpenAI,
+    llm_model: str,
+    n: int,
+    refresh: bool,
+    synthetic: bool,
+) -> List[Dict[str, Any]]:
+    """Return the frozen test set, reusing it for free unless --refresh.
+
+    Each case is {"id": str, "profile": dict, "query": str}. Generating it costs
+    ~2N LLM calls (profiles may be free if CoreBackend serves them); reusing it
+    costs nothing.
+    """
+    if not refresh:
+        cached = load_frozen_cases()
+        if cached:
+            print(
+                f"  ✓ Reusing {len(cached)} frozen cases from {TESTSET_PATH.name} "
+                f"(0 tokens). Pass --refresh to regenerate."
+            )
+            return cached
+
+    profiles: List[UserProfile] = []
+    if not synthetic:
+        print(f"Fetching {n} real researcher profiles from CoreBackend…")
+        profiles = fetch_real_profiles(spring, n)
+        if not profiles:
+            print("  ⚠  CoreBackend returned 0 profiles; falling back to synthetic.")
+    if not profiles:
+        print(f"Synthesising {n} profiles via {llm_model}…")
+        profiles = synthesise_profiles(llm, llm_model, n)
+    if not profiles:
+        raise SystemExit("Could not obtain any profiles. Aborting.")
+
+    print(f"  ✓ {len(profiles)} profiles ready. Inventing one query each (LLM)…")
+    cases: List[Dict[str, Any]] = []
+    for i, p in enumerate(profiles, start=1):
+        q = invent_query(llm, llm_model, p)
+        uid = getattr(p, "userId", None)
+        cid = f"case-{i:02d}" + (f"-u{uid}" if uid else "")
+        cases.append({"id": cid, "profile": p.model_dump(), "query": q})
+        print(f"  #{i:02d}  {cid}  {q!r}")
+
+    save_frozen_cases(cases)
+    print(
+        f"  ✓ Saved {len(cases)} cases → {TESTSET_PATH.name}. "
+        f"Future runs reuse them for free."
+    )
+    return cases
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Step 4 — LLM judges relevance
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -342,6 +446,42 @@ def judge_candidates(
 
     # Fill missing with 0
     return [by_id.get(it.grantId, JudgedCandidate(grantId=it.grantId, rating=0)) for it in items]
+
+
+def judge_with_cache(
+    client: OpenAI,
+    model: str,
+    case_id: str,
+    profile: UserProfile,
+    query: str,
+    items: List[RecommendationItem],
+    cache: Dict[str, Dict[str, Any]],
+) -> List[JudgedCandidate]:
+    """Like judge_candidates, but only sends UNCACHED candidates to the LLM.
+
+    Ratings are per (case_id, grantId) — independent of which other candidates
+    were shown — so cached judgments stay valid across weight/flag changes that
+    only reorder the same grants. Persists after judging so the run is
+    resumable: a 429 or crash loses at most the current case.
+    """
+    case_labels = cache.setdefault(case_id, {})
+    uncached = [it for it in items if str(it.grantId) not in case_labels]
+
+    if uncached:
+        fresh = judge_candidates(client, model, profile, query, uncached)
+        for j in fresh:
+            case_labels[str(j.grantId)] = {"rating": j.rating, "reason": j.reason}
+        save_label_cache(cache)  # checkpoint after each case
+
+    out: List[JudgedCandidate] = []
+    for it in items:
+        entry = case_labels.get(str(it.grantId), {"rating": 0, "reason": ""})
+        out.append(JudgedCandidate(
+            grantId=it.grantId,
+            rating=int(entry.get("rating", 0) or 0),
+            reason=str(entry.get("reason", "") or ""),
+        ))
+    return out
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -442,12 +582,12 @@ def _restore_flags(saved: Dict[str, Any]) -> None:
 
 def run_eval(
     label: str,
-    profiles: List[UserProfile],
-    queries: List[str],
+    test_cases: List[Dict[str, Any]],
     rec: RecommenderService,
     judge_client: OpenAI,
     judge_model: str,
     top_k: int,
+    cache: Dict[str, Dict[str, Any]],
     flag_overrides: Optional[Dict[str, Any]] = None,
 ) -> RunReport:
     saved = _override_flags(flag_overrides)
@@ -455,12 +595,15 @@ def run_eval(
         cases: List[CaseResult] = []
         recs, mrrs, ndcgs, lats = [], [], [], []
 
-        print(f"\n── Running [{label}] · {len(profiles)} cases · top_k={top_k} ─────────────")
+        print(f"\n── Running [{label}] · {len(test_cases)} cases · top_k={top_k} ─────────────")
         for k_, v_ in _flags_snapshot().items():
             print(f"   {k_:<35} = {v_}")
         print()
 
-        for i, (profile, query) in enumerate(zip(profiles, queries), start=1):
+        for i, case in enumerate(test_cases, start=1):
+            profile = UserProfile(**case["profile"])
+            query = case["query"]
+            case_id = case["id"]
             t0 = time.perf_counter()
             try:
                 resp = rec.recommend(RecommendationRequest(
@@ -473,7 +616,7 @@ def run_eval(
                 items = []
             lat_ms = (time.perf_counter() - t0) * 1000
 
-            judged = judge_candidates(judge_client, judge_model, profile, query, items)
+            judged = judge_with_cache(judge_client, judge_model, case_id, profile, query, items, cache)
             ratings_by_id = {j.grantId: j.rating for j in judged}
             expected_ids = [j.grantId for j in judged if j.rating >= 2]
 
@@ -575,6 +718,9 @@ def main() -> None:
     parser.add_argument("--save", default=None, help="Write the full JSON report to this path.")
     parser.add_argument("--synthetic-profiles", action="store_true",
                         help="Skip CoreBackend; LLM-generate profiles instead.")
+    parser.add_argument("--refresh", action="store_true",
+                        help="Regenerate the frozen test set (profiles+queries) — costs tokens. "
+                             "Without this, the saved test set is reused for free.")
     args = parser.parse_args()
 
     spring = SpringBootClient()
@@ -582,45 +728,34 @@ def main() -> None:
     rec = RecommenderService(spring_client=spring, pinecone_service=pine)
     llm, llm_model = _llm_client()
 
-    # ── Step 1: profiles
-    profiles: List[UserProfile] = []
-    if not args.synthetic_profiles:
-        print(f"Fetching {args.n} real researcher profiles from CoreBackend…")
-        profiles = fetch_real_profiles(spring, args.n)
-        if not profiles:
-            print("  ⚠  CoreBackend returned 0 profiles (endpoint missing or DB empty).")
-    if not profiles:
-        print(f"Synthesising {args.n} profiles via {llm_model}…")
-        profiles = synthesise_profiles(llm, llm_model, args.n)
-        if not profiles:
-            raise SystemExit("Could not obtain any profiles. Aborting.")
-    print(f"  ✓ {len(profiles)} profiles ready.")
+    # ── Steps 1–2: frozen (profile, query) test set (reused for free).
+    test_cases = build_or_load_cases(
+        spring, llm, llm_model, args.n,
+        refresh=args.refresh, synthetic=args.synthetic_profiles,
+    )
 
-    # ── Step 2: invent a query per profile
-    print(f"\nInventing one realistic query per profile (LLM)…")
-    queries: List[str] = []
-    for i, p in enumerate(profiles, start=1):
-        q = invent_query(llm, llm_model, p)
-        queries.append(q)
-        print(f"  #{i:02d}  {q!r}")
-    print(f"  ✓ {len(queries)} queries generated.")
+    # ── Label cache: judgments reused across runs; only new candidates cost tokens.
+    cache = load_label_cache()
+    cached_labels = sum(len(v) for v in cache.values())
+    if cached_labels:
+        print(f"  ✓ Loaded {cached_labels} cached judgments from {LABELS_PATH.name} (re-judged for free).")
 
-    # ── Step 3–5: run + judge + score
+    # ── Steps 3–5: run + judge (cache-aware) + score
     if args.compare:
         baseline = run_eval(
-            "BASELINE_OFF", profiles, queries, rec, llm, llm_model,
-            top_k=args.top_k, flag_overrides=BASELINE_OFF,
+            "BASELINE_OFF", test_cases, rec, llm, llm_model,
+            top_k=args.top_k, cache=cache, flag_overrides=BASELINE_OFF,
         )
         improved = run_eval(
-            "IMPROVED_ON", profiles, queries, rec, llm, llm_model,
-            top_k=args.top_k, flag_overrides=IMPROVED_ON,
+            "IMPROVED_ON", test_cases, rec, llm, llm_model,
+            top_k=args.top_k, cache=cache, flag_overrides=IMPROVED_ON,
         )
         print(diff_reports(baseline, improved))
         out = {"baseline": asdict(baseline), "improved": asdict(improved)}
     else:
         only = run_eval(
-            "CURRENT", profiles, queries, rec, llm, llm_model,
-            top_k=args.top_k, flag_overrides=None,
+            "CURRENT", test_cases, rec, llm, llm_model,
+            top_k=args.top_k, cache=cache, flag_overrides=None,
         )
         out = {"run": asdict(only)}
 
