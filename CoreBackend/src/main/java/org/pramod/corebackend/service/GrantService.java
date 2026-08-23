@@ -8,16 +8,22 @@ import org.pramod.corebackend.dto.GrantRequest;
 import org.pramod.corebackend.dto.GrantResponse;
 import org.pramod.corebackend.entity.Grant;
 import org.pramod.corebackend.repository.GrantRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import org.springframework.web.client.RestTemplate;
+import java.math.BigDecimal;
 import java.util.concurrent.CompletableFuture;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -30,6 +36,9 @@ public class GrantService {
 
     public record SaveOrUpdateResult(GrantResponse response, boolean created) {}
     public record KeywordSearchHit(Long grantId, double keywordScore) {}
+    private record DuplicateMatch(Grant grant, int confidence, boolean autoMerge) {}
+    private record DuplicateMatchCandidate(Grant grant, DuplicateScore score) {}
+    private record DuplicateScore(int score, double titleSimilarity, double agencySimilarity, boolean sameApplicationLink) {}
 
     public GrantService(GrantRepository grantRepository,
                         GrantIndexingService grantIndexingService) {
@@ -53,7 +62,32 @@ public class GrantService {
 
         if (existingOpt.isEmpty()) {
             // New grant — save it
+            Optional<DuplicateMatch> duplicateOpt = findLikelyDuplicate(request);
+            if (duplicateOpt.isPresent() && duplicateOpt.get().autoMerge()) {
+                DuplicateMatch duplicate = duplicateOpt.get();
+                Grant existing = duplicate.grant();
+                String canonicalUrl = existing.getGrantUrl();
+                updateEntity(existing, request);
+                existing.setGrantUrl(canonicalUrl);
+                existing.setChecksum(request.getChecksum());
+                existing.setLastScrapedAt(now);
+                existing.setLastVerifiedAt(now);
+                existing.setPossibleDuplicateOfId(null);
+                existing.setDuplicateConfidence(null);
+                existing.setNeedsReindex(true);
+                existing.setReindexAttempts(0);
+                existing.setNextRetryAt(null);
+                existing.setLastIndexError(null);
+                Grant updated = grantRepository.save(existing);
+                grantIndexingService.tryIndexAsync(updated.getId());
+                return new SaveOrUpdateResult(mapToResponse(updated), false);
+            }
+
             Grant grant = mapToEntity(request);
+            duplicateOpt.ifPresent(duplicate -> {
+                grant.setPossibleDuplicateOfId(duplicate.grant().getId());
+                grant.setDuplicateConfidence(duplicate.confidence());
+            });
             grant.setLastVerifiedAt(now);
             grant.setNeedsReindex(true);
             grant.setReindexAttempts(0);
@@ -128,6 +162,11 @@ public class GrantService {
                 .collect(Collectors.toList());
     }
 
+    public Page<GrantResponse> getPagedGrants(Pageable pageable) {
+        return grantRepository.findAll(pageable)
+                .map(this::mapToResponse);
+    }
+
     public GrantResponse getGrantById(Long id) {
         Grant grant = grantRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Grant not found with id: " + id));
@@ -162,6 +201,68 @@ public class GrantService {
         Grant grant = findExistingByGrantUrl(normalizeGrantUrl(grantUrl))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Grant not found with URL: " + grantUrl));
         return mapToResponse(grant);
+    }
+
+    private Optional<DuplicateMatch> findLikelyDuplicate(GrantRequest request) {
+        Map<Long, Grant> candidates = new LinkedHashMap<>();
+
+        String applicationLink = normalizeGrantUrl(request.getApplicationLink());
+        if (hasText(applicationLink)) {
+            grantRepository.findFirstByApplicationLinkIgnoreCase(applicationLink)
+                    .ifPresent(grant -> candidates.put(grant.getId(), grant));
+        }
+
+        if (hasText(request.getFundingAgency())) {
+            grantRepository.findTop100ByFundingAgencyContainingIgnoreCaseOrderByUpdatedAtDesc(request.getFundingAgency().trim())
+                    .forEach(grant -> candidates.put(grant.getId(), grant));
+        }
+
+        String titleToken = strongestTitleToken(request.getGrantTitle());
+        if (hasText(titleToken)) {
+            grantRepository.findTop100ByGrantTitleContainingIgnoreCaseOrderByUpdatedAtDesc(titleToken)
+                    .forEach(grant -> candidates.put(grant.getId(), grant));
+        }
+
+        return candidates.values().stream()
+                .map(grant -> new DuplicateMatchCandidate(grant, scoreDuplicate(request, grant)))
+                .filter(candidate -> candidate.score().score() >= 65)
+                .max(Comparator.comparingInt(candidate -> candidate.score().score()))
+                .map(candidate -> {
+                    DuplicateScore score = candidate.score();
+                    boolean autoMerge = score.score() >= 85
+                            && (score.sameApplicationLink()
+                            || (score.titleSimilarity() >= 0.75 && score.agencySimilarity() >= 0.70));
+                    return new DuplicateMatch(candidate.grant(), score.score(), autoMerge);
+                });
+    }
+
+    private DuplicateScore scoreDuplicate(GrantRequest request, Grant grant) {
+        String requestTitle = normalizeText(request.getGrantTitle());
+        String existingTitle = normalizeText(grant.getGrantTitle());
+        String requestAgency = normalizeText(request.getFundingAgency());
+        String existingAgency = normalizeText(grant.getFundingAgency());
+
+        double titleSimilarity = tokenSimilarity(requestTitle, existingTitle);
+        double agencySimilarity = tokenSimilarity(requestAgency, existingAgency);
+        boolean sameApplicationLink = sameNormalizedUrl(request.getApplicationLink(), grant.getApplicationLink());
+
+        int score = 0;
+        if (sameApplicationLink) {
+            score += 35;
+        }
+        score += Math.round((float) titleSimilarity * 40);
+        score += Math.round((float) agencySimilarity * 25);
+        if (sameDeadlineYear(request.getApplicationDeadline(), grant.getApplicationDeadline())) {
+            score += 15;
+        }
+        if (sameNormalizedText(request.getGrantType(), grant.getGrantType())) {
+            score += 10;
+        }
+        if (similarFundingRange(request, grant)) {
+            score += 10;
+        }
+
+        return new DuplicateScore(Math.min(score, 100), titleSimilarity, agencySimilarity, sameApplicationLink);
     }
 
     public List<Long> getChangedGrantIds(LocalDateTime since) {
@@ -224,6 +325,8 @@ public class GrantService {
                 .field(request.getField())
                 .applicationLink(request.getApplicationLink())
                 .checksum(request.getChecksum())
+                .possibleDuplicateOfId(null)
+                .duplicateConfidence(null)
                 .tags(request.getTags())
                 .objectives(request.getObjectives())
                 .fundingScope(request.getFundingScope())
@@ -259,6 +362,8 @@ public class GrantService {
         entity.setField(request.getField());
         entity.setApplicationLink(request.getApplicationLink());
         entity.setChecksum(request.getChecksum());
+        entity.setPossibleDuplicateOfId(null);
+        entity.setDuplicateConfidence(null);
         entity.setTags(request.getTags());
         entity.setObjectives(request.getObjectives());
         entity.setFundingScope(request.getFundingScope());
@@ -296,6 +401,8 @@ public class GrantService {
                 .field(grant.getField())
                 .applicationLink(grant.getApplicationLink())
                 .checksum(grant.getChecksum())
+                .possibleDuplicateOfId(grant.getPossibleDuplicateOfId())
+                .duplicateConfidence(grant.getDuplicateConfidence())
                 .tags(grant.getTags())
                 .objectives(grant.getObjectives())
                 .fundingScope(grant.getFundingScope())
@@ -338,6 +445,89 @@ public class GrantService {
                 .filter(grant -> normalizedGrantUrl != null
                         && normalizedGrantUrl.equals(normalizeGrantUrl(grant.getGrantUrl())))
                 .findFirst();
+    }
+
+    private boolean sameNormalizedUrl(String left, String right) {
+        String normalizedLeft = normalizeGrantUrl(left);
+        String normalizedRight = normalizeGrantUrl(right);
+        return hasText(normalizedLeft) && normalizedLeft.equalsIgnoreCase(normalizedRight);
+    }
+
+    private boolean sameNormalizedText(String left, String right) {
+        String normalizedLeft = normalizeText(left);
+        String normalizedRight = normalizeText(right);
+        return hasText(normalizedLeft) && normalizedLeft.equals(normalizedRight);
+    }
+
+    private boolean sameDeadlineYear(LocalDateTime left, LocalDateTime right) {
+        return left != null && right != null && left.getYear() == right.getYear();
+    }
+
+    private boolean similarFundingRange(GrantRequest request, Grant grant) {
+        BigDecimal requestAmount = firstNonNull(request.getFundingAmountMax(), request.getFundingAmountMin());
+        BigDecimal existingAmount = firstNonNull(grant.getFundingAmountMax(), grant.getFundingAmountMin());
+        if (requestAmount == null || existingAmount == null) {
+            return false;
+        }
+        if (!sameNormalizedText(request.getFundingCurrency(), grant.getFundingCurrency())) {
+            return false;
+        }
+        BigDecimal larger = requestAmount.max(existingAmount);
+        if (larger.compareTo(BigDecimal.ZERO) == 0) {
+            return true;
+        }
+        BigDecimal difference = requestAmount.subtract(existingAmount).abs();
+        return difference.divide(larger, 4, java.math.RoundingMode.HALF_UP)
+                .compareTo(new BigDecimal("0.10")) <= 0;
+    }
+
+    private BigDecimal firstNonNull(BigDecimal first, BigDecimal second) {
+        return first != null ? first : second;
+    }
+
+    private String strongestTitleToken(String title) {
+        return tokenize(normalizeText(title)).stream()
+                .filter(token -> token.length() >= 4)
+                .filter(token -> !isStopword(token))
+                .max(Comparator.comparingInt(String::length))
+                .orElse(null);
+    }
+
+    private boolean isStopword(String token) {
+        return Set.of("grant", "scheme", "program", "programme", "fellowship", "award", "funding", "call", "proposal")
+                .contains(token);
+    }
+
+    private double tokenSimilarity(String left, String right) {
+        Set<String> leftTokens = tokenize(left);
+        Set<String> rightTokens = tokenize(right);
+        if (leftTokens.isEmpty() || rightTokens.isEmpty()) {
+            return 0.0;
+        }
+        long intersection = leftTokens.stream().filter(rightTokens::contains).count();
+        Set<String> unionTokens = new java.util.HashSet<>(leftTokens);
+        unionTokens.addAll(rightTokens);
+        double jaccard = unionTokens.isEmpty() ? 0.0 : (double) intersection / unionTokens.size();
+
+        if (left.contains(right) || right.contains(left)) {
+            return Math.max(jaccard, 0.85);
+        }
+        return jaccard;
+    }
+
+    private String normalizeText(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.toLowerCase()
+                .replace("&", " and ")
+                .replaceAll("[^a-z0-9]+", " ")
+                .trim()
+                .replaceAll("\\s+", " ");
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 
     private boolean isAfterOrEqual(LocalDateTime value, LocalDateTime threshold) {

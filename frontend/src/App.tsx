@@ -1,39 +1,28 @@
 import { useEffect, useRef, useState } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
 import { Navigate, Outlet, Route, Routes, useLocation, useNavigate, useNavigationType } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
 import OnboardingWizard from './components/onboarding/OnboardingWizard.tsx';
 import GrantDiscovery from './components/discovery/GrantDiscovery.tsx';
 import ResearcherProfile from './components/profile/ResearcherProfile.tsx';
-import SplashScreen from './components/common/SplashScreen.tsx';
 import AuthPage from './components/auth/AuthPage.tsx';
 import SavedGrants from './components/saved-grants/SavedGrants.tsx';
 import WritingProposal from './components/proposal/WritingProposal.tsx';
+import LandingPage from './components/landing/LandingPage.tsx';
 import BackendErrorScreen from './components/common/BackendErrorScreen.tsx';
 import ScrollToTopButton from './components/common/ScrollToTopButton.tsx';
 import { loadSession, clearSession } from './services/authService';
 import { ResearcherProvider, useResearcher } from './context/ResearcherContext';
 
-const SPLASH_FLAG = 'fundsphere.splash.shown';
 const SCROLL_KEY_PREFIX = 'fundsphere.scroll.';
 
 /**
- * Manual scroll-position memory across navigations. <BrowserRouter> doesn't
- * include React Router's built-in <ScrollRestoration> (that's data-router
- * only), so we do it ourselves:
- *  - PUSH/REPLACE → scroll to top (you're going somewhere new)
- *  - POP (back/forward) → restore the position saved when you last left
- *
- * Positions are keyed on history `location.key` and stored in
- * sessionStorage so they survive a same-tab refresh too.
+ * Manual scroll-position memory across navigations.
  */
 function ScrollRestoration() {
   const location = useLocation();
   const navigationType = useNavigationType();
   const previousKey = useRef<string>(location.key);
 
-  // Save current scroll before unmount of this route (i.e. just before
-  // the next location commits).
   useEffect(() => {
     return () => {
       try {
@@ -100,66 +89,6 @@ function RootLayout() {
       </div>
     </ResearcherProvider>
   );
-}
-
-/**
- * `/` — shows the splash once per browser session, then sends the user to
- * the right starting route. Refreshes on inner pages don't re-trigger the
- * splash (the flag is sessionStorage-scoped).
- */
-function RootRedirect() {
-  const navigate = useNavigate();
-  const { ensureLoaded, refresh, error } = useResearcher();
-  const alreadyShown = typeof sessionStorage !== 'undefined' && sessionStorage.getItem(SPLASH_FLAG) === '1';
-  const [showSplash, setShowSplash] = useState(!alreadyShown);
-
-  useEffect(() => {
-    if (showSplash) return;
-    void route();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showSplash]);
-
-  const route = async () => {
-    if (!loadSession()) {
-      navigate('/auth', { replace: true });
-      return;
-    }
-    const profile = await ensureLoaded();
-    // Only route if the fetch actually succeeded. Errors are handled
-    // by the render branch below — we don't want to push the user to
-    // /onboarding just because the backend is down.
-    if (profile !== undefined) {
-      navigate(profile ? '/discovery' : '/onboarding', { replace: true });
-    }
-  };
-
-  if (showSplash) {
-    return (
-      <AnimatePresence mode="wait">
-        <SplashScreen
-          key="splash"
-          onComplete={() => {
-            sessionStorage.setItem(SPLASH_FLAG, '1');
-            setShowSplash(false);
-          }}
-        />
-      </AnimatePresence>
-    );
-  }
-  if (error) {
-    return (
-      <BackendErrorScreen
-        message={error}
-        onRetry={() => refresh().then((profile) => {
-          if (profile !== undefined) {
-            navigate(profile ? '/discovery' : '/onboarding', { replace: true });
-          }
-        })}
-        onSignOut={() => navigate('/auth', { replace: true })}
-      />
-    );
-  }
-  return null;
 }
 
 /**
@@ -325,7 +254,8 @@ export default function App() {
   return (
     <Routes>
       <Route element={<RootLayout />}>
-        <Route path="/" element={<RootRedirect />} />
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/landing" element={<LandingPage />} />
         <Route path="/auth" element={<AuthRoute />} />
         <Route path="/onboarding" element={<OnboardingRoute />} />
         <Route element={<RequireResearcher />}>

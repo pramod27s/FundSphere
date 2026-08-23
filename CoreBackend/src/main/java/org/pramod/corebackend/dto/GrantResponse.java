@@ -37,6 +37,8 @@ public class GrantResponse {
     private String field;
     private String applicationLink;
     private String checksum;
+    private Long possibleDuplicateOfId;
+    private Integer duplicateConfidence;
     private List<String> tags;
     private String objectives;
     private String fundingScope;

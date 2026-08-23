@@ -44,6 +44,14 @@ export interface DiscoveryResult {
   grants: DiscoveryGrant[];
   source: 'ai' | 'core';
   aiError?: string;
+  pagination?: DiscoveryPagination;
+}
+
+export interface DiscoveryPagination {
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
 }
 
 interface RecommendationRequest {
@@ -51,6 +59,9 @@ interface RecommendationRequest {
   userQuery?: string;
   topK?: number;
   useRerank?: boolean;
+  page?: number;
+  pageSize?: number;
+  sortBy?: string;
 }
 
 interface RecommendationResponse {
@@ -98,10 +109,22 @@ interface CoreGrantResponse {
   lastVerifiedAt?: string;
 }
 
+interface CoreGrantPageResponse {
+  content: CoreGrantResponse[];
+  number: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+
 export async function getDiscoveryGrants(request: RecommendationRequest): Promise<DiscoveryResult> {
   if (request.useRerank !== true) {
-    const coreGrants = await fetchCoreGrantList();
-    return { grants: coreGrants, source: 'core' };
+    const corePage = await fetchCoreGrantPage(request.page ?? 0, request.pageSize ?? 12, request.sortBy);
+    return {
+      grants: corePage.content.map(mapCoreGrantToDiscoveryGrant),
+      source: 'core',
+      pagination: mapCorePageMetadata(corePage),
+    };
   }
 
   let aiError: string | undefined;
@@ -116,8 +139,13 @@ export async function getDiscoveryGrants(request: RecommendationRequest): Promis
     console.warn('AI recommendation failed, trying CoreBackend grant list fallback.', error);
   }
 
-  const coreGrants = await fetchCoreGrantList();
-  return { grants: coreGrants, source: 'core', aiError };
+  const corePage = await fetchCoreGrantPage(request.page ?? 0, request.pageSize ?? 12, request.sortBy);
+  return {
+    grants: corePage.content.map(mapCoreGrantToDiscoveryGrant),
+    source: 'core',
+    aiError,
+    pagination: mapCorePageMetadata(corePage),
+  };
 }
 
 async function fetchAiRecommendations(request: RecommendationRequest): Promise<DiscoveryGrant[]> {
@@ -147,16 +175,40 @@ async function fetchAiRecommendations(request: RecommendationRequest): Promise<D
   return payload.results.map(mapRecommendationToGrant);
 }
 
-async function fetchCoreGrantList(): Promise<DiscoveryGrant[]> {
-  const response = await apiFetch('/api/grants');
+async function fetchCoreGrantPage(page: number, size: number, sortBy?: string): Promise<CoreGrantPageResponse> {
+  const params = new URLSearchParams({
+    page: String(Math.max(0, page)),
+    size: String(Math.max(1, size)),
+    sort: coreSortParam(sortBy),
+  });
+
+  const response = await apiFetch(`/api/grants?${params.toString()}`);
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Core grant list failed: ${response.status} ${response.statusText} ${errorText}`);
+    throw new Error(`Core grant page failed: ${response.status} ${response.statusText} ${errorText}`);
   }
 
-  const grants: CoreGrantResponse[] = await response.json();
-  return grants.map(mapCoreGrantToDiscoveryGrant);
+  return response.json();
+}
+
+function mapCorePageMetadata(page: CoreGrantPageResponse): DiscoveryPagination {
+  return {
+    page: page.number,
+    size: page.size,
+    totalElements: page.totalElements,
+    totalPages: page.totalPages,
+  };
+}
+
+function coreSortParam(sortBy?: string): string {
+  if (sortBy === 'deadline') {
+    return 'applicationDeadline,asc';
+  }
+  if (sortBy === 'funding') {
+    return 'fundingAmountMax,desc';
+  }
+  return 'updatedAt,desc';
 }
 
 function mapRecommendationToGrant(item: RecommendationItem): DiscoveryGrant {

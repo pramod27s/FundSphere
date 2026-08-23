@@ -1,4 +1,4 @@
-import { Search, Menu, SlidersHorizontal, X } from 'lucide-react';
+import { Search, Menu, SlidersHorizontal, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import GrantList from './GrantList.tsx';
 import FilterSidebar, { type FilterState, EMPTY_FILTERS } from './FilterSidebar.tsx';
@@ -105,7 +105,15 @@ interface GrantDiscoveryProps {
 export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('recent');
-  const [topK, setTopK] = useState<number>(Infinity);
+  const [aiTopK, setAiTopK] = useState<number>(12);
+  const [pageSize, setPageSize] = useState(12);
+  const [page, setPage] = useState(0);
+  const [pagination, setPagination] = useState({
+    page: 0,
+    size: 12,
+    totalElements: 0,
+    totalPages: 0,
+  });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const mainScrollRef = useRef<HTMLElement>(null);
   const [grants, setGrants] = useState<DiscoveryGrant[]>([]);
@@ -115,7 +123,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
   const [dataSource, setDataSource] = useState<'ai' | 'core' | null>(null);
   const [filterState, setFilterState] = useState<FilterState>(EMPTY_FILTERS);
 
-  const loadGrants = async (queryOverride?: string, useRerank = false) => {
+  const loadGrants = async (queryOverride?: string, useRerank = false, pageOverride = page) => {
     if (!researcher) {
       setErrorMessage('Researcher profile is missing. Please complete onboarding first.');
       setGrants([]);
@@ -127,13 +135,25 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
     setWarningMessage(null);
 
     try {
-      const { grants: fetchedGrants, source, aiError } = await getDiscoveryGrants({
+      const { grants: fetchedGrants, source, aiError, pagination: fetchedPagination } = await getDiscoveryGrants({
         userQuery: queryOverride ?? searchQuery,
-        topK,
+        topK: aiTopK,
         useRerank,
+        page: pageOverride,
+        pageSize,
+        sortBy,
       });
       setGrants(fetchedGrants);
       setDataSource(source);
+      setPagination(fetchedPagination ?? {
+        page: 0,
+        size: fetchedGrants.length,
+        totalElements: fetchedGrants.length,
+        totalPages: fetchedGrants.length > 0 ? 1 : 0,
+      });
+      if (source === 'core' && fetchedPagination) {
+        setPage(fetchedPagination.page);
+      }
 
       if (useRerank && source === 'core' && aiError) {
         setWarningMessage(`AI matching is currently unavailable (${aiError}), showing fallback grants from CoreBackend.`);
@@ -149,28 +169,44 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
 
   // Initial load (and on profile change): fetch the unranked browse list.
   useEffect(() => {
-    void loadGrants('', false);
+    setPage(0);
+    void loadGrants('', false, 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [researcher]);
 
-  // Show-dropdown change:
-  //  - Browse mode: no refetch needed — `displayedGrants` slices client-side.
-  //  - AI mode: re-rank with the new topK so the server returns the right
-  //    number of ranked candidates (and rankings can differ at higher N).
+  // Browse page-size changes restart at page 1 because the old page number
+  // may no longer point at the same result range.
   useEffect(() => {
-    if (dataSource === 'ai') {
-      void loadGrants(searchQuery, true);
+    if (dataSource === 'core') {
+      setPage(0);
+      void loadGrants(searchQuery, false, 0);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [topK]);
+  }, [pageSize]);
 
-  // Clamp topK to the AI cap (20) when transitioning into AI mode, so a
-  // user sitting at 50/100 in browse mode doesn't accidentally pay for a
-  // huge ranking call when they hit AI Match. The "Show All" sentinel
-  // (Infinity) is allowed through — the backend caps it at 50.
+  // AI result-count changes re-run AI ranking. Browse pagination is not
+  // affected by this control.
   useEffect(() => {
-    if (dataSource === 'ai' && Number.isFinite(topK) && topK > 20) {
-      setTopK(20);
+    if (dataSource === 'ai') {
+      void loadGrants(searchQuery, true, 0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aiTopK]);
+
+  useEffect(() => {
+    if (dataSource === 'core') {
+      setPage(0);
+      void loadGrants(searchQuery, false, 0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortBy]);
+
+  // Clamp AI result count to the normal AI cap when transitioning into AI
+  // mode. The "All" sentinel (Infinity) is allowed through; the backend caps
+  // it at 50.
+  useEffect(() => {
+    if (dataSource === 'ai' && Number.isFinite(aiTopK) && aiTopK > 20) {
+      setAiTopK(20);
     }
     if (dataSource === 'ai') {
       setSortBy('match');
@@ -207,13 +243,23 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
     return Array.from(set);
   }, [grants]);
 
-  // Cap visible results at topK regardless of mode — in AI mode the server
-  // already returns at most topK rows so this is a no-op; in browse mode it
-  // makes the "Top N" dropdown actually work.
+  // Browse mode is already paginated by the backend. AI mode may still use
+  // the local slice when "All" is not selected.
   const displayedGrants = useMemo(
-    () => filteredGrants.slice(0, topK),
-    [filteredGrants, topK],
+    () => dataSource === 'core' ? filteredGrants : filteredGrants.slice(0, aiTopK),
+    [dataSource, filteredGrants, aiTopK],
   );
+
+  const canGoPrevious = dataSource === 'core' && page > 0 && !isLoading;
+  const canGoNext = dataSource === 'core' && page + 1 < pagination.totalPages && !isLoading;
+
+  const goToPage = (nextPage: number) => {
+    const lastPage = Math.max(pagination.totalPages - 1, 0);
+    const safePage = Math.max(0, Math.min(nextPage, lastPage));
+    setPage(safePage);
+    void loadGrants(searchQuery, false, safePage);
+    mainScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <div className="flex h-screen w-full overflow-hidden relative bg-gradient-to-br from-brand-50 via-white to-primary-50/30">
@@ -298,7 +344,8 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                   type="button"
                   onClick={() => {
                     setSearchQuery('');
-                    void loadGrants('', false);
+                    setPage(0);
+                    void loadGrants('', false, 0);
                   }}
                   aria-hidden={dataSource !== 'ai'}
                   tabIndex={dataSource === 'ai' ? 0 : -1}
@@ -311,7 +358,10 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                   Clear
                 </button>
                 <button
-                  onClick={() => void loadGrants(searchQuery, true)}
+                  onClick={() => {
+                    setPage(0);
+                    void loadGrants(searchQuery, true, 0);
+                  }}
                   className="w-full sm:w-auto px-5 py-2 sm:py-1.5 text-sm bg-gradient-to-br from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-xl sm:rounded-lg font-semibold transition-all shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30 active:scale-[0.97]"
                 >
                   AI Match
@@ -354,16 +404,26 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                 <p className="text-xs md:text-sm text-brand-500 tabular-nums">
                   {isLoading
                     ? 'Fetching opportunities...'
-                    : <>Showing <span className="font-semibold text-brand-700">{displayedGrants.length}</span>{displayedGrants.length !== filteredGrants.length ? <> of <span className="font-semibold text-brand-700">{filteredGrants.length}</span></> : null} opportunities {dataSource === 'ai' && <>· <span className="text-primary-600 font-medium">AI ranking</span></>}</>}
+                    : dataSource === 'core'
+                      ? <>Showing <span className="font-semibold text-brand-700">{displayedGrants.length}</span> of <span className="font-semibold text-brand-700">{pagination.totalElements}</span> opportunities</>
+                      : <>Showing <span className="font-semibold text-brand-700">{displayedGrants.length}</span>{displayedGrants.length !== filteredGrants.length ? <> of <span className="font-semibold text-brand-700">{filteredGrants.length}</span></> : null} opportunities {dataSource === 'ai' && <>· <span className="text-primary-600 font-medium">AI ranking</span></>}</>}
                 </p>
               </div>
 
               <div className="flex items-center gap-4 flex-wrap">
                 <div className="flex items-center gap-2 h-9">
-                  <span className="text-[11px] font-semibold text-brand-500 uppercase tracking-wider hidden sm:inline-block leading-none">Show</span>
+                  <span className="text-[11px] font-semibold text-brand-500 uppercase tracking-wider hidden sm:inline-block leading-none">
+                    {dataSource === 'core' ? 'Per page' : 'Show'}
+                  </span>
                   <CustomSelect
-                    value={topK}
-                    onChange={(val) => setTopK(Number(val))}
+                    value={dataSource === 'ai' ? aiTopK : pageSize}
+                    onChange={(val) => {
+                      if (dataSource === 'ai') {
+                        setAiTopK(Number(val));
+                      } else {
+                        setPageSize(Number(val));
+                      }
+                    }}
                     width="w-20"
                     options={
                       dataSource === 'ai'
@@ -378,8 +438,6 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                             { value: 12, label: '12' },
                             { value: 20, label: '20' },
                             { value: 50, label: '50' },
-                            { value: 100, label: '100' },
-                            { value: Infinity, label: 'All' },
                           ]
                     }
                   />
@@ -405,7 +463,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
             {errorMessage && (
               <div className="mb-4 rounded-xl border border-red-200/80 bg-gradient-to-r from-red-50 to-red-50/50 px-4 py-3 text-sm text-red-800 flex items-center justify-between gap-4 shadow-sm">
                 <span className="font-medium">{errorMessage}</span>
-                <button onClick={() => void loadGrants(searchQuery)} className="px-3 py-1.5 rounded-lg bg-white border border-red-200 text-red-700 font-medium hover:bg-red-50 transition-colors shadow-sm">
+                <button onClick={() => void loadGrants(searchQuery, dataSource === 'ai', page)} className="px-3 py-1.5 rounded-lg bg-white border border-red-200 text-red-700 font-medium hover:bg-red-50 transition-colors shadow-sm">
                   Retry
                 </button>
               </div>
@@ -418,6 +476,36 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
             )}
 
             <GrantList grants={displayedGrants} isLoading={isLoading} source={dataSource} profile={researcher} />
+
+            {dataSource === 'core' && pagination.totalPages > 1 && (
+              <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-xl border border-brand-200/70 bg-white/80 px-4 py-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+                <p className="text-sm text-brand-500 tabular-nums">
+                  Page <span className="font-semibold text-brand-800">{page + 1}</span> of{' '}
+                  <span className="font-semibold text-brand-800">{pagination.totalPages}</span>
+                  <span className="hidden sm:inline"> · {pagination.size} per page</span>
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={!canGoPrevious}
+                    onClick={() => goToPage(page - 1)}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-brand-200 bg-white text-sm font-semibold text-brand-700 hover:border-primary-300 hover:text-primary-700 hover:bg-primary-50 disabled:opacity-50 disabled:hover:bg-white disabled:hover:text-brand-700 disabled:hover:border-brand-200 transition-colors"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    Previous
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!canGoNext}
+                    onClick={() => goToPage(page + 1)}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-brand-200 bg-white text-sm font-semibold text-brand-700 hover:border-primary-300 hover:text-primary-700 hover:bg-primary-50 disabled:opacity-50 disabled:hover:bg-white disabled:hover:text-brand-700 disabled:hover:border-brand-200 transition-colors"
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
 
             {!isLoading && filteredGrants.length === 0 && sortedGrants.length > 0 && (
               <FilteredEmptyState
@@ -435,7 +523,8 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                 searchQuery={searchQuery}
                 onClearSearch={() => {
                   setSearchQuery('');
-                  void loadGrants('', false);
+                  setPage(0);
+                  void loadGrants('', false, 0);
                 }}
               />
             )}

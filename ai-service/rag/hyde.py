@@ -22,9 +22,7 @@ import json
 import logging
 from functools import lru_cache
 from typing import Optional
-
 from openai import OpenAI
-
 from .config import settings
 from .schemas import UserProfile
 

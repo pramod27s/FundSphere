@@ -8,6 +8,8 @@ import lombok.RequiredArgsConstructor;
 import org.pramod.corebackend.dto.GrantRequest;
 import org.pramod.corebackend.dto.GrantResponse;
 import org.pramod.corebackend.service.GrantService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -42,6 +44,17 @@ public class GrantController {
     @GetMapping
     public ResponseEntity<List<GrantResponse>> getAllGrants() {
         List<GrantResponse> grants = grantService.getAllGrants();
+        return ResponseEntity.ok(grants);
+    }
+
+    /**
+     * Retrieves grants one page at a time for the discovery browse feed.
+     * Existing clients that call /api/grants without page/size still receive
+     * the legacy full list response above.
+     */
+    @GetMapping(params = {"page", "size"})
+    public ResponseEntity<Page<GrantResponse>> getPagedGrants(Pageable pageable) {
+        Page<GrantResponse> grants = grantService.getPagedGrants(pageable);
         return ResponseEntity.ok(grants);
     }
 

@@ -22,6 +22,12 @@ public interface GrantRepository extends JpaRepository<Grant, Long> {
 
     boolean existsByGrantUrl(String grantUrl);
 
+    Optional<Grant> findFirstByApplicationLinkIgnoreCase(String applicationLink);
+
+    List<Grant> findTop100ByFundingAgencyContainingIgnoreCaseOrderByUpdatedAtDesc(String fundingAgency);
+
+    List<Grant> findTop100ByGrantTitleContainingIgnoreCaseOrderByUpdatedAtDesc(String grantTitle);
+
     /**
      * Rows the sweeper is allowed to retry RIGHT NOW:
      *   - flagged for reindex

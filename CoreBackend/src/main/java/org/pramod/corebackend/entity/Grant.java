@@ -106,6 +106,15 @@ public class Grant {
     @Column(nullable = false)
     private String checksum;
 
+    /**
+     * Medium-confidence fuzzy duplicate marker. High-confidence duplicates are
+     * merged into the existing row; medium-confidence cases keep their own row
+     * but point at the likely canonical grant for later review.
+     */
+    private Long possibleDuplicateOfId;
+
+    private Integer duplicateConfidence;
+
     @ElementCollection
     @CollectionTable(name = "grant_tags", joinColumns = @JoinColumn(name = "grant_id"))
     @Column(name = "tag")

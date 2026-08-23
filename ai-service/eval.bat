@@ -30,16 +30,20 @@ echo    [1] Compare: flags OFF vs improved ON   (recommended)
 echo    [2] Single run (current settings)
 echo    [3] Refresh test set  (regenerate profiles+queries - costs tokens)
 echo    [4] Auto-tune weights  (sweep + recommend best - no tokens)
-echo    [5] Quit
+echo    [5] Suggest manual labels  (prints candidates for testset.json)
+echo    [6] Run manual eval  (uses expectedGrantIds in testset.json)
+echo    [7] Quit
 echo.
 set "choice="
-set /p "choice=Choose [1-5]: "
+set /p "choice=Choose [1-7]: "
 
 if "%choice%"=="1" goto compare
 if "%choice%"=="2" goto single
 if "%choice%"=="3" goto refresh
 if "%choice%"=="4" goto tune
-if "%choice%"=="5" goto end
+if "%choice%"=="5" goto suggest
+if "%choice%"=="6" goto manual
+if "%choice%"=="7" goto end
 echo   Invalid choice, try again.
 goto menu
 
@@ -74,6 +78,22 @@ REM snapshot for the first time, and errors clearly if they're unavailable.
 echo.
 echo Auto-tuning weights (sweeping over cached signals + labels)...
 "%PY%" -m eval.tune --save "eval\tune_result.json"
+goto done
+
+:suggest
+call :preflight
+if errorlevel 1 goto menu
+echo.
+echo Printing manual label suggestions from eval\testset.json...
+"%PY%" -m eval.suggest_labels --top-k 15
+goto done
+
+:manual
+call :preflight
+if errorlevel 1 goto menu
+echo.
+echo Running manual eval with eval\testset.json expectedGrantIds...
+"%PY%" -m eval.run_eval --csv "eval\manual_eval.csv"
 goto done
 
 :done
