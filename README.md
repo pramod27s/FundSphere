@@ -37,10 +37,10 @@ The frontend provides a complete, modern single-page application experience with
 |---|---|---|
 | `/` & `/landing` | **Landing Page** | Public showcase featuring the dynamic hero, interactive value proposition, platform statistics, and feature highlights |
 | `/auth` | **Authentication** | Unified Login and Register forms with real-time password strength validation and automatic JWT session recovery |
-| `/onboarding` | **Researcher Wizard** | Multi-step onboarding flow with **one-click ORCID integration** to auto-fill research bio, career stage, and keywords |
-| `/discovery` | **Grant Discovery** | Dual-mode feed: **Browse Mode** with multi-faceted filtering & pagination, and **AI Match Mode** with RAG scoring breakdown |
+| `/onboarding` | **Researcher Wizard** | Multi-step onboarding flow with **one-click ORCID integration** to auto-fill research bio, career stage, and keywords, plus a **"Skip for now"** starter profile generator |
+| `/discovery` | **Grant Discovery** | Dual-mode feed: **Browse Mode** with multi-faceted filtering & pagination, and **AI Match Mode** with RAG scoring breakdown, **keyboard shortcuts (`Ctrl+K` / `/`)**, and **interactive suggested research topic chips** |
 | `/saved` | **Saved Grants** | Bookmarked funding opportunities with PostgreSQL persistence, optimistic UI updates, and rollback handling |
-| `/proposal` | **Proposal Assistant** | Proposal PDF + guidelines PDF compliance analyzer (Quick & Deep analysis) with section rubrics and diff cards |
+| `/proposal` | **Proposal Assistant** | Proposal PDF + guidelines PDF compliance analyzer (Quick & Deep analysis) with section rubrics, diff cards, and resilient **Groq failover** |
 | `/profile` | **Profile Management** | Edit research interests, institution type, citizenship, degree requirements, and funding preferences |
 
 ---
@@ -48,17 +48,19 @@ The frontend provides a complete, modern single-page application experience with
 ## Key Features
 
 - **AI-Powered Grant Matching (RAG)** — Deep semantic understanding of researcher bios, research areas, and constraints. Every recommended grant includes an explainable score breakdown showing match rationale.
+- **In-Memory Query & Recommendation Cache** — Deterministic SHA-256 hashing of researcher profiles and search criteria (`RecommendationCache`), caching top recommendations with TTL and LRU eviction for instantaneous sub-millisecond repeated lookups.
 - **Hybrid Retrieval with Reciprocal Rank Fusion (RRF)** — Blends keyword search results from PostgreSQL with high-dimensional vector search hits from Pinecone, balancing lexical precision with semantic recall.
 - **Cross-Encoder Reranking** — Re-scores the top RRF candidate pool using Pinecone Inference with `bge-reranker-v2-m3`, drastically improving top-10 precision over single-vector retrieval.
 - **Hypothetical Document Embeddings (HyDE)** — Generates hypothetical grant solicitations tailored to user queries to bridge the vocabulary gap between researcher phrasings and formal agency RFPs.
-- **Structured Eligibility & Scoring Engine** — Transparent 5-signal candidate evaluation:
+- **Structured Scoring & Hard Eligibility Guardrails** — Transparent 5-signal candidate evaluation:
   - Semantic similarity (35%)
-  - Eligibility constraints (25% — hard guards for PhD, experience, citizenship)
+  - Eligibility alignment (25%)
   - Keyword match (15%)
   - Funding fit (15%)
   - Deadline freshness (10%)
-  - Plus soft preference bonuses for preferred grant types and career stages. **Expired grants are automatically filtered out**.
-- **AI Proposal Assistant** — Upload a draft proposal PDF and grant guidelines PDF. Google Gemini evaluates structure, compliance, methodology, and rubrics, providing actionable per-section feedback (Quick ~10s / Deep ~30–90s), a revision diff card, and Markdown/PDF export.
+  - **Hard Non-Negotiable Guardrails**: Drops grants that strictly conflict with known profile attributes (PhD status, country/geographic eligibility, citizenship restrictions, and minimum years of experience). Expired grants are automatically filtered out.
+- **AI Proposal Assistant with Groq Fallback** — Upload a draft proposal PDF and grant guidelines PDF. Google Gemini evaluates structure, compliance, methodology, and rubrics, providing actionable per-section feedback (Quick ~10s / Deep ~30–90s), a revision diff card, and Markdown/PDF export. Features automatic failover to Groq (`meta-llama/llama-4-scout-17b-16e-instruct`) if rate limits or quota bounds are hit.
+- **Productivity-First Discovery UX** — Global shortcuts (`Ctrl+K` or `/` to focus search, `Enter` to match), dynamic suggested research topic chips on empty search results, and a "Skip for now" onboarding fast-path for rapid setup.
 - **Intelligent Two-Pass Delta Scraper** — SHA-256 content checksumming monitors agency seed pages with zero LLM overhead. When changes are detected, Firecrawl / headless browser extracts structured fields (`GrantSchema`). Unchanged pages trigger the lightweight `/api/grants/verify` endpoint, avoiding redundant vector reindexing.
 - **Resilient Background Indexing** — CoreBackend's `ReindexSweeper` operates on a scheduled loop with exponential backoff and dead-letter protection to ensure every database grant is reliably synchronized to Pinecone.
 - **One-Click ORCID Import** — Automatically queries the public ORCID API by researcher iD to pull author biographies and recent publications directly into the onboarding wizard.
@@ -70,7 +72,7 @@ The frontend provides a complete, modern single-page application experience with
 
 ```
  ┌──────────────────────┐
- │  Frontend Discovery  │
+ │  Frontend Discovery  │  (Supports Ctrl+K / '/' focus, Enter to submit)
  └──────────┬───────────┘
             │ 1. Search Query + Filters
             ▼
@@ -82,12 +84,13 @@ The frontend provides a complete, modern single-page application experience with
  ┌──────────────────────┐
  │      ai-service      │
  └──────────┬───────────┘
-            │ 3. Generates query embeddings (+ HyDE if enabled)
-            │ 4. Pinecone Vector Search + PostgreSQL Keyword Search
-            │ 5. Merges candidates using Reciprocal Rank Fusion (RRF)
-            │ 6. Cross-Encoder Reranking (bge-reranker-v2-m3)
-            │ 7. Evaluates 5 scoring signals + eligibility guards
-            │ 8. Removes expired grants; computes AI match explanation
+            │ 3. Checks In-Memory Cache (returns immediately on hit)
+            │ 4. Generates query embeddings (+ HyDE if enabled)
+            │ 5. Pinecone Vector Search + PostgreSQL Keyword Search
+            │ 6. Merges candidates using Reciprocal Rank Fusion (RRF)
+            │ 7. Cross-Encoder Reranking (bge-reranker-v2-m3)
+            │ 8. Evaluates 5 scoring signals + hard disqualification guardrails
+            │ 9. Removes expired grants; computes AI match explanation
             ▼
  ┌──────────────────────┐
  │  Frontend Match Card │  Displays match percentage, eligibility badge,
@@ -186,15 +189,28 @@ PINECONE_INDEX_HOST=https://your-index-host.pinecone.io
 PINECONE_NAMESPACE=grants
 PINECONE_RERANK_MODEL=bge-reranker-v2-m3
 
+# Performance & In-Memory Caching
+ENABLE_QUERY_CACHE=true
+QUERY_CACHE_TTL_SECONDS=1800
+QUERY_CACHE_MAX_SIZE=256
+ENABLE_BATCH_EMBEDDINGS=true
+
+# Guardrails & Accuracy Tuning
+ENABLE_HARD_ELIGIBILITY_FILTER=true
+ENABLE_PROFILE_QUERY_SPLIT=false
+ENABLE_STRUCTURED_RERANK_PROMPT=false
+
 # Groq (HyDE, Query Expansion, LLM Judge)
 GROQ_API_KEY_QUERY_EXPANSION=your_groq_key
 GROQ_API_KEY_LLM_JUDGE=your_groq_key
 GROQ_API_KEY_HYDE=your_groq_key
 ENABLE_HYDE=true
 
-# Google Gemini (Proposal Assistant)
+# Proposal Assistant (Gemini with Groq Fallback)
 GEMINI_API_KEY=your_gemini_api_key
 PROPOSAL_GEMINI_MODEL=gemini-2.5-flash
+GROQ_API_KEY_PROPOSAL=your_groq_key
+PROPOSAL_GROQ_MODEL=meta-llama/llama-4-scout-17b-16e-instruct
 
 # Firecrawl (Scraper)
 FIRECRAWL_API_KEY=your_firecrawl_api_key
