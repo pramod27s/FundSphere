@@ -10,10 +10,10 @@ FundSphere is structured as a three-tier system with clean separation between th
 
 ```
 ┌─────────────────────────┐          ┌───────────────────────────┐          ┌──────────────────────────┐
-│   Frontend (Port 5173)  │  HTTP    │  CoreBackend (Port 8080)  │  HTTP    │  AI-Service (Port 8000)  │
+│   Frontend (Port 5173)  │  HTTP    │  CoreBackend (Port 8080)  │  M2M JWT │  AI-Service (Port 8000)  │
 │   React 19 + TypeScript │ ───────▶ │   Java 21 + Spring Boot   │ ───────▶ │     Python + FastAPI     │
-│   Tailwind CSS v4 + Vite│          │   PostgreSQL + JWT Auth   │ ◀─────── │  Pinecone + Groq/Gemini  │
-└─────────────────────────┘          └─────────────┬─────────────┘          └────────────┬─────────────┘
+│   Tailwind CSS v4 + Vite│ (UserJWT)│   PostgreSQL + M2M RS256  │ ◀─────── │  Pinecone + Groq/Gemini  │
+└─────────────────────────┘          └─────────────┬─────────────┘ (RS256)  └────────────┬─────────────┘
                                                    │                                     │
                                             ┌──────▼──────┐                       ┌──────▼──────┐
                                             │ PostgreSQL  │                       │  Pinecone   │
@@ -24,8 +24,8 @@ FundSphere is structured as a three-tier system with clean separation between th
 | Layer | Stack | Key Responsibilities |
 |---|---|---|
 | **`frontend/`** | React 19, Vite 7 (SWC), TypeScript, Tailwind CSS v4, React Router v7, Framer Motion, Lucide Icons | Responsive UI, landing page, onboarding wizard, AI Match feed, saved grants, proposal assistant workspace |
-| **`CoreBackend/`** | Java 21, Spring Boot 4.0.3, Spring Data JPA / Hibernate, PostgreSQL, JWT Authentication | Authentication & token refresh, researcher profiles, grant CRUD & keyword search, AI service bridge, background reindexing sweeper |
-| **`ai-service/`** | Python 3.11+, FastAPI, Pinecone, Google Gemini, Groq, Firecrawl, Selenium | Vector embeddings, HyDE, hybrid search fusion (RRF), cross-encoder reranking, 5-signal scoring, proposal compliance auditing, delta scraping |
+| **`CoreBackend/`** | Java 21, Spring Boot 4.0.3, Spring Data JPA / Hibernate, PostgreSQL, JWT Authentication | User auth & token refresh, RS256 M2M token service, researcher profiles, grant CRUD & keyword search, AI service bridge, background reindexing sweeper |
+| **`ai-service/`** | Python 3.11+, FastAPI, Pinecone, Google Gemini, Groq, Firecrawl, Selenium | Vector embeddings, HyDE, hybrid search fusion (RRF), cross-encoder reranking, 5-signal scoring, proposal compliance auditing, delta scraping, RS256 public key verification |
 
 ---
 
@@ -62,6 +62,7 @@ The frontend provides a complete, modern single-page application experience with
 - **AI Proposal Assistant with Groq Fallback** — Upload a draft proposal PDF and grant guidelines PDF. Google Gemini evaluates structure, compliance, methodology, and rubrics, providing actionable per-section feedback (Quick ~10s / Deep ~30–90s), a revision diff card, and Markdown/PDF export. Features automatic failover to Groq (`meta-llama/llama-4-scout-17b-16e-instruct`) if rate limits or quota bounds are hit.
 - **Productivity-First Discovery UX** — Global shortcuts (`Ctrl+K` or `/` to focus search, `Enter` to match), dynamic suggested research topic chips on empty search results, and a "Skip for now" onboarding fast-path for rapid setup.
 - **Intelligent Two-Pass Delta Scraper** — SHA-256 content checksumming monitors agency seed pages with zero LLM overhead. When changes are detected, Firecrawl / headless browser extracts structured fields (`GrantSchema`). Unchanged pages trigger the lightweight `/api/grants/verify` endpoint, avoiding redundant vector reindexing.
+- **Enterprise Zero-Trust M2M Security (RS256 JWT)** — Internal microservice communication between Spring Boot and FastAPI is secured via asymmetric RSA-2048 cryptography. Spring Boot issues short-lived (5-minute) signed JWTs, verified by FastAPI using a public key (`m2m_public_key.pem`) with in-memory caching, replay protection, and fail-closed constant-time fallback (`X-API-KEY`).
 - **Resilient Background Indexing** — CoreBackend's `ReindexSweeper` operates on a scheduled loop with exponential backoff and dead-letter protection to ensure every database grant is reliably synchronized to Pinecone.
 - **One-Click ORCID Import** — Automatically queries the public ORCID API by researcher iD to pull author biographies and recent publications directly into the onboarding wizard.
 - **Evaluation & Weight Auto-Tuning** — Built-in offline evaluation suite (`ai-service/eval/`) measuring Recall@K, MRR, and NDCG@K, alongside a token-free combinatorial weight optimizer (`tune.py`), runnable via `eval.bat`.
@@ -214,6 +215,29 @@ PROPOSAL_GROQ_MODEL=meta-llama/llama-4-scout-17b-16e-instruct
 
 # Firecrawl (Scraper)
 FIRECRAWL_API_KEY=your_firecrawl_api_key
+```
+
+---
+
+### Machine-to-Machine (M2M) RSA Key Setup
+CoreBackend and AI-Service communicate via asymmetric RS256 JWT tokens. If setting up on a fresh machine (since `.pem` keys are gitignored for security):
+```bash
+python -c "
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import serialization
+import os
+
+key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+priv = key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption())
+pub = key.public_key().public_bytes(serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo)
+
+os.makedirs('CoreBackend/src/main/resources/keys', exist_ok=True)
+os.makedirs('ai-service/keys', exist_ok=True)
+open('CoreBackend/src/main/resources/keys/m2m_private_key.pem', 'wb').write(priv)
+open('CoreBackend/src/main/resources/keys/m2m_public_key.pem', 'wb').write(pub)
+open('ai-service/keys/m2m_public_key.pem', 'wb').write(pub)
+print('M2M RSA keys generated successfully!')
+"
 ```
 
 ---
