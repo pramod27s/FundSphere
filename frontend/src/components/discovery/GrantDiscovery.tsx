@@ -1,4 +1,4 @@
-import { Search, Menu, SlidersHorizontal, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Menu, SlidersHorizontal, X, ChevronLeft, ChevronRight, Loader2, Sparkles } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import GrantList from './GrantList.tsx';
 import FilterSidebar, { type FilterState, EMPTY_FILTERS } from './FilterSidebar.tsx';
@@ -116,6 +116,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
   });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const mainScrollRef = useRef<HTMLElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [grants, setGrants] = useState<DiscoveryGrant[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -216,6 +217,26 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataSource]);
 
+  // Global keyboard shortcuts: Ctrl/Cmd + K or '/' to jump to the search box
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      } else if (
+        e.key === '/' &&
+        document.activeElement?.tagName !== 'INPUT' &&
+        document.activeElement?.tagName !== 'TEXTAREA'
+      ) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const sortedGrants = useMemo(() => {
     const copy = [...grants];
     if (sortBy === 'deadline') {
@@ -233,7 +254,6 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
 
   const filteredGrants = useMemo(() => applyFilters(sortedGrants, filterState), [sortedGrants, filterState]);
 
-  // Unique funders from the currently-loaded grants. Drives the
   // searchable Funding Agency filter in the sidebar.
   const availableFunders = useMemo(() => {
     const set = new Set<string>();
@@ -329,17 +349,27 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                 <Search className="w-5 h-5" />
               </div>
               <input
+                ref={searchInputRef}
                 type="text"
                 placeholder="Describe your research, then hit AI Match"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full sm:pl-11 sm:pr-48 px-4 py-2 sm:py-3 bg-white border border-brand-200 rounded-xl focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 text-brand-900 placeholder:text-brand-400 text-sm md:text-base transition-all shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.04)] hover:border-brand-300"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    setPage(0);
+                    void loadGrants(searchQuery, true, 0);
+                  }
+                }}
+                className="w-full sm:pl-11 sm:pr-56 px-4 py-2 sm:py-3 bg-white border border-brand-200 rounded-xl focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 text-brand-900 placeholder:text-brand-400 text-sm md:text-base transition-all shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.04)] hover:border-brand-300"
               />
+              {!searchQuery && (
+                <div className="hidden md:flex items-center gap-1 absolute right-36 sm:right-40 pointer-events-none text-[11px] font-medium text-brand-400 bg-brand-50 border border-brand-200/80 px-1.5 py-0.5 rounded shadow-xs">
+                  <kbd className="font-sans">Ctrl</kbd>
+                  <span>K</span>
+                </div>
+              )}
               <div className="flex w-full sm:w-auto sm:absolute sm:right-2 gap-2">
-                {/* Clear button is always rendered so the row's width is
-                    stable across browse/AI mode swaps — only its visibility
-                    toggles. This avoids the suggested-tags row below
-                    shifting when the user first hits AI Match. */}
                 <button
                   type="button"
                   onClick={() => {
@@ -362,9 +392,20 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                     setPage(0);
                     void loadGrants(searchQuery, true, 0);
                   }}
-                  className="w-full sm:w-auto px-5 py-2 sm:py-1.5 text-sm bg-gradient-to-br from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-xl sm:rounded-lg font-semibold transition-all shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30 active:scale-[0.97]"
+                  disabled={isLoading}
+                  className="w-full sm:w-auto px-5 py-2 sm:py-1.5 text-sm bg-gradient-to-br from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-xl sm:rounded-lg font-semibold transition-all shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30 active:scale-[0.97] flex items-center justify-center gap-1.5 disabled:opacity-85 disabled:cursor-not-allowed"
                 >
-                  AI Match
+                  {isLoading && dataSource === 'ai' ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Matching...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      <span>AI Match</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -526,6 +567,11 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                   setPage(0);
                   void loadGrants('', false, 0);
                 }}
+                onSelectSuggestion={(sug) => {
+                  setSearchQuery(sug);
+                  setPage(0);
+                  void loadGrants(sug, true, 0);
+                }}
               />
             )}
           </div>
@@ -599,12 +645,22 @@ function FilteredEmptyState({
 function NoResultsEmptyState({
   searchQuery,
   onClearSearch,
+  onSelectSuggestion,
 }: {
   searchQuery: string;
   onClearSearch: () => void;
+  onSelectSuggestion?: (query: string) => void;
 }) {
+  const suggestions = [
+    'Artificial Intelligence & Deep Learning',
+    'Cancer Diagnostics & Therapeutics',
+    'Climate Change & Agriculture',
+    'Renewable Energy & Battery Storage',
+    'Postdoctoral Fellowship',
+  ];
+
   return (
-    <div className="rounded-2xl border border-brand-200/60 bg-white/60 backdrop-blur-sm p-12 flex flex-col items-center justify-center text-center mt-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(15,23,42,0.04)]">
+    <div className="rounded-2xl border border-brand-200/60 bg-white/60 backdrop-blur-sm p-10 sm:p-12 flex flex-col items-center justify-center text-center mt-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(15,23,42,0.04)]">
       <div className="bg-gradient-to-br from-primary-50 to-white p-5 rounded-2xl shadow-inner border border-primary-100 mb-4">
         <Search className="w-8 h-8 text-primary-400" />
       </div>
@@ -613,10 +669,27 @@ function NoResultsEmptyState({
       </h3>
       <p className="text-brand-500 max-w-md mb-5 text-sm">
         {searchQuery
-          ? <>Nothing matched <span className="font-semibold text-brand-700">"{searchQuery}"</span>. Try broader terms — e.g. "machine learning" instead of "transformer pretraining".</>
-          : <>We couldn't find any grants right now. Check back soon, or try the AI Match button with a description of your research.</>
+          ? <>Nothing matched <span className="font-semibold text-brand-700">"{searchQuery}"</span>. Try a broader search or choose one of the suggested fields below:</>
+          : <>We couldn't find any grants right now. Try the AI Match button with a description of your research.</>
         }
       </p>
+
+      {onSelectSuggestion && (
+        <div className="flex flex-wrap gap-2 justify-center max-w-lg mb-6">
+          {suggestions.map((sug) => (
+            <button
+              key={sug}
+              type="button"
+              onClick={() => onSelectSuggestion(sug)}
+              className="px-3 py-1.5 rounded-full text-xs font-medium bg-white border border-brand-200 text-brand-700 hover:border-primary-400 hover:text-primary-700 hover:bg-primary-50 transition-all shadow-xs flex items-center gap-1.5"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-primary-500" />
+              <span>{sug}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {searchQuery && (
         <button
           onClick={onClearSearch}

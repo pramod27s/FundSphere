@@ -171,6 +171,48 @@ export default function OnboardingWizard({ onComplete }: { onComplete: (data: Re
     }
   };
 
+  const [isSkipping, setIsSkipping] = useState(false);
+
+  const handleSkip = async () => {
+    setIsSkipping(true);
+    try {
+      const payload: ResearcherRequest = {
+        userType: (formData.userType || 'Researcher').toUpperCase().replace(/\s+\/\s+/g, "_").replace(/\s+/g, "_"),
+        institutionName: formData.orgName || 'Academic Institution',
+        department: formData.department || '',
+        position: null,
+        institutionType: formData.institutionType || null,
+        primaryField: (formData.primaryField || 'MULTIDISCIPLINARY').toUpperCase().replace(/\s+/g, "_"),
+        additionalFields: formData.additionalFields,
+        keywords: formData.keywords ? formData.keywords.split(',').map(k => k.trim()).filter(k => k) : ['Research', 'Grants'],
+        researchSummary: formData.researchSummary ? formData.researchSummary.trim() : 'Exploring research funding opportunities.',
+        orcidId: formData.orcidId.trim(),
+        country: formData.country || 'India',
+        state: formData.state || '',
+        city: formData.city || '',
+        citizenship: formData.citizenship || formData.country || 'India',
+        minFundingAmount: Number(formData.minFunding) || 10000,
+        maxFundingAmount: Number(formData.maxFunding) || 500000,
+        preferredGrantType: (formData.grantType || 'Research Grant').toUpperCase().replace(/\s+/g, "_"),
+        yearsOfExperience: 0,
+        educationLevel: formData.educationLevel || 'OTHER',
+        hasCompletedPhd: null,
+        previousGrantsReceived: false,
+        emailNotifications: true,
+        deadlineReminders: true,
+        weeklyGrantRecommendations: true,
+      };
+
+      const response = await createResearcher(payload);
+      onComplete(response);
+    } catch (error) {
+      console.error('Failed to skip onboarding', error);
+      alert('Could not initialize starter profile. Please fill the current step.');
+    } finally {
+      setIsSkipping(false);
+    }
+  };
+
   const handleNext = () => {
     if (!canProceed) return;
     if (currentStep < stepsConfig.length - 1) {
@@ -212,9 +254,20 @@ export default function OnboardingWizard({ onComplete }: { onComplete: (data: Re
       <div className="bg-brand-50/50 border-b border-brand-100 px-4 sm:px-8 py-4 sm:py-6">
         <div className="flex items-center justify-between mb-4">
           <AnimatedLogo className="w-9 h-9" textClassName="text-xl" showText={true} />
-          <span className="text-sm font-medium text-brand-500">
-            Step {currentStep + 1} of {stepsConfig.length}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-brand-500">
+              Step {currentStep + 1} of {stepsConfig.length}
+            </span>
+            <button
+              type="button"
+              onClick={handleSkip}
+              disabled={isSkipping}
+              className="text-xs font-semibold text-brand-600 hover:text-primary-700 bg-white hover:bg-primary-50 px-2.5 py-1 rounded-lg border border-brand-200 hover:border-primary-300 transition-all flex items-center gap-1 shadow-2xs cursor-pointer disabled:opacity-60"
+            >
+              <span>{isSkipping ? 'Setting up...' : 'Skip for now'}</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
         
         {/* Progress tracks */}

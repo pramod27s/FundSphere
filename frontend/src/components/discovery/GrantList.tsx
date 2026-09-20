@@ -180,7 +180,7 @@ function renderAiCard(
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 mb-2.5">
+          <div className="hidden sm:flex flex-wrap items-center gap-2 mb-2.5">
             <FreshnessBadge timestamp={grant.lastVerifiedAt ?? grant.lastScrapedAt ?? grant.updatedAt} />
             <ProviderUpdatedInfo timestamp={grant.lastScrapedAt ?? grant.updatedAt} />
           </div>
@@ -286,7 +286,7 @@ function renderBrowseCard(
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 mb-3">
+      <div className="hidden sm:flex flex-wrap items-center gap-2 mb-3">
         <FreshnessBadge timestamp={grant.lastVerifiedAt ?? grant.lastScrapedAt ?? grant.updatedAt} />
         <ProviderUpdatedInfo timestamp={grant.lastScrapedAt ?? grant.updatedAt} />
       </div>
