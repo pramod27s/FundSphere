@@ -12,8 +12,16 @@ ai-service/eval/tune_result.json
 confidential/
 .claude/settings.local.json
 
-# Exclude application properties files with secrets
 CoreBackend/src/main/resources/application.properties
 CoreBackend/src/main/resources/application-local.properties
 CoreBackend/.env
 .env.local
+
+# Security & cryptographic keys
+*.pem
+*.key
+*.crt
+*.cer
+**/keys/
+CoreBackend/src/main/resources/keys/
+ai-service/keys/

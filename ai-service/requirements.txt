@@ -17,3 +17,4 @@ pdfplumber
 pypdf
 python-multipart
 json-repair
+pyjwt[crypto]

@@ -35,12 +35,14 @@ public class AiServiceClient {
     private final RestClient restClient;
     private final String apiKey;
     private final ObjectMapper objectMapper;
+    private final org.pramod.corebackend.security.M2mTokenService m2mTokenService;
 
     public AiServiceClient(@Value("${integration.ai.base-url:http://localhost:8000}") String baseUrl,
                            @Value("${integration.ai.api-key:}") String apiKey,
                            @Value("${integration.ai.connect-timeout-ms:3000}") int connectTimeoutMs,
                            @Value("${integration.ai.read-timeout-ms:20000}") int readTimeoutMs,
-                           ObjectMapper objectMapper) {
+                           ObjectMapper objectMapper,
+                           org.pramod.corebackend.security.M2mTokenService m2mTokenService) {
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(connectTimeoutMs);
         requestFactory.setReadTimeout(readTimeoutMs);
@@ -51,6 +53,7 @@ public class AiServiceClient {
                 .build();
         this.apiKey = apiKey;
         this.objectMapper = objectMapper;
+        this.m2mTokenService = m2mTokenService;
     }
 
     public Object recommend(Object requestBody) {
@@ -94,6 +97,15 @@ public class AiServiceClient {
             String raw = restClient.post()
                     .uri("/proposal/analyze")
                     .headers(h -> {
+                        // Level 2 Asymmetric Security: Attach 5-minute RS256 JWT token signed by Spring Boot
+                        try {
+                            String m2mToken = m2mTokenService.getM2mToken();
+                            h.set(HttpHeaders.AUTHORIZATION, "Bearer " + m2mToken);
+                        } catch (Exception ex) {
+                            // Fallback gracefully if keys are missing
+                        }
+
+                        // Backward-compatible fallback: send X-API-KEY if configured
                         if (StringUtils.hasText(apiKey)) {
                             h.set("X-API-KEY", apiKey);
                         }
@@ -225,6 +237,15 @@ public class AiServiceClient {
                     .contentType(MediaType.APPLICATION_JSON)
                     .accept(MediaType.APPLICATION_JSON);
 
+            // Level 2 Asymmetric Security: Attach short-lived RS256 JWT token signed by Spring Boot
+            try {
+                String m2mToken = m2mTokenService.getM2mToken();
+                request = request.header(HttpHeaders.AUTHORIZATION, "Bearer " + m2mToken);
+            } catch (Exception ex) {
+                // Fallback gracefully if keys are missing
+            }
+
+            // Backward-compatible fallback: send X-API-KEY if configured
             if (StringUtils.hasText(apiKey)) {
                 request = request.header("X-API-KEY", apiKey);
             }

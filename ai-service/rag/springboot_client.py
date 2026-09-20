@@ -6,17 +6,23 @@ from .schemas import GrantData, UserProfile, KeywordCandidate
 
 
 class SpringBootClient:
-    def __init__(self) -> None:
+    def __init__(self, m2m_token: Optional[str] = None) -> None:
         self.base_url = settings.spring_boot_base_url.rstrip("/")
         self.session = requests.Session()
+        self.m2m_token = m2m_token
 
-    def _headers(self) -> dict:
+    def _headers(self, token: Optional[str] = None) -> dict:
         headers = {"Content-Type": "application/json"}
+        # Level 2 M2M JWT: Forward Bearer token if available
+        active_token = token or self.m2m_token
+        if active_token:
+            headers["Authorization"] = f"Bearer {active_token}"
+        # Fallback: X-API-KEY
         if settings.spring_boot_api_key:
             headers["X-API-KEY"] = settings.spring_boot_api_key
         return headers
 
-    def _request(self, method: str, path: str, params: Optional[dict] = None, body: Optional[dict] = None) -> Any:
+    def _request(self, method: str, path: str, params: Optional[dict] = None, body: Optional[dict] = None, token: Optional[str] = None) -> Any:
         url = f"{self.base_url}{path}"
         attempts = max(settings.spring_boot_retry_count, 0) + 1
 
@@ -25,7 +31,7 @@ class SpringBootClient:
                 response = self.session.request(
                     method=method,
                     url=url,
-                    headers=self._headers(),
+                    headers=self._headers(token=token),
                     params=params,
                     json=body,
                     timeout=settings.spring_boot_timeout_seconds,

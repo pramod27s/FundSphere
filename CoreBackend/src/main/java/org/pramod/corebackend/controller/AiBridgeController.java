@@ -11,6 +11,7 @@ import org.pramod.corebackend.dto.ai.AiGrantIndexableResponse;
 import org.pramod.corebackend.dto.ai.AiKeywordCandidateResponse;
 import org.pramod.corebackend.dto.ai.AiKeywordSearchRequest;
 import org.pramod.corebackend.dto.ai.AiUserProfileResponse;
+import org.pramod.corebackend.security.M2mTokenService;
 import org.pramod.corebackend.service.AiServiceClient;
 import org.pramod.corebackend.service.GrantService;
 import org.pramod.corebackend.service.ResearcherService;
@@ -22,6 +23,8 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -41,6 +44,7 @@ public class AiBridgeController {
     private final ResearcherService researcherService;
     private final AiServiceClient aiServiceClient;
     private final AiProfileMapper aiProfileMapper;
+    private final M2mTokenService m2mTokenService;
 
     @Value("${integration.api-key:}")
     private String expectedApiKey;
@@ -48,13 +52,16 @@ public class AiBridgeController {
     /**
      * Fetches a grant by ID formatted for indexing by the AI service.
      * @param id The ID of the grant to index.
-     * @param apiKey Internal integration key.
+     * @param authHeader Bearer M2M token.
+     * @param apiKey Internal integration key (fallback).
      * @return AI indexable format.
      */
     @GetMapping("/grants/{id}/indexable")
-    public ResponseEntity<AiGrantIndexableResponse> getGrantForIndexing(@PathVariable Long id,
-                                                                         @RequestHeader(value = "X-API-KEY", required = false) String apiKey) {
-        verifyApiKey(apiKey);
+    public ResponseEntity<AiGrantIndexableResponse> getGrantForIndexing(
+            @PathVariable Long id,
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestHeader(value = "X-API-KEY", required = false) String apiKey) {
+        verifyInternalAuth(authHeader, apiKey);
         GrantResponse grant = grantService.getGrantById(id);
 
         AiGrantIndexableResponse response = AiGrantIndexableResponse.builder()
@@ -95,13 +102,16 @@ public class AiBridgeController {
     /**
      * Fetches a user's details tailored for the AI recommendation process.
      * @param id User ID.
-     * @param apiKey Internal integration key.
+     * @param authHeader Bearer M2M token.
+     * @param apiKey Internal integration key (fallback).
      * @return Formatted AI user profile response.
      */
     @GetMapping("/users/{id}/grant-profile")
-    public ResponseEntity<AiUserProfileResponse> getUserProfile(@PathVariable Long id,
-                                                                @RequestHeader(value = "X-API-KEY", required = false) String apiKey) {
-        verifyApiKey(apiKey);
+    public ResponseEntity<AiUserProfileResponse> getUserProfile(
+            @PathVariable Long id,
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestHeader(value = "X-API-KEY", required = false) String apiKey) {
+        verifyInternalAuth(authHeader, apiKey);
         // The ID passed from the frontend is the researcher ID (from ResearcherResponse.id)
         // Not the AppUser.id, so we must load by researcher ID!
         ResearcherResponse researcher = researcherService.getResearcherById(id);
@@ -117,14 +127,16 @@ public class AiBridgeController {
      * recommender against real users without manual labelling.
      *
      * @param count Maximum number of profiles to return (default 30, capped at 200).
-     * @param apiKey Internal integration key.
+     * @param authHeader Bearer M2M token.
+     * @param apiKey Internal integration key (fallback).
      * @return List of AI-formatted user profiles.
      */
     @GetMapping("/users/sample-profiles")
     public ResponseEntity<List<AiUserProfileResponse>> sampleProfiles(
             @RequestParam(defaultValue = "30") int count,
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
             @RequestHeader(value = "X-API-KEY", required = false) String apiKey) {
-        verifyApiKey(apiKey);
+        verifyInternalAuth(authHeader, apiKey);
         int capped = Math.max(1, Math.min(count, 200));
         List<ResearcherResponse> all = new ArrayList<>(researcherService.getAllResearchers());
         Collections.shuffle(all);
@@ -138,13 +150,16 @@ public class AiBridgeController {
     /**
      * Conducts a keyword text search to retrieve the top grant candidates.
      * @param request Search query and filtering criteria.
-     * @param apiKey Internal integration key.
+     * @param authHeader Bearer M2M token.
+     * @param apiKey Internal integration key (fallback).
      * @return List of matching grant candidates with scores.
      */
     @PostMapping("/grants/keyword-search")
-    public ResponseEntity<List<AiKeywordCandidateResponse>> keywordSearch(@RequestBody AiKeywordSearchRequest request,
-                                                                           @RequestHeader(value = "X-API-KEY", required = false) String apiKey) {
-        verifyApiKey(apiKey);
+    public ResponseEntity<List<AiKeywordCandidateResponse>> keywordSearch(
+            @RequestBody AiKeywordSearchRequest request,
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestHeader(value = "X-API-KEY", required = false) String apiKey) {
+        verifyInternalAuth(authHeader, apiKey);
 
         int topK = request.getTopK() == null ? 20 : request.getTopK();
         List<AiKeywordCandidateResponse> results = grantService.keywordSearch(
@@ -167,29 +182,26 @@ public class AiBridgeController {
      * Retrieves IDs of grants that have been modified after a certain date.
      * Used by the AI service to selectively re-index updated chunks.
      * @param since The datetime from which to check.
-     * @param apiKey Internal integration key.
+     * @param authHeader Bearer M2M token.
+     * @param apiKey Internal integration key (fallback).
      * @return List of grant IDs.
      */
     @GetMapping("/grants/changed-ids")
     public ResponseEntity<List<Long>> getChangedGrantIds(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime since,
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
             @RequestHeader(value = "X-API-KEY", required = false) String apiKey) {
-        verifyApiKey(apiKey);
+        verifyInternalAuth(authHeader, apiKey);
         return ResponseEntity.ok(grantService.getChangedGrantIds(since));
     }
-
 
     /**
      * Proxy endpoint: Forwards a recommendation request to the Python AI service.
      * @param request AI Service generic payload.
-     * @param apiKey Expected client payload (if applicable).
      * @return AI recommender output.
-     *
-     * called by the frontend i guess , if @RequestHeader(value = "X-API-KEY", required = false) String apiKey is null not a problem , its fine
      */
     @PostMapping("/rag/recommend")
-    public ResponseEntity<Object> recommend(@RequestBody Map<String, Object> request,
-                                            @RequestHeader(value = "X-API-KEY", required = false) String apiKey) {
+    public ResponseEntity<Object> recommend(@RequestBody Map<String, Object> request) {
         return ResponseEntity.ok(aiServiceClient.recommend(request));
     }
 
@@ -201,26 +213,32 @@ public class AiBridgeController {
     /**
      * Proxy endpoint: Commands the Python AI service to embed and index a single grant in Vector DB.
      * @param request AI Service generic payload.
-     * @param apiKey Internal integration key.
+     * @param authHeader Bearer M2M token.
+     * @param apiKey Internal integration key (fallback).
      * @return Indexing confirmation.
      */
     @PostMapping("/rag/index-grant")
-    public ResponseEntity<Object> indexGrant(@RequestBody Map<String, Object> request,
-                                             @RequestHeader(value = "X-API-KEY", required = false) String apiKey) {
-        verifyApiKey(apiKey);
+    public ResponseEntity<Object> indexGrant(
+            @RequestBody Map<String, Object> request,
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestHeader(value = "X-API-KEY", required = false) String apiKey) {
+        verifyInternalAuth(authHeader, apiKey);
         return ResponseEntity.ok(aiServiceClient.indexGrant(request));
     }
 
     /**
      * Proxy endpoint: Commands the Python AI service to bulk embed and index multiple grants in Vector DB.
      * @param request AI Service generic payload.
-     * @param apiKey Internal integration key.
+     * @param authHeader Bearer M2M token.
+     * @param apiKey Internal integration key (fallback).
      * @return Batch Indexing confirmation.
      */
     @PostMapping("/rag/index-grants")
-    public ResponseEntity<Object> indexGrants(@RequestBody Map<String, Object> request,
-                                              @RequestHeader(value = "X-API-KEY", required = false) String apiKey) {
-        verifyApiKey(apiKey);
+    public ResponseEntity<Object> indexGrants(
+            @RequestBody Map<String, Object> request,
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestHeader(value = "X-API-KEY", required = false) String apiKey) {
+        verifyInternalAuth(authHeader, apiKey);
         return ResponseEntity.ok(aiServiceClient.indexGrants(request));
     }
 
@@ -235,12 +253,37 @@ public class AiBridgeController {
                 .toList();
     }
 
+    /**
+     * ==============================================================================
+     * Internal Authentication Verification
+     * ==============================================================================
+     * Checks if the caller is authorized using either:
+     * 1. Level 2 M2M JWT: RS256 token signed by Spring Boot's private key.
+     * 2. X-API-KEY: Constant-time comparison to prevent timing attacks.
+     */
+    private void verifyInternalAuth(String authHeader, String apiKey) {
+        // 1. Check Level 2 Asymmetric M2M Bearer Token
+        if (StringUtils.hasText(authHeader) && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7).trim();
+            if (m2mTokenService != null && m2mTokenService.validateM2mToken(token)) {
+                return; // Valid M2M JWT!
+            }
+        }
+
+        // 2. Check X-API-KEY fallback using constant-time comparison
+        if (StringUtils.hasText(expectedApiKey) && StringUtils.hasText(apiKey)) {
+            if (MessageDigest.isEqual(
+                    expectedApiKey.getBytes(StandardCharsets.UTF_8),
+                    apiKey.getBytes(StandardCharsets.UTF_8))) {
+                return; // Valid API key!
+            }
+        }
+
+        // Fail-closed: Reject any unauthenticated request
+        throw new ResponseStatusException(UNAUTHORIZED, "Unauthorized: Invalid or missing M2M token / API key");
+    }
+
     private void verifyApiKey(String apiKey) {
-        if (!StringUtils.hasText(expectedApiKey)) {
-            return;
-        }
-        if (!StringUtils.hasText(apiKey) || !expectedApiKey.equals(apiKey)) {
-            throw new ResponseStatusException(UNAUTHORIZED, "Invalid API key");
-        }
+        verifyInternalAuth(null, apiKey);
     }
 }

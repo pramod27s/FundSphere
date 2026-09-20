@@ -1,0 +1,411 @@
+{
+  "cases": [
+    {
+      "id": "case-01-u6",
+      "profile": {
+        "userId": 6,
+        "country": "India",
+        "institutionType": "Academic Institutions",
+        "applicantType": "Researcher",
+        "careerStage": "Student",
+        "department": "cs",
+        "researchBio": "Student in the department of cs at bms, India. Research focus: Artificial Intelligence. Keywords: ai.",
+        "researchInterests": [
+          "Artificial Intelligence",
+          "ai"
+        ],
+        "keywords": [
+          "ai"
+        ],
+        "preferredMinAmount": 5.0,
+        "preferredMaxAmount": 30434.0,
+        "preferredCurrency": "USD",
+        "hasPhd": false,
+        "yearsOfExperience": 0,
+        "citizenship": "India",
+        "preferredGrantType": "Research Grant"
+      },
+      "query": "Looking for grants in Artificial Intelligence, ai, ai"
+    },
+    {
+      "id": "case-02-u17",
+      "profile": {
+        "userId": 17,
+        "country": "India",
+        "institutionType": "Academic Institutions",
+        "applicantType": "Researcher",
+        "careerStage": "Research Assistant",
+        "department": "computer science",
+        "researchBio": "Research Assistant in the department of computer science at BMS, India. Research focus: Artificial Intelligence. Keywords: ai, climate.",
+        "researchInterests": [
+          "Artificial Intelligence",
+          "ai",
+          "climate"
+        ],
+        "keywords": [
+          "ai",
+          "climate"
+        ],
+        "preferredMinAmount": 59999.0,
+        "preferredMaxAmount": 300000.0,
+        "preferredCurrency": "USD",
+        "hasPhd": false,
+        "yearsOfExperience": 3,
+        "citizenship": "India",
+        "preferredGrantType": "Research Grant"
+      },
+      "query": "Looking for grants in Artificial Intelligence, ai, ai, climate"
+    },
+    {
+      "id": "case-03-u3",
+      "profile": {
+        "userId": 3,
+        "country": "India",
+        "institutionType": "Academic Institutions",
+        "applicantType": "Researcher",
+        "careerStage": "Student",
+        "department": "cs",
+        "researchBio": "Student in the department of cs at bms, India. Research focus: Artificial Intelligence. Keywords: i love Ai.",
+        "researchInterests": [
+          "Artificial Intelligence",
+          "i love Ai"
+        ],
+        "keywords": [
+          "i love Ai"
+        ],
+        "preferredMinAmount": 50000.0,
+        "preferredMaxAmount": 340000.0,
+        "preferredCurrency": "USD",
+        "hasPhd": false,
+        "yearsOfExperience": 3,
+        "citizenship": "India",
+        "preferredGrantType": "Research Grant"
+      },
+      "query": "Looking for grants in Artificial Intelligence, i love Ai, i love Ai"
+    },
+    {
+      "id": "case-04-u4",
+      "profile": {
+        "userId": 4,
+        "country": "India",
+        "institutionType": "Academic Institutions",
+        "applicantType": "Startup Company",
+        "careerStage": "Student",
+        "department": "cs",
+        "researchBio": "Student in the department of cs at rv, India. Research focus: Artificial Intelligence. Keywords: hi.",
+        "researchInterests": [
+          "Artificial Intelligence",
+          "hi"
+        ],
+        "keywords": [
+          "hi"
+        ],
+        "preferredMinAmount": 3252525.0,
+        "preferredMaxAmount": 5352532.0,
+        "preferredCurrency": "USD",
+        "hasPhd": false,
+        "yearsOfExperience": 0,
+        "citizenship": "India",
+        "preferredGrantType": "Research Grant"
+      },
+      "query": "Looking for grants in Artificial Intelligence, hi, hi"
+    },
+    {
+      "id": "case-05-u18",
+      "profile": {
+        "userId": 18,
+        "country": "India",
+        "institutionType": "College",
+        "applicantType": "Researcher",
+        "careerStage": "Research Assistant",
+        "department": "gds",
+        "researchBio": "ewrv. Research Assistant in the department of gds at sdg, India. Research focus: Artificial Intelligence. Keywords: rewewa.",
+        "researchInterests": [
+          "Artificial Intelligence",
+          "Healthcare",
+          "rewewa"
+        ],
+        "keywords": [
+          "rewewa"
+        ],
+        "preferredMinAmount": 413.0,
+        "preferredMaxAmount": 421421.0,
+        "preferredCurrency": "USD",
+        "hasPhd": true,
+        "yearsOfExperience": 0,
+        "citizenship": "India",
+        "preferredGrantType": "Research Grant"
+      },
+      "query": "Looking for grants in Artificial Intelligence, Healthcare, rewewa"
+    },
+    {
+      "id": "case-06-u11",
+      "profile": {
+        "userId": 11,
+        "country": "India",
+        "institutionType": "Academic Institutions",
+        "applicantType": "Professor Faculty",
+        "careerStage": "Research Assistant",
+        "department": "cs",
+        "researchBio": "Research Assistant in the department of cs at bmsce, India. Research focus: Artificial Intelligence. Keywords: public health.",
+        "researchInterests": [
+          "Artificial Intelligence",
+          "public health"
+        ],
+        "keywords": [
+          "public health"
+        ],
+        "preferredMinAmount": 312323.0,
+        "preferredMaxAmount": 42142432.0,
+        "preferredCurrency": "USD",
+        "hasPhd": true,
+        "yearsOfExperience": 3,
+        "citizenship": "India",
+        "preferredGrantType": "Research Grant"
+      },
+      "query": "Looking for grants in Artificial Intelligence, public health, public health"
+    },
+    {
+      "id": "case-07-u15",
+      "profile": {
+        "userId": 15,
+        "country": "India",
+        "institutionType": "Academic Institutions",
+        "applicantType": "Researcher",
+        "careerStage": "Professor",
+        "department": "electrical",
+        "researchBio": "Professor in the department of electrical at bit, India. Research focus: Robotics. Keywords: ai.",
+        "researchInterests": [
+          "Robotics",
+          "ai"
+        ],
+        "keywords": [
+          "ai"
+        ],
+        "preferredMinAmount": 34000.0,
+        "preferredMaxAmount": 67000.0,
+        "preferredCurrency": "USD",
+        "hasPhd": true,
+        "yearsOfExperience": 0,
+        "citizenship": "India",
+        "preferredGrantType": "Research Grant"
+      },
+      "query": "Looking for grants in Robotics, ai, ai"
+    },
+    {
+      "id": "case-08-u10",
+      "profile": {
+        "userId": 10,
+        "country": "India",
+        "institutionType": "Academic Institutions",
+        "applicantType": "Researcher",
+        "careerStage": "Research Assistant",
+        "department": "electronics",
+        "researchBio": "Research Assistant in the department of electronics at bmsce, India. Research focus: Artificial Intelligence. Keywords: climate tech.",
+        "researchInterests": [
+          "Artificial Intelligence",
+          "climate tech"
+        ],
+        "keywords": [
+          "climate tech"
+        ],
+        "preferredMinAmount": 10000.0,
+        "preferredMaxAmount": 100000.0,
+        "preferredCurrency": "USD",
+        "hasPhd": false,
+        "yearsOfExperience": 3,
+        "citizenship": "India",
+        "preferredGrantType": "Research Grant"
+      },
+      "query": "Looking for grants in Artificial Intelligence, climate tech, climate tech"
+    },
+    {
+      "id": "case-09-u7",
+      "profile": {
+        "userId": 7,
+        "country": "India",
+        "institutionType": "Academic Institutions",
+        "applicantType": "Researcher",
+        "careerStage": "Student",
+        "department": "cs",
+        "researchBio": "Student in the department of cs at bms, India. Research focus: Artificial Intelligence. Keywords: ai.",
+        "researchInterests": [
+          "Artificial Intelligence",
+          "ai"
+        ],
+        "keywords": [
+          "ai"
+        ],
+        "preferredMinAmount": 324.0,
+        "preferredMaxAmount": 214214.0,
+        "preferredCurrency": "USD",
+        "hasPhd": false,
+        "yearsOfExperience": 0,
+        "citizenship": "India",
+        "preferredGrantType": "Research Grant"
+      },
+      "query": "Looking for grants in Artificial Intelligence, ai, ai"
+    },
+    {
+      "id": "case-10-u2",
+      "profile": {
+        "userId": 2,
+        "country": "USA",
+        "institutionType": "Academic Institutions",
+        "applicantType": "Researcher",
+        "careerStage": "Professor",
+        "department": "Computer Science",
+        "researchBio": "Professor in the department of Computer Science at MIT, USA. Research focus: Artificial Intelligence. Keywords: Machine Learning, Climate Tech.",
+        "researchInterests": [
+          "Artificial Intelligence",
+          "Machine Learning",
+          "Climate Tech"
+        ],
+        "keywords": [
+          "Machine Learning",
+          "Climate Tech"
+        ],
+        "preferredMinAmount": 10000.0,
+        "preferredMaxAmount": 500000.0,
+        "preferredCurrency": "USD",
+        "hasPhd": true,
+        "yearsOfExperience": 10,
+        "citizenship": "USA",
+        "preferredGrantType": "Research Grant"
+      },
+      "query": "Looking for grants in Artificial Intelligence, Machine Learning, Machine Learning, Climate Tech"
+    },
+    {
+      "id": "case-11-u16",
+      "profile": {
+        "userId": 16,
+        "country": "India",
+        "institutionType": "Academic Institutions",
+        "applicantType": "Researcher",
+        "careerStage": "Research Assistant",
+        "department": "computer science",
+        "researchBio": "Research Assistant in the department of computer science at BMS, India. Research focus: Artificial Intelligence. Keywords: NLP.",
+        "researchInterests": [
+          "Artificial Intelligence",
+          "NLP"
+        ],
+        "keywords": [
+          "NLP"
+        ],
+        "preferredMinAmount": 50000.0,
+        "preferredMaxAmount": 500000.0,
+        "preferredCurrency": "USD",
+        "hasPhd": true,
+        "yearsOfExperience": 0,
+        "citizenship": "India",
+        "preferredGrantType": "Research Grant"
+      },
+      "query": "Looking for grants in Artificial Intelligence, NLP, NLP"
+    },
+    {
+      "id": "case-12-u9",
+      "profile": {
+        "userId": 9,
+        "country": "United States",
+        "institutionType": "Academic Institutions",
+        "applicantType": "Researcher",
+        "careerStage": "Student",
+        "department": "fewf",
+        "researchBio": "Student in the department of fewf at f, United States. Research focus: Data Science.",
+        "researchInterests": [
+          "Data Science"
+        ],
+        "keywords": [],
+        "preferredMinAmount": 0.0,
+        "preferredMaxAmount": 0.0,
+        "preferredCurrency": "USD",
+        "hasPhd": false,
+        "yearsOfExperience": 0,
+        "citizenship": "United States",
+        "preferredGrantType": "Research Grant"
+      },
+      "query": "Looking for grants in Data Science"
+    },
+    {
+      "id": "case-13-u12",
+      "profile": {
+        "userId": 12,
+        "country": "India",
+        "institutionType": "Academic Institutions",
+        "applicantType": "Student",
+        "careerStage": "Student",
+        "department": "cs",
+        "researchBio": "Student in the department of cs at bms, India. Research focus: Artificial Intelligence. Keywords: AI.",
+        "researchInterests": [
+          "Artificial Intelligence",
+          "AI"
+        ],
+        "keywords": [
+          "AI"
+        ],
+        "preferredMinAmount": 3400000.0,
+        "preferredMaxAmount": 3400000.0,
+        "preferredCurrency": "USD",
+        "hasPhd": false,
+        "yearsOfExperience": 0,
+        "citizenship": "India",
+        "preferredGrantType": "Fellowship"
+      },
+      "query": "Looking for grants in Artificial Intelligence, AI, AI"
+    },
+    {
+      "id": "case-14-u8",
+      "profile": {
+        "userId": 8,
+        "country": "India",
+        "institutionType": "Academic Institutions",
+        "applicantType": "Researcher",
+        "careerStage": "Research Assistant",
+        "department": "cs",
+        "researchBio": "Research Assistant in the department of cs at bms, India. Research focus: Artificial Intelligence. Keywords: ai.",
+        "researchInterests": [
+          "Artificial Intelligence",
+          "ai"
+        ],
+        "keywords": [
+          "ai"
+        ],
+        "preferredMinAmount": 2.0,
+        "preferredMaxAmount": 444.0,
+        "preferredCurrency": "USD",
+        "hasPhd": false,
+        "yearsOfExperience": 0,
+        "citizenship": "India",
+        "preferredGrantType": "Research Grant"
+      },
+      "query": "Looking for grants in Artificial Intelligence, ai, ai"
+    },
+    {
+      "id": "case-15-u14",
+      "profile": {
+        "userId": 14,
+        "country": "India",
+        "institutionType": "Academic Institutions",
+        "applicantType": "Researcher",
+        "careerStage": "Research Assistant",
+        "department": "cs",
+        "researchBio": "Research Assistant in the department of cs at BMS, India. Research focus: Healthcare. Keywords: AI.",
+        "researchInterests": [
+          "Healthcare",
+          "AI"
+        ],
+        "keywords": [
+          "AI"
+        ],
+        "preferredMinAmount": 50000.0,
+        "preferredMaxAmount": 400000.0,
+        "preferredCurrency": "USD",
+        "hasPhd": true,
+        "yearsOfExperience": 0,
+        "citizenship": "India",
+        "preferredGrantType": "Research Grant"
+      },
+      "query": "Looking for grants in Healthcare, AI, AI"
+    }
+  ]
+}
