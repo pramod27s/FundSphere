@@ -260,6 +260,48 @@ def eligibility_score(profile: UserProfile, grant_fields: dict) -> float:
     return min(score, 1.0)
 
 
+def is_strictly_disqualified(profile: UserProfile, grant_fields: dict) -> tuple[bool, str | None]:
+    """
+    Evaluates whether a candidate strictly violates non-negotiable hard constraints.
+    Returns (True, reason) if strictly disqualified, else (False, None).
+
+    Safety guard: Only disqualifies if profile data is EXPLICITLY known and conflicts.
+    Never disqualifies on missing or null profile fields.
+    """
+    # 1. PhD requirement guard
+    if grant_fields.get("requires_phd") is True:
+        has_phd = getattr(profile, "hasPhd", None)
+        if has_phd is False:
+            return True, "Grant requires PhD, but applicant does not have PhD"
+
+    # 2. Strict citizenship guard
+    cit_required = _norm_set(grant_fields.get("citizenship_required", []))
+    if cit_required and not (cit_required & {"any", "all", "global", "open"}):
+        user_cit = getattr(profile, "citizenship", None)
+        if user_cit:
+            user_cit_aliases = _expand_aliases(user_cit, COUNTRY_ALIASES)
+            if not (user_cit_aliases & cit_required):
+                return True, f"Citizenship restriction: requires {', '.join(cit_required)}"
+
+    # 3. Strict country eligibility guard
+    grant_countries = _norm_set(grant_fields.get("eligible_countries", []))
+    if grant_countries and not (grant_countries & {"any", "all", "global", "international", "worldwide"}):
+        user_country = getattr(profile, "country", None)
+        if user_country:
+            user_country_aliases = _expand_aliases(user_country, COUNTRY_ALIASES)
+            if not (user_country_aliases & grant_countries):
+                return True, f"Geographic restriction: grant limited to {', '.join(grant_countries)}"
+
+    # 4. Mandatory minimum experience guard
+    min_exp = grant_fields.get("min_experience_years")
+    if min_exp is not None and min_exp > 0:
+        yrs = getattr(profile, "yearsOfExperience", None)
+        if yrs is not None and yrs < min_exp:
+            return True, f"Requires minimum {min_exp} years experience (applicant has {yrs})"
+
+    return False, None
+
+
 def keyword_overlap_score(profile: UserProfile, query: str | None, grant_fields: dict) -> float:
     """
     Lightweight FTS-style keyword overlap. Counts user keywords/interests/query

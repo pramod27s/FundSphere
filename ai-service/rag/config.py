@@ -106,6 +106,20 @@ class Settings:
     # If True, the HyDE doc REPLACES the raw query in the intent channel.
     # If False, both are run in parallel and fused.
     hyde_replace_query: bool = _as_bool(os.getenv("HYDE_REPLACE_QUERY"), False)
+    # Skip HyDE when the live user query is already detailed (word count >= threshold)
+    hyde_max_query_words_to_trigger: int = int(os.getenv("HYDE_MAX_QUERY_WORDS_TO_TRIGGER", "15"))
+
+    # --- Hard Eligibility Guardrails ---
+    enable_hard_eligibility_filter: bool = _as_bool(os.getenv("ENABLE_HARD_ELIGIBILITY_FILTER"), True)
+
+    # --- In-Memory Query & Recommendation Cache ---
+    enable_query_cache: bool = _as_bool(os.getenv("ENABLE_QUERY_CACHE"), True)
+    query_cache_ttl_seconds: int = int(os.getenv("QUERY_CACHE_TTL_SECONDS", "1800"))
+    query_cache_max_size: int = int(os.getenv("QUERY_CACHE_MAX_SIZE", "256"))
+
+    # --- Performance / Concurrency ---
+    enable_batch_embeddings: bool = _as_bool(os.getenv("ENABLE_BATCH_EMBEDDINGS"), True)
 
 
 settings = Settings()
+

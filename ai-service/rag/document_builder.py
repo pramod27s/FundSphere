@@ -179,6 +179,9 @@ def build_pinecone_records(grant: GrantData) -> list[dict]:
         "loi_deadline": _clean_str(getattr(grant, "loiDeadline", None)),
         "decision_date": _clean_str(getattr(grant, "decisionDate", None)),
         "project_start_date": _clean_str(getattr(grant, "projectStartDate", None)),
+        "objectives": _clean_str(getattr(grant, "objectives", None))[:500] if getattr(grant, "objectives", None) else None,
+        "eligibility_criteria": _clean_str(getattr(grant, "eligibilityCriteria", None))[:500] if getattr(grant, "eligibilityCriteria", None) else None,
+        "funding_scope": _clean_str(getattr(grant, "fundingScope", None))[:500] if getattr(grant, "fundingScope", None) else None,
     }
 
     # Pinecone metadata should be flat and should not contain null values.

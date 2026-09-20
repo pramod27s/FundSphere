@@ -28,6 +28,9 @@ SEARCH_FIELDS = [
     "checksum",
     "last_scraped_at",
     "updated_at",
+    "objectives",
+    "eligibility_criteria",
+    "funding_scope",
 ]
 
 
@@ -114,6 +117,106 @@ class PineconeService:
         except Exception:
             pass
 
+    def batch_embed_queries(self, queries: List[str]):
+        """Batch embed query texts in two calls (one dense, one sparse) instead of looping."""
+        if not queries:
+            return []
+        try:
+            dense_results = self.pc.inference.embed(
+                model="llama-text-embed-v2",
+                inputs=queries,
+                parameters={"dimension": 1024, "input_type": "query"}
+            )
+            sparse_results = self.pc.inference.embed(
+                model="pinecone-sparse-english-v0",
+                inputs=queries,
+                parameters={"input_type": "query"}
+            )
+            pairs = []
+            for d, s in zip(dense_results, sparse_results):
+                pairs.append((
+                    d.values,
+                    {"indices": s.sparse_indices, "values": s.sparse_values}
+                ))
+            return pairs
+        except Exception as e:
+            logger.error(f"Pinecone batch embed failed: {e}")
+            raise RuntimeError(f"Pinecone batch embed failed: {e}") from e
+
+    def batch_search(
+        self,
+        queries: List[str],
+        top_k: int,
+        metadata_filter: Optional[dict] = None,
+        alpha: float = 0.7,
+    ) -> List[List[SemanticHit]]:
+        """Run multiple query texts through Pinecone concurrently with batched embeddings."""
+        if not queries:
+            return []
+
+        clean_queries = [q for q in queries if q and q.strip()]
+        if not clean_queries:
+            return []
+
+        pairs = self.batch_embed_queries(clean_queries)
+
+        def _execute_query(dense_embedding, sparse_vector) -> List[SemanticHit]:
+            weighted_dense = [v * alpha for v in dense_embedding]
+            weighted_sparse = {
+                "indices": sparse_vector["indices"],
+                "values":  [v * (1 - alpha) for v in sparse_vector["values"]],
+            }
+
+            try:
+                response = self.index.query(
+                    namespace=self.namespace,
+                    vector=weighted_dense,
+                    sparse_vector=weighted_sparse,
+                    top_k=top_k,
+                    include_metadata=True,
+                    filter=metadata_filter if metadata_filter else None,
+                )
+            except Exception as e:
+                if "does not support sparse values" in str(e):
+                    response = self.index.query(
+                        namespace=self.namespace,
+                        vector=weighted_dense,
+                        top_k=top_k,
+                        include_metadata=True,
+                        filter=metadata_filter if metadata_filter else None,
+                    )
+                else:
+                    raise
+
+            hits: List[SemanticHit] = []
+            seen_grants = set()
+            for match in response.get("matches", []):
+                hit_metadata = match.get("metadata", {})
+                grant_id = hit_metadata.get("grant_id")
+                if grant_id is None:
+                    continue
+                grant_id = int(grant_id)
+                if grant_id in seen_grants:
+                    continue
+                seen_grants.add(grant_id)
+                hits.append(
+                    SemanticHit(
+                        grantId=grant_id,
+                        semanticScore=float(match.get("score", 0.0)),
+                        fields=hit_metadata,
+                    )
+                )
+            return hits
+
+        if len(clean_queries) == 1:
+            return [_execute_query(pairs[0][0], pairs[0][1])]
+
+        from concurrent.futures import ThreadPoolExecutor
+        max_workers = min(len(clean_queries), 4)
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = [executor.submit(_execute_query, d, s) for d, s in pairs]
+            return [f.result() for f in futures]
+
     def search(
         self,
         query_text: str,
@@ -122,77 +225,14 @@ class PineconeService:
         use_rerank: bool = False,
         alpha: float = 0.7,
     ) -> List[SemanticHit]:
-        try:
-            dense_result = self.pc.inference.embed(
-                model="llama-text-embed-v2",
-                inputs=[query_text],
-                parameters={"dimension": 1024, "input_type": "query"}
-            )
-            dense_embedding = dense_result[0].values
+        results = self.batch_search(
+            queries=[query_text],
+            top_k=top_k,
+            metadata_filter=metadata_filter,
+            alpha=alpha,
+        )
+        return results[0] if results else []
 
-            sparse_result = self.pc.inference.embed(
-                model="pinecone-sparse-english-v0",
-                inputs=[query_text],
-                parameters={"input_type": "query"}
-            )
-            sparse_vector = {
-                "indices": sparse_result[0].sparse_indices,
-                "values":  sparse_result[0].sparse_values,
-            }
-        except Exception as e:
-            logger.error(f"Pinecone inference embed failed: {e}")
-            raise RuntimeError(f"Pinecone inference failed: {e}") from e
-
-        weighted_dense = [v * alpha for v in dense_embedding]
-        weighted_sparse = {
-            "indices": sparse_vector["indices"],
-            "values":  [v * (1 - alpha) for v in sparse_vector["values"]],
-        }
-
-        try:
-            response = self.index.query(
-                namespace=self.namespace,
-                vector=weighted_dense,
-                sparse_vector=weighted_sparse,
-                top_k=top_k,
-                include_metadata=True,
-                filter=metadata_filter if metadata_filter else None,
-            )
-        except Exception as e:
-            if "does not support sparse values" in str(e):
-                response = self.index.query(
-                    namespace=self.namespace,
-                    vector=weighted_dense,
-                    top_k=top_k,
-                    include_metadata=True,
-                    filter=metadata_filter if metadata_filter else None,
-                )
-            else:
-                raise
-
-        results: List[SemanticHit] = []
-        seen_grants = set()
-        for match in response.get("matches", []):
-            hit_metadata = match.get("metadata", {})
-            grant_id = hit_metadata.get("grant_id")
-
-            if grant_id is None:
-                continue
-
-            grant_id = int(grant_id)
-            if grant_id in seen_grants:
-                continue
-            seen_grants.add(grant_id)
-
-            results.append(
-                SemanticHit(
-                    grantId=grant_id,
-                    semanticScore=float(match.get("score", 0.0)),
-                    fields=hit_metadata,
-                )
-            )
-
-        return results
 
     def fetch_metadata_by_grant_ids(self, grant_ids: List[int]) -> Dict[int, Dict[str, Any]]:
         """

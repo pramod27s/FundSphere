@@ -1,6 +1,8 @@
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Optional, Tuple
 
+from .cache import query_cache
 from .config import settings
 from .filters import (
     deadline_is_open,
@@ -10,6 +12,7 @@ from .filters import (
     keyword_overlap_score,
     grant_type_fit,
     career_stage_fit,
+    is_strictly_disqualified,
     _expand_aliases,
     _norm,
     _norm_set,
@@ -72,24 +75,44 @@ class RecommenderService:
                 raise ValueError("Either userProfile or userId is required")
             profile = self.spring_client.get_user_profile(request.userId)
 
-        query_text = build_user_query_text(profile, request.userQuery)
         target_top_k = request.topK or settings.final_top_k
-
-        # Stage 1 — query build (+ expansion)
-        if settings.enable_query_expansion:
-            query_strings = expand_queries(profile, request.userQuery)
-        else:
-            query_strings = [query_text]
-
-        alpha = self._resolve_alpha(request, query_text)
         use_rerank = settings.use_rerank if request.useRerank is None else request.useRerank
 
-        # Stage 1.5 — HyDE: ask the LLM to write a hypothetical grant that
-        # would match the user's need. Bridges the vocabulary gap between
-        # researcher queries and real grant text. Cached internally.
-        hyde_doc = generate_hypothetical_grant(profile, request.userQuery)
+        # Stage 0 — Query cache lookup
+        cache_key = query_cache.make_key(profile, request.userQuery, target_top_k, use_rerank)
+        cached_resp = query_cache.get(cache_key)
+        if cached_resp is not None:
+            return cached_resp
+
+        query_text = build_user_query_text(profile, request.userQuery)
+
+        # Stage 1 & 1.5 — Concurrent query expansion & conditional HyDE
+        # Skip HyDE if live query is empty or already rich (>= threshold words)
+        live_query_words = len((request.userQuery or "").strip().split())
+        should_run_hyde = (
+            settings.enable_hyde
+            and (0 < live_query_words < settings.hyde_max_query_words_to_trigger)
+        )
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            future_expansion = (
+                executor.submit(expand_queries, profile, request.userQuery)
+                if settings.enable_query_expansion
+                else None
+            )
+            future_hyde = (
+                executor.submit(generate_hypothetical_grant, profile, request.userQuery)
+                if should_run_hyde
+                else None
+            )
+
+            query_strings = future_expansion.result() if future_expansion else [query_text]
+            hyde_doc = future_hyde.result() if future_hyde else None
+
         if hyde_doc:
             query_strings = self._inject_hyde(query_strings, hyde_doc)
+
+        alpha = self._resolve_alpha(request, query_text)
 
         # Stage 2 — parallel retrieval channels
         if settings.enable_profile_query_split:
@@ -108,7 +131,9 @@ class RecommenderService:
         )
 
         if not fused:
-            return RecommendationResponse(queryText=query_text, results=[])
+            resp = RecommendationResponse(queryText=query_text, results=[])
+            query_cache.set(cache_key, resp)
+            return resp
 
         # Hydrate keyword-only candidates (no Pinecone metadata) before scoring/reranking
         fused = self._hydrate_missing_metadata(fused)
@@ -117,11 +142,11 @@ class RecommenderService:
         # we can't render or rerank it meaningfully.
         fused = [h for h in fused if h.fields.get("grant_title") or h.fields.get("chunk_text")]
         if not fused:
-            return RecommendationResponse(queryText=query_text, results=[])
+            resp = RecommendationResponse(queryText=query_text, results=[])
+            query_cache.set(cache_key, resp)
+            return resp
 
         # Stage 4 — reranker (Pinecone bge-reranker-v2-m3)
-        # When the structured prompt is enabled, give the reranker the *intent*
-        # (live query) as the anchor — that's what it should be measuring against.
         rerank_query = (request.userQuery or "").strip() if settings.enable_structured_rerank_prompt else query_text
         if not rerank_query:
             rerank_query = query_text
@@ -130,15 +155,25 @@ class RecommenderService:
         # Stage 5 — 5-signal business-rule scoring
         scored = self._score_candidates(profile, request.userQuery, reranked)
 
-        # Drop grants whose application deadline has already passed — they're not
-        # actionable. Grants with no/unknown deadline are kept (deadline_is_open
-        # returns True for those). Strict by design: a closed grant is useless to
-        # surface even if it's a strong semantic match.
+        # Drop grants whose application deadline has already passed
         if settings.exclude_expired_grants:
             before = len(scored)
             scored = [it for it in scored if deadline_is_open(it.fields.get("application_deadline"))]
             if before != len(scored):
                 logger.debug("Filtered %d expired grant(s) from results.", before - len(scored))
+
+        # Hard-eligibility guardrails: drop grants strictly violating non-negotiables
+        if settings.enable_hard_eligibility_filter:
+            qualified = []
+            for it in scored:
+                disqualified, reason = is_strictly_disqualified(profile, it.fields or {})
+                if disqualified:
+                    logger.debug("Grant %d disqualified: %s", it.grantId, reason)
+                    continue
+                qualified.append(it)
+            # Safety fallback: only apply if not all results were filtered out
+            if qualified:
+                scored = qualified
 
         scored.sort(key=lambda x: x.finalScore, reverse=True)
         top_items = scored[:target_top_k]
@@ -147,7 +182,9 @@ class RecommenderService:
         if settings.enable_llm_judge:
             top_items = explain_candidates(profile, query_text, top_items)
 
-        return RecommendationResponse(queryText=query_text, results=top_items)
+        response = RecommendationResponse(queryText=query_text, results=top_items)
+        query_cache.set(cache_key, response)
+        return response
 
     # ---------- Stage 2: channels ----------
 
@@ -157,42 +194,9 @@ class RecommenderService:
         query_strings: List[str],
         alpha: float,
     ) -> List[SemanticHit]:
-        """Pinecone hybrid (dense + sparse). Soft filters; structured constraints
-        are scored downstream rather than excluded here."""
+        """Pinecone hybrid (dense + sparse) with batched queries."""
         soft_filter = self._soft_filter(profile) if settings.use_soft_filters else None
-        merged: Dict[int, SemanticHit] = {}
-
-        for q in query_strings:
-            try:
-                hits = self.pinecone_service.search(
-                    query_text=q,
-                    top_k=settings.semantic_top_k,
-                    metadata_filter=soft_filter,
-                    alpha=alpha,
-                )
-            except Exception as exc:
-                logger.error(f"Semantic channel failed for query='{q[:60]}': {exc}")
-                hits = []
-
-            # Recall fallback: drop the soft filter if first attempt was thin.
-            if len(hits) < 5 and soft_filter is not None:
-                try:
-                    extra = self.pinecone_service.search(
-                        query_text=q,
-                        top_k=settings.semantic_top_k,
-                        metadata_filter=None,
-                        alpha=alpha,
-                    )
-                    hits = self._merge_hits(hits, extra)
-                except Exception as exc:
-                    logger.warning(f"Semantic fallback failed: {exc}")
-
-            for hit in hits:
-                existing = merged.get(hit.grantId)
-                if existing is None or hit.semanticScore > existing.semanticScore:
-                    merged[hit.grantId] = hit
-
-        return sorted(merged.values(), key=lambda h: h.semanticScore, reverse=True)
+        return self._run_semantic_queries(query_strings, alpha, soft_filter)
 
     @staticmethod
     def _inject_hyde(query_strings: List[str], hyde_doc: str) -> List[str]:
@@ -266,36 +270,72 @@ class RecommenderService:
         alpha: float,
         soft_filter: Optional[dict],
     ) -> List[SemanticHit]:
-        """Helper: run a list of queries through Pinecone, merge by best score."""
+        """Helper: run a list of queries through Pinecone with batched embeddings and concurrency."""
+        clean_queries = [q for q in queries if q and q.strip()]
+        if not clean_queries:
+            return []
+
         merged: Dict[int, SemanticHit] = {}
-        for q in queries:
+
+        if settings.enable_batch_embeddings:
             try:
-                hits = self.pinecone_service.search(
-                    query_text=q,
+                batch_hits = self.pinecone_service.batch_search(
+                    queries=clean_queries,
                     top_k=settings.semantic_top_k,
                     metadata_filter=soft_filter,
                     alpha=alpha,
                 )
             except Exception as exc:
-                logger.error(f"Split-channel semantic search failed for q='{q[:60]}': {exc}")
-                hits = []
+                logger.error(f"Batch semantic search failed: {exc}")
+                batch_hits = [[] for _ in clean_queries]
 
-            if len(hits) < 5 and soft_filter is not None:
+            for q, hits in zip(clean_queries, batch_hits):
+                # Fallback if filtered hits were thin
+                if len(hits) < 5 and soft_filter is not None:
+                    try:
+                        extra = self.pinecone_service.search(
+                            query_text=q,
+                            top_k=settings.semantic_top_k,
+                            metadata_filter=None,
+                            alpha=alpha,
+                        )
+                        hits = self._merge_hits(hits, extra)
+                    except Exception as exc:
+                        logger.warning(f"Semantic fallback failed for q='{q[:60]}': {exc}")
+
+                for hit in hits:
+                    existing = merged.get(hit.grantId)
+                    if existing is None or hit.semanticScore > existing.semanticScore:
+                        merged[hit.grantId] = hit
+        else:
+            for q in clean_queries:
                 try:
-                    extra = self.pinecone_service.search(
+                    hits = self.pinecone_service.search(
                         query_text=q,
                         top_k=settings.semantic_top_k,
-                        metadata_filter=None,
+                        metadata_filter=soft_filter,
                         alpha=alpha,
                     )
-                    hits = self._merge_hits(hits, extra)
                 except Exception as exc:
-                    logger.warning(f"Split-channel semantic fallback failed: {exc}")
+                    logger.error(f"Semantic search failed for q='{q[:60]}': {exc}")
+                    hits = []
 
-            for hit in hits:
-                existing = merged.get(hit.grantId)
-                if existing is None or hit.semanticScore > existing.semanticScore:
-                    merged[hit.grantId] = hit
+                if len(hits) < 5 and soft_filter is not None:
+                    try:
+                        extra = self.pinecone_service.search(
+                            query_text=q,
+                            top_k=settings.semantic_top_k,
+                            metadata_filter=None,
+                            alpha=alpha,
+                        )
+                        hits = self._merge_hits(hits, extra)
+                    except Exception as exc:
+                        logger.warning(f"Semantic fallback failed: {exc}")
+
+                for hit in hits:
+                    existing = merged.get(hit.grantId)
+                    if existing is None or hit.semanticScore > existing.semanticScore:
+                        merged[hit.grantId] = hit
 
         return sorted(merged.values(), key=lambda h: h.semanticScore, reverse=True)
 

@@ -46,7 +46,22 @@ def explain_candidates(
             candidates_str += f"Countries: {', '.join(fields.get('eligible_countries', []) or [])}\n"
             candidates_str += f"Applicants: {', '.join(fields.get('eligible_applicants', []) or [])}\n"
             candidates_str += f"Funding: {fields.get('funding_amount_min')} - {fields.get('funding_amount_max')} {fields.get('funding_currency', '')}\n"
-            candidates_str += f"Deadline: {fields.get('application_deadline')}\n\n"
+            candidates_str += f"Deadline: {fields.get('application_deadline')}\n"
+
+            # Enriched parent context for high-precision rationale
+            obj = fields.get("objectives")
+            if obj:
+                candidates_str += f"Objectives: {str(obj)[:300]}\n"
+            elig = fields.get("eligibility_criteria")
+            if elig:
+                candidates_str += f"Eligibility Guidelines: {str(elig)[:300]}\n"
+            scope = fields.get("funding_scope")
+            if scope:
+                candidates_str += f"Funding Scope: {str(scope)[:250]}\n"
+            chunk = fields.get("chunk_text")
+            if chunk and not obj and not elig:
+                candidates_str += f"Overview: {str(chunk)[:300]}\n"
+            candidates_str += "\n"
 
         prompt = f"""You are a grant-matching assistant. For each candidate grant, write a concise 1-2 sentence explanation of why it could be a fit for this user. Focus on the strongest concrete signals (research overlap, eligibility, funding range, deadline). Never reject candidates — explanation only.
 
@@ -71,6 +86,7 @@ Example: {{"explanations": [{{"grantId": 123, "reason": "Your AI research aligns
                 {"role": "system", "content": "You explain grant matches. Output ONLY JSON."},
                 {"role": "user", "content": prompt},
             ],
+            response_format={"type": "json_object"},
         )
         text = (response.choices[0].message.content or "").strip()
 
