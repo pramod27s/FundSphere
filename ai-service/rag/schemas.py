@@ -89,7 +89,7 @@ class RecommendationRequest(BaseModel):
     model_config = ConfigDict(extra='forbid')
     userId: Optional[int] = None
     userProfile: Optional[UserProfile] = None
-    userQuery: Optional[str] = Field(default=None, max_length=1000)
+    userQuery: Optional[str] = Field(default=None, max_length=4000)
     keywordCandidates: List[KeywordCandidate] = Field(default_factory=list)
     topK: int = Field(default=10, ge=1, le=100)
     useRerank: Optional[bool] = None

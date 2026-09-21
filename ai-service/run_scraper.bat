@@ -6,7 +6,7 @@ cd /d "%~dp0"
 :: call venv\Scripts\activate
 
 :: Run the smart scheduler script
-python smart_scheduler.py
+python -m scraper.smart_scheduler
 
 echo Scraper finished.
 

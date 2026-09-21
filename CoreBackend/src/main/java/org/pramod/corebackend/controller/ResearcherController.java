@@ -53,6 +53,19 @@ public class ResearcherController {
     }
 
     /**
+     * Updates the researcher profile for the currently authenticated user.
+     * @param principal The security principal of the logged-in user.
+     * @param request The updated researcher profile details.
+     * @return The updated ResearcherResponse.
+     */
+    @PutMapping("/me")
+    public ResponseEntity<ResearcherResponse> updateMyResearcher(@AuthenticationPrincipal UserPrincipal principal,
+                                                                 @RequestBody ResearcherRequest request) {
+        ResearcherResponse response = researcherService.createOrUpdateForUser(principal.getId(), request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * Onboarding helper: fetches a public ORCID record and returns suggested
      * profile fields (research summary, keywords) to prefill the form. Optional
      * and fail-open — a bad iD or lookup failure returns found=false with a
@@ -162,7 +175,14 @@ public class ResearcherController {
         }
 
         String value = request.get("userQuery").toString().trim();
-        return value.isEmpty() ? null : value;
+        if (value.isEmpty()) {
+            return null;
+        }
+        // Cap length to 4000 characters to prevent AI service payload rejection
+        if (value.length() > 4000) {
+            return value.substring(0, 4000);
+        }
+        return value;
     }
 
     private boolean parseUseRerank(Map<String, Object> request) {

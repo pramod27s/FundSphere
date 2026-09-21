@@ -144,8 +144,7 @@ FundSphere/
 │   ├── rag/                # Recommender, Pinecone client, HyDE, query expander, scoring
 │   ├── proposal/           # Gemini client, PDF extractor, rubric analyzer, diff builder
 │   ├── eval/               # Evaluation metrics (auto_eval.py) & weight tuner (tune.py)
-│   ├── smart_scheduler.py  # Delta scraping scheduler
-│   ├── firecrawl_scraper.py# Structured web scraping with Firecrawl
+│   ├── scraper/            # Delta scheduler (smart_scheduler.py) & Firecrawl crawler
 │   ├── main.py             # FastAPI entry point & security middleware
 │   └── requirements.txt
 └── docs/                   # Architecture notes, accuracy reports, and specifications

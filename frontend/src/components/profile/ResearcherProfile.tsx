@@ -1,6 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import type { ResearcherResponse } from '../../services/researcherService';
+import type { ResearcherResponse, ResearcherRequest } from '../../services/researcherService';
+import { updateMyResearcher } from '../../services/researcherService';
+import { useResearcher } from '../../context/ResearcherContext';
+import ResearcherEditModal from './ResearcherEditModal';
+import { toast } from 'react-hot-toast';
 import {
   User,
   Building2,
@@ -14,6 +18,7 @@ import {
   CheckCircle2,
   Circle,
   Camera,
+  Edit3,
 } from 'lucide-react';
 
 interface ResearcherProfileProps {
@@ -48,7 +53,15 @@ const formatCurrency = (value: number | null | undefined): string => {
 
 const formatBoolean = (value: boolean): string => (value ? 'Yes' : 'No');
 
-function ResearcherProfile({ researcher, onBack, onLogout }: ResearcherProfileProps) {
+function ResearcherProfile({ researcher: initialResearcher, onBack, onLogout }: ResearcherProfileProps) {
+  const { setResearcher } = useResearcher();
+  const [researcher, setLocalResearcher] = useState<ResearcherResponse>(initialResearcher);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  useEffect(() => {
+    setLocalResearcher(initialResearcher);
+  }, [initialResearcher]);
+
   const [profileImage, setProfileImage] = useState<string | null>(() => {
     if (researcher?.id) {
       return localStorage.getItem(`profile_image_${researcher.id}`);
@@ -56,6 +69,13 @@ function ResearcherProfile({ researcher, onBack, onLogout }: ResearcherProfilePr
     return null;
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSaveProfile = async (updatedData: ResearcherRequest) => {
+    const updated = await updateMyResearcher(updatedData);
+    setLocalResearcher(updated);
+    setResearcher(updated);
+    toast.success('Profile updated successfully!');
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -158,7 +178,16 @@ function ResearcherProfile({ researcher, onBack, onLogout }: ResearcherProfilePr
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(true)}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary-600 to-primary-700 text-white font-semibold hover:from-primary-700 hover:to-primary-800 transition-all shadow-sm hover:shadow-md text-sm"
+              >
+                <Edit3 className="w-4 h-4" />
+                <span>Edit Profile</span>
+              </button>
+
               {onBack && (
                 <button
                   type="button"
@@ -268,6 +297,14 @@ function ResearcherProfile({ researcher, onBack, onLogout }: ResearcherProfilePr
             <NotificationItem label="Weekly Recommendations" enabled={researcher.weeklyGrantRecommendations} />
           </div>
         </section>
+
+        {/* Edit Profile Modal */}
+        <ResearcherEditModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          researcher={researcher}
+          onSave={handleSaveProfile}
+        />
       </div>
     </div>
   );

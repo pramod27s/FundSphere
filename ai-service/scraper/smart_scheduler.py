@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import re
 import json
@@ -12,14 +14,31 @@ from urllib.robotparser import RobotFileParser
 
 import requests
 from bs4 import BeautifulSoup
-from curl_cffi import requests as cffi_requests
 from dateutil import parser as date_parser
+from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+# Safe import of curl_cffi with fallback to requests
+try:
+    from curl_cffi import requests as cffi_requests
+except ImportError:
+    cffi_requests = None
 
-# Import your existing scraper logic
-from firecrawl_scraper import scrape_grant, crawl_for_grants
+# Load .env from parent directory (ai-service/.env) or fallback to local
+_parent_env = Path(__file__).resolve().parent.parent / ".env"
+if _parent_env.exists():
+    load_dotenv(dotenv_path=_parent_env)
+else:
+    load_dotenv()
+
+# Import scraper logic (supports package-level, relative, and direct script execution)
+try:
+    from .firecrawl_scraper import scrape_grant, crawl_for_grants
+except (ImportError, ValueError):
+    try:
+        from scraper.firecrawl_scraper import scrape_grant, crawl_for_grants
+    except (ImportError, ValueError):
+        from firecrawl_scraper import scrape_grant, crawl_for_grants
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -328,13 +347,20 @@ def _get_robots_for(url: str) -> RobotFileParser | None:
     rp = RobotFileParser()
     rp.set_url(f"{origin}/robots.txt")
     try:
-        # Use curl_cffi here too — many sites Cloudflare-protect even robots.txt.
-        response = cffi_requests.get(
-            f"{origin}/robots.txt",
-            headers={"User-Agent": SCRAPER_USER_AGENT},
-            impersonate="chrome110",
-            timeout=8,
-        )
+        # Use curl_cffi if available (to bypass Cloudflare), fallback to requests
+        if cffi_requests is not None:
+            response = cffi_requests.get(
+                f"{origin}/robots.txt",
+                headers={"User-Agent": SCRAPER_USER_AGENT},
+                impersonate="chrome110",
+                timeout=8,
+            )
+        else:
+            response = requests.get(
+                f"{origin}/robots.txt",
+                headers={"User-Agent": SCRAPER_USER_AGENT},
+                timeout=8,
+            )
         if response.status_code == 200 and response.text:
             rp.parse(response.text.splitlines())
             _robots_cache[origin] = rp
@@ -375,7 +401,10 @@ def discover_urls_from_sitemap(base_url):
     for path in paths_to_check:
         url_to_check = urljoin(root_url, path)
         try:
-            response = cffi_requests.get(url_to_check, impersonate="chrome110", timeout=10)
+            if cffi_requests is not None:
+                response = cffi_requests.get(url_to_check, impersonate="chrome110", timeout=10)
+            else:
+                response = requests.get(url_to_check, timeout=10)
             if response.status_code != 200:
                 continue
 
@@ -410,13 +439,16 @@ def get_page_hash(url):
     }
 
     try:
-        # Fix 2: TLS Impersonation to Bypass Cloudflare
-        response = cffi_requests.get(url, headers=headers, impersonate="chrome110", timeout=15)
+        # TLS Impersonation via curl_cffi with fallback to requests
+        if cffi_requests is not None:
+            response = cffi_requests.get(url, headers=headers, impersonate="chrome110", timeout=15)
+        else:
+            response = requests.get(url, headers=headers, timeout=15)
         if response.status_code != 200:
-            logger.warning(f"curl_cffi failed for {url} with status {response.status_code}. Returning None.")
+            logger.warning(f"Fetch failed for {url} with status {response.status_code}. Returning None.")
             return None
     except Exception as e:
-        logger.warning(f"Failed to fetch content for hash at {url} using curl_cffi: {e}")
+        logger.warning(f"Failed to fetch content for hash at {url}: {e}")
         return None
 
     content_type = (response.headers.get("Content-Type") or "").lower()

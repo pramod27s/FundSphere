@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import requests
 import json
@@ -9,9 +11,15 @@ import time
 from datetime import datetime
 import sys
 
+from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+# Load .env from parent directory (ai-service/.env) or fallback to local
+_parent_env = Path(__file__).resolve().parent.parent / ".env"
+if _parent_env.exists():
+    load_dotenv(dotenv_path=_parent_env)
+else:
+    load_dotenv()
 
 # Force UTF-8 for output to avoid charmap codec errors in Windows terminals
 if sys.stdout.encoding.lower() != 'utf-8':

@@ -352,6 +352,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                 ref={searchInputRef}
                 type="text"
                 placeholder="Describe your research, then hit AI Match"
+                maxLength={2000}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => {

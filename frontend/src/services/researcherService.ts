@@ -110,3 +110,37 @@ export const getMyResearcher = async (): Promise<ResearcherResponse> => {
   return response.json() as Promise<ResearcherResponse>;
 };
 
+export const updateMyResearcher = async (data: ResearcherRequest): Promise<ResearcherResponse> => {
+  try {
+    const response = await apiFetch(`${API_PATH}/me`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      // Fallback to POST /api/researchers which also creates/updates for user
+      const fallback = await apiFetch(API_PATH, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      if (!fallback.ok) {
+        const errorText = await fallback.text();
+        throw new Error(`Error: ${fallback.status} ${fallback.statusText} - ${errorText}`);
+      }
+      return await fallback.json();
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Failed to update researcher profile:', error);
+    throw error;
+  }
+};
+
+
