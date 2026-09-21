@@ -1,0 +1,32 @@
+<svg viewBox="5 5 91 91" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .fs-bar { fill: #0f172a; }
+    .fs-brand-stroke { stroke: #0d9488; }
+    .fs-brand-fill { fill: #0d9488; }
+    @media (prefers-color-scheme: dark) {
+      .fs-bar { fill: #f8fafc; }
+      .fs-brand-stroke { stroke: #14b8a6; }
+      .fs-brand-fill { fill: #14b8a6; }
+    }
+  </style>
+
+  <!-- 3 Ascending Growth Bars -->
+  <path class="fs-bar" d="M 24 73 L 24 64 Q 24 50 37 50 L 37 76.2 C 32 75.4 28 74.3 24 73 Z" />
+  <path class="fs-bar" d="M 43 76.4 L 43 51 Q 43 36 56 36 L 56 74.2 C 51.5 75.7 47 76.3 43 76.4 Z" />
+  <path class="fs-bar" d="M 62 71.5 L 62 36 Q 62 23 75 23 L 75 62.0 C 70.5 66.0 66 69.0 62 71.5 Z" />
+
+  <!-- 1) Normal Circular Stroked Arc (100% Uniform Width, Zero Thinning) -->
+  <path class="fs-brand-stroke"
+        d="M 79.34 20.66 A 41.5 41.5 0 1 0 42.79 90.87"
+        stroke-width="3" stroke-linecap="round" />
+
+  <!-- 2) Dynamic Crescent Swoosh -->
+  <path class="fs-brand-fill"
+        d="M 12.76 71.50
+           A 43 43 0 0 0 91.53 38.87
+           C 74.0 80.0 46.0 85.0 15.36 70.00
+           Z" />
+
+  <!-- 3) Precision Orbital Node Dot -->
+  <circle class="fs-brand-fill" cx="88.5" cy="31.0" r="4.5" />
+</svg>
