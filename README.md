@@ -279,7 +279,7 @@ npm run dev
 - [`docs/accuracy.md`](docs/accuracy.md) & [`docs/ACCURACY_CHANGES.md`](docs/ACCURACY_CHANGES.md) — Accuracy improvements (profile-query split, HyDE, structured rerank prompt).
 - [`docs/LLM_PROPOSAL_ASSISTANT_ARCHITECTURE_1.md`](docs/LLM_PROPOSAL_ASSISTANT_ARCHITECTURE_1.md) — Proposal assistant engine architecture.
 - [`docs/PROPOSAL_ASSISTANT_IMPLEMENTATION_STRATEGY.md`](docs/PROPOSAL_ASSISTANT_IMPLEMENTATION_STRATEGY.md) — Proposal assistant implementation strategy and rubrics.
-- [`deploy.md`](deploy.md) — Cloud and container deployment guidelines.
+- [`confidential/deploy.md`](confidential/deploy.md) — Cloud and container deployment guidelines.
 
 ---
 
