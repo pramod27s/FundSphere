@@ -353,11 +353,8 @@ FundSphere includes an offline evaluation suite under `ai-service/eval/` (execut
 ## 📚 Documentation Links
 
 - [`docs/ABOUT_FUNDSPHERE.md`](docs/ABOUT_FUNDSPHERE.md) — Comprehensive product overview and vision.
-- [`docs/PROJECT_STATUS_AND_ARCHITECTURE.md`](docs/PROJECT_STATUS_AND_ARCHITECTURE.md) — Detailed service inventory and schema contracts.
 - [`docs/architecture.md`](docs/architecture.md) — In-depth architectural blueprint and data flow models.
-- [`docs/accuracy.md`](docs/accuracy.md) & [`docs/ACCURACY_CHANGES.md`](docs/ACCURACY_CHANGES.md) — Accuracy improvements (profile-query split, HyDE, structured rerank prompt).
-- [`docs/LLM_PROPOSAL_ASSISTANT_ARCHITECTURE_1.md`](docs/LLM_PROPOSAL_ASSISTANT_ARCHITECTURE_1.md) — Proposal assistant engine architecture.
-- [`docs/PROPOSAL_ASSISTANT_IMPLEMENTATION_STRATEGY.md`](docs/PROPOSAL_ASSISTANT_IMPLEMENTATION_STRATEGY.md) — Proposal assistant implementation strategy and rubrics.
+- [`docs/accuracy.md`](docs/accuracy.md) — Accuracy improvements (profile-query split, HyDE, structured rerank prompt).
 - [`confidential/deploy.md`](confidential/deploy.md) — Cloud and container deployment guidelines.
 
 ---
