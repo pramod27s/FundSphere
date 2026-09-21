@@ -51,8 +51,8 @@ FundSphere is structured as a resilient three-tier microservice system with stri
 ```
 ┌────────────────────────────────┐            ┌────────────────────────────────┐            ┌────────────────────────────────┐
 │      Frontend (Port 5173)      │   HTTP     │    CoreBackend (Port 8080)     │  M2M JWT   │     AI-Service (Port 8000)     │
-│     React 19 + TypeScript      │ ─────────▶ │     Java 21 + Spring Boot      │ ─────────▶ │        Python + FastAPI        │
-│     Tailwind CSS v4 + Vite     │ (User JWT) │     PostgreSQL + M2M RS256     │ ◀───────── │     Pinecone + Groq/Gemini     │
+│     React 19 + TypeScript      │ ─────────▶ |     Java 21 + Spring Boot      │ ─────────▶│        Python + FastAPI        |
+│     Tailwind CSS v4 + Vite     │ (User JWT) │     PostgreSQL + M2M RS256     │ ◀───────── │     Pinecone + Groq/Gemini     |
 └────────────────────────────────┘            └───────────────┬────────────────┘  (RS256)   └───────────────┬────────────────┘
                                                               │                                             │
                                                        ┌──────▼──────┐                               ┌──────▼──────┐
