@@ -122,16 +122,36 @@ function BookmarkButton({
   );
 }
 
+function cleanTags(tags: string[]): string[] {
+  if (!tags || tags.length === 0) return [];
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const tag of tags) {
+    const trimmed = tag.trim();
+    const lower = trimmed.toLowerCase();
+    if (!lower || seen.has(lower)) continue;
+    seen.add(lower);
+    result.push(trimmed);
+  }
+  return result;
+}
+
 function renderAiCard(
   grant: DiscoveryGrant,
   openDetails: (g: DiscoveryGrant) => void,
   isSaved: (id: number) => boolean,
   toggleSave: (grant: DiscoveryGrant) => void,
 ) {
+  const isAmountSpecified =
+    !!grant.amount &&
+    !grant.amount.toLowerCase().includes('not specified') &&
+    !grant.amount.toLowerCase().includes('tbd');
+  const tags = cleanTags(grant.tags).slice(0, 5);
+
   return (
     <article
       key={grant.id}
-      className="relative bg-white/90 backdrop-blur-sm border border-brand-200/70 rounded-2xl p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.04)] hover:shadow-[0_4px_8px_rgba(13,148,136,0.06),0_16px_40px_rgba(13,148,136,0.10)] hover:border-primary-300/70 hover:-translate-y-0.5 focus-within:ring-2 focus-within:ring-primary-400/40 transition-all duration-200 group cursor-pointer"
+      className="relative bg-white border border-brand-200/80 rounded-2xl p-5 md:p-6 shadow-[0_1px_3px_rgba(15,23,42,0.04),0_6px_20px_rgba(15,23,42,0.03)] hover:shadow-[0_8px_30px_rgba(13,148,136,0.12)] hover:border-primary-300/80 hover:-translate-y-0.5 focus-within:ring-2 focus-within:ring-primary-400/40 transition-all duration-200 group cursor-pointer transform-gpu"
       role="button"
       tabIndex={0}
       onClick={() => openDetails(grant)}
@@ -143,105 +163,130 @@ function renderAiCard(
       }}
       aria-label={`Open details for ${grant.title}`}
     >
-      <div className="flex justify-between items-start gap-4 mb-4">
-        <div>
-          <div className="flex flex-wrap items-center gap-2 mb-2.5">
-            <span className="text-[10px] font-bold px-2.5 py-1 rounded-md bg-brand-100 text-brand-700 uppercase tracking-widest">
-              {grant.funder}
+      {/* Top Header Row: Funder / Agency + Match Pill + Share/Bookmark */}
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-brand-100/90 text-brand-800 tracking-wide uppercase truncate max-w-[280px] sm:max-w-md">
+            {grant.funder}
+          </span>
+          {grant.grantType && grant.grantType.trim().toUpperCase() !== 'OTHER' && grant.grantType.trim().toUpperCase() !== 'UNSPECIFIED' && (
+            <span className="hidden sm:inline-block text-[10px] font-semibold px-2 py-0.5 rounded-md bg-primary-50 text-primary-700 border border-primary-200/80 uppercase tracking-wider">
+              {grant.grantType}
             </span>
-
-            {grant.grantType && (
-              <span className="text-[10px] font-bold px-2.5 py-1 rounded-md bg-primary-50 text-primary-700 border border-primary-200 uppercase tracking-widest">
-                {grant.grantType}
-              </span>
-            )}
-
-            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold shadow-sm tabular-nums ${
-              grant.matchScore > 85 ? 'bg-gradient-to-r from-primary-50 to-primary-100/70 text-primary-700 border border-primary-200' : 'bg-brand-50 text-brand-700 border border-brand-200'
-            }`}>
-              {grant.matchScore > 85 ? <Sparkles className="w-3.5 h-3.5 text-primary-500" /> : <TrendingUp className="w-3.5 h-3.5" />}
-              <span>{grant.matchScore}% Match</span>
-              <div className="w-12 h-1.5 bg-white/80 rounded-full ml-1 overflow-hidden border border-brand-100">
-                <div
-                  className={`h-full rounded-full ${grant.matchScore > 85 ? 'bg-gradient-to-r from-primary-400 to-primary-600' : 'bg-brand-400'}`}
-                  style={{ width: `${grant.matchScore}%` }}
-                />
-              </div>
-            </div>
-
-            {grant.eligibility === 'Eligible' ? (
-              <div className="flex items-center gap-1 text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-md">
-                <ShieldCheck className="w-3.5 h-3.5" /> Eligible
-              </div>
-            ) : (
-              <div className="flex items-center gap-1 text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-200/50">
-                <ShieldAlert className="w-3.5 h-3.5" /> Check Eligibility
-              </div>
-            )}
-          </div>
-
-          <div className="hidden sm:flex flex-wrap items-center gap-2 mb-2.5">
-            <FreshnessBadge timestamp={grant.lastVerifiedAt ?? grant.lastScrapedAt ?? grant.updatedAt} />
-            <ProviderUpdatedInfo timestamp={grant.lastScrapedAt ?? grant.updatedAt} />
-          </div>
-
-          <h3 className="text-xl font-bold text-brand-900 group-hover:text-primary-700 transition-colors line-clamp-2 wrap-break-word tracking-tight">
-            {grant.title}
-          </h3>
-
-          <div className="flex flex-wrap gap-1.5 mt-2.5">
-            {grant.tags.map((tag) => (
-              <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-brand-50 text-brand-600 border border-brand-200/70">
-                {tag}
-              </span>
-            ))}
-          </div>
+          )}
         </div>
 
-        <div className="flex items-center gap-0.5">
-          <WhatsAppShareButton grant={grant} />
-          <BookmarkButton grant={grant} isSaved={isSaved} toggleSave={toggleSave} />
+        <div className="flex items-center gap-2 shrink-0">
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold shadow-xs tabular-nums ${
+            grant.matchScore > 85
+              ? 'bg-gradient-to-r from-primary-50 to-primary-100/80 text-primary-700 border border-primary-200'
+              : 'bg-brand-50 text-brand-700 border border-brand-200'
+          }`}>
+            {grant.matchScore > 85 ? <Sparkles className="w-3.5 h-3.5 text-primary-500" /> : <TrendingUp className="w-3.5 h-3.5 text-brand-500" />}
+            <span>{grant.matchScore}% Match</span>
+            <div className="w-10 h-1.5 bg-white/90 rounded-full ml-1 overflow-hidden border border-brand-200/60 hidden sm:block">
+              <div
+                className={`h-full rounded-full ${grant.matchScore > 85 ? 'bg-gradient-to-r from-primary-400 to-primary-600' : 'bg-brand-400'}`}
+                style={{ width: `${grant.matchScore}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-0.5 pl-1 border-l border-brand-100">
+            <WhatsAppShareButton grant={grant} size="sm" />
+            <BookmarkButton grant={grant} isSaved={isSaved} toggleSave={toggleSave} size="sm" />
+          </div>
         </div>
       </div>
 
-      <div className="mb-5 relative overflow-hidden bg-gradient-to-br from-primary-50/80 via-primary-50/40 to-white border border-primary-100/70 rounded-xl p-4 text-sm text-brand-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] transition-all">
+      {/* Grant Title */}
+      <h3 className="text-xl font-bold text-brand-900 group-hover:text-primary-700 transition-colors line-clamp-2 wrap-break-word tracking-tight leading-snug mb-2.5">
+        {grant.title}
+      </h3>
+
+      {/* Sub-metadata Line: Eligibility + Freshness & Updates */}
+      <div className="flex flex-wrap items-center gap-2.5 mb-3 text-xs">
+        {grant.eligibility === 'Eligible' ? (
+          <span className="inline-flex items-center gap-1 font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
+            <ShieldCheck className="w-3 h-3 text-emerald-600" /> Eligible
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/60">
+            <ShieldAlert className="w-3 h-3 text-amber-600" /> Check Eligibility
+          </span>
+        )}
+
+        <span className="text-brand-300 hidden sm:inline">•</span>
+
+        <div className="flex items-center gap-2">
+          <FreshnessBadge timestamp={grant.lastVerifiedAt ?? grant.lastScrapedAt ?? grant.updatedAt} />
+          <ProviderUpdatedInfo timestamp={grant.lastScrapedAt ?? grant.updatedAt} />
+        </div>
+      </div>
+
+      {/* Tags Chips */}
+      {tags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {tags.map((tag) => (
+            <span key={tag} className="text-xs px-2.5 py-0.5 rounded-full bg-brand-50 text-brand-600 border border-brand-200/70 font-medium">
+              {tag}
+            </span>
+          ))}
+          {grant.tags.length > tags.length && (
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-brand-50/50 text-brand-400 font-medium">
+              +{grant.tags.length - tags.length} more
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* AI Reasoning Block */}
+      <div className="mb-4 relative overflow-hidden bg-gradient-to-br from-primary-50/70 via-primary-50/30 to-white border border-primary-100/80 rounded-xl p-3.5 text-xs sm:text-sm text-brand-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
         <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-primary-400 to-primary-600"></div>
-        <p className="flex items-start gap-2 pl-1">
+        <p className="flex items-start gap-2 pl-0.5 leading-relaxed">
           <Sparkles className="w-4 h-4 text-primary-500 shrink-0 mt-0.5" />
           <span>
-            <span className="font-semibold text-primary-900 mr-1">AI Reasoning:</span>
+            <strong className="font-semibold text-primary-900 mr-1.5">AI Reasoning:</strong>
             {grant.rationale}
           </span>
         </p>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-4 mt-auto border-t border-brand-100 pt-4">
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+      {/* Footer Row: Deadline + Amount + View Details Button */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-3.5 border-t border-brand-100">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
           {(() => {
             const d = formatRelativeDeadline(grant.deadlineRaw);
             return (
               <div
-                className={`flex items-center gap-2 px-3 py-1.5 border rounded-lg ${DEADLINE_TONE_CLASSES[d.tone]}`}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 border rounded-lg text-xs font-medium ${DEADLINE_TONE_CLASSES[d.tone]}`}
                 title={d.tooltip || undefined}
               >
-                <Calendar className="w-4 h-4 opacity-80" />
-                <span className="text-sm font-medium whitespace-nowrap">{d.label}</span>
+                <Calendar className="w-3.5 h-3.5 opacity-80" />
+                <span className="whitespace-nowrap">{d.label}</span>
               </div>
             );
           })()}
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-100 rounded-lg text-green-700">
-            <span className="text-sm font-bold text-green-700 whitespace-nowrap tabular-nums">{grant.amount}</span>
+
+          <div
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs tabular-nums border ${
+              isAmountSpecified
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200/70 font-bold'
+                : 'bg-brand-50 text-brand-500 border-brand-200/70 font-medium'
+            }`}
+          >
+            <span className="whitespace-nowrap">{grant.amount}</span>
           </div>
         </div>
 
         <button
           type="button"
-          className="flex items-center gap-1 text-primary-600 hover:text-primary-700 font-semibold text-sm transition-colors cursor-pointer group/btn shrink-0"
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-primary-50 text-primary-700 font-semibold text-xs border border-primary-200/70 hover:bg-primary-600 hover:text-white transition-all shadow-xs group-hover:bg-primary-600 group-hover:text-white shrink-0"
           onClick={(e) => { e.stopPropagation(); openDetails(grant); }}
           aria-label={`View details for ${grant.title}`}
         >
-          View Details
-          <ChevronRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+          <span>View Details</span>
+          <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
         </button>
       </div>
     </article>
@@ -254,10 +299,16 @@ function renderBrowseCard(
   isSaved: (id: number) => boolean,
   toggleSave: (grant: DiscoveryGrant) => void,
 ) {
+  const isAmountSpecified =
+    !!grant.amount &&
+    !grant.amount.toLowerCase().includes('not specified') &&
+    !grant.amount.toLowerCase().includes('tbd');
+  const tags = cleanTags(grant.tags).slice(0, 4);
+
   return (
     <article
       key={grant.id}
-      className="bg-white/90 backdrop-blur-sm border border-brand-200/60 rounded-xl p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:shadow-[0_4px_8px_rgba(13,148,136,0.06),0_16px_40px_rgba(13,148,136,0.10)] hover:border-primary-300/70 hover:-translate-y-0.5 focus-within:ring-2 focus-within:ring-primary-400/40 transition-all duration-200 group cursor-pointer"
+      className="bg-white border border-brand-200/70 rounded-2xl p-5 shadow-[0_1px_3px_rgba(15,23,42,0.04),0_6px_20px_rgba(15,23,42,0.03)] hover:shadow-[0_8px_30px_rgba(13,148,136,0.12)] hover:border-primary-300/80 hover:-translate-y-0.5 focus-within:ring-2 focus-within:ring-primary-400/40 transition-all duration-200 group cursor-pointer transform-gpu"
       role="button"
       tabIndex={0}
       onClick={() => openDetails(grant)}
@@ -269,66 +320,80 @@ function renderBrowseCard(
       }}
       aria-label={`Open details for ${grant.title}`}
     >
-      <div className="flex items-start justify-between gap-4 mb-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-brand-100 text-brand-700 uppercase tracking-widest line-clamp-2 break-words">
+      <div className="flex items-center justify-between gap-3 mb-2.5">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-brand-100/90 text-brand-800 tracking-wide uppercase truncate max-w-[280px] sm:max-w-md">
             {grant.funder}
           </span>
-          {grant.grantType && (
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-primary-50 text-primary-700 border border-primary-200 uppercase tracking-widest">
+          {grant.grantType && grant.grantType.trim().toUpperCase() !== 'OTHER' && grant.grantType.trim().toUpperCase() !== 'UNSPECIFIED' && (
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-primary-50 text-primary-700 border border-primary-200/70 uppercase tracking-wider">
               {grant.grantType}
             </span>
           )}
         </div>
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-0.5 shrink-0">
           <WhatsAppShareButton grant={grant} size="sm" />
           <BookmarkButton grant={grant} isSaved={isSaved} toggleSave={toggleSave} size="sm" />
         </div>
       </div>
 
-      <div className="hidden sm:flex flex-wrap items-center gap-2 mb-3">
+      <h3 className="text-lg font-bold text-brand-900 group-hover:text-primary-700 transition-colors line-clamp-2 wrap-break-word mb-2 tracking-tight leading-snug">
+        {grant.title}
+      </h3>
+
+      <div className="flex flex-wrap items-center gap-2 mb-3 text-xs">
         <FreshnessBadge timestamp={grant.lastVerifiedAt ?? grant.lastScrapedAt ?? grant.updatedAt} />
         <ProviderUpdatedInfo timestamp={grant.lastScrapedAt ?? grant.updatedAt} />
       </div>
 
-      <h3 className="text-lg font-semibold text-brand-900 group-hover:text-primary-700 transition-colors line-clamp-2 wrap-break-word mb-2 tracking-tight">
-        {grant.title}
-      </h3>
-
-      {grant.tags.length > 0 && (
+      {tags.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-4">
-          {grant.tags.slice(0, 4).map((tag) => (
-            <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-brand-50 text-brand-500 border border-brand-100">
+          {tags.map((tag) => (
+            <span key={tag} className="text-xs px-2.5 py-0.5 rounded-full bg-brand-50 text-brand-600 border border-brand-200/60 font-medium">
               {tag}
             </span>
           ))}
+          {grant.tags.length > tags.length && (
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-brand-50/50 text-brand-400 font-medium">
+              +{grant.tags.length - tags.length} more
+            </span>
+          )}
         </div>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-brand-100/80 text-sm">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-brand-600">
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-brand-100 text-sm">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-brand-600">
           {(() => {
             const d = formatRelativeDeadline(grant.deadlineRaw);
-            const toneText =
-              d.tone === 'overdue' ? 'text-red-700 font-medium'
-              : d.tone === 'urgent' ? 'text-amber-800 font-medium'
-              : 'text-brand-600';
             return (
-              <span className={`inline-flex items-center gap-1.5 ${toneText}`} title={d.tooltip || undefined}>
+              <div
+                className={`flex items-center gap-1.5 px-2.5 py-1 border rounded-lg text-xs font-medium ${DEADLINE_TONE_CLASSES[d.tone]}`}
+                title={d.tooltip || undefined}
+              >
                 <Calendar className="w-3.5 h-3.5 opacity-70" />
-                {d.label}
-              </span>
+                <span>{d.label}</span>
+              </div>
             );
           })()}
-          <span className="font-semibold text-green-700 whitespace-nowrap tabular-nums">{grant.amount}</span>
+
+          <div
+            className={`flex items-center px-2.5 py-1 rounded-lg text-xs tabular-nums border ${
+              isAmountSpecified
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200/70 font-bold'
+                : 'bg-brand-50 text-brand-500 border-brand-200/70 font-medium'
+            }`}
+          >
+            <span>{grant.amount}</span>
+          </div>
         </div>
+
         <button
           type="button"
-          className="inline-flex items-center gap-1 text-brand-500 hover:text-brand-700 font-medium text-xs transition-colors cursor-pointer shrink-0"
+          className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-primary-50 text-primary-700 hover:bg-primary-600 hover:text-white font-semibold text-xs border border-primary-200/60 transition-all cursor-pointer shrink-0 group-hover:bg-primary-600 group-hover:text-white"
           onClick={(e) => { e.stopPropagation(); openDetails(grant); }}
           aria-label={`View details for ${grant.title}`}
         >
-          View Details
+          <span>View Details</span>
           <ChevronRight className="w-3.5 h-3.5" />
         </button>
       </div>

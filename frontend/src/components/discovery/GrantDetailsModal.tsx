@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { createPortal } from 'react-dom';
 import { X, ShieldCheck, ShieldAlert, Calendar, CalendarPlus, FileText, Gavel, Rocket, TrendingUp, ExternalLink, BookmarkPlus, BookmarkCheck } from 'lucide-react';
 import type { ComponentType } from 'react';
 import type { DiscoveryGrant } from '../../services/discoveryService';
@@ -40,10 +41,41 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
     .map((m) => ({ ...m, fmt: formatKeyDate(m.raw) }))
     .filter((m): m is typeof m & { fmt: NonNullable<ReturnType<typeof formatKeyDate>> } => m.fmt !== null);
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+  const isAmountSpecified =
+    !!grant.amount &&
+    !grant.amount.toLowerCase().includes('not specified') &&
+    !grant.amount.toLowerCase().includes('tbd');
+
+  const hasContent = (text?: string | null): boolean => {
+    if (!text) return false;
+    const t = text.trim().toLowerCase();
+    return (
+      t.length > 0 &&
+      !t.startsWith('not specified') &&
+      !t.startsWith('not explicitly') &&
+      !t.startsWith('not fully detailed') &&
+      !t.includes('check provider site') &&
+      t !== 'none' &&
+      t !== 'n/a'
+    );
+  };
+
+  const hasDistinctObjectives =
+    hasContent(grant.objectives) &&
+    grant.objectives!.trim().toLowerCase() !== (grant.description || '').trim().toLowerCase();
+
+  const hasScopeOrDuration = hasContent(grant.fundingScope) || hasContent(grant.grantDuration);
+  const hasEligibilityOrSelection = hasContent(grant.eligibilityCriteria) || hasContent(grant.selectionCriteria);
+
+  const hasValidStages =
+    grant.targetCareerStages &&
+    grant.targetCareerStages.length > 0 &&
+    !grant.targetCareerStages.every((s) => s.toLowerCase() === 'any');
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-brand-900/50 backdrop-blur-md transition-opacity" onClick={onClose} />
+      <div className="fixed inset-0 bg-brand-950/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
 
       {/* Modal Content */}
       <motion.div
@@ -59,7 +91,7 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
               <span className="text-[10px] font-bold px-2.5 py-1 rounded-md bg-white text-brand-700 uppercase tracking-widest inline-block border border-brand-200 shadow-sm">
                 {grant.funder}
               </span>
-              {grant.grantType && (
+              {grant.grantType && grant.grantType.toUpperCase() !== 'OTHER' && (
                 <span className="text-[10px] font-bold px-2.5 py-1 rounded-md bg-primary-50 text-primary-700 uppercase tracking-widest inline-block border border-primary-200 shadow-sm">
                   {grant.grantType}
                 </span>
@@ -98,6 +130,7 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
                   </div>
               </div>
               )}
+
               {/* Deadline */}
               <div className="relative p-4 bg-white rounded-xl border border-brand-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.04)] overflow-hidden" title={deadline.tooltip || undefined}>
                   <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-brand-300 to-brand-500" />
@@ -114,16 +147,29 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
                     </div>
                   )}
               </div>
-              {/* Funding Amount */}
-              <div className="relative p-4 bg-white rounded-xl border border-green-100/80 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(34,197,94,0.06)] overflow-hidden">
-                  <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-green-400 to-emerald-500" />
+
+              {/* Funding Amount — Emerald if specified, Neutral Slate if unstated */}
+              {isAmountSpecified ? (
+                <div className="relative p-4 bg-white rounded-xl border border-emerald-100/80 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(16,185,129,0.06)] overflow-hidden">
+                  <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-emerald-400 to-emerald-600" />
                   <div className="flex items-center gap-2 text-brand-500 mb-1.5">
-                      <span className="text-[11px] font-semibold uppercase tracking-wider">Funding</span>
+                    <span className="text-[11px] font-semibold uppercase tracking-wider">Funding</span>
                   </div>
-                  <div className="text-xl font-bold text-green-700 tabular-nums break-words">
-                      {grant.amount}
+                  <div className="text-xl font-bold text-emerald-700 tabular-nums break-words">
+                    {grant.amount}
                   </div>
-              </div>
+                </div>
+              ) : (
+                <div className="relative p-4 bg-white rounded-xl border border-brand-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.04)] overflow-hidden">
+                  <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-brand-300 to-brand-400" />
+                  <div className="flex items-center gap-2 text-brand-400 mb-1.5">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider">Funding</span>
+                  </div>
+                  <div className="text-base font-semibold text-brand-600 tabular-nums break-words">
+                    Funding amount not specified
+                  </div>
+                </div>
+              )}
             </div>
 
             {keyDates.length > 0 && (
@@ -153,6 +199,7 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
               </div>
             )}
 
+            {/* AI Match Rationale — only shown in AI mode */}
             {isAi && (
               <div className="mb-8">
                   <h3 className="text-base font-bold text-brand-900 mb-3 tracking-tight uppercase tracking-wider text-xs text-brand-500">AI Match Rationale</h3>
@@ -163,6 +210,7 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
               </div>
             )}
 
+            {/* Match Breakdown — only shown in AI mode when profile is present */}
             {isAi && profile && (
               <div className="mb-8">
                 <MatchBreakdown grant={grant} profile={profile} />
@@ -188,7 +236,7 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
                 )}
             </div>
 
-            {grant.targetCareerStages && grant.targetCareerStages.length > 0 && (
+            {hasValidStages && grant.targetCareerStages && (
               <div className="mb-6">
                 <h3 className="text-xs font-semibold text-brand-500 uppercase tracking-wider mb-3">Ideal Applicants</h3>
                 <div className="flex flex-wrap gap-2">
@@ -201,7 +249,8 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
               </div>
             )}
 
-            <div className="mb-6">
+            {grant.tags.length > 0 && (
+              <div className="mb-6">
                 <h3 className="text-xs font-semibold text-brand-500 uppercase tracking-wider mb-3">Tags & Keywords</h3>
                 <div className="flex flex-wrap gap-2">
                     {grant.tags.map(tag => (
@@ -216,41 +265,58 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
                       </span>
                     ))}
                 </div>
-            </div>
+              </div>
+            )}
 
-            <div className="mt-8 pt-8 border-t border-brand-100/80">
+            {hasDistinctObjectives && (
+              <div className="mt-8 pt-8 border-t border-brand-100/80">
                 <h3 className="text-xs font-semibold text-brand-500 uppercase tracking-wider mb-3">Objectives</h3>
                 <GlossaryText as="p" className="text-brand-700 leading-relaxed text-sm md:text-base">
-                  {grant.objectives || 'Objectives not explicitly specified. Review the description or guidelines for details.'}
+                  {grant.objectives!}
                 </GlossaryText>
-            </div>
+              </div>
+            )}
 
-            <div className="mt-8 pt-8 border-t border-brand-100/80">
+            {grant.description && (
+              <div className="mt-8 pt-8 border-t border-brand-100/80">
                 <h3 className="text-xs font-semibold text-brand-500 uppercase tracking-wider mb-3">Grant Description</h3>
                 <GlossaryText as="p" className="text-brand-700 leading-relaxed text-sm md:text-base">{grant.description}</GlossaryText>
-            </div>
+              </div>
+            )}
 
-            <div className="mt-8 pt-8 border-t border-brand-100/80 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
+            {hasScopeOrDuration && (
+              <div className="mt-8 pt-8 border-t border-brand-100/80 grid grid-cols-1 md:grid-cols-2 gap-6">
+                {hasContent(grant.fundingScope) && (
+                  <div>
                     <h3 className="text-xs font-semibold text-brand-500 uppercase tracking-wider mb-2">Funding Scope</h3>
-                    <GlossaryText as="p" className="text-brand-700 leading-relaxed text-sm">{grant.fundingScope || 'Not specified. Please check provider site.'}</GlossaryText>
-                </div>
-                <div>
+                    <GlossaryText as="p" className="text-brand-700 leading-relaxed text-sm">{grant.fundingScope!}</GlossaryText>
+                  </div>
+                )}
+                {hasContent(grant.grantDuration) && (
+                  <div>
                     <h3 className="text-xs font-semibold text-brand-500 uppercase tracking-wider mb-2">Duration</h3>
-                    <p className="text-brand-700 leading-relaxed text-sm">{grant.grantDuration || 'Not specified'}</p>
-                </div>
-            </div>
+                    <p className="text-brand-700 leading-relaxed text-sm">{grant.grantDuration!}</p>
+                  </div>
+                )}
+              </div>
+            )}
 
-            <div className="mt-8 pt-8 border-t border-brand-100/80 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
+            {hasEligibilityOrSelection && (
+              <div className="mt-8 pt-8 border-t border-brand-100/80 grid grid-cols-1 md:grid-cols-2 gap-6">
+                {hasContent(grant.eligibilityCriteria) && (
+                  <div>
                     <h3 className="text-xs font-semibold text-brand-500 uppercase tracking-wider mb-2">Eligibility Criteria</h3>
-                    <GlossaryText as="p" className="text-brand-700 leading-relaxed text-sm">{grant.eligibilityCriteria || 'Not fully detailed here. Please check provider site.'}</GlossaryText>
-                </div>
-                <div>
+                    <GlossaryText as="p" className="text-brand-700 leading-relaxed text-sm">{grant.eligibilityCriteria!}</GlossaryText>
+                  </div>
+                )}
+                {hasContent(grant.selectionCriteria) && (
+                  <div>
                     <h3 className="text-xs font-semibold text-brand-500 uppercase tracking-wider mb-2">Selection Process</h3>
-                    <GlossaryText as="p" className="text-brand-700 leading-relaxed text-sm">{grant.selectionCriteria || 'Not explicitly specified.'}</GlossaryText>
-                </div>
-            </div>
+                    <GlossaryText as="p" className="text-brand-700 leading-relaxed text-sm">{grant.selectionCriteria!}</GlossaryText>
+                  </div>
+                )}
+              </div>
+            )}
         </div>
 
         {/* Footer actions */}
@@ -291,6 +357,7 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
             })()}
         </div>
       </motion.div>
-    </div>
+    </div>,
+    document.body
   );
 }

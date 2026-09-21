@@ -133,8 +133,8 @@ export default function FilterSidebar({ filters, onChange, onClose, availableFun
   }, [sortedFunders, funderQuery]);
 
   return (
-    <aside className="w-full bg-white/80 backdrop-blur-xl border-r border-brand-100 h-full flex flex-col shrink-0">
-      <div className="pl-3 pr-5 border-b border-brand-100 bg-gradient-to-br from-white via-white to-primary-50/30 flex items-center justify-between h-[64px] shrink-0">
+    <aside className="w-full bg-white/95 backdrop-blur-xl border-r border-brand-200/80 h-full flex flex-col shrink-0 shadow-[1px_0_4px_rgba(15,23,42,0.02)]">
+      <div className="pl-3 pr-5 border-b border-primary-100/80 bg-gradient-to-r from-white via-primary-50/40 to-white flex items-center justify-between h-[64px] shrink-0">
         <div className="flex items-center gap-2.5">
           <AnimatedLogo className="w-10 h-10" />
           <h1 className="text-[22px] font-bold tracking-tight leading-none">
@@ -153,8 +153,8 @@ export default function FilterSidebar({ filters, onChange, onClose, availableFun
         )}
       </div>
 
-      <div className="px-5 pt-4 pb-3 flex items-center gap-2">
-        <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-sm shadow-primary-500/20">
+      <div className="px-5 pt-4 pb-3 flex items-center gap-2.5">
+        <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-xs shadow-primary-500/30">
           <Filter className="w-3 h-3 text-white" />
         </div>
         <div>
@@ -247,11 +247,11 @@ export default function FilterSidebar({ filters, onChange, onClose, availableFun
         )}
       </div>
 
-      <div className="p-4 border-t border-brand-100 bg-gradient-to-t from-brand-50/60 to-transparent">
+      <div className="p-4 border-t border-brand-100 bg-gradient-to-t from-primary-50/30 via-white to-transparent">
         <button
           onClick={() => onChange(EMPTY_FILTERS)}
           disabled={activeCount === 0}
-          className="w-full py-2.5 bg-white border border-brand-200 text-brand-700 font-semibold rounded-xl hover:bg-brand-50 hover:border-brand-300 transition-all text-sm shadow-sm hover:shadow-md disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-2"
+          className="w-full py-2.5 bg-white border border-brand-200 text-brand-700 font-semibold rounded-xl hover:bg-primary-50/80 hover:text-primary-700 hover:border-primary-300 transition-all text-sm shadow-xs hover:shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-2"
         >
           <RotateCcw className="w-3.5 h-3.5" />
           Reset All Filters
