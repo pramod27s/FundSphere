@@ -29,6 +29,22 @@ interface ResearcherProfileProps {
 
 const NOT_PROVIDED = 'Not provided';
 
+const capitalizeWords = (str: string | null | undefined): string => {
+  if (!str || !str.trim()) return NOT_PROVIDED;
+  return str
+    .trim()
+    .split(/\s+/)
+    .map((word) => {
+      if (!word) return '';
+      // Keep acronyms like "B.M.S." or uppercase intact
+      if (word.includes('.') || word.length <= 3 && word === word.toUpperCase()) {
+        return word.toUpperCase();
+      }
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join(' ');
+};
+
 const formatEnum = (value: string | null | undefined): string => {
   if (!value) return NOT_PROVIDED;
   return value
@@ -39,7 +55,7 @@ const formatEnum = (value: string | null | undefined): string => {
 };
 
 const formatText = (value: string | null | undefined): string => {
-  return value && value.trim().length > 0 ? value : NOT_PROVIDED;
+  return value && value.trim().length > 0 ? capitalizeWords(value) : NOT_PROVIDED;
 };
 
 const formatCurrency = (value: number | null | undefined): string => {
@@ -97,9 +113,11 @@ function ResearcherProfile({ researcher: initialResearcher, onBack, onLogout }: 
     return <div className="p-8 text-center text-brand-500">No profile data found.</div>;
   }
 
-  const location = [researcher.city, researcher.state, researcher.country]
-    .map((item) => item?.trim())
-    .filter(Boolean)
+  const formattedCity = researcher.city ? capitalizeWords(researcher.city) : '';
+  const formattedState = researcher.state ? capitalizeWords(researcher.state) : '';
+  const formattedCountry = researcher.country ? capitalizeWords(researcher.country) : '';
+  const location = [formattedCity, formattedState, formattedCountry]
+    .filter((item) => item && item !== NOT_PROVIDED)
     .join(', ');
 
   const notificationCount = [
@@ -126,14 +144,25 @@ function ResearcherProfile({ researcher: initialResearcher, onBack, onLogout }: 
       100,
   );
 
+  const userTypeStr = formatEnum(researcher.userType);
+  const positionStr = researcher.position ? formatEnum(researcher.position) : null;
+  const isDuplicateRole = positionStr && positionStr.toLowerCase() === userTypeStr.toLowerCase();
+  const affiliationStr = researcher.institutionName ? capitalizeWords(researcher.institutionName) : null;
+  const profileSubtitle = [
+    userTypeStr,
+    !isDuplicateRole && positionStr ? positionStr : null,
+    affiliationStr ? affiliationStr : null,
+  ]
+    .filter(Boolean)
+    .join(' • ');
+
   return (
     <div className="min-h-screen px-4 py-6 md:px-8 md:py-8">
       <div className="max-w-6xl mx-auto space-y-5">
         {/* Hero header card */}
-        <section className="relative overflow-hidden rounded-2xl border border-primary-100/80 bg-gradient-to-br from-white via-white to-primary-50 p-5 md:p-7 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_30px_rgba(13,148,136,0.08)]">
-          {/* Decorative accent */}
-          <div className="absolute -top-12 -right-12 w-48 h-48 bg-gradient-to-br from-primary-100/60 to-transparent rounded-full blur-2xl pointer-events-none" />
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary-400 via-primary-500 to-primary-600" />
+        <section className="relative overflow-hidden rounded-2xl border border-primary-100/80 bg-gradient-to-br from-white via-white to-primary-50/40 p-5 md:p-7 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_30px_rgba(13,148,136,0.06)]">
+          {/* Decorative accent blur */}
+          <div className="absolute -top-12 -right-12 w-48 h-48 bg-gradient-to-br from-primary-100/40 to-transparent rounded-full blur-2xl pointer-events-none" />
 
           <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-5">
             <div className="flex items-start gap-4">
@@ -148,7 +177,7 @@ function ResearcherProfile({ researcher: initialResearcher, onBack, onLogout }: 
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="absolute -bottom-1.5 -right-1.5 bg-white p-1.5 rounded-full border border-brand-200 shadow-md text-brand-600 hover:text-primary-600 hover:border-primary-300 transition-all hover:scale-110"
+                  className="absolute -bottom-1.5 -right-1.5 bg-white p-1.5 rounded-full border border-brand-200 shadow-md text-brand-600 hover:text-primary-600 hover:border-primary-300 transition-all hover:scale-110 cursor-pointer"
                   title="Change profile picture"
                 >
                   <Camera className="w-3.5 h-3.5" />
@@ -163,8 +192,8 @@ function ResearcherProfile({ researcher: initialResearcher, onBack, onLogout }: 
               </div>
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold text-brand-900 tracking-tight">Researcher Profile</h1>
-                <p className="text-brand-600 mt-1 text-sm md:text-base">
-                  {formatEnum(researcher.userType)}{researcher.position ? ` · ${formatEnum(researcher.position)}` : ''}
+                <p className="text-brand-600 mt-1 text-sm md:text-base font-medium">
+                  {profileSubtitle}
                 </p>
                 <div className="mt-2.5 flex items-center gap-2">
                   <div className="flex-1 max-w-[160px] h-1.5 bg-brand-100 rounded-full overflow-hidden">
@@ -241,33 +270,43 @@ function ResearcherProfile({ researcher: initialResearcher, onBack, onLogout }: 
           <DetailCard icon={<Building2 className="w-4 h-4" />} title="Organization">
             <ProfileRow label="Institution" value={formatText(researcher.institutionName)} />
             <ProfileRow label="Department" value={formatText(researcher.department)} />
-            <ProfileRow label="Education Level" value={formatEnum(researcher.educationLevel)} icon={<GraduationCap className="w-4 h-4 text-brand-400" />} />
+            <ProfileRow
+              label="Education Level"
+              value={formatEnum(researcher.educationLevel)}
+              icon={<GraduationCap className="w-3.5 h-3.5 text-primary-600" />}
+              isBadge
+            />
           </DetailCard>
 
           <DetailCard icon={<MapPin className="w-4 h-4" />} title="Location">
             <ProfileRow label="Current Location" value={location || NOT_PROVIDED} />
             <ProfileRow label="Country" value={formatText(researcher.country)} />
-            <ProfileRow label="State / City" value={`${formatText(researcher.state)} / ${formatText(researcher.city)}`} />
+            <ProfileRow
+              label="State / City"
+              value={`${formattedState || NOT_PROVIDED} / ${formattedCity || NOT_PROVIDED}`}
+            />
           </DetailCard>
 
           <DetailCard icon={<Target className="w-4 h-4" />} title="Research Focus">
-            <ProfileRow label="Primary Field" value={formatEnum(researcher.primaryField)} />
-            <ProfileRow label="Preferred Grant Type" value={formatEnum(researcher.preferredGrantType)} />
-            <div className="pt-2">
-              <p className="text-brand-500 font-medium mb-2 text-xs uppercase tracking-wider">Keywords</p>
+            <ProfileRow label="Primary Field" value={formatEnum(researcher.primaryField)} isBadge />
+            <ProfileRow label="Preferred Grant Type" value={formatEnum(researcher.preferredGrantType)} isBadge />
+            <div className="pt-2 pb-1">
+              <p className="text-brand-500 font-semibold mb-2 text-[11px] uppercase tracking-wider">Keywords</p>
               {researcher.keywords && researcher.keywords.length > 0 ? (
                 <div className="flex flex-wrap gap-1.5">
                   {researcher.keywords.map((keyword) => (
                     <span
                       key={keyword}
-                      className="px-2.5 py-1 rounded-full text-xs bg-gradient-to-r from-primary-50 to-primary-50/40 text-primary-700 border border-primary-200/70 font-medium"
+                      className="px-2.5 py-1 rounded-lg text-xs bg-primary-50 text-primary-800 border border-primary-200/80 font-semibold shadow-2xs"
                     >
                       {keyword}
                     </span>
                   ))}
                 </div>
               ) : (
-                <p className="text-brand-500 text-sm">{NOT_PROVIDED}</p>
+                <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs bg-brand-50 text-brand-500 border border-brand-200/70 font-medium">
+                  {NOT_PROVIDED}
+                </span>
               )}
             </div>
           </DetailCard>
@@ -275,7 +314,11 @@ function ResearcherProfile({ researcher: initialResearcher, onBack, onLogout }: 
           <DetailCard icon={<Wallet className="w-4 h-4" />} title="Funding & Eligibility">
             <ProfileRow label="Min Amount" value={formatCurrency(researcher.minFundingAmount)} />
             <ProfileRow label="Max Amount" value={formatCurrency(researcher.maxFundingAmount)} />
-            <ProfileRow label="Previous Grants Received" value={formatBoolean(researcher.previousGrantsReceived)} />
+            <ProfileRow
+              label="Previous Grants Received"
+              value={formatBoolean(researcher.previousGrantsReceived)}
+              isBadge
+            />
           </DetailCard>
         </section>
 
@@ -320,17 +363,25 @@ interface StatCardProps {
 
 function StatCard({ label, value, accent, icon, small }: StatCardProps) {
   const accentMap = {
-    primary: { bar: 'from-primary-400 to-primary-600', icon: 'bg-primary-50 text-primary-600 border-primary-100', value: 'text-brand-900' },
-    green:   { bar: 'from-green-400 to-emerald-500',   icon: 'bg-green-50 text-green-600 border-green-100',     value: 'text-brand-900' },
-    brand:   { bar: 'from-brand-300 to-brand-500',     icon: 'bg-brand-50 text-brand-600 border-brand-200',     value: 'text-brand-900' },
+    primary: {
+      icon: 'bg-primary-50 text-primary-700 border-primary-200/80',
+      value: 'text-brand-900',
+    },
+    green: {
+      icon: 'bg-emerald-50 text-emerald-700 border-emerald-200/80',
+      value: 'text-brand-900',
+    },
+    brand: {
+      icon: 'bg-cyan-50 text-cyan-700 border-cyan-200/80',
+      value: 'text-brand-900',
+    },
   }[accent];
 
   return (
-    <div className="relative rounded-2xl border border-brand-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.04)] overflow-hidden">
-      <div className={`absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r ${accentMap.bar}`} />
-      <div className="flex items-center gap-2 mb-2">
-        <div className={`w-7 h-7 rounded-lg border ${accentMap.icon} flex items-center justify-center`}>{icon}</div>
-        <p className="text-[11px] uppercase tracking-widest text-brand-500 font-semibold">{label}</p>
+    <div className="rounded-2xl border border-brand-200/80 bg-white p-4.5 shadow-[0_1px_3px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.03)] hover:shadow-md transition-shadow">
+      <div className="flex items-center gap-2.5 mb-2.5">
+        <div className={`w-8 h-8 rounded-xl border ${accentMap.icon} flex items-center justify-center`}>{icon}</div>
+        <p className="text-[11px] uppercase tracking-wider text-brand-500 font-bold">{label}</p>
       </div>
       <p className={`${small ? 'text-sm md:text-base' : 'text-xl'} font-bold ${accentMap.value} tabular-nums`}>{value}</p>
     </div>
@@ -352,7 +403,7 @@ function DetailCard({ icon, title, children }: DetailCardProps) {
         </div>
         <h2 className="text-base font-bold text-brand-900 tracking-tight">{title}</h2>
       </div>
-      <div className="space-y-2.5 text-sm">
+      <div className="space-y-1.5 text-sm">
         {children}
       </div>
     </div>
@@ -363,16 +414,24 @@ interface ProfileRowProps {
   label: string;
   value: string;
   icon?: ReactNode;
+  isBadge?: boolean;
 }
 
-function ProfileRow({ label, value, icon }: ProfileRowProps) {
+function ProfileRow({ label, value, icon, isBadge }: ProfileRowProps) {
   return (
-    <div className="flex items-start justify-between gap-4 py-1.5">
-      <span className="text-brand-500 font-medium text-xs uppercase tracking-wider">{label}</span>
-      <span className="text-brand-900 font-medium text-right inline-flex items-center gap-1.5 text-sm">
-        {icon}
-        {value}
-      </span>
+    <div className="flex items-center justify-between gap-4 py-2 border-b border-brand-100/70 last:border-b-0">
+      <span className="text-brand-500 font-semibold text-[11px] uppercase tracking-wider shrink-0">{label}</span>
+      {isBadge ? (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary-50 text-primary-800 border border-primary-200/80 shadow-2xs">
+          {icon}
+          <span>{value}</span>
+        </span>
+      ) : (
+        <span className="text-brand-900 font-semibold text-right inline-flex items-center gap-1.5 text-sm">
+          {icon}
+          <span>{value}</span>
+        </span>
+      )}
     </div>
   );
 }

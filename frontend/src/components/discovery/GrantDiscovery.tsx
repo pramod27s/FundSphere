@@ -320,7 +320,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
 
       <div className="flex-1 flex flex-col h-full overflow-hidden">
         {/* Top Navbar: Primary Tabs + Live Stats + User Avatar */}
-        <div className="hidden md:flex h-[60px] px-6 items-center justify-between border-b border-primary-100/70 bg-white shrink-0 relative z-20">
+        <div className="hidden md:flex h-[64px] px-6 items-center justify-between border-b border-primary-100/80 bg-white shrink-0 relative z-20">
           <nav className="flex items-center gap-1.5 sm:gap-2">
             <button
               type="button"
@@ -500,9 +500,9 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                 </p>
               </div>
 
-              <div className="flex items-center gap-4 flex-wrap">
-                <div className="flex items-center gap-2 h-9">
-                  <span className="text-[11px] font-semibold text-brand-500 uppercase tracking-wider hidden sm:inline-block leading-none">
+              <div className="flex items-center gap-3 sm:gap-3.5 flex-wrap">
+                <div className="flex items-center gap-1.5 h-7.5">
+                  <span className="text-[10.5px] font-semibold text-brand-500 uppercase tracking-wider hidden sm:inline-block leading-none">
                     {dataSource === 'core' ? 'Per page' : 'Show'}
                   </span>
                   <CustomSelect
@@ -514,7 +514,8 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                         setPageSize(Number(val));
                       }
                     }}
-                    width="w-20"
+                    width="w-[66px]"
+                    size="sm"
                     options={
                       dataSource === 'ai'
                         ? [
@@ -533,16 +534,17 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                   />
                 </div>
 
-                <div className="flex items-center gap-2 h-9">
-                  <span className="text-[11px] font-semibold text-brand-500 uppercase tracking-wider hidden sm:inline-block leading-none">Sort</span>
+                <div className="flex items-center gap-1.5 h-7.5">
+                  <span className="text-[10.5px] font-semibold text-brand-500 uppercase tracking-wider hidden sm:inline-block leading-none">Sort</span>
                   <CustomSelect
                     value={sortBy}
                     onChange={(val) => setSortBy(String(val))}
-                    width="w-52"
+                    width="w-[155px]"
+                    size="sm"
                     options={[
-                      ...(dataSource === 'ai' ? [{ value: 'match', label: 'Match Score (Highest)' }] : []),
-                      { value: 'deadline', label: 'Deadline (Closing Soon)' },
-                      { value: 'funding', label: 'Funding Amount (Highest)' },
+                      ...(dataSource === 'ai' ? [{ value: 'match', label: 'Match Score' }] : []),
+                      { value: 'deadline', label: 'Closing Soon' },
+                      { value: 'funding', label: 'Highest Amount' },
                       { value: 'recent', label: 'Recently Updated' },
                     ]}
                   />
