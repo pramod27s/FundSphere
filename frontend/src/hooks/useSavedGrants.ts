@@ -24,6 +24,22 @@ import {
 import type { DiscoveryGrant } from '../services/discoveryService';
 
 const LEGACY_STORAGE_KEY = 'fundsphere.saved.grants';
+
+/**
+ * Broadcast when a grant is saved/unsaved so independent hook instances
+ * (e.g. the nav rail's badge vs. the grant list) stay in sync without a
+ * shared store.
+ */
+const SAVED_CHANGED_EVENT = 'fundsphere:saved-changed';
+
+interface SavedChangedDetail {
+  id: number;
+  saved: boolean;
+}
+
+function broadcastSavedChange(id: number, saved: boolean) {
+  window.dispatchEvent(new CustomEvent<SavedChangedDetail>(SAVED_CHANGED_EVENT, { detail: { id, saved } }));
+}
 const MIGRATION_FLAG_KEY = 'fundsphere.saved.grants.migrated';
 
 function readLegacyCache(): DiscoveryGrant[] {
@@ -106,6 +122,7 @@ export function useSavedGrants() {
         else next.add(grant.id);
         return next;
       });
+      broadcastSavedChange(grant.id, !wasSaved);
 
       // Optimistic update on the rich list. For an unsave we drop the row;
       // for a save we prepend a synthetic entry which the server response
@@ -144,6 +161,7 @@ export function useSavedGrants() {
           else next.delete(grant.id);
           return next;
         });
+        broadcastSavedChange(grant.id, wasSaved);
         setSavedGrants((prev) =>
           wasSaved
             ? [synthetic, ...prev.filter((e) => e.grant.id !== grant.id)]
@@ -227,6 +245,21 @@ export function useSavedGrantIds() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    const onChange = (event: Event) => {
+      const { id, saved } = (event as CustomEvent<SavedChangedDetail>).detail;
+      setIds((prev) => {
+        if (prev.has(id) === saved) return prev;
+        const next = new Set(prev);
+        if (saved) next.add(id);
+        else next.delete(id);
+        return next;
+      });
+    };
+    window.addEventListener(SAVED_CHANGED_EVENT, onChange);
+    return () => window.removeEventListener(SAVED_CHANGED_EVENT, onChange);
   }, []);
 
   return { savedIds: ids, isSaved: (id: number) => ids.has(id), isLoading };

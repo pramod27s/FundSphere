@@ -70,9 +70,9 @@ function FilterSection({ title, count, children }: { title: string; count: numbe
         className="flex items-center justify-between w-full mb-3 group"
       >
         <div className="flex items-center gap-2">
-          <h4 className="text-[11px] font-bold text-brand-700 uppercase tracking-widest">{title}</h4>
+          <h4 className="text-sm font-semibold text-brand-900">{title}</h4>
           {count > 0 && (
-            <span className="text-[10px] font-bold bg-primary-100 text-primary-700 rounded-full px-1.5 min-w-[18px] h-[18px] flex items-center justify-center tabular-nums">
+            <span className="text-[11px] font-bold bg-primary-100 text-primary-700 rounded-full px-1.5 min-w-[18px] h-[18px] flex items-center justify-center tabular-nums">
               {count}
             </span>
           )}
@@ -138,7 +138,7 @@ export default function FilterSidebar({ filters, onChange, onClose, availableFun
         <div className="flex items-center gap-2.5">
           <AnimatedLogo className="w-10 h-10" />
           <h1 className="text-[22px] font-bold tracking-tight leading-none">
-            <span className="text-teal-600">Fund</span>
+            <span className="text-primary-600">Fund</span>
             <span className="text-brand-900">Sphere</span>
           </h1>
         </div>
@@ -159,12 +159,12 @@ export default function FilterSidebar({ filters, onChange, onClose, availableFun
         </div>
         <div>
           <h2 className="text-sm font-bold text-brand-900 leading-none tracking-tight">Filters</h2>
-          <p className="text-[10px] text-brand-500 mt-1 leading-none">{activeCount > 0 ? `${activeCount} active` : 'Refine results'}</p>
+          <p className="text-[11px] text-brand-500 mt-1 leading-none">{activeCount > 0 ? `${activeCount} active` : 'Refine results'}</p>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 pt-3 pb-5 custom-scrollbar">
-        <FilterSection title="Grant Type" count={filters.grantTypes.length}>
+        <FilterSection title="Grant type" count={filters.grantTypes.length}>
           {(['Research Projects', 'Fellowships', 'Travel Grants', 'Equipment / Lab'] as const).map((label) => (
             <Checkbox
               key={label}
@@ -175,7 +175,7 @@ export default function FilterSidebar({ filters, onChange, onClose, availableFun
           ))}
         </FilterSection>
 
-        <FilterSection title="Applicant Type" count={filters.applicantTypes.length}>
+        <FilterSection title="Applicant type" count={filters.applicantTypes.length}>
           {(['Early Career', 'Students (PhD/MSc)', 'Senior Researchers', 'Startups / Industry'] as const).map((label) => (
             <Checkbox
               key={label}
@@ -186,7 +186,7 @@ export default function FilterSidebar({ filters, onChange, onClose, availableFun
           ))}
         </FilterSection>
 
-        <FilterSection title="Funding Amount" count={filters.fundingRanges.length}>
+        <FilterSection title="Funding amount" count={filters.fundingRanges.length}>
           {(['< ₹5 Lakh', '₹5L - ₹25L', '₹25L - ₹1 Cr', '> ₹1 Cr'] as const).map((label) => (
             <Checkbox
               key={label}
@@ -197,7 +197,7 @@ export default function FilterSidebar({ filters, onChange, onClose, availableFun
           ))}
         </FilterSection>
 
-        <FilterSection title="Deadline Timeline" count={filters.deadlineRanges.length}>
+        <FilterSection title="Deadline" count={filters.deadlineRanges.length}>
           {(['Closing in < 30 days', 'Closing in 1-3 months', 'Closing in > 3 months'] as const).map((label) => (
             <Checkbox
               key={label}
@@ -209,7 +209,7 @@ export default function FilterSidebar({ filters, onChange, onClose, availableFun
         </FilterSection>
 
         {sortedFunders.length > 0 && (
-          <FilterSection title="Funding Agency" count={filters.funders.length}>
+          <FilterSection title="Funding agency" count={filters.funders.length}>
             <div className="relative mb-2">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-brand-400 pointer-events-none" />
               <input

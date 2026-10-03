@@ -104,7 +104,7 @@ export default function SavedGrants({ onBack }: SavedGrantsProps) {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-xl border-b border-brand-100/80 px-4 sm:px-6 py-4 flex items-center gap-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sticky top-0 z-30">
+      <div className="bg-white/80 backdrop-blur-xl border-b border-brand-100/80 px-4 sm:px-6 py-4 flex items-center gap-4 shadow-xs sticky top-0 z-30">
         <button
           onClick={onBack}
           className="flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-900 transition-colors px-2 py-1.5 -ml-2 rounded-lg hover:bg-brand-100"
@@ -232,11 +232,11 @@ function SavedGrantCard({ entry, onOpenDetails, onUnsave, onChangeStatus, onSave
   const elevation = statusOpen ? 'relative z-30' : 'relative z-0';
 
   return (
-    <article className={`${elevation} bg-white/90 backdrop-blur-sm border border-brand-200/60 rounded-xl p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:shadow-[0_4px_8px_rgba(15,23,42,0.04),0_12px_28px_rgba(15,23,42,0.06)] hover:border-primary-300/70 focus-within:ring-2 focus-within:ring-primary-300/40 transition-all duration-200 group`}>
+    <article className={`${elevation} bg-white/90 backdrop-blur-sm border border-brand-200/60 rounded-xl p-5 shadow-xs hover:shadow-elevated hover:border-primary-300/70 focus-within:ring-2 focus-within:ring-primary-300/40 transition-all duration-200 group`}>
       {/* Top row: funder + actions */}
       <div className="flex items-start justify-between gap-4 mb-3">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-brand-100 text-brand-700 uppercase tracking-widest">
+          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-brand-100 text-brand-700">
             {grant.funder}
           </span>
           <FreshnessBadge timestamp={grant.lastVerifiedAt ?? grant.lastScrapedAt} />
@@ -324,7 +324,7 @@ function SavedGrantCard({ entry, onOpenDetails, onUnsave, onChangeStatus, onSave
                       >
                         <span className={`w-1.5 h-1.5 rounded-full ${sm.dot}`} />
                         <span className="flex-1 text-brand-800">{sm.label}</span>
-                        {selected && <span className="text-primary-600 text-[10px]">●</span>}
+                        {selected && <span className="text-primary-600 text-[11px]">●</span>}
                       </button>
                     </li>
                   );
@@ -365,7 +365,7 @@ function SavedGrantCard({ entry, onOpenDetails, onUnsave, onChangeStatus, onSave
           />
           <div className="flex items-center justify-between mt-2">
             <span
-              className={`text-[10px] tabular-nums font-medium ${
+              className={`text-[11px] tabular-nums font-medium ${
                 draftNotes.length >= 4000
                   ? 'text-red-600'
                   : draftNotes.length >= 3800
@@ -550,7 +550,7 @@ function FilterChip({
       )}
       {label}
       <span
-        className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] tabular-nums ${
+        className={`ml-1 px-1.5 py-0.5 rounded-full text-[11px] tabular-nums ${
           active ? 'bg-white/20' : 'bg-brand-100 text-brand-600'
         }`}
       >
@@ -566,7 +566,7 @@ function FilterChip({
 
 function EmptyState({ onBack }: { onBack: () => void }) {
   return (
-    <div className="rounded-2xl border border-brand-200/60 bg-white/60 backdrop-blur-sm p-12 flex flex-col items-center justify-center text-center mt-8 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(15,23,42,0.04)]">
+    <div className="rounded-2xl border border-brand-200/60 bg-white/60 backdrop-blur-sm p-12 flex flex-col items-center justify-center text-center mt-8 shadow-medium">
       <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-50 to-primary-100/60 flex items-center justify-center mb-5 shadow-inner border border-primary-100">
         <Bookmark className="w-9 h-9 text-primary-400" />
         <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary-400 rounded-full animate-pulse" />

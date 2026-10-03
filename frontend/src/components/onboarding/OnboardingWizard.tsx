@@ -308,7 +308,7 @@ export default function OnboardingWizard({ onComplete }: { onComplete: (data: Re
           <AnimatedLogo className="w-8 h-8" textClassName="text-lg" showText={true} />
 
           <div className="flex items-center gap-3">
-            <span className="text-xs font-semibold text-brand-500 tracking-wide uppercase">
+            <span className="text-xs font-medium text-brand-500">
               Stage {currentStage + 1} of {stagesConfig.length}
             </span>
             <button

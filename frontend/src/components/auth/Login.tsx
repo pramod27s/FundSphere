@@ -51,7 +51,7 @@ export default function Login({ onLoginSuccess, onNavigateToRegister }: LoginPro
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-50 text-primary-600 mb-4 shadow-inner">
             <Lock size={32} />
           </div>
-          <h2 className="text-3xl font-extrabold text-brand-900 tracking-tight">Welcome Back</h2>
+          <h2 className="font-display text-3xl font-semibold text-brand-900 tracking-tight">Welcome back</h2>
           <p className="text-brand-800/60 mt-2 font-medium">Log in to access your FundSphere account</p>
         </div>
 
@@ -63,7 +63,7 @@ export default function Login({ onLoginSuccess, onNavigateToRegister }: LoginPro
           )}
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold text-brand-800 mb-1">Email Address</label>
+              <label className="block text-sm font-medium text-brand-800 mb-1">Email address</label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-brand-800/40 group-focus-within:text-primary-500 transition-colors">
                   <Mail size={20} />

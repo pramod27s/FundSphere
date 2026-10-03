@@ -43,7 +43,7 @@ export default function MatchBreakdown({ grant, profile }: MatchBreakdownProps) 
 
   return (
     <div className="rounded-xl border border-brand-200/70 bg-white/80 backdrop-blur-sm p-4">
-      <h4 className="text-xs font-semibold uppercase tracking-wider text-brand-500 mb-3">
+      <h4 className="text-sm font-semibold text-brand-900 mb-3">
         Why this match
       </h4>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

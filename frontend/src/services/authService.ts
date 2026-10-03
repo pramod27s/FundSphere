@@ -1,3 +1,5 @@
+import { API_BASE_URL } from '../config';
+
 export interface AuthUser {
   id: number;
   fullName: string;
@@ -22,7 +24,7 @@ export interface RegisterPayload extends AuthCredentials {
   fullName: string;
 }
 
-const API_BASE_URL = 'http://localhost:8080/api/auth';
+const AUTH_BASE_URL = `${API_BASE_URL}/api/auth`;
 const STORAGE_KEY = 'fundsphere.auth.session';
 
 export function loadSession(): AuthSession | null {
@@ -65,7 +67,7 @@ export async function refreshToken(refreshTokenValue: string): Promise<AuthSessi
 }
 
 export async function logout(refreshTokenValue?: string): Promise<void> {
-  await fetch(`${API_BASE_URL}/logout`, {
+  await fetch(`${AUTH_BASE_URL}/logout`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -118,7 +120,7 @@ export function friendlyAuthError(err: unknown, mode: 'login' | 'register'): str
 }
 
 async function post<T>(path: string, payload: unknown): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(`${AUTH_BASE_URL}${path}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

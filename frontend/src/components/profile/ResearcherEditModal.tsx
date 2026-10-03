@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useId, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -16,6 +16,7 @@ import {
 import type { ResearcherResponse, ResearcherRequest } from '../../services/researcherService';
 import { enrichFromOrcid } from '../../services/researcherService';
 import { toast } from 'react-hot-toast';
+import { useDialog } from '../../hooks/useDialog';
 
 interface ResearcherEditModalProps {
   isOpen: boolean;
@@ -84,6 +85,9 @@ export default function ResearcherEditModal({
   onSave,
 }: ResearcherEditModalProps) {
   const [activeTab, setActiveTab] = useState<TabType>('organization');
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  useDialog(dialogRef, onClose, isOpen);
   const [isSaving, setIsSaving] = useState(false);
   const [isEnriching, setIsEnriching] = useState(false);
   const [keywordInput, setKeywordInput] = useState('');
@@ -208,6 +212,11 @@ export default function ResearcherEditModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-950/60 backdrop-blur-sm overflow-y-auto">
       <motion.div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
         initial={{ opacity: 0, scale: 0.96, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 10 }}
@@ -216,8 +225,8 @@ export default function ResearcherEditModal({
         {/* Modal Header */}
         <div className="relative px-6 py-5 border-b border-brand-100 bg-gradient-to-r from-primary-50/60 via-white to-white flex items-center justify-between shrink-0">
           <div>
-            <h2 className="text-xl font-bold text-brand-900 tracking-tight flex items-center gap-2">
-              Edit Researcher Profile
+            <h2 id={titleId} className="text-xl font-bold text-brand-900 tracking-tight flex items-center gap-2">
+              Edit researcher profile
             </h2>
             <p className="text-xs text-brand-500 mt-0.5">
               Update your research profile to improve grant discovery and matching accuracy
@@ -226,6 +235,7 @@ export default function ResearcherEditModal({
           <button
             type="button"
             onClick={onClose}
+            aria-label="Close"
             className="p-2 rounded-xl text-brand-400 hover:text-brand-700 hover:bg-brand-100/80 transition-colors"
           >
             <X className="w-5 h-5" />
@@ -276,7 +286,7 @@ export default function ResearcherEditModal({
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-brand-700 uppercase tracking-wider mb-1.5">
+                    <label className="block text-sm font-medium text-brand-700 mb-1.5">
                       User Type *
                     </label>
                     <select
@@ -292,7 +302,7 @@ export default function ResearcherEditModal({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-brand-700 uppercase tracking-wider mb-1.5">
+                    <label className="block text-sm font-medium text-brand-700 mb-1.5">
                       Position / Role *
                     </label>
                     <select
@@ -309,7 +319,7 @@ export default function ResearcherEditModal({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-brand-700 uppercase tracking-wider mb-1.5">
+                    <label className="block text-sm font-medium text-brand-700 mb-1.5">
                       Institution / University Name *
                     </label>
                     <input
@@ -323,7 +333,7 @@ export default function ResearcherEditModal({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-brand-700 uppercase tracking-wider mb-1.5">
+                    <label className="block text-sm font-medium text-brand-700 mb-1.5">
                       Department / School
                     </label>
                     <input
@@ -338,7 +348,7 @@ export default function ResearcherEditModal({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-brand-700 uppercase tracking-wider mb-1.5">
+                    <label className="block text-sm font-medium text-brand-700 mb-1.5">
                       Institution Type
                     </label>
                     <select
@@ -353,7 +363,7 @@ export default function ResearcherEditModal({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-brand-700 uppercase tracking-wider mb-1.5">
+                    <label className="block text-sm font-medium text-brand-700 mb-1.5">
                       Education Level
                     </label>
                     <select
@@ -379,7 +389,7 @@ export default function ResearcherEditModal({
                 className="space-y-4"
               >
                 <div>
-                  <label className="block text-xs font-semibold text-brand-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-sm font-medium text-brand-700 mb-1.5">
                     Primary Domain / Field *
                   </label>
                   <select
@@ -396,7 +406,7 @@ export default function ResearcherEditModal({
 
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-semibold text-brand-700 uppercase tracking-wider">
+                    <label className="block text-sm font-medium text-brand-700">
                       ORCID iD (Optional)
                     </label>
                     <button
@@ -419,7 +429,7 @@ export default function ResearcherEditModal({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-brand-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-sm font-medium text-brand-700 mb-1.5">
                     Research Summary & Focus
                   </label>
                   <textarea
@@ -432,7 +442,7 @@ export default function ResearcherEditModal({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-brand-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-sm font-medium text-brand-700 mb-1.5">
                     Research Keywords & Tags
                   </label>
                   <div className="flex gap-2 mb-2.5">
@@ -494,7 +504,7 @@ export default function ResearcherEditModal({
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-brand-700 uppercase tracking-wider mb-1.5">
+                    <label className="block text-sm font-medium text-brand-700 mb-1.5">
                       Country *
                     </label>
                     <input
@@ -508,7 +518,7 @@ export default function ResearcherEditModal({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-brand-700 uppercase tracking-wider mb-1.5">
+                    <label className="block text-sm font-medium text-brand-700 mb-1.5">
                       Citizenship / Nationality
                     </label>
                     <input
@@ -523,7 +533,7 @@ export default function ResearcherEditModal({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-brand-700 uppercase tracking-wider mb-1.5">
+                    <label className="block text-sm font-medium text-brand-700 mb-1.5">
                       State / Province
                     </label>
                     <input
@@ -536,7 +546,7 @@ export default function ResearcherEditModal({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-brand-700 uppercase tracking-wider mb-1.5">
+                    <label className="block text-sm font-medium text-brand-700 mb-1.5">
                       City
                     </label>
                     <input
@@ -560,7 +570,7 @@ export default function ResearcherEditModal({
                 className="space-y-4"
               >
                 <div>
-                  <label className="block text-xs font-semibold text-brand-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-sm font-medium text-brand-700 mb-1.5">
                     Preferred Grant Type
                   </label>
                   <select
@@ -576,7 +586,7 @@ export default function ResearcherEditModal({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-brand-700 uppercase tracking-wider mb-1.5">
+                    <label className="block text-sm font-medium text-brand-700 mb-1.5">
                       Min Target Amount (₹)
                     </label>
                     <input
@@ -590,7 +600,7 @@ export default function ResearcherEditModal({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-brand-700 uppercase tracking-wider mb-1.5">
+                    <label className="block text-sm font-medium text-brand-700 mb-1.5">
                       Max Target Amount (₹)
                     </label>
                     <input
@@ -606,7 +616,7 @@ export default function ResearcherEditModal({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                   <div>
-                    <label className="block text-xs font-semibold text-brand-700 uppercase tracking-wider mb-1.5">
+                    <label className="block text-sm font-medium text-brand-700 mb-1.5">
                       Years of Research Experience
                     </label>
                     <input

@@ -152,7 +152,7 @@ export default function WritingProposal({ onBack }: WritingProposalProps) {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-xl border-b border-brand-100/80 px-4 sm:px-6 py-4 flex items-center gap-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sticky top-0 z-30">
+      <div className="bg-white/80 backdrop-blur-xl border-b border-brand-100/80 px-4 sm:px-6 py-4 flex items-center gap-4 shadow-xs sticky top-0 z-30">
         <button
           onClick={onBack}
           className="flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-900 transition-colors px-2 py-1.5 -ml-2 rounded-lg hover:bg-brand-100"
@@ -258,7 +258,7 @@ function UploadForm(props: UploadFormProps) {
   return (
     <div className="space-y-6 mt-4">
       {/* Hero */}
-      <div className="rounded-2xl border border-brand-200/60 bg-white/70 backdrop-blur-sm p-6 sm:p-8 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(15,23,42,0.04)]">
+      <div className="rounded-2xl border border-brand-200/60 bg-white/70 backdrop-blur-sm p-6 sm:p-8 shadow-medium">
         <div className="flex items-start gap-4">
           <div className="relative w-14 h-14 rounded-xl bg-gradient-to-br from-primary-50 to-primary-100/60 flex items-center justify-center shadow-inner border border-primary-100 shrink-0">
             <FileText className="w-7 h-7 text-primary-500" />
@@ -294,7 +294,7 @@ function UploadForm(props: UploadFormProps) {
 
       {/* Optional title */}
       <div className="rounded-2xl border border-brand-200/60 bg-white/70 backdrop-blur-sm p-5">
-        <label className="block text-xs font-semibold text-brand-700 uppercase tracking-wider mb-2">
+        <label className="block text-sm font-medium text-brand-700 mb-2">
           Grant Title <span className="text-brand-500 font-normal normal-case">(optional)</span>
         </label>
         <input
@@ -408,7 +408,7 @@ function FileDropZone({ label, description, file, onFile }: FileDropZoneProps) {
             <FileText className="w-4 h-4 text-primary-600 shrink-0" />
             <div className="flex-1 min-w-0 text-left">
               <p className="text-xs font-semibold text-brand-900 truncate">{file.name}</p>
-              <p className="text-[10px] text-brand-500">{formatBytes(file.size)}</p>
+              <p className="text-[11px] text-brand-500">{formatBytes(file.size)}</p>
             </div>
             <button
               onClick={(e) => {
@@ -493,7 +493,7 @@ function ModeCard({
       <div className="flex items-center justify-between mb-1">
         <span className="text-sm font-bold text-brand-900">{title}</span>
         <span
-          className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+          className={`text-[11px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full ${
             active ? 'bg-primary-100 text-primary-700' : 'bg-brand-100 text-brand-500'
           }`}
         >
@@ -552,7 +552,7 @@ interface RevisionFormProps {
 function RevisionForm(props: RevisionFormProps) {
   return (
     <div className="space-y-5 mt-4">
-      <div className="rounded-2xl border border-brand-200/60 bg-white/70 backdrop-blur-sm p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(15,23,42,0.04)]">
+      <div className="rounded-2xl border border-brand-200/60 bg-white/70 backdrop-blur-sm p-6 shadow-medium">
         <div className="flex items-start gap-4 mb-4">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-50 to-primary-100/60 flex items-center justify-center shadow-inner border border-primary-100 shrink-0">
             <Sparkles className="w-6 h-6 text-primary-500" />
@@ -629,7 +629,7 @@ function RevisionForm(props: RevisionFormProps) {
 function LockedInfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-brand-50 border border-brand-100">
-      <span className="text-[10px] font-bold uppercase tracking-wider text-brand-500 shrink-0">
+      <span className="text-xs font-medium text-brand-500 shrink-0">
         {label}
       </span>
       <span className="text-xs font-semibold text-brand-800 truncate">{value}</span>
@@ -661,9 +661,9 @@ function DiffSummaryCard({ diff }: { diff: AnalysisDiff }) {
   );
 
   return (
-    <div className="rounded-2xl border border-primary-200/60 bg-gradient-to-br from-primary-50/60 via-white to-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(15,23,42,0.04)]">
+    <div className="rounded-2xl border border-primary-200/60 bg-gradient-to-br from-primary-50/60 via-white to-white p-6 shadow-medium">
       <div className="flex flex-wrap items-center gap-3 mb-4">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-primary-700 bg-primary-100 rounded-full px-2.5 py-1">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-primary-700 bg-primary-100 rounded-full px-2.5 py-1">
           Revision Compare
         </span>
         <h2 className="text-base font-bold text-brand-900">{headline}</h2>
@@ -671,12 +671,12 @@ function DiffSummaryCard({ diff }: { diff: AnalysisDiff }) {
 
       <div className="flex items-center gap-4 mb-5">
         <div className="text-center">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-brand-500">Before</div>
+          <div className="text-xs font-medium text-brand-500">Before</div>
           <div className="text-2xl font-bold text-brand-800">{diff.previousScore}</div>
         </div>
         <ArrowRight className="w-5 h-5 text-brand-400" />
         <div className="text-center">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-brand-500">After</div>
+          <div className="text-xs font-medium text-brand-500">After</div>
           <div className="text-2xl font-bold text-brand-900">{diff.currentScore}</div>
         </div>
         <div
@@ -700,7 +700,7 @@ function DiffSummaryCard({ diff }: { diff: AnalysisDiff }) {
             <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3">
               <div className="flex items-center gap-1.5 mb-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+                <span className="text-xs font-medium text-emerald-700">
                   Now included
                 </span>
               </div>
@@ -720,7 +720,7 @@ function DiffSummaryCard({ diff }: { diff: AnalysisDiff }) {
             <div className="rounded-xl border border-red-200 bg-red-50/70 p-3">
               <div className="flex items-center gap-1.5 mb-1.5">
                 <XCircle className="w-3.5 h-3.5 text-red-600" />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-red-700">
+                <span className="text-xs font-medium text-red-700">
                   Newly missing
                 </span>
               </div>
@@ -741,7 +741,7 @@ function DiffSummaryCard({ diff }: { diff: AnalysisDiff }) {
 
       {changedSections.length > 0 ? (
         <div>
-          <h3 className="text-[10px] font-bold uppercase tracking-wider text-brand-500 mb-2">
+          <h3 className="text-sm font-semibold text-brand-900 mb-2">
             Section changes ({changedSections.length})
           </h3>
           <ul className="space-y-1.5">
@@ -931,16 +931,16 @@ function ResultsToolbar({
 function ScoreHero({ analysis }: { analysis: ProposalAnalysis }) {
   const tone = scoreTone(analysis.overall_score);
   return (
-    <div className="rounded-2xl border border-brand-200/60 bg-white/70 backdrop-blur-sm p-6 sm:p-8 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(15,23,42,0.04)]">
+    <div className="rounded-2xl border border-brand-200/60 bg-white/70 backdrop-blur-sm p-6 sm:p-8 shadow-medium">
       <div className="flex items-start gap-6 flex-col sm:flex-row">
         <ScoreRing score={analysis.overall_score} tone={tone} />
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-primary-700 bg-primary-50 border border-primary-200/60 rounded-full px-2.5 py-1">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-primary-700 bg-primary-50 border border-primary-200/60 rounded-full px-2.5 py-1">
               {analysis.mode === 'deep' ? 'Deep Analysis' : 'Quick Analysis'}
             </span>
             {analysis.grant_title && (
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-600 bg-brand-100 rounded-full px-2.5 py-1 truncate max-w-full">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-brand-600 bg-brand-100 rounded-full px-2.5 py-1 truncate max-w-full">
                 {analysis.grant_title}
               </span>
             )}
@@ -978,7 +978,7 @@ function ScoreRing({ score, tone }: { score: number; tone: ToneSpec }) {
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className={`text-2xl font-bold ${tone.text}`}>{score}</span>
-        <span className="text-[10px] font-bold uppercase tracking-widest text-brand-500">/ 100</span>
+        <span className="text-xs font-medium text-brand-500">/ 100</span>
       </div>
     </div>
   );
@@ -1074,12 +1074,12 @@ function SectionCard({ fb, defaultOpen }: { fb: SectionFeedback; defaultOpen: bo
           <div className="flex flex-wrap items-center gap-2 mb-1.5">
             <span className="text-sm font-bold text-brand-900 truncate">{fb.section_name}</span>
             <span
-              className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${tone.pill}`}
+              className={`text-[11px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full ${tone.pill}`}
             >
               {fb.status}
             </span>
             {citations.length > 0 && (
-              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-brand-100 text-brand-700">
+              <span className="text-[11px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-brand-100 text-brand-700">
                 {citations.length} checks
               </span>
             )}
@@ -1096,7 +1096,7 @@ function SectionCard({ fb, defaultOpen }: { fb: SectionFeedback; defaultOpen: bo
         <p className="text-sm text-brand-700 leading-relaxed mb-3">{fb.feedback}</p>
         {fb.suggestions.length > 0 && (
           <div className="mb-4">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-brand-500 mb-2">
+            <p className="text-xs font-medium text-brand-500 mb-2">
               Suggested improvements
             </p>
             <ul className="space-y-1.5">
@@ -1127,7 +1127,7 @@ function ComplianceChecklist({ citations }: { citations: Citation[] }) {
 
   return (
     <div>
-      <p className="text-[10px] font-bold uppercase tracking-wider text-brand-500 mb-2">
+      <p className="text-xs font-medium text-brand-500 mb-2">
         Compliance checklist
       </p>
       <ul className="space-y-2">
@@ -1169,7 +1169,7 @@ function SeverityPill({ severity }: { severity: Severity }) {
   const tone = severityTone(severity);
   return (
     <span
-      className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${tone}`}
+      className={`text-[11px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full ${tone}`}
     >
       {severity}
     </span>
@@ -1204,7 +1204,7 @@ function ConsistencyIssuesBox({ issues }: { issues: ConsistencyIssue[] }) {
             <div className="flex flex-wrap items-center gap-2 mb-1.5">
               <SeverityPill severity={ci.severity} />
               {ci.sections_involved.length > 0 && (
-                <span className="text-[10px] font-medium text-brand-500 uppercase tracking-wider">
+                <span className="text-xs font-medium text-brand-500">
                   {ci.sections_involved.join(' ↔ ')}
                 </span>
               )}
@@ -1212,7 +1212,7 @@ function ConsistencyIssuesBox({ issues }: { issues: ConsistencyIssue[] }) {
             <p className="text-sm text-brand-900 font-medium leading-relaxed mb-1">{ci.issue}</p>
             {ci.suggestion && (
               <p className="text-xs text-brand-600 leading-relaxed">
-                <span className="font-bold uppercase tracking-wider text-brand-500">Fix:</span>{' '}
+                <span className="font-semibold text-brand-500">Fix:</span>{' '}
                 {ci.suggestion}
               </p>
             )}

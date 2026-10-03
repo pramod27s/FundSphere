@@ -1,18 +1,17 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Sparkles, 
-  ShieldCheck, 
-  Calendar, 
-  ChevronRight, 
-  Bookmark, 
+import {
+  Sparkles,
+  ShieldCheck,
+  Calendar,
+  Bookmark,
   BookmarkCheck,
   Check,
-  Zap,
-  SlidersHorizontal,
   Layers,
-  Clock
+  Clock,
+  TriangleAlert,
 } from 'lucide-react';
+import MatchScoreDial from '../common/MatchScoreDial';
 
 interface Persona {
   id: string;
@@ -165,143 +164,100 @@ export default function InteractiveMatchDemo() {
   const persona = PERSONAS.find((p) => p.id === selectedId) ?? PERSONAS[0];
   const grant = persona.grant;
 
+  const signals = [
+    { label: 'Research fit', weight: 35, value: grant.signals.semantic },
+    { label: 'Eligibility', weight: 25, value: grant.signals.eligibility },
+    { label: 'Keywords', weight: 15, value: grant.signals.keyword },
+    { label: 'Budget fit', weight: 15, value: grant.signals.fundingFit },
+    { label: 'Deadline', weight: 10, value: grant.signals.deadline },
+  ];
+
   return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col gap-6">
-      
-      {/* 1. Persona Switcher Header */}
-      <div className="bg-white border border-brand-200/80 rounded-2xl p-4 sm:p-5 shadow-soft">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
-          <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-primary-600 flex items-center gap-1.5">
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-              Researcher Profile Selector
-            </span>
-            <p className="text-xs text-brand-500 mt-0.5">
-              Select a persona to see how the dashboard ranks, explains, and renders the match:
-            </p>
-          </div>
+    <div className="w-full max-w-4xl mx-auto flex flex-col gap-5 text-left">
+
+      {/* 1. Persona switcher */}
+      <div>
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-3">
+          <p id="persona-label" className="text-sm font-semibold text-brand-800">
+            Choose a researcher
+          </p>
           <button
+            type="button"
             onClick={() => setShowSignals(!showSignals)}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all flex items-center gap-1.5 shrink-0 ${
-              showSignals 
-                ? 'bg-primary-50 text-primary-700 border-primary-300' 
-                : 'bg-white text-brand-600 border-brand-200 hover:bg-brand-50'
-            }`}
+            aria-expanded={showSignals}
+            aria-controls="demo-signals"
+            className="self-start sm:self-auto inline-flex items-center gap-1.5 text-sm font-semibold text-primary-700 hover:text-primary-800 rounded-md"
           >
-            <Layers className="w-3.5 h-3.5 text-primary-600" />
-            <span>{showSignals ? 'Hide Scoring Signals' : 'View 5-Signal Breakdown'}</span>
+            <Layers className="w-4 h-4" aria-hidden="true" />
+            {showSignals ? 'Hide score breakdown' : 'How is the score calculated?'}
           </button>
         </div>
 
-        {/* Persona Tabs */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+        <div role="group" aria-labelledby="persona-label" className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
           {PERSONAS.map((p) => {
             const isSelected = p.id === selectedId;
             return (
               <button
                 key={p.id}
+                type="button"
+                aria-pressed={isSelected}
                 onClick={() => {
                   setSelectedId(p.id);
                   setIsSaved(false);
                 }}
-                className={`text-left p-3 rounded-xl border transition-all text-xs ${
+                className={`text-left px-4 py-3 rounded-2xl border transition-colors ${
                   isSelected
-                    ? 'bg-primary-50/80 border-primary-400 text-brand-900 shadow-sm ring-1 ring-primary-400/30'
-                    : 'bg-white border-brand-200/70 hover:border-brand-300 text-brand-700 hover:bg-brand-50/50'
+                    ? 'bg-white border-primary-500 ring-2 ring-primary-500/20 shadow-soft'
+                    : 'bg-white/60 border-brand-200 hover:border-brand-300 hover:bg-white'
                 }`}
               >
-                <div className="flex items-center justify-between mb-1">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                    isSelected ? 'bg-primary-100 text-primary-800' : 'bg-brand-100 text-brand-600'
-                  }`}>
-                    {p.badge}
-                  </span>
-                  {isSelected && <Zap className="w-3.5 h-3.5 text-primary-600 fill-primary-600" />}
-                </div>
-                <div className="font-bold text-brand-900 truncate">{p.name}</div>
-                <div className="text-[11px] text-brand-500 truncate">{p.role}</div>
+                <span className={`text-xs font-semibold ${isSelected ? 'text-primary-700' : 'text-brand-500'}`}>
+                  {p.badge}
+                </span>
+                <span className="mt-0.5 block font-bold text-brand-900 truncate">{p.name}</span>
+                <span className="block text-sm text-brand-500 truncate">{p.role}</span>
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* 2. Optional 5-Signal Weights Panel */}
-      <AnimatePresence>
+      {/* 2. Optional score breakdown */}
+      <AnimatePresence initial={false}>
         {showSignals && (
           <motion.div
+            id="demo-signals"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="bg-white border border-primary-200 rounded-2xl p-5 shadow-soft">
-              <div className="flex items-center justify-between text-xs font-bold text-brand-800 mb-3 pb-2 border-b border-brand-100">
-                <span className="flex items-center gap-1.5 text-primary-700">
-                  <Layers className="w-4 h-4 text-primary-600" />
-                  Calibrated Scoring Vector Weights (0–100%)
-                </span>
-                <span className="text-[11px] text-brand-500 font-normal">Cross-Encoder & RRF Active</span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 text-xs">
-                <div className="bg-brand-50 p-2.5 rounded-xl border border-brand-200/60">
-                  <div className="flex justify-between text-[11px] text-brand-600 mb-1">
-                    <span>Semantic (35%)</span>
-                    <span className="font-bold text-primary-700">{grant.signals.semantic}%</span>
+            <div className="bg-white border border-brand-200 rounded-2xl p-5 shadow-soft">
+              <p className="text-sm text-brand-600 mb-4">
+                The match score combines five signals. The number in brackets is how much each one counts.
+              </p>
+              <dl className="grid grid-cols-1 sm:grid-cols-5 gap-4">
+                {signals.map((signal) => (
+                  <div key={signal.label}>
+                    <div className="flex justify-between text-sm mb-1.5">
+                      <dt className="text-brand-600">
+                        {signal.label} <span className="text-brand-400">({signal.weight}%)</span>
+                      </dt>
+                      <dd className="font-bold text-brand-900 tabular-nums">{signal.value}</dd>
+                    </div>
+                    <div className="h-1.5 w-full bg-brand-100 rounded-full overflow-hidden" aria-hidden="true">
+                      <div className="h-full bg-primary-500 rounded-full" style={{ width: `${signal.value}%` }} />
+                    </div>
                   </div>
-                  <div className="h-1.5 w-full bg-brand-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-primary-600 rounded-full" style={{ width: `${grant.signals.semantic}%` }} />
-                  </div>
-                </div>
-
-                <div className="bg-brand-50 p-2.5 rounded-xl border border-brand-200/60">
-                  <div className="flex justify-between text-[11px] text-brand-600 mb-1">
-                    <span>Eligibility (25%)</span>
-                    <span className="font-bold text-emerald-700">{grant.signals.eligibility}%</span>
-                  </div>
-                  <div className="h-1.5 w-full bg-brand-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-600 rounded-full" style={{ width: `${grant.signals.eligibility}%` }} />
-                  </div>
-                </div>
-
-                <div className="bg-brand-50 p-2.5 rounded-xl border border-brand-200/60">
-                  <div className="flex justify-between text-[11px] text-brand-600 mb-1">
-                    <span>Keywords (15%)</span>
-                    <span className="font-bold text-cyan-700">{grant.signals.keyword}%</span>
-                  </div>
-                  <div className="h-1.5 w-full bg-brand-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-cyan-600 rounded-full" style={{ width: `${grant.signals.keyword}%` }} />
-                  </div>
-                </div>
-
-                <div className="bg-brand-50 p-2.5 rounded-xl border border-brand-200/60">
-                  <div className="flex justify-between text-[11px] text-brand-600 mb-1">
-                    <span>Funding Fit (15%)</span>
-                    <span className="font-bold text-blue-700">{grant.signals.fundingFit}%</span>
-                  </div>
-                  <div className="h-1.5 w-full bg-brand-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-blue-600 rounded-full" style={{ width: `${grant.signals.fundingFit}%` }} />
-                  </div>
-                </div>
-
-                <div className="bg-brand-50 p-2.5 rounded-xl border border-brand-200/60">
-                  <div className="flex justify-between text-[11px] text-brand-600 mb-1">
-                    <span>Freshness (10%)</span>
-                    <span className="font-bold text-indigo-700">{grant.signals.deadline}%</span>
-                  </div>
-                  <div className="h-1.5 w-full bg-brand-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-indigo-600 rounded-full" style={{ width: `${grant.signals.deadline}%` }} />
-                  </div>
-                </div>
-              </div>
+                ))}
+              </dl>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* 3. Authentic Dashboard Grant Card (Exact renderAiCard UI) */}
+      {/* 3. Grant card — mirrors the real discovery card */}
       <AnimatePresence mode="wait">
         <motion.article
           key={persona.id}
@@ -309,145 +265,84 @@ export default function InteractiveMatchDemo() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -6 }}
           transition={{ duration: 0.2 }}
-          className="relative bg-white/95 backdrop-blur-sm border border-brand-200/70 rounded-2xl p-6 shadow-soft hover:shadow-medium hover:border-primary-300/70 transition-all duration-200"
+          aria-live="polite"
+          className="bg-white border border-brand-200/80 rounded-2xl p-5 sm:p-6 shadow-medium"
         >
-          {/* Top Pill Badges Row */}
-          <div className="flex justify-between items-start gap-4 mb-4">
-            <div className="flex-1">
-              <div className="flex flex-wrap items-center gap-2 mb-2.5">
-                <span className="text-[10px] font-bold px-2.5 py-1 rounded-md bg-brand-100 text-brand-700 uppercase tracking-widest">
-                  {grant.funder}
-                </span>
-
-                {grant.grantType && (
-                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-md bg-primary-50 text-primary-700 border border-primary-200 uppercase tracking-widest">
-                    {grant.grantType}
-                  </span>
-                )}
-
-                {/* Match Score Badge */}
-                <div className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold shadow-sm tabular-nums ${
-                  grant.matchScore > 85 ? 'bg-gradient-to-r from-primary-50 to-primary-100/70 text-primary-700 border border-primary-200' : 'bg-brand-50 text-brand-700 border border-brand-200'
-                }`}>
-                  <Sparkles className="w-3.5 h-3.5 text-primary-500" />
-                  <span>{grant.matchScore}% Match</span>
-                  <div className="w-12 h-1.5 bg-white/80 rounded-full ml-1 overflow-hidden border border-brand-100">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-primary-400 to-primary-600"
-                      style={{ width: `${grant.matchScore}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* Eligibility Status */}
-                <div className="flex items-center gap-1 text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-md">
-                  <ShieldCheck className="w-3.5 h-3.5" /> Eligible
-                </div>
-              </div>
-
-              {/* Freshness Timestamp */}
-              <div className="flex flex-wrap items-center gap-2 mb-2 text-xs text-brand-500">
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-brand-50 border border-brand-200/60 text-[11px] font-medium text-brand-600">
-                  <Clock className="w-3 h-3 text-brand-400" />
-                  {grant.lastVerified}
-                </span>
-              </div>
-
-              {/* Grant Title */}
-              <h3 className="text-lg sm:text-xl font-bold text-brand-900 tracking-tight leading-snug">
+          <div className="flex items-start gap-4">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-brand-500">
+                <span className="font-semibold text-brand-700">{grant.funder}</span>
+                <span aria-hidden="true"> · </span>
+                {grant.grantType}
+              </p>
+              <h3 className="mt-1.5 text-lg sm:text-xl font-bold text-brand-900 tracking-tight leading-snug text-pretty">
                 {grant.title}
               </h3>
-
-              {/* Tags */}
-              <div className="flex flex-wrap gap-1.5 mt-2.5">
-                {grant.tags.map((tag) => (
-                  <span key={tag} className="text-xs px-2.5 py-0.5 rounded-full bg-brand-50 text-brand-600 border border-brand-200/70 font-medium">
-                    {tag}
-                  </span>
-                ))}
-              </div>
             </div>
 
-            {/* Bookmark Action */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-start gap-1 shrink-0">
+              <MatchScoreDial score={grant.matchScore} />
               <button
                 type="button"
                 onClick={() => setIsSaved(!isSaved)}
-                className={`p-2 rounded-lg transition-colors shrink-0 ${
-                  isSaved
-                    ? 'text-primary-600 bg-primary-50 hover:bg-primary-100'
-                    : 'text-brand-400 hover:text-primary-500 hover:bg-primary-50'
+                aria-pressed={isSaved}
+                aria-label={isSaved ? 'Remove from saved' : 'Save grant'}
+                className={`p-2 rounded-lg transition-colors ${
+                  isSaved ? 'text-primary-600 bg-primary-50' : 'text-brand-400 hover:text-primary-600 hover:bg-primary-50'
                 }`}
-                title={isSaved ? 'Remove from saved' : 'Save grant'}
               >
-                {isSaved ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
+                {isSaved ? <BookmarkCheck className="w-5 h-5" /> : <Bookmark className="w-5 h-5" />}
               </button>
             </div>
           </div>
 
-          {/* AI Reasoning Box (Exact FundSphere gradient + vertical left accent bar) */}
-          <div className="mb-4 relative overflow-hidden bg-gradient-to-br from-primary-50/80 via-primary-50/40 to-white border border-primary-100/70 rounded-xl p-4 text-sm text-brand-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
-            <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-primary-400 to-primary-600" />
-            <p className="flex items-start gap-2 pl-1 leading-relaxed text-xs sm:text-sm">
-              <Sparkles className="w-4 h-4 text-primary-500 shrink-0 mt-0.5" />
-              <span>
-                <strong className="font-semibold text-primary-900 mr-1">AI Reasoning:</strong>
-                {grant.rationale}
-              </span>
-            </p>
-          </div>
+          <ul className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm">
+            <li className="flex items-center gap-1.5 font-semibold text-emerald-700">
+              <ShieldCheck className="w-4 h-4" aria-hidden="true" /> {grant.eligibility}
+            </li>
+            <li className={`flex items-center gap-1.5 ${grant.deadlineTone === 'warn' ? 'font-semibold text-amber-700' : 'text-brand-700'}`}>
+              <Calendar className="w-4 h-4 opacity-70" aria-hidden="true" /> {grant.deadlineLabel}
+            </li>
+            <li className="font-semibold text-brand-800 tabular-nums">{grant.amount}</li>
+            <li className="flex items-center gap-1.5 text-brand-500">
+              <Clock className="w-4 h-4 text-brand-400" aria-hidden="true" /> {grant.lastVerified}
+            </li>
+          </ul>
 
-          {/* Why this match criteria breakdown (MatchBreakdown style) */}
-          <div className="mb-4 rounded-xl border border-brand-200/70 bg-brand-50/40 p-3.5">
-            <h4 className="text-[11px] font-bold uppercase tracking-wider text-brand-500 mb-2.5">
-              Why this match ({persona.name})
-            </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <p className="mt-4 flex gap-2.5 rounded-xl bg-primary-50/70 px-4 py-3 text-sm text-brand-700 leading-relaxed">
+            <Sparkles className="w-4 h-4 text-primary-600 shrink-0 mt-0.5" aria-hidden="true" />
+            <span>
+              <span className="font-semibold text-primary-900">Why it fits: </span>
+              {grant.rationale}
+            </span>
+          </p>
+
+          <div className="mt-4">
+            <h4 className="text-sm font-semibold text-brand-800 mb-2">Eligibility checks</h4>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5">
               {grant.criteria.map((c) => (
-                <div
-                  key={c.label}
-                  className="flex items-start gap-2 rounded-lg bg-green-50 border border-green-200 px-3 py-2 text-xs"
-                >
-                  <span className="shrink-0 mt-0.5 text-green-700">
-                    <Check className="w-3.5 h-3.5" />
+                <li key={c.label} className="flex items-start gap-2 text-sm">
+                  {c.verdict === 'match' ? (
+                    <Check className="w-4 h-4 mt-0.5 shrink-0 text-emerald-600" aria-label="Meets requirement" />
+                  ) : (
+                    <TriangleAlert className="w-4 h-4 mt-0.5 shrink-0 text-amber-600" aria-label="Needs checking" />
+                  )}
+                  <span>
+                    <span className="font-semibold text-brand-800">{c.label}.</span>{' '}
+                    <span className="text-brand-600">{c.detail}</span>
                   </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="font-bold text-green-800 leading-tight">{c.label}</div>
-                    <div className="text-[11px] text-brand-600 leading-snug mt-0.5">
-                      {c.detail}
-                    </div>
-                  </div>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
 
-          {/* Card Footer: Deadline, Amount & Details Button */}
-          <div className="flex flex-wrap items-center justify-between gap-4 border-t border-brand-100 pt-4 mt-2">
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              
-              {/* Deadline Badge */}
-              <div className={`flex items-center gap-2 px-3 py-1.5 border rounded-lg text-xs font-medium ${
-                grant.deadlineTone === 'warn'
-                  ? 'bg-amber-50 text-amber-700 border-amber-200'
-                  : 'bg-brand-50 text-brand-700 border-brand-200'
-              }`}>
-                <Calendar className="w-3.5 h-3.5 opacity-80" />
-                <span className="whitespace-nowrap">{grant.deadlineLabel}</span>
-              </div>
-
-              {/* Amount Badge */}
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-100 rounded-lg text-green-700 text-xs font-bold whitespace-nowrap tabular-nums">
-                {grant.amount}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1 text-primary-600 font-semibold text-xs transition-colors">
-              <span>Interactive Preview</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </div>
+          <div className="mt-5 flex flex-wrap gap-1.5">
+            {grant.tags.map((tag) => (
+              <span key={tag} className="text-xs font-medium px-2.5 py-1 rounded-full bg-brand-100 text-brand-600">
+                {tag}
+              </span>
+            ))}
           </div>
-
         </motion.article>
       </AnimatePresence>
 

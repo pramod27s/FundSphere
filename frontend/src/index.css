@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
 @import "tailwindcss";
 
 @theme {
@@ -13,6 +11,7 @@
   --color-primary-700: #0f766e;
   --color-primary-800: #115e59;
   --color-primary-900: #134e4a;
+  --color-primary-950: #042f2e;
 
   --color-brand-50: #f8fafc;
   --color-brand-100: #f1f5f9;
@@ -24,14 +23,20 @@
   --color-brand-700: #334155;
   --color-brand-800: #1e293b;
   --color-brand-900: #0f172a;
+  --color-brand-950: #020617;
 
-  --font-sans: 'Inter', sans-serif;
+  /* Self-hosted variable fonts (imported in main.tsx). Inter for all UI;
+     Fraunces only for marketing headlines via the font-display utility. */
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Fraunces Variable', ui-serif, Georgia, 'Times New Roman', serif;
 
   /* Layered shadow tokens for depth */
   --shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 16px rgba(15, 23, 42, 0.04);
   --shadow-medium: 0 1px 2px rgba(15, 23, 42, 0.06), 0 8px 24px rgba(15, 23, 42, 0.06);
   --shadow-elevated: 0 2px 4px rgba(15, 23, 42, 0.06), 0 16px 40px rgba(15, 23, 42, 0.08);
   --shadow-primary-glow: 0 4px 24px rgba(13, 148, 136, 0.15);
+  --shadow-hover: 0 2px 4px rgba(15, 23, 42, 0.04), 0 12px 32px rgba(13, 148, 136, 0.10);
+  --shadow-modal: 0 25px 70px rgba(15, 23, 42, 0.25);
 }
 
 @layer base {
@@ -52,6 +57,17 @@
 
   h1, h2, h3, h4 {
     letter-spacing: -0.015em;
+  }
+
+  /* One consistent, visible keyboard focus ring for every interactive element */
+  :focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: 2px;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 5rem;
   }
 
   /* Tabular numerals for stat values */
@@ -129,6 +145,23 @@
 
 .animate-fade-in-up {
   animation: fade-in-up 0.4s ease-out both;
+}
+
+/* ──────────────────────────────────────────────
+   Respect the OS "reduce motion" setting. Framer Motion is
+   handled separately via <MotionConfig reducedMotion="user">.
+─────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* ──────────────────────────────────────────────

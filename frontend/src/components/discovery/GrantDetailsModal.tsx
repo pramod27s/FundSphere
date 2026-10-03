@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { X, ShieldCheck, ShieldAlert, Calendar, CalendarPlus, FileText, Gavel, Rocket, TrendingUp, ExternalLink, BookmarkPlus, BookmarkCheck } from 'lucide-react';
-import type { ComponentType } from 'react';
+import { useId, useRef, type ComponentType } from 'react';
 import type { DiscoveryGrant } from '../../services/discoveryService';
 import type { ResearcherResponse } from '../../services/researcherService';
 import FreshnessBadge from '../common/FreshnessBadge';
@@ -10,6 +10,7 @@ import MatchBreakdown from '../common/MatchBreakdown';
 import { formatRelativeDeadline, formatKeyDate } from '../../utils/formatDeadline';
 import GlossaryText from '../common/GlossaryText';
 import WhatsAppShareButton from '../common/WhatsAppShareButton';
+import { useDialog } from '../../hooks/useDialog';
 
 interface GrantDetailsModalProps {
   grant: DiscoveryGrant;
@@ -23,6 +24,9 @@ interface GrantDetailsModalProps {
 
 export default function GrantDetailsModal({ grant, onClose, source, isSaved = false, onToggleSave, profile }: GrantDetailsModalProps) {
   const isAi = source === 'ai';
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  useDialog(dialogRef, onClose);
   const deadline = formatRelativeDeadline(grant.deadlineRaw);
   const deadlineTone =
     deadline.tone === 'overdue' ? 'text-red-700'
@@ -75,24 +79,29 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-brand-950/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
+      <div className="fixed inset-0 bg-brand-950/60 backdrop-blur-sm transition-opacity" onClick={onClose} aria-hidden="true" />
 
       {/* Modal Content */}
       <motion.div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
         initial={{ opacity: 0, scale: 0.96, y: 8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-        className="bg-white rounded-2xl shadow-[0_25px_70px_rgba(15,23,42,0.25)] w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col relative z-10 ring-1 ring-brand-200/50">
+        className="bg-white rounded-2xl shadow-modal w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col relative z-10 ring-1 ring-brand-200/50">
         {/* Header with gradient + decorative accent */}
         <div className="relative flex items-start justify-between p-6 border-b border-brand-100 bg-gradient-to-br from-primary-50/60 via-white to-brand-50/40">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary-400 via-primary-500 to-primary-600" />
           <div className="pr-10 relative">
             <div className="mb-2 flex flex-wrap items-center gap-2">
-              <span className="text-[10px] font-bold px-2.5 py-1 rounded-md bg-white text-brand-700 uppercase tracking-widest inline-block border border-brand-200 shadow-sm">
+              <span className="text-[11px] font-semibold px-2.5 py-1 rounded-md bg-white text-brand-700 inline-block border border-brand-200 shadow-sm">
                 {grant.funder}
               </span>
               {grant.grantType && grant.grantType.toUpperCase() !== 'OTHER' && (
-                <span className="text-[10px] font-bold px-2.5 py-1 rounded-md bg-primary-50 text-primary-700 uppercase tracking-widest inline-block border border-primary-200 shadow-sm">
+                <span className="text-[11px] font-semibold px-2.5 py-1 rounded-md bg-primary-50 text-primary-700 uppercase tracking-wide inline-block border border-primary-200 shadow-sm">
                   {grant.grantType}
                 </span>
               )}
@@ -101,11 +110,13 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
               <FreshnessBadge timestamp={grant.lastVerifiedAt ?? grant.lastScrapedAt ?? grant.updatedAt} size="full" />
               <ProviderUpdatedInfo timestamp={grant.lastScrapedAt ?? grant.updatedAt} />
             </div>
-            <h2 className="text-xl sm:text-2xl font-bold text-brand-900 leading-tight tracking-tight">
+            <h2 id={titleId} className="text-xl sm:text-2xl font-bold text-brand-900 leading-tight tracking-tight">
               {grant.title}
             </h2>
           </div>
           <button
+            type="button"
+            data-autofocus
             onClick={onClose}
             className="absolute top-6 right-6 p-2 text-brand-400 hover:text-brand-700 hover:bg-white/80 rounded-full transition-all hover:shadow-sm"
             aria-label="Close"
@@ -119,11 +130,11 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
             <div className={`grid grid-cols-1 gap-3 mb-8 ${isAi ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
               {/* Match Score — only shown in AI mode */}
               {isAi && (
-              <div className="relative p-4 bg-white rounded-xl border border-primary-100/80 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(13,148,136,0.06)] overflow-hidden">
+              <div className="relative p-4 bg-white rounded-xl border border-primary-100/80 shadow-soft overflow-hidden">
                   <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-primary-400 to-primary-600" />
                   <div className="flex items-center gap-2 text-brand-500 mb-1.5">
                       <TrendingUp className="w-3.5 h-3.5" />
-                      <span className="text-[11px] font-semibold uppercase tracking-wider">Match Score</span>
+                      <span className="text-xs font-medium">Match score</span>
                   </div>
                   <div className={`text-2xl font-bold tabular-nums ${grant.matchScore > 90 ? 'text-green-600' : 'text-primary-600'}`}>
                       {grant.matchScore}%
@@ -132,11 +143,11 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
               )}
 
               {/* Deadline */}
-              <div className="relative p-4 bg-white rounded-xl border border-brand-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.04)] overflow-hidden" title={deadline.tooltip || undefined}>
+              <div className="relative p-4 bg-white rounded-xl border border-brand-200/70 shadow-soft overflow-hidden" title={deadline.tooltip || undefined}>
                   <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-brand-300 to-brand-500" />
                   <div className="flex items-center gap-2 text-brand-500 mb-1.5">
                       <Calendar className="w-3.5 h-3.5" />
-                      <span className="text-[11px] font-semibold uppercase tracking-wider">Deadline</span>
+                      <span className="text-xs font-medium">Deadline</span>
                   </div>
                   <div className={`text-xl font-bold tabular-nums ${deadlineTone}`}>
                       {deadline.label}
@@ -150,20 +161,20 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
 
               {/* Funding Amount — Emerald if specified, Neutral Slate if unstated */}
               {isAmountSpecified ? (
-                <div className="relative p-4 bg-white rounded-xl border border-emerald-100/80 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(16,185,129,0.06)] overflow-hidden">
+                <div className="relative p-4 bg-white rounded-xl border border-emerald-100/80 shadow-soft overflow-hidden">
                   <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-emerald-400 to-emerald-600" />
                   <div className="flex items-center gap-2 text-brand-500 mb-1.5">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider">Funding</span>
+                    <span className="text-xs font-medium">Funding</span>
                   </div>
                   <div className="text-xl font-bold text-emerald-700 tabular-nums break-words">
                     {grant.amount}
                   </div>
                 </div>
               ) : (
-                <div className="relative p-4 bg-white rounded-xl border border-brand-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.04)] overflow-hidden">
+                <div className="relative p-4 bg-white rounded-xl border border-brand-200/70 shadow-soft overflow-hidden">
                   <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-brand-300 to-brand-400" />
                   <div className="flex items-center gap-2 text-brand-400 mb-1.5">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider">Funding</span>
+                    <span className="text-xs font-medium">Funding</span>
                   </div>
                   <div className="text-base font-semibold text-brand-600 tabular-nums break-words">
                     Funding amount not specified
@@ -174,7 +185,7 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
 
             {keyDates.length > 0 && (
               <div className="mb-8">
-                <h3 className="text-xs font-semibold text-brand-500 uppercase tracking-wider mb-3">Application Timeline</h3>
+                <h3 className="text-sm font-semibold text-brand-900 mb-3">Application timeline</h3>
                 <div className="flex flex-wrap gap-3">
                   {keyDates.map(({ label, icon: Icon, fmt }) => (
                     <div
@@ -189,7 +200,7 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
                         <Icon className={`w-4 h-4 ${fmt.isPast ? 'text-brand-400' : 'text-primary-600'}`} />
                       </div>
                       <div>
-                        <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-500">{label}</div>
+                        <div className="text-xs font-medium text-brand-500">{label}</div>
                         <div className="text-sm font-bold tabular-nums leading-tight">{fmt.abs}</div>
                         <div className="text-[11px] text-brand-400 tabular-nums">{fmt.hint}</div>
                       </div>
@@ -202,7 +213,7 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
             {/* AI Match Rationale — only shown in AI mode */}
             {isAi && (
               <div className="mb-8">
-                  <h3 className="text-base font-bold text-brand-900 mb-3 tracking-tight uppercase tracking-wider text-xs text-brand-500">AI Match Rationale</h3>
+                  <h3 className="text-sm font-semibold text-brand-900 mb-3">AI match rationale</h3>
                   <div className="relative bg-gradient-to-br from-primary-50 via-primary-50/60 to-white border border-primary-100/80 rounded-xl p-5 text-primary-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] overflow-hidden">
                       <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-primary-400 to-primary-600" />
                       <GlossaryText as="p" className="pl-2">{grant.rationale}</GlossaryText>
@@ -218,7 +229,7 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
             )}
 
             <div className="mb-8">
-                <h3 className="text-xs font-semibold text-brand-500 uppercase tracking-wider mb-3">Eligibility Status</h3>
+                <h3 className="text-sm font-semibold text-brand-900 mb-3">Eligibility status</h3>
                 {grant.eligibility === 'Eligible' ? (
                   <div className="flex items-center gap-3 text-green-800 bg-gradient-to-r from-green-50 to-emerald-50/60 px-5 py-4 rounded-xl border border-green-200/80 shadow-sm">
                     <div className="w-9 h-9 rounded-lg bg-green-100 flex items-center justify-center shrink-0">
@@ -238,7 +249,7 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
 
             {hasValidStages && grant.targetCareerStages && (
               <div className="mb-6">
-                <h3 className="text-xs font-semibold text-brand-500 uppercase tracking-wider mb-3">Ideal Applicants</h3>
+                <h3 className="text-sm font-semibold text-brand-900 mb-3">Ideal applicants</h3>
                 <div className="flex flex-wrap gap-2">
                   {grant.targetCareerStages.map((stage) => (
                     <span key={stage} className="px-3 py-1.5 bg-primary-50/60 border border-primary-200/60 text-primary-700 rounded-lg text-sm font-medium shadow-sm">
@@ -251,7 +262,7 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
 
             {grant.tags.length > 0 && (
               <div className="mb-6">
-                <h3 className="text-xs font-semibold text-brand-500 uppercase tracking-wider mb-3">Tags & Keywords</h3>
+                <h3 className="text-sm font-semibold text-brand-900 mb-3">Tags & keywords</h3>
                 <div className="flex flex-wrap gap-2">
                     {grant.tags.map(tag => (
                       <span key={tag} className="px-3 py-1.5 bg-white border border-brand-200 text-brand-700 rounded-lg text-sm font-medium shadow-sm">
@@ -270,7 +281,7 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
 
             {hasDistinctObjectives && (
               <div className="mt-8 pt-8 border-t border-brand-100/80">
-                <h3 className="text-xs font-semibold text-brand-500 uppercase tracking-wider mb-3">Objectives</h3>
+                <h3 className="text-sm font-semibold text-brand-900 mb-3">Objectives</h3>
                 <GlossaryText as="p" className="text-brand-700 leading-relaxed text-sm md:text-base">
                   {grant.objectives!}
                 </GlossaryText>
@@ -279,7 +290,7 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
 
             {grant.description && (
               <div className="mt-8 pt-8 border-t border-brand-100/80">
-                <h3 className="text-xs font-semibold text-brand-500 uppercase tracking-wider mb-3">Grant Description</h3>
+                <h3 className="text-sm font-semibold text-brand-900 mb-3">Grant description</h3>
                 <GlossaryText as="p" className="text-brand-700 leading-relaxed text-sm md:text-base">{grant.description}</GlossaryText>
               </div>
             )}
@@ -288,13 +299,13 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
               <div className="mt-8 pt-8 border-t border-brand-100/80 grid grid-cols-1 md:grid-cols-2 gap-6">
                 {hasContent(grant.fundingScope) && (
                   <div>
-                    <h3 className="text-xs font-semibold text-brand-500 uppercase tracking-wider mb-2">Funding Scope</h3>
+                    <h3 className="text-sm font-semibold text-brand-900 mb-2">Funding scope</h3>
                     <GlossaryText as="p" className="text-brand-700 leading-relaxed text-sm">{grant.fundingScope!}</GlossaryText>
                   </div>
                 )}
                 {hasContent(grant.grantDuration) && (
                   <div>
-                    <h3 className="text-xs font-semibold text-brand-500 uppercase tracking-wider mb-2">Duration</h3>
+                    <h3 className="text-sm font-semibold text-brand-900 mb-2">Duration</h3>
                     <p className="text-brand-700 leading-relaxed text-sm">{grant.grantDuration!}</p>
                   </div>
                 )}
@@ -305,13 +316,13 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
               <div className="mt-8 pt-8 border-t border-brand-100/80 grid grid-cols-1 md:grid-cols-2 gap-6">
                 {hasContent(grant.eligibilityCriteria) && (
                   <div>
-                    <h3 className="text-xs font-semibold text-brand-500 uppercase tracking-wider mb-2">Eligibility Criteria</h3>
+                    <h3 className="text-sm font-semibold text-brand-900 mb-2">Eligibility criteria</h3>
                     <GlossaryText as="p" className="text-brand-700 leading-relaxed text-sm">{grant.eligibilityCriteria!}</GlossaryText>
                   </div>
                 )}
                 {hasContent(grant.selectionCriteria) && (
                   <div>
-                    <h3 className="text-xs font-semibold text-brand-500 uppercase tracking-wider mb-2">Selection Process</h3>
+                    <h3 className="text-sm font-semibold text-brand-900 mb-2">Selection process</h3>
                     <GlossaryText as="p" className="text-brand-700 leading-relaxed text-sm">{grant.selectionCriteria!}</GlossaryText>
                   </div>
                 )}

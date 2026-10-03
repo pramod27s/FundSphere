@@ -25,7 +25,7 @@ export default function ProviderUpdatedInfo({ timestamp, className = '' }: Provi
 
   return (
     <span
-      className={`inline-flex items-center gap-1 text-[10px] text-brand-400 ${className}`}
+      className={`inline-flex items-center gap-1 text-[11px] text-brand-400 ${className}`}
       title={`Provider's source page last changed: ${parsed.toLocaleString()}`}
     >
       <History className="w-3 h-3" />

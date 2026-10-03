@@ -35,7 +35,7 @@ export default function BackendErrorScreen({ message, onRetry, onSignOut }: Back
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-brand-50 via-white to-primary-50/30">
-      <div className="max-w-md w-full bg-white border border-brand-200/70 rounded-2xl shadow-[0_8px_24px_rgba(15,23,42,0.06),0_1px_2px_rgba(15,23,42,0.04)] p-8 text-center">
+      <div className="max-w-md w-full bg-white border border-brand-200/70 rounded-2xl shadow-medium p-8 text-center">
         <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100/60 flex items-center justify-center border border-amber-200 shadow-inner">
           <ServerCrash className="w-8 h-8 text-amber-600" />
         </div>

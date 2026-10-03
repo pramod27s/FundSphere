@@ -1,19 +1,29 @@
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
 import { Navigate, Outlet, Route, Routes, useLocation, useNavigate, useNavigationType } from 'react-router-dom';
-import OnboardingWizard from './components/onboarding/OnboardingWizard.tsx';
-import GrantDiscovery from './components/discovery/GrantDiscovery.tsx';
-import ResearcherProfile from './components/profile/ResearcherProfile.tsx';
-import AuthPage from './components/auth/AuthPage.tsx';
-import SavedGrants from './components/saved-grants/SavedGrants.tsx';
-import WritingProposal from './components/proposal/WritingProposal.tsx';
 import LandingPage from './components/landing/LandingPage.tsx';
 import BackendErrorScreen from './components/common/BackendErrorScreen.tsx';
+import ErrorBoundary from './components/common/ErrorBoundary.tsx';
 import ScrollToTopButton from './components/common/ScrollToTopButton.tsx';
+import TopLoadingBar from './components/common/TopLoadingBar.tsx';
+import NavRail from './components/common/NavRail.tsx';
+
+// The landing page ships in the main bundle (it's the first paint for most
+// visitors); every other screen is split into its own chunk and fetched on
+// first navigation.
+const OnboardingWizard = lazy(() => import('./components/onboarding/OnboardingWizard.tsx'));
+const GrantDiscovery = lazy(() => import('./components/discovery/GrantDiscovery.tsx'));
+const ResearcherProfile = lazy(() => import('./components/profile/ResearcherProfile.tsx'));
+const AuthPage = lazy(() => import('./components/auth/AuthPage.tsx'));
+const SavedGrants = lazy(() => import('./components/saved-grants/SavedGrants.tsx'));
+const WritingProposal = lazy(() => import('./components/proposal/WritingProposal.tsx'));
 import { loadSession, clearSession } from './services/authService';
 import { ResearcherProvider, useResearcher } from './context/ResearcherContext';
 
 const SCROLL_KEY_PREFIX = 'fundsphere.scroll.';
+
+/** Routes rendered inside <AppShell>, i.e. with the desktop nav rail. */
+const RAIL_ROUTES = ['/discovery', '/saved', '/proposal', '/profile'];
 
 /**
  * Manual scroll-position memory across navigations.
@@ -57,6 +67,7 @@ function ScrollRestoration() {
 function RootLayout() {
   const location = useLocation();
   const centred = location.pathname === '/auth' || location.pathname === '/onboarding';
+  const hasRail = RAIL_ROUTES.includes(location.pathname);
   return (
     <ResearcherProvider>
       <ScrollRestoration />
@@ -68,6 +79,7 @@ function RootLayout() {
         <Toaster
           position="bottom-right"
           gutter={8}
+          containerClassName={hasRail ? 'md:right-24!' : undefined}
           toastOptions={{
             duration: 2800,
             style: {
@@ -84,8 +96,12 @@ function RootLayout() {
             error: { iconTheme: { primary: '#dc2626', secondary: 'white' } },
           }}
         />
-        <Outlet />
-        <ScrollToTopButton />
+        <ErrorBoundary key={location.pathname}>
+          <Suspense fallback={<TopLoadingBar visible />}>
+            <Outlet />
+          </Suspense>
+        </ErrorBoundary>
+        <ScrollToTopButton positionClassName={hasRail ? 'fixed bottom-6 right-6 md:right-26' : undefined} />
       </div>
     </ResearcherProvider>
   );
@@ -217,6 +233,25 @@ function OnboardingRoute() {
   );
 }
 
+/**
+ * Chrome for every signed-in page: content on the left, the nav rail
+ * pinned to the right edge on desktop (padding keeps content clear of it).
+ */
+function AppShell() {
+  const { researcher } = useResearcher();
+  return (
+    <>
+      <div className="md:pr-20">
+        {/* Own boundary so switching tabs keeps the rail mounted while the next screen's chunk loads. */}
+        <Suspense fallback={<TopLoadingBar visible />}>
+          <Outlet />
+        </Suspense>
+      </div>
+      {researcher && <NavRail researcherId={researcher.id} />}
+    </>
+  );
+}
+
 function DiscoveryRoute() {
   const { researcher } = useResearcher();
   return <GrantDiscovery researcher={researcher ?? null} />;
@@ -259,10 +294,12 @@ export default function App() {
         <Route path="/auth" element={<AuthRoute />} />
         <Route path="/onboarding" element={<OnboardingRoute />} />
         <Route element={<RequireResearcher />}>
-          <Route path="/discovery" element={<DiscoveryRoute />} />
-          <Route path="/saved" element={<SavedRoute />} />
-          <Route path="/proposal" element={<ProposalRoute />} />
-          <Route path="/profile" element={<ProfileRoute />} />
+          <Route element={<AppShell />}>
+            <Route path="/discovery" element={<DiscoveryRoute />} />
+            <Route path="/saved" element={<SavedRoute />} />
+            <Route path="/proposal" element={<ProposalRoute />} />
+            <Route path="/profile" element={<ProfileRoute />} />
+          </Route>
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

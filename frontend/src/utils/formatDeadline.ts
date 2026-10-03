@@ -153,3 +153,12 @@ export const DEADLINE_TONE_CLASSES: Record<DeadlineTone, string> = {
   normal: 'bg-brand-50/80 text-brand-700 border-brand-100',
   unknown: 'bg-brand-50/60 text-brand-500 border-brand-100',
 };
+
+/** Text-only tone classes for inline (non-chip) deadline labels. */
+export const DEADLINE_TEXT_CLASSES: Record<DeadlineTone, string> = {
+  overdue: 'text-red-700 font-semibold',
+  urgent: 'text-amber-700 font-semibold',
+  soon: 'text-brand-800 font-medium',
+  normal: 'text-brand-700',
+  unknown: 'text-brand-500',
+};

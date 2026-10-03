@@ -119,7 +119,7 @@ export default function UserAvatarMenu({ researcherId }: UserAvatarMenuProps) {
                 <span>View Profile</span>
               </button>
 
-              {/* Mobile-only shortcuts (hidden on desktop where navbar tabs are present) */}
+              {/* Mobile-only shortcuts (hidden on desktop where the nav rail is present) */}
               <div className="md:hidden">
                 <div className="border-t border-brand-100 my-1" />
                 <button
@@ -129,7 +129,7 @@ export default function UserAvatarMenu({ researcherId }: UserAvatarMenuProps) {
                   <Bookmark className="w-4 h-4 text-primary-600 shrink-0" />
                   <span className="flex-1 text-left">Saved Grants</span>
                   {savedCount > 0 && (
-                    <span className="text-[10px] font-bold tabular-nums bg-primary-100 text-primary-800 px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                    <span className="text-[11px] font-bold tabular-nums bg-primary-100 text-primary-800 px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
                       {savedDisplay}
                     </span>
                   )}

@@ -160,14 +160,14 @@ function ResearcherProfile({ researcher: initialResearcher, onBack, onLogout }: 
     <div className="min-h-screen px-4 py-6 md:px-8 md:py-8">
       <div className="max-w-6xl mx-auto space-y-5">
         {/* Hero header card */}
-        <section className="relative overflow-hidden rounded-2xl border border-primary-100/80 bg-gradient-to-br from-white via-white to-primary-50/40 p-5 md:p-7 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_30px_rgba(13,148,136,0.06)]">
+        <section className="relative overflow-hidden rounded-2xl border border-primary-100/80 bg-gradient-to-br from-white via-white to-primary-50/40 p-5 md:p-7 shadow-soft">
           {/* Decorative accent blur */}
           <div className="absolute -top-12 -right-12 w-48 h-48 bg-gradient-to-br from-primary-100/40 to-transparent rounded-full blur-2xl pointer-events-none" />
 
           <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-5">
             <div className="flex items-start gap-4">
               <div className="relative group">
-                <div className="h-16 w-16 md:h-20 md:w-20 rounded-2xl bg-gradient-to-br from-primary-100 to-primary-200 text-primary-700 flex items-center justify-center shrink-0 overflow-hidden border-2 border-white shadow-[0_4px_16px_rgba(13,148,136,0.20)]">
+                <div className="h-16 w-16 md:h-20 md:w-20 rounded-2xl bg-gradient-to-br from-primary-100 to-primary-200 text-primary-700 flex items-center justify-center shrink-0 overflow-hidden border-2 border-white shadow-primary-glow">
                   {profileImage ? (
                     <img src={profileImage} alt="Profile" className="h-full w-full object-cover" />
                   ) : (
@@ -291,7 +291,7 @@ function ResearcherProfile({ researcher: initialResearcher, onBack, onLogout }: 
             <ProfileRow label="Primary Field" value={formatEnum(researcher.primaryField)} isBadge />
             <ProfileRow label="Preferred Grant Type" value={formatEnum(researcher.preferredGrantType)} isBadge />
             <div className="pt-2 pb-1">
-              <p className="text-brand-500 font-semibold mb-2 text-[11px] uppercase tracking-wider">Keywords</p>
+              <p className="text-brand-500 font-medium mb-2 text-xs">Keywords</p>
               {researcher.keywords && researcher.keywords.length > 0 ? (
                 <div className="flex flex-wrap gap-1.5">
                   {researcher.keywords.map((keyword) => (
@@ -323,7 +323,7 @@ function ResearcherProfile({ researcher: initialResearcher, onBack, onLogout }: 
         </section>
 
         {/* Notifications */}
-        <section className="rounded-2xl border border-brand-200/70 bg-white/80 backdrop-blur-sm p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.04)]">
+        <section className="rounded-2xl border border-brand-200/70 bg-white/80 backdrop-blur-sm p-5 shadow-soft">
           <div className="flex items-center gap-2.5 mb-4">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-50 to-primary-100 border border-primary-200/70 flex items-center justify-center text-primary-600">
               <Bell className="w-4 h-4" />
@@ -378,10 +378,10 @@ function StatCard({ label, value, accent, icon, small }: StatCardProps) {
   }[accent];
 
   return (
-    <div className="rounded-2xl border border-brand-200/80 bg-white p-4.5 shadow-[0_1px_3px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.03)] hover:shadow-md transition-shadow">
+    <div className="rounded-2xl border border-brand-200/80 bg-white p-4.5 shadow-soft hover:shadow-md transition-shadow">
       <div className="flex items-center gap-2.5 mb-2.5">
         <div className={`w-8 h-8 rounded-xl border ${accentMap.icon} flex items-center justify-center`}>{icon}</div>
-        <p className="text-[11px] uppercase tracking-wider text-brand-500 font-bold">{label}</p>
+        <p className="text-xs text-brand-500 font-medium">{label}</p>
       </div>
       <p className={`${small ? 'text-sm md:text-base' : 'text-xl'} font-bold ${accentMap.value} tabular-nums`}>{value}</p>
     </div>
@@ -396,7 +396,7 @@ interface DetailCardProps {
 
 function DetailCard({ icon, title, children }: DetailCardProps) {
   return (
-    <div className="rounded-2xl border border-brand-200/70 bg-white/80 backdrop-blur-sm p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.04)] hover:shadow-[0_4px_8px_rgba(15,23,42,0.04),0_12px_28px_rgba(15,23,42,0.06)] transition-shadow duration-200">
+    <div className="rounded-2xl border border-brand-200/70 bg-white/80 backdrop-blur-sm p-5 shadow-soft hover:shadow-elevated transition-shadow duration-200">
       <div className="flex items-center gap-2.5 mb-4 pb-3 border-b border-brand-100/80">
         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-50 to-primary-100 border border-primary-200/70 flex items-center justify-center text-primary-600">
           {icon}
@@ -420,7 +420,7 @@ interface ProfileRowProps {
 function ProfileRow({ label, value, icon, isBadge }: ProfileRowProps) {
   return (
     <div className="flex items-center justify-between gap-4 py-2 border-b border-brand-100/70 last:border-b-0">
-      <span className="text-brand-500 font-semibold text-[11px] uppercase tracking-wider shrink-0">{label}</span>
+      <span className="text-brand-500 font-medium text-xs shrink-0">{label}</span>
       {isBadge ? (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary-50 text-primary-800 border border-primary-200/80 shadow-2xs">
           {icon}
