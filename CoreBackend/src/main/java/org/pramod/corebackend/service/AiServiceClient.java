@@ -69,6 +69,29 @@ public class AiServiceClient {
     }
 
     /**
+     * Removes every vector chunk of a grant from Pinecone. Sends the same M2M
+     * credentials as the other calls; ai-service rejects unauthenticated requests.
+     */
+    public void deleteGrantVectors(Long grantId) {
+        restClient.delete()
+                .uri("/rag/grant/{id}", grantId)
+                .headers(this::applyAuthHeaders)
+                .retrieve()
+                .toBodilessEntity();
+    }
+
+    private void applyAuthHeaders(HttpHeaders headers) {
+        try {
+            headers.set(HttpHeaders.AUTHORIZATION, "Bearer " + m2mTokenService.getM2mToken());
+        } catch (Exception ex) {
+            // Fallback gracefully if keys are missing
+        }
+        if (StringUtils.hasText(apiKey)) {
+            headers.set("X-API-KEY", apiKey);
+        }
+    }
+
+    /**
      * Forwards two PDFs (proposal + guidelines) and metadata as multipart/form-data
      * to the FastAPI proposal-analysis endpoint and returns the parsed JSON.
      */

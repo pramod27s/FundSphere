@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import requests
 import json
 import uuid
@@ -27,7 +28,6 @@ if sys.stdout.encoding.lower() != 'utf-8':
 
 logger = logging.getLogger(__name__)
 
-FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY", "")
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8080").rstrip("/")
 
 # Firecrawl can fail transiently (504, 502, connection reset, timeout). We retry
@@ -38,10 +38,77 @@ FIRECRAWL_BACKOFF_BASE = float(os.getenv("FIRECRAWL_BACKOFF_BASE", "1.0"))
 FIRECRAWL_TIMEOUT_SECONDS = int(os.getenv("FIRECRAWL_TIMEOUT_SECONDS", "60"))
 
 
-def _require_firecrawl_key() -> str:
-    if not FIRECRAWL_API_KEY:
-        raise RuntimeError("FIRECRAWL_API_KEY env var must be set to call Firecrawl")
-    return FIRECRAWL_API_KEY
+FIRECRAWL_CREDIT_USAGE_URL = "https://api.firecrawl.dev/v1/team/credit-usage"
+# Our scrape uses JSON (LLM) extraction: 1 credit + 4 for the JSON format.
+CREDITS_PER_EXTRACTION = 5
+
+
+class FirecrawlCreditsExhausted(RuntimeError):
+    """Every configured Firecrawl key is out of credits."""
+
+
+def _mask(key: str) -> str:
+    return f"...{key[-4:]}"
+
+
+def _configured_firecrawl_keys() -> list[str]:
+    """FIRECRAWL_API_KEY plus FIRECRAWL_API_KEYS (comma-separated), de-duplicated, in order."""
+    keys: list[str] = []
+    for key in [os.getenv("FIRECRAWL_API_KEY", "")] + os.getenv("FIRECRAWL_API_KEYS", "").split(","):
+        key = key.strip()
+        if key and key not in keys:
+            keys.append(key)
+    return keys
+
+
+class FirecrawlKeyPool:
+    """Spreads extractions over several Firecrawl keys.
+
+    A key that answers 402 (insufficient_credits) is retired for the rest of
+    the process and the request is retried on the next key. When every key
+    is retired, current() raises FirecrawlCreditsExhausted so the caller can
+    stop paying instead of failing page after page.
+    """
+
+    def __init__(self, keys: list[str]):
+        self._keys = list(keys)
+        self._retired: set[str] = set()
+
+    def refresh(self) -> list[dict]:
+        """Read each key's balance (a free call), retire empty keys, and order
+        the rest so credits that reset soonest are spent first (unused
+        credits are lost at the reset). Returns masked info for logging."""
+        report = []
+        for key in self._keys:
+            info = {"key": _mask(key), "remaining": None, "resets": None}
+            try:
+                response = requests.get(FIRECRAWL_CREDIT_USAGE_URL,
+                                        headers={"Authorization": f"Bearer {key}"}, timeout=15)
+                data = response.json().get("data", {}) if response.ok else {}
+                info["remaining"] = data.get("remaining_credits")
+                info["resets"] = (data.get("billing_period_end") or "")[:10] or None
+            except Exception as exc:
+                info["error"] = str(exc)[:120]
+            if info["remaining"] is not None and info["remaining"] < CREDITS_PER_EXTRACTION:
+                self._retired.add(key)
+            report.append((key, info))
+        report.sort(key=lambda pair: (pair[1]["resets"] is None, pair[1]["resets"] or ""))
+        self._keys = [key for key, _ in report]
+        return [info for _, info in report]
+
+    def current(self) -> str:
+        if not self._keys:
+            raise RuntimeError("Set FIRECRAWL_API_KEY or FIRECRAWL_API_KEYS to call Firecrawl")
+        for key in self._keys:
+            if key not in self._retired:
+                return key
+        raise FirecrawlCreditsExhausted("All Firecrawl keys are out of credits")
+
+    def retire(self, key: str) -> None:
+        self._retired.add(key)
+
+
+FIRECRAWL_KEYS = FirecrawlKeyPool(_configured_firecrawl_keys())
 
 
 def _fetch_html(url: str, timeout: int = 15) -> str | None:
@@ -90,6 +157,10 @@ def _fetch_html(url: str, timeout: int = 15) -> str | None:
 GRANT_SCHEMA = {
     "type": "object",
     "properties": {
+        # Gate against listing / index / home pages: the model must otherwise
+        # fill grantTitle + fundingAgency, so without this a page listing 20
+        # calls gets saved as one made-up "grant".
+        "isSingleGrant": {"type": "boolean", "description": "true ONLY if this page (or the #fragment section of it, if the URL has one) describes ONE specific funding opportunity — one grant, fellowship, award, scheme or call. false for listing/index pages, home pages, category pages, news feeds, or pages that link to several calls without detailing one."},
         "grantTitle": {"type": "string", "description": "Title of the grant or fellowship"},
         "fundingAgency": {"type": "string", "description": "The organization providing the funding"},
         "programName": {"type": ["string", "null"], "description": "Specific program name, if applicable"},
@@ -98,6 +169,7 @@ GRANT_SCHEMA = {
             "description": "A detailed 4-6 sentence summary covering: core objective, type of research/project funded, intended impact, and any unique aspects. Never 1-2 sentences."
         },
         "applicationDeadline": {"type": ["string", "null"], "description": "Deadline in ISO format if possible, else text. Return null if not strictly found."},
+        "deadlineType": {"type": "string", "description": "How applications close. FIXED: a specific closing date is given. ROLLING: the page explicitly says applications are accepted throughout the year, at any time, or on a rolling/continuous basis. CALL_BASED: the scheme opens through periodic or annual calls for proposals and no current closing date is given. UNKNOWN: the page does not say, or the page marks the opportunity as closed (even if it mentions rolling applications). A question in an FAQ ('Can I apply throughout the year?') is not evidence; use its answer."},
         "fundingAmountMin": {"type": ["string", "null"], "description": "Minimum funding amount. Must extract if present (e.g. '$10,000', '10 Lakhs', 'Rs. 10,00,000')."},
         "fundingAmountMax": {"type": ["string", "null"], "description": "Maximum funding amount. Must extract if present (e.g. '$50,000', '50 Lakhs', '80 lakh', '50%'). Look for limits, caps, per month/year budgets, or percentages."},
         "fundingCurrency": {"type": ["string", "null"]},
@@ -143,7 +215,7 @@ GRANT_SCHEMA = {
         "decisionDate": {"type": ["string", "null"], "description": "Date results / award decisions are announced or applicants are notified. ISO format if possible. null if not stated."},
         "projectStartDate": {"type": ["string", "null"], "description": "Expected project / funding start date for awarded grants. ISO format if possible. null if not stated."}
     },
-    "required": ["grantTitle", "fundingAgency", "description"]
+    "required": ["isSingleGrant", "grantTitle", "fundingAgency", "description"]
 }
 
 # Fields that define a grant's *content*. The checksum is derived from these so
@@ -195,15 +267,16 @@ def _firecrawl_post(url: str, payload: dict) -> requests.Response | None:
     won't improve with another attempt.
 
     Returns the final Response (success or non-retryable failure) or None
-    if all retries were exhausted with transport errors.
+    if all retries were exhausted with transport errors. A 402 (key out of
+    credits) switches to the next key without using up a retry; raises
+    FirecrawlCreditsExhausted once no key has credits left.
     """
-    headers = {
-        "Authorization": f"Bearer {_require_firecrawl_key()}",
-        "Content-Type": "application/json",
-    }
-
     last_exc: Exception | None = None
-    for attempt in range(1, FIRECRAWL_MAX_RETRIES + 1):
+    attempt = 0
+    while attempt < FIRECRAWL_MAX_RETRIES:
+        key = FIRECRAWL_KEYS.current()
+        headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+        attempt += 1
         try:
             response = requests.post(
                 "https://api.firecrawl.dev/v1/scrape",
@@ -216,6 +289,13 @@ def _firecrawl_post(url: str, payload: dict) -> requests.Response | None:
             sleep_for = _backoff_seconds(attempt)
             print(f"[!] Firecrawl transport error (attempt {attempt}/{FIRECRAWL_MAX_RETRIES}): {exc}. Retrying in {sleep_for:.1f}s...")
             time.sleep(sleep_for)
+            continue
+
+        if response.status_code == 402:
+            # This key is out of credits: retire it and retry on the next one.
+            FIRECRAWL_KEYS.retire(key)
+            print(f"[!] Firecrawl key {_mask(key)} is out of credits; switching to the next key.")
+            attempt -= 1  # a key switch isn't a failed attempt
             continue
 
         if response.status_code < 500 and response.status_code != 429:
@@ -264,7 +344,7 @@ def scrape_grant(url):
         "formats": ["extract"],
         "extract": {
             "schema": GRANT_SCHEMA,
-            "systemPrompt": "You are extracting data for a semantic RAG search engine. Richness and specificity of text matter far more than brevity. Strictly follow the schema. For 'description': Write a detailed 4-6 sentence summary. Explicitly forbidden to write 1-2 sentence summaries. For 'objectives': Copy or closely paraphrase the stated goals directly from the page. If a dedicated objectives section exists, use it fully. For 'eligibilityCriteria': Include ALL conditions found (degree, nationality, age, institution, prior work) — never truncate. For 'researchThemes': Extract specific sub-domains, not broad fields (e.g. prefer 'Quantum Error Correction' over 'Physics'). For 'fundingScope': List what is covered AND what is explicitly excluded if mentioned. If a value isn't found, use null or an empty array. Use null ONLY if genuinely not found. Never fabricate or hallucinate values. If the URL contains a #fragment, extract ONLY the grant matching that fragment. Ensure you find the exact funding amount; do not leave it null if the text mentions amounts like '10 Lakhs', '80 lakh', '50%', or 'Rs. 50,000'. Extensively search the text for any monetary limits, cost caps, overheads, or percentages awarded. In eligibleApplicants, explicitly include degrees (e.g. PhD, MS, B.Tech) and positions (e.g. Postdoc, Researcher) mentioned in the guidelines. For 'requiresPhd': set true ONLY when a completed PhD/doctorate is explicitly mandatory; set false when the text explicitly admits non-PhD applicants; use null when the requirement is unstated — never guess. For 'minExperienceYears': extract the minimum required years of experience as a plain integer only if explicitly stated, else null. For 'citizenshipRequired': list nationality/citizenship restrictions only (e.g. 'must be an Indian citizen' -> ['India']); leave empty when the call is open regardless of nationality. For 'grantType': choose the single closest mechanism from the allowed list (Research Grant, Fellowship, Travel Grant, Scholarship, Startup Funding, Equipment Grant, Conference/Seminar Grant, Other). For 'targetCareerStages': list the career stages addressed (e.g. 'open to early-career researchers within 5 years of PhD' -> ['Early Career']); use ['Any'] when explicitly open to all, and leave empty when unstated. For the key dates ('openingDate', 'loiDeadline', 'decisionDate', 'projectStartDate'): extract each only if explicitly stated, preferring ISO format (YYYY-MM-DD); use null when a given date is not mentioned — never invent or guess dates. Your output will be directly embedded into a vector database. Richer, more specific text produces better search matches. Do not summarize aggressively."
+            "systemPrompt": "You are extracting data for a semantic RAG search engine. First decide 'isSingleGrant': true only when the page (or its #fragment section) describes one specific funding opportunity; false for listing, index, category or home pages that list several calls — in that case still return short placeholder strings for the required text fields. Richness and specificity of text matter far more than brevity. Strictly follow the schema. For 'description': Write a detailed 4-6 sentence summary. Explicitly forbidden to write 1-2 sentence summaries. For 'objectives': Copy or closely paraphrase the stated goals directly from the page. If a dedicated objectives section exists, use it fully. For 'eligibilityCriteria': Include ALL conditions found (degree, nationality, age, institution, prior work) — never truncate. For 'researchThemes': Extract specific sub-domains, not broad fields (e.g. prefer 'Quantum Error Correction' over 'Physics'). For 'fundingScope': List what is covered AND what is explicitly excluded if mentioned. If a value isn't found, use null or an empty array. Use null ONLY if genuinely not found. Never fabricate or hallucinate values. If the URL contains a #fragment, extract ONLY the grant matching that fragment. Ensure you find the exact funding amount; do not leave it null if the text mentions amounts like '10 Lakhs', '80 lakh', '50%', or 'Rs. 50,000'. Extensively search the text for any monetary limits, cost caps, overheads, or percentages awarded. In eligibleApplicants, explicitly include degrees (e.g. PhD, MS, B.Tech) and positions (e.g. Postdoc, Researcher) mentioned in the guidelines. For 'requiresPhd': set true ONLY when a completed PhD/doctorate is explicitly mandatory; set false when the text explicitly admits non-PhD applicants; use null when the requirement is unstated — never guess. For 'minExperienceYears': extract the minimum required years of experience as a plain integer only if explicitly stated, else null. For 'citizenshipRequired': list nationality/citizenship restrictions only (e.g. 'must be an Indian citizen' -> ['India']); leave empty when the call is open regardless of nationality. For 'grantType': choose the single closest mechanism from the allowed list (Research Grant, Fellowship, Travel Grant, Scholarship, Startup Funding, Equipment Grant, Conference/Seminar Grant, Other). For 'targetCareerStages': list the career stages addressed (e.g. 'open to early-career researchers within 5 years of PhD' -> ['Early Career']); use ['Any'] when explicitly open to all, and leave empty when unstated. For 'deadlineType': use ROLLING only when the page states applications are accepted year-round or on a rolling basis, CALL_BASED when it opens through periodic calls without a current date, otherwise FIXED (date given) or UNKNOWN. For the key dates ('openingDate', 'loiDeadline', 'decisionDate', 'projectStartDate'): extract each only if explicitly stated, preferring ISO format (YYYY-MM-DD); use null when a given date is not mentioned — never invent or guess dates. Your output will be directly embedded into a vector database. Richer, more specific text produces better search matches. Do not summarize aggressively."
         }
     }
 
@@ -281,13 +361,13 @@ def scrape_grant(url):
             if not extract.get("applicationDeadline") or str(extract.get("applicationDeadline")).strip().lower() in ["null", "none"]:
                 extract["applicationDeadline"] = "Not Specified"
                 
-            # If only one amount is present, copy it to the other
+            # A lone minimum is a single stated amount, so it's also the maximum.
+            # A lone maximum is a cap ("up to ₹50 lakh"): leave the minimum
+            # empty, or the UI would show "₹50 L – ₹50 L" as if it were fixed.
             min_amt = extract.get("fundingAmountMin")
             max_amt = extract.get("fundingAmountMax")
             if min_amt and not max_amt:
                 extract["fundingAmountMax"] = min_amt
-            elif max_amt and not min_amt:
-                extract["fundingAmountMin"] = max_amt
             
             # Fill in the system-managed fields required by our schema
             extract["id"] = str(uuid.uuid4())
@@ -324,6 +404,53 @@ GRANT_LINK_KEYWORDS = [
     "support", "artificial intelligence", "conference", "seminar",
     "call for proposal",
 ]
+
+
+# Pages that never hold a single grant: site chrome, machine endpoints
+# (sitemaps, APIs, feeds), and non-grant sections. Matched against whole URL
+# path segments, not substrings of the URL, so "call-for-proposals" pages and
+# PDFs under /assets/ are kept: Firecrawl's /v1/scrape parses PDFs with the
+# same schema, and many .gov.in calls are PDF-only.
+NON_GRANT_PATH_SEGMENTS = {
+    "contact", "contact-us", "contactus", "about", "about-us", "aboutus",
+    "privacy", "privacy-policy", "terms", "terms-of-use", "terms-and-conditions",
+    "login", "signin", "sign-in", "register", "signup", "sign-up",
+    "faq", "faqs", "committee", "committees", "structure",
+    "organisation-structure", "organization-structure",
+    "sitemap", "sitemaps", "api", "feed", "rss",
+    "events", "event", "blog", "careers", "career", "jobs", "job",
+    "glossary", "calculators", "listingpage", "intranet",
+}
+# Video and social hosts linked from funder pages ("watch the webinar").
+NON_GRANT_HOSTS = {
+    "youtube.com", "youtu.be", "facebook.com", "twitter.com", "x.com",
+    "linkedin.com", "instagram.com", "wa.me", "t.me",
+}
+# Words inside a segment that mark announcements of winners, not open calls
+# (e.g. "SF-Result-2026-27.pdf", "/result/announcement-award-...").
+NON_GRANT_SEGMENT_WORDS = {"result", "results", "awardee", "awardees", "shortlisted"}
+
+
+def _is_non_grant_url(url: str) -> bool:
+    from urllib.parse import parse_qs, urlparse
+    parsed = urlparse(url)
+    host = (parsed.netloc or "").lower().removeprefix("www.")
+    if host in NON_GRANT_HOSTS:
+        return True
+    path = parsed.path.lower()
+    if path.endswith(".xml") or "sitemap" in path:
+        return True
+    if "page" in parse_qs(parsed.query):  # paginated listing (?page=3)
+        return True
+    segments = [s for s in path.split("/") if s]
+    if segments:
+        segments[-1] = segments[-1].rsplit(".", 1)[0]  # "about-us.html" -> "about-us"
+    for segment in segments:
+        if segment in NON_GRANT_PATH_SEGMENTS:
+            return True
+        if NON_GRANT_SEGMENT_WORDS & set(re.split(r"[-_.]+", segment)):
+            return True
+    return False
 
 
 def _selectors_for(url: str) -> list[str]:
@@ -386,20 +513,12 @@ def crawl_for_grants(start_url, max_required=8):
                         continue
 
                     href = a.get("href")
-                    if not href:
+                    # Same-page anchors ("#accordion") can't be scraped as their
+                    # own grant: the #fragment never reaches the server, so
+                    # Firecrawl sees the whole page and extracts its FIRST grant.
+                    if not href or href.startswith("#"):
                         continue
-
-                    # An "#accordion" href points at the same page; encode the
-                    # grant title as a fragment so Firecrawl extracts THIS grant.
-                    if href == "#accordion":
-                        import urllib.parse
-                        try:
-                            safe_title = urllib.parse.quote(title_source.get_text(strip=True))
-                        except Exception:
-                            safe_title = "accordion"
-                        l = f"{current_url}#{safe_title}"
-                    else:
-                        l = urljoin(current_url, href)
+                    l = urljoin(current_url, href)
 
                     if l not in valid_candidates and l not in visited:
                         valid_candidates.append(l)
@@ -417,12 +536,7 @@ def crawl_for_grants(start_url, max_required=8):
                 if a["href"].startswith("#"):
                     continue
                 
-                # Basic ignore list. NOTE: PDFs are *allowed* — Firecrawl's
-                # /v1/scrape endpoint parses PDFs server-side and runs the
-                # same schema extraction. Many .gov.in grants are PDF-only,
-                # so we keep them in the candidate set.
-                ignore_list = ["assets", "contact", "about", "privacy", "terms", "login", "register", "faq", "committee", "structure", "proposal"]
-                if any(bad in l.lower() for bad in ignore_list):
+                if _is_non_grant_url(l):
                     continue
                 # Skip non-PDF binary asset extensions; PDFs are handled.
                 lower_l = l.lower()
@@ -490,6 +604,9 @@ if __name__ == "__main__":
             break
             
         grant_data = scrape_grant(link)
+        if grant_data and grant_data.get("isSingleGrant") is False:
+            print(f"[-] {link} is not a single grant page (listing/index); skipped.")
+            continue
         if grant_data and grant_data.get("grantTitle") and grant_data.get("fundingAgency"):
             # Optional: Check if we just hallucinated a dummy object that wasn't a grant
             # e.g., if grantTitle is something silly like "Terms of Service"

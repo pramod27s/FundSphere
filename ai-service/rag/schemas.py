@@ -11,6 +11,7 @@ class GrantData(BaseModel):
     description: Optional[str] = Field(default=None, max_length=2000)
     grantUrl: Optional[str] = Field(default=None, max_length=500)
     applicationDeadline: Optional[str] = Field(default=None, max_length=100)
+    deadlineType: Optional[str] = Field(default=None, max_length=16)
     fundingAmountMin: Optional[float] = Field(default=None, ge=0)
     fundingAmountMax: Optional[float] = Field(default=None, ge=0)
     fundingCurrency: Optional[str] = Field(default=None, max_length=50)

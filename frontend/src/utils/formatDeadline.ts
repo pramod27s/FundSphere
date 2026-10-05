@@ -17,7 +17,10 @@
 
 const DAY = 86_400_000;
 
-export type DeadlineTone = 'overdue' | 'urgent' | 'soon' | 'normal' | 'unknown';
+export type DeadlineTone = 'overdue' | 'urgent' | 'soon' | 'normal' | 'open' | 'unknown';
+
+/** How a grant's deadline works, as classified by the scraper. */
+export type DeadlineType = 'FIXED' | 'ROLLING' | 'CALL_BASED' | 'UNKNOWN';
 
 export interface DeadlineFormat {
   /** Short label suitable for chips: e.g. "Closes in 4 weeks" */
@@ -30,14 +33,15 @@ export interface DeadlineFormat {
   isClosed: boolean;
 }
 
-export function formatRelativeDeadline(raw: string | undefined | null): DeadlineFormat {
-  if (!raw) {
-    return { label: 'Deadline TBD', tone: 'unknown', tooltip: '', isClosed: false };
-  }
+export function formatRelativeDeadline(
+  raw: string | undefined | null,
+  deadlineType?: DeadlineType | string | null,
+): DeadlineFormat {
+  if (!raw) return formatUndatedDeadline(deadlineType);
 
   const parsed = new Date(raw);
   if (Number.isNaN(parsed.getTime())) {
-    return { label: 'Deadline TBD', tone: 'unknown', tooltip: raw, isClosed: false };
+    return { ...formatUndatedDeadline(deadlineType), tooltip: raw };
   }
 
   const tooltip = parsed.toLocaleDateString(undefined, {
@@ -88,6 +92,25 @@ export function formatRelativeDeadline(raw: string | undefined | null): Deadline
     tooltip,
     isClosed: false,
   };
+}
+
+/**
+ * No closing date: say how the grant opens instead of a bare "TBD", so a
+ * year-round scheme reads as open rather than as missing data.
+ */
+function formatUndatedDeadline(deadlineType?: DeadlineType | string | null): DeadlineFormat {
+  if (deadlineType === 'ROLLING') {
+    return { label: 'Open all year', tone: 'open', tooltip: 'Applications are accepted year-round', isClosed: false };
+  }
+  if (deadlineType === 'CALL_BASED') {
+    return {
+      label: 'Opens via periodic call',
+      tone: 'unknown',
+      tooltip: 'No call is open right now; applications open when the funder announces one',
+      isClosed: false,
+    };
+  }
+  return { label: 'Deadline TBD', tone: 'unknown', tooltip: '', isClosed: false };
 }
 
 export interface KeyDateFormat {
@@ -151,6 +174,7 @@ export const DEADLINE_TONE_CLASSES: Record<DeadlineTone, string> = {
   urgent: 'bg-amber-50 text-amber-800 border-amber-200',
   soon: 'bg-brand-50 text-brand-700 border-brand-200',
   normal: 'bg-brand-50 text-brand-700 border-brand-100',
+  open: 'bg-primary-50 text-primary-700 border-primary-200',
   unknown: 'bg-brand-50 text-brand-500 border-brand-100',
 };
 
@@ -160,5 +184,6 @@ export const DEADLINE_TEXT_CLASSES: Record<DeadlineTone, string> = {
   urgent: 'text-amber-700 font-semibold',
   soon: 'text-brand-800 font-medium',
   normal: 'text-brand-700',
+  open: 'text-primary-700 font-medium',
   unknown: 'text-brand-500',
 };

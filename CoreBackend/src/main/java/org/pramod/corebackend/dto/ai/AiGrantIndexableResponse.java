@@ -28,6 +28,9 @@ public class AiGrantIndexableResponse {
     private String description;
     private String grantUrl;
     private LocalDateTime applicationDeadline;
+
+    /** FIXED (has a date), ROLLING (accepted year-round), CALL_BASED (opens via periodic calls) or UNKNOWN. */
+    private String deadlineType;
     private LocalDateTime openingDate;
     private LocalDateTime loiDeadline;
     private LocalDateTime decisionDate;

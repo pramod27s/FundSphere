@@ -11,28 +11,22 @@ import org.pramod.corebackend.dto.ai.AiGrantIndexableResponse;
 import org.pramod.corebackend.dto.ai.AiKeywordCandidateResponse;
 import org.pramod.corebackend.dto.ai.AiKeywordSearchRequest;
 import org.pramod.corebackend.dto.ai.AiUserProfileResponse;
-import org.pramod.corebackend.security.M2mTokenService;
+import org.pramod.corebackend.security.InternalAuthVerifier;
 import org.pramod.corebackend.service.AiServiceClient;
 import org.pramod.corebackend.service.GrantService;
 import org.pramod.corebackend.service.ResearcherService;
 import org.pramod.corebackend.service.AiProfileMapper;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-
-import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
 @RestController
 @RequestMapping("/api/ai")
@@ -44,10 +38,7 @@ public class AiBridgeController {
     private final ResearcherService researcherService;
     private final AiServiceClient aiServiceClient;
     private final AiProfileMapper aiProfileMapper;
-    private final M2mTokenService m2mTokenService;
-
-    @Value("${integration.api-key:}")
-    private String expectedApiKey;
+    private final InternalAuthVerifier internalAuthVerifier;
 
     /**
      * Fetches a grant by ID formatted for indexing by the AI service.
@@ -72,6 +63,7 @@ public class AiBridgeController {
                 .description(grant.getDescription())
                 .grantUrl(grant.getGrantUrl())
                 .applicationDeadline(grant.getApplicationDeadline())
+                .deadlineType(grant.getDeadlineType())
                 .openingDate(grant.getOpeningDate())
                 .loiDeadline(grant.getLoiDeadline())
                 .decisionDate(grant.getDecisionDate())
@@ -253,37 +245,7 @@ public class AiBridgeController {
                 .toList();
     }
 
-    /**
-     * ==============================================================================
-     * Internal Authentication Verification
-     * ==============================================================================
-     * Checks if the caller is authorized using either:
-     * 1. Level 2 M2M JWT: RS256 token signed by Spring Boot's private key.
-     * 2. X-API-KEY: Constant-time comparison to prevent timing attacks.
-     */
     private void verifyInternalAuth(String authHeader, String apiKey) {
-        // 1. Check Level 2 Asymmetric M2M Bearer Token
-        if (StringUtils.hasText(authHeader) && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7).trim();
-            if (m2mTokenService != null && m2mTokenService.validateM2mToken(token)) {
-                return; // Valid M2M JWT!
-            }
-        }
-
-        // 2. Check X-API-KEY fallback using constant-time comparison
-        if (StringUtils.hasText(expectedApiKey) && StringUtils.hasText(apiKey)) {
-            if (MessageDigest.isEqual(
-                    expectedApiKey.getBytes(StandardCharsets.UTF_8),
-                    apiKey.getBytes(StandardCharsets.UTF_8))) {
-                return; // Valid API key!
-            }
-        }
-
-        // Fail-closed: Reject any unauthenticated request
-        throw new ResponseStatusException(UNAUTHORIZED, "Unauthorized: Invalid or missing M2M token / API key");
-    }
-
-    private void verifyApiKey(String apiKey) {
-        verifyInternalAuth(null, apiKey);
+        internalAuthVerifier.verify(authHeader, apiKey);
     }
 }

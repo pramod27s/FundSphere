@@ -4,21 +4,29 @@
  */
 package org.pramod.corebackend.service;
 
+import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
 import org.pramod.corebackend.dto.GrantRequest;
 import org.pramod.corebackend.dto.GrantResponse;
 import org.pramod.corebackend.entity.Grant;
 import org.pramod.corebackend.repository.GrantRepository;
+import org.pramod.corebackend.repository.SavedGrantRepository;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.server.ResponseStatusException;
 
-import org.springframework.web.client.RestTemplate;
 import java.math.BigDecimal;
-import java.util.concurrent.CompletableFuture;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -31,8 +39,14 @@ import java.util.stream.Collectors;
 @Service
 public class GrantService {
 
+    /** Longest query tokens used in the keyword-search SQL prefilter (bounds the WHERE clause). */
+    private static final int KEYWORD_PREFILTER_TOKEN_LIMIT = 24;
+    /** Most-recent rows scored when a keyword query has no usable tokens. */
+    private static final int EMPTY_QUERY_CANDIDATES = 200;
+
     private final GrantRepository grantRepository;
     private final GrantIndexingService grantIndexingService;
+    private final SavedGrantRepository savedGrantRepository;
 
     public record SaveOrUpdateResult(GrantResponse response, boolean created) {}
     public record KeywordSearchHit(Long grantId, double keywordScore) {}
@@ -41,9 +55,11 @@ public class GrantService {
     private record DuplicateScore(int score, double titleSimilarity, double agencySimilarity, boolean sameApplicationLink) {}
 
     public GrantService(GrantRepository grantRepository,
-                        GrantIndexingService grantIndexingService) {
+                        GrantIndexingService grantIndexingService,
+                        SavedGrantRepository savedGrantRepository) {
         this.grantRepository = grantRepository;
         this.grantIndexingService = grantIndexingService;
+        this.savedGrantRepository = savedGrantRepository;
     }
 
     /**
@@ -79,7 +95,7 @@ public class GrantService {
                 existing.setNextRetryAt(null);
                 existing.setLastIndexError(null);
                 Grant updated = grantRepository.save(existing);
-                grantIndexingService.tryIndexAsync(updated.getId());
+                indexAfterCommit(updated.getId());
                 return new SaveOrUpdateResult(mapToResponse(updated), false);
             }
 
@@ -94,7 +110,7 @@ public class GrantService {
             grant.setNextRetryAt(null);
             grant.setLastIndexError(null);
             Grant saved = grantRepository.save(grant);
-            grantIndexingService.tryIndexAsync(saved.getId());
+            indexAfterCommit(saved.getId());
             return new SaveOrUpdateResult(mapToResponse(saved), true);
         }
 
@@ -120,7 +136,7 @@ public class GrantService {
         existing.setNextRetryAt(null);
         existing.setLastIndexError(null);
         Grant updated = grantRepository.save(existing);
-        grantIndexingService.tryIndexAsync(updated.getId());
+        indexAfterCommit(updated.getId());
         return new SaveOrUpdateResult(mapToResponse(updated), false);
     }
 
@@ -148,11 +164,7 @@ public class GrantService {
     }
 
     public List<String> getAllGrantUrls() {
-        return grantRepository.findAll()
-                .stream()
-                .map(Grant::getGrantUrl)
-                .filter(url -> url != null && !url.isBlank())
-                .toList();
+        return grantRepository.findAllGrantUrls();
     }
 
     public List<GrantResponse> getAllGrants() {
@@ -184,7 +196,7 @@ public class GrantService {
         existing.setNextRetryAt(null);
         existing.setLastIndexError(null);
         Grant updated = grantRepository.save(existing);
-        grantIndexingService.tryIndexAsync(updated.getId());
+        indexAfterCommit(updated.getId());
         return mapToResponse(updated);
     }
 
@@ -193,8 +205,48 @@ public class GrantService {
         if (!grantRepository.existsById(id)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Grant not found with id: " + id);
         }
+        removeGrant(id);
+    }
+
+    /**
+     * Scraper cleanup hook: deletes the grant stored for this URL (e.g. a
+     * listing page that was wrongly saved as a grant).
+     * Returns the deleted grant's id, or empty if no grant matches the URL.
+     */
+    @Transactional
+    public Optional<Long> deleteGrantByUrl(String grantUrl) {
+        Optional<Grant> grantOpt = findExistingByGrantUrl(normalizeGrantUrl(grantUrl));
+        grantOpt.ifPresent(grant -> removeGrant(grant.getId()));
+        return grantOpt.map(Grant::getId);
+    }
+
+    /** Drops users' bookmarks (FK), the row, and — once committed — its vectors. */
+    private void removeGrant(Long id) {
+        savedGrantRepository.deleteAllByGrantId(id);
         grantRepository.deleteById(id);
-        triggerPineconeDeletion(id);
+        afterCommit(() -> grantIndexingService.tryDeleteAsync(id));
+    }
+
+    /**
+     * Indexing reads the row back over HTTP (ai-service → /api/ai/grants/{id}),
+     * so it must start only after this transaction commits; otherwise it could
+     * index the pre-save version and then clear the reindex flag.
+     */
+    private void indexAfterCommit(Long grantId) {
+        afterCommit(() -> grantIndexingService.tryIndexAsync(grantId));
+    }
+
+    private void afterCommit(Runnable action) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    action.run();
+                }
+            });
+        } else {
+            action.run();
+        }
     }
 
     public GrantResponse getGrantByUrl(String grantUrl) {
@@ -266,12 +318,10 @@ public class GrantService {
     }
 
     public List<Long> getChangedGrantIds(LocalDateTime since) {
-        return grantRepository.findAll().stream()
-                .filter(grant -> isAfterOrEqual(grant.getUpdatedAt(), since)
-                        || isAfterOrEqual(grant.getLastScrapedAt(), since)
-                        || isAfterOrEqual(grant.getCreatedAt(), since))
-                .map(Grant::getId)
-                .toList();
+        if (since == null) {
+            return List.of();
+        }
+        return grantRepository.findIdsChangedSince(since);
     }
 
     public List<KeywordSearchHit> keywordSearch(String query,
@@ -282,7 +332,11 @@ public class GrantService {
         String normalizedQuery = query == null ? "" : query.trim().toLowerCase();
         Set<String> queryTokens = tokenize(normalizedQuery);
 
-        return grantRepository.findAll().stream()
+        List<Grant> candidates = queryTokens.isEmpty()
+                ? grantRepository.findAllByOrderByUpdatedAtDesc(PageRequest.of(0, EMPTY_QUERY_CANDIDATES))
+                : grantRepository.findAll(containsAnyToken(queryTokens));
+
+        return candidates.stream()
                 .filter(grant -> matchesFilters(grant, country, institutionType, applicantType))
                 .map(grant -> new KeywordSearchHit(grant.getId(), keywordScore(grant, normalizedQuery, queryTokens)))
                 .filter(hit -> hit.keywordScore() > 0)
@@ -291,15 +345,39 @@ public class GrantService {
                 .toList();
     }
 
-    private void triggerPineconeDeletion(Long grantId) {
-        CompletableFuture.runAsync(() -> {
-            try {
-                RestTemplate restTemplate = new RestTemplate();
-                restTemplate.delete("http://localhost:8000/rag/grant/" + grantId);
-            } catch (Exception e) {
-                System.err.println("Failed to delete grant from Pinecone for grantId: " + grantId + " - " + e.getMessage());
+    /**
+     * SQL prefilter for keyword search: rows where at least one query token
+     * appears in a scored text column or a tag, so scoring no longer loads the
+     * whole table. keywordScore still scores against every token; only the
+     * prefilter is capped to the longest (most distinctive) tokens.
+     */
+    private Specification<Grant> containsAnyToken(Set<String> tokens) {
+        List<String> prefilterTokens = tokens.stream()
+                .sorted(Comparator.comparingInt(String::length).reversed())
+                .limit(KEYWORD_PREFILTER_TOKEN_LIMIT)
+                .toList();
+
+        return (root, query, cb) -> {
+            query.distinct(true);
+            Join<Grant, String> tags = root.join("tags", JoinType.LEFT);
+            List<Expression<String>> columns = List.of(
+                    cb.lower(root.get("grantTitle")),
+                    cb.lower(root.get("fundingAgency")),
+                    cb.lower(root.get("programName")),
+                    cb.lower(root.get("description")),
+                    cb.lower(root.get("field")),
+                    cb.lower(root.get("eligibleApplicants")),
+                    cb.lower(tags));
+
+            // Tokens are [a-z0-9]+ (see tokenize), so they need no LIKE escaping.
+            List<Predicate> anyMatch = new ArrayList<>();
+            for (String token : prefilterTokens) {
+                for (Expression<String> column : columns) {
+                    anyMatch.add(cb.like(column, "%" + token + "%"));
+                }
             }
-        });
+            return cb.or(anyMatch.toArray(Predicate[]::new));
+        };
     }
 
     // --- Mapping helpers ---
@@ -312,6 +390,7 @@ public class GrantService {
                 .description(request.getDescription())
                 .grantUrl(normalizeGrantUrl(request.getGrantUrl()))
                 .applicationDeadline(request.getApplicationDeadline())
+                .deadlineType(resolveDeadlineType(request))
                 .openingDate(request.getOpeningDate())
                 .loiDeadline(request.getLoiDeadline())
                 .decisionDate(request.getDecisionDate())
@@ -349,6 +428,7 @@ public class GrantService {
         entity.setDescription(request.getDescription());
         entity.setGrantUrl(normalizeGrantUrl(request.getGrantUrl()));
         entity.setApplicationDeadline(request.getApplicationDeadline());
+        entity.setDeadlineType(resolveDeadlineType(request));
         entity.setOpeningDate(request.getOpeningDate());
         entity.setLoiDeadline(request.getLoiDeadline());
         entity.setDecisionDate(request.getDecisionDate());
@@ -388,6 +468,7 @@ public class GrantService {
                 .description(grant.getDescription())
                 .grantUrl(grant.getGrantUrl())
                 .applicationDeadline(grant.getApplicationDeadline())
+                .deadlineType(grant.getDeadlineType())
                 .openingDate(grant.getOpeningDate())
                 .loiDeadline(grant.getLoiDeadline())
                 .decisionDate(grant.getDecisionDate())
@@ -422,6 +503,17 @@ public class GrantService {
                 .build();
     }
 
+    private static final Set<String> DEADLINE_TYPES = Set.of("FIXED", "ROLLING", "CALL_BASED", "UNKNOWN");
+
+    /** A grant with a date is FIXED whatever the scraper said; otherwise trust a known label. */
+    private String resolveDeadlineType(GrantRequest request) {
+        if (request.getApplicationDeadline() != null) {
+            return "FIXED";
+        }
+        String type = request.getDeadlineType() == null ? "" : request.getDeadlineType().trim().toUpperCase();
+        return DEADLINE_TYPES.contains(type) && !type.equals("FIXED") ? type : "UNKNOWN";
+    }
+
     private String normalizeGrantUrl(String grantUrl) {
         if (grantUrl == null) {
             return null;
@@ -435,16 +527,11 @@ public class GrantService {
     }
 
     private Optional<Grant> findExistingByGrantUrl(String normalizedGrantUrl) {
-        Optional<Grant> exactMatch = grantRepository.findByGrantUrl(normalizedGrantUrl);
-        if (exactMatch.isPresent()) {
-            return exactMatch;
+        if (normalizedGrantUrl == null) {
+            return Optional.empty();
         }
-
-        // Fallback for rows inserted before URL normalization existed.
-        return grantRepository.findAll().stream()
-                .filter(grant -> normalizedGrantUrl != null
-                        && normalizedGrantUrl.equals(normalizeGrantUrl(grant.getGrantUrl())))
-                .findFirst();
+        // The trailing-slash spelling covers rows inserted before URL normalization existed.
+        return grantRepository.findFirstByGrantUrlIn(List.of(normalizedGrantUrl, normalizedGrantUrl + "/"));
     }
 
     private boolean sameNormalizedUrl(String left, String right) {
@@ -528,13 +615,6 @@ public class GrantService {
 
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
-    }
-
-    private boolean isAfterOrEqual(LocalDateTime value, LocalDateTime threshold) {
-        if (value == null || threshold == null) {
-            return false;
-        }
-        return !value.isBefore(threshold);
     }
 
     private Set<String> tokenize(String text) {

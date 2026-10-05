@@ -38,6 +38,8 @@ export interface DiscoveryGrant {
   fundingAmountMaxRaw?: number;
   fundingCurrencyRaw?: string;
   deadlineRaw?: string;
+  /** FIXED | ROLLING | CALL_BASED | UNKNOWN */
+  deadlineType?: string;
 }
 
 export interface DiscoveryResult {
@@ -94,6 +96,7 @@ interface CoreGrantResponse {
   targetCareerStages?: string;
   grantUrl: string;
   applicationDeadline?: string;
+  deadlineType?: string;
   openingDate?: string;
   loiDeadline?: string;
   decisionDate?: string;
@@ -254,6 +257,7 @@ function mapRecommendationToGrant(item: RecommendationItem): DiscoveryGrant {
     fundingAmountMaxRaw: asNumber(fields.funding_amount_max),
     fundingCurrencyRaw: asString(fields.funding_currency),
     deadlineRaw,
+    deadlineType: asString(fields.deadline_type),
   };
 }
 
@@ -290,6 +294,7 @@ function mapCoreGrantToDiscoveryGrant(grant: CoreGrantResponse): DiscoveryGrant 
     fundingAmountMaxRaw: grant.fundingAmountMax,
     fundingCurrencyRaw: grant.fundingCurrency,
     deadlineRaw: grant.applicationDeadline,
+    deadlineType: grant.deadlineType,
   };
 }
 

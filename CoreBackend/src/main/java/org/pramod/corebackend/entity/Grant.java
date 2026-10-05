@@ -24,11 +24,13 @@ public class Grant {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String grantTitle;
 
+    @Column(columnDefinition = "TEXT")
     private String fundingAgency;
 
+    @Column(columnDefinition = "TEXT")
     private String programName;
 
     @Column(columnDefinition = "TEXT")
@@ -38,6 +40,15 @@ public class Grant {
     private String grantUrl;
 
     private LocalDateTime applicationDeadline;
+
+    /**
+     * How the deadline works: FIXED (applicationDeadline is set), ROLLING
+     * (applications accepted year-round), CALL_BASED (opens through periodic
+     * calls, no current date) or UNKNOWN. Lets the UI say "Open all year"
+     * instead of a blank deadline.
+     */
+    @Column(length = 16)
+    private String deadlineType;
 
     // --- Additional key dates (for the application timeline display) ---
     /** When applications open / the call goes live. */
@@ -58,12 +69,16 @@ public class Grant {
 
     private String fundingCurrency;
 
+    @Column(columnDefinition = "TEXT")
     private String eligibleCountries;
 
+    @Column(columnDefinition = "TEXT")
     private String eligibleApplicants;
 
+    @Column(columnDefinition = "TEXT")
     private String institutionType;
 
+    @Column(columnDefinition = "TEXT")
     private String field;
 
     @Column(columnDefinition = "TEXT")
@@ -78,6 +93,7 @@ public class Grant {
     @Column(columnDefinition = "TEXT")
     private String selectionCriteria;
 
+    @Column(columnDefinition = "TEXT")
     private String grantDuration;
 
     @Column(columnDefinition = "TEXT")
@@ -95,12 +111,14 @@ public class Grant {
 
     /** Funding mechanism, e.g. "Fellowship", "Research Grant" — matched against
      * the researcher's preferred grant type. */
+    @Column(columnDefinition = "TEXT")
     private String grantType;
 
     /** Comma-separated career stages the grant targets, e.g. "Early Career,Postdoc". */
     @Column(columnDefinition = "TEXT")
     private String targetCareerStages;
 
+    @Column(columnDefinition = "TEXT")
     private String applicationLink;
 
     @Column(nullable = false)

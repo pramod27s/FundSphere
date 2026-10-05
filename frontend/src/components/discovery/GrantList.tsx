@@ -163,7 +163,7 @@ function GrantCard({
     !grant.amount.toLowerCase().includes('tbd');
   const allTags = cleanTags(grant.tags);
   const tags = allTags.slice(0, 3);
-  const deadline = formatRelativeDeadline(grant.deadlineRaw);
+  const deadline = formatRelativeDeadline(grant.deadlineRaw, grant.deadlineType);
   const grantType = formatGrantType(grant.grantType);
 
   return (

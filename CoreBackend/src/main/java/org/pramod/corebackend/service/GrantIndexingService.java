@@ -66,6 +66,19 @@ public class GrantIndexingService {
     }
 
     /**
+     * Removes a deleted grant's vectors from Pinecone. The DB row is already
+     * gone, so there's nothing for the sweeper to retry; a failure is only logged.
+     */
+    @Async
+    public void tryDeleteAsync(Long grantId) {
+        try {
+            aiServiceClient.deleteGrantVectors(grantId);
+        } catch (Throwable t) {
+            log.warning("Vector deletion failed for grantId=" + grantId + ": " + describe(t));
+        }
+    }
+
+    /**
      * Synchronous indexing call. Returns true on success, false on failure.
      * The sweeper invokes this directly inside its scheduled thread so a
      * batch is processed sequentially with predictable backpressure.

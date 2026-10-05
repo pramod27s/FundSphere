@@ -27,10 +27,11 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
   const dialogRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
   useDialog(dialogRef, onClose);
-  const deadline = formatRelativeDeadline(grant.deadlineRaw);
+  const deadline = formatRelativeDeadline(grant.deadlineRaw, grant.deadlineType);
   const deadlineTone =
     deadline.tone === 'overdue' ? 'text-red-700'
     : deadline.tone === 'urgent' ? 'text-amber-700'
+    : deadline.tone === 'open' ? 'text-primary-700'
     : 'text-brand-900';
 
   // Application timeline — only milestones the provider actually published are

@@ -48,9 +48,15 @@ public class SecurityConfig {
                         .requestMatchers("/api/ai/grants/**", "/api/ai/users/**").permitAll()
                         .requestMatchers("/api/ai/rag/index-grant", "/api/ai/rag/index-grants").permitAll()
                         .requestMatchers("/api/ai/rag/recommend").authenticated()
+                        // Scraper endpoints: no user session, but GrantController checks the
+                        // internal M2M token / X-API-KEY on each (InternalAuthVerifier).
                         .requestMatchers(HttpMethod.POST, "/api/grants").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/grants/verify").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/grants/remove").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/grants/urls").permitAll()
+                        // Editing or deleting grant records is an admin task, not a user one.
+                        .requestMatchers(HttpMethod.PUT, "/api/grants/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/grants/**").hasRole("ADMIN")
                         .requestMatchers("/api/grants/**").authenticated()
                         .requestMatchers("/api/researchers/**").authenticated()
                         .requestMatchers("/api/proposal/**").authenticated()

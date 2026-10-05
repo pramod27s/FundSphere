@@ -38,6 +38,7 @@ interface CoreGrantResponse {
   researchThemes?: string;
   grantUrl?: string;
   applicationDeadline?: string;
+  deadlineType?: string;
   fundingAmountMin?: number;
   fundingAmountMax?: number;
   fundingCurrency?: string;
@@ -156,6 +157,7 @@ function mapCoreGrantToDiscoveryGrant(grant: CoreGrantResponse): DiscoveryGrant 
     fundingAmountMaxRaw: grant.fundingAmountMax,
     fundingCurrencyRaw: grant.fundingCurrency,
     deadlineRaw: grant.applicationDeadline,
+    deadlineType: grant.deadlineType,
   };
 }
 

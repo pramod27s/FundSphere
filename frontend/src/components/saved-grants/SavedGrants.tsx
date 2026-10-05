@@ -417,10 +417,11 @@ function SavedGrantCard({ entry, onOpenDetails, onUnsave, onChangeStatus, onSave
       <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-brand-100 text-sm">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-brand-600">
           {(() => {
-            const d = formatRelativeDeadline(grant.deadlineRaw);
+            const d = formatRelativeDeadline(grant.deadlineRaw, grant.deadlineType);
             const tone =
               d.tone === 'overdue' ? 'text-red-700 font-medium'
               : d.tone === 'urgent' ? 'text-amber-800 font-medium'
+              : d.tone === 'open' ? 'text-primary-700 font-medium'
               : 'text-brand-600';
             return (
               <span className={`inline-flex items-center gap-1.5 ${tone}`} title={d.tooltip || undefined}>

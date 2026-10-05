@@ -6,6 +6,7 @@ ai-service/scrape/webscrape/
 ai-service/scrape/.env
 ai-service/scraper_runs.json
 ai-service/scraper/scraper_runs.json
+ai-service/scraper/scraper_failures.json
 ai-service/eval/labels_cache.json
 ai-service/eval/report_*.json
 ai-service/eval/tune_snapshot.json

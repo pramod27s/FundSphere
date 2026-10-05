@@ -7,6 +7,7 @@ package org.pramod.corebackend.controller;
 import lombok.RequiredArgsConstructor;
 import org.pramod.corebackend.dto.GrantRequest;
 import org.pramod.corebackend.dto.GrantResponse;
+import org.pramod.corebackend.security.InternalAuthVerifier;
 import org.pramod.corebackend.service.GrantService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,15 +24,20 @@ import java.util.Map;
 public class GrantController {
 
     private final GrantService grantService;
+    private final InternalAuthVerifier internalAuthVerifier;
 
     /**
      * Creates a new grant or updates an existing one based on checksum logic.
-     * This endpoint is typically consumed by the Python scraper (FastAPI/Firecrawl).
+     * Scraper-only: requires the internal M2M token or X-API-KEY.
      * @param request The grant data payload.
      * @return GrantResponse containing the saved entity and whether it was created or updated.
      */
     @PostMapping
-    public ResponseEntity<GrantResponse> createGrant(@RequestBody GrantRequest request) {
+    public ResponseEntity<GrantResponse> createGrant(
+            @RequestBody GrantRequest request,
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestHeader(value = "X-API-KEY", required = false) String apiKey) {
+        internalAuthVerifier.verify(authHeader, apiKey);
         GrantService.SaveOrUpdateResult result = grantService.saveOrUpdateGrant(request);
         HttpStatus status = result.created() ? HttpStatus.CREATED : HttpStatus.OK;
         return new ResponseEntity<>(result.response(), status);
@@ -62,11 +68,14 @@ public class GrantController {
      * Lightweight endpoint used by the scraper to enumerate every grant URL
      * already in the DB, so it can hash-check each one and bump
      * lastVerifiedAt — even for grants whose source seed no longer links to
-     * them. PermitAll because it leaks no sensitive data (just URLs the
-     * provider already published) and lets the scheduler skip an auth dance.
+     * them. Scraper-only (internal auth); the scraper also calls it before a
+     * run to confirm its credentials work.
      */
     @GetMapping("/urls")
-    public ResponseEntity<List<String>> getAllGrantUrls() {
+    public ResponseEntity<List<String>> getAllGrantUrls(
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestHeader(value = "X-API-KEY", required = false) String apiKey) {
+        internalAuthVerifier.verify(authHeader, apiKey);
         return ResponseEntity.ok(grantService.getAllGrantUrls());
     }
 
@@ -129,7 +138,11 @@ public class GrantController {
      *           to a full scrape/POST).
      */
     @PostMapping("/verify")
-    public ResponseEntity<Map<String, Object>> verifyGrant(@RequestBody Map<String, String> body) {
+    public ResponseEntity<Map<String, Object>> verifyGrant(
+            @RequestBody Map<String, String> body,
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestHeader(value = "X-API-KEY", required = false) String apiKey) {
+        internalAuthVerifier.verify(authHeader, apiKey);
         String grantUrl = body == null ? null : body.get("grantUrl");
         if (grantUrl == null || grantUrl.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of(
@@ -150,5 +163,32 @@ public class GrantController {
                 "grantUrl", grantUrl,
                 "lastVerifiedAt", refreshed.getLastVerifiedAt()
         ));
+    }
+
+    /**
+     * Scraper cleanup hook: deletes the grant stored for a URL that turned out
+     * not to be a single grant (e.g. a listing page), including its bookmarks
+     * and Pinecone vectors. Scraper-only (internal auth).
+     *
+     * Body: {"grantUrl": "https://..."}
+     * Response: {"removed": true, "grantUrl": "...", "grantId": 42} or 404 if no grant matches.
+     */
+    @PostMapping("/remove")
+    public ResponseEntity<Map<String, Object>> removeGrantByUrl(
+            @RequestBody Map<String, String> body,
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestHeader(value = "X-API-KEY", required = false) String apiKey) {
+        internalAuthVerifier.verify(authHeader, apiKey);
+        String grantUrl = body == null ? null : body.get("grantUrl");
+        if (grantUrl == null || grantUrl.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "removed", false,
+                    "error", "grantUrl is required"
+            ));
+        }
+        return grantService.deleteGrantByUrl(grantUrl)
+                .map(id -> ResponseEntity.ok(Map.<String, Object>of("removed", true, "grantUrl", grantUrl, "grantId", id)))
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("removed", false, "grantUrl", grantUrl)));
     }
 }

@@ -27,7 +27,7 @@ export function buildShareMessage(grant: DiscoveryGrant): string {
     lines.push(`Funding: ${grant.amount}`);
   }
 
-  const deadline = formatRelativeDeadline(grant.deadlineRaw);
+  const deadline = formatRelativeDeadline(grant.deadlineRaw, grant.deadlineType);
   if (deadline.tone !== 'unknown') {
     const detail = deadline.tooltip ? ` (${deadline.tooltip})` : '';
     lines.push(`Deadline: ${deadline.label}${detail}`);

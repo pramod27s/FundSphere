@@ -158,6 +158,7 @@ def build_pinecone_records(grant: GrantData) -> list[dict]:
         "application_link": _clean_str(grant.applicationLink),
         "application_deadline": _clean_str(grant.applicationDeadline),
         "deadline_epoch": _to_epoch(grant.applicationDeadline),
+        "deadline_type": _clean_str(getattr(grant, "deadlineType", None)),
         "funding_amount_min": grant.fundingAmountMin,
         "funding_amount_max": grant.fundingAmountMax,
         "funding_currency": _clean_str(grant.fundingCurrency),

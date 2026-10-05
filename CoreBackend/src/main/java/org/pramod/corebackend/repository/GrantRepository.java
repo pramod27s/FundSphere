@@ -7,18 +7,36 @@ package org.pramod.corebackend.repository;
 import org.pramod.corebackend.entity.Grant;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface GrantRepository extends JpaRepository<Grant, Long> {
+public interface GrantRepository extends JpaRepository<Grant, Long>, JpaSpecificationExecutor<Grant> {
 
     Optional<Grant> findByGrantUrl(String grantUrl);
+
+    /** Lookup across URL spellings (e.g. with/without a trailing slash on legacy rows). */
+    Optional<Grant> findFirstByGrantUrlIn(Collection<String> grantUrls);
+
+    @Query("SELECT g.grantUrl FROM Grant g WHERE g.grantUrl IS NOT NULL AND g.grantUrl <> ''")
+    List<String> findAllGrantUrls();
+
+    @Query("""
+            SELECT g.id FROM Grant g
+            WHERE g.updatedAt >= :since
+               OR g.lastScrapedAt >= :since
+               OR g.createdAt >= :since
+            """)
+    List<Long> findIdsChangedSince(@Param("since") LocalDateTime since);
+
+    List<Grant> findAllByOrderByUpdatedAtDesc(Pageable pageable);
 
     boolean existsByGrantUrl(String grantUrl);
 

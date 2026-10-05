@@ -47,6 +47,7 @@ export function formatFundingRange(
 
   if (code === 'INR') {
     if (typeof min === 'number' && typeof max === 'number') {
+      if (min === max) return formatInr(max);
       // Compact suffix in ranges keeps cards from getting too wide.
       return `${formatInr(min, true)} – ${formatInr(max, true)}`;
     }
@@ -62,6 +63,7 @@ export function formatFundingRange(
   });
 
   if (typeof min === 'number' && typeof max === 'number') {
+    if (min === max) return formatter.format(max);
     return `${formatter.format(min)} – ${formatter.format(max)}`;
   }
   if (typeof min === 'number') return `From ${formatter.format(min)}`;

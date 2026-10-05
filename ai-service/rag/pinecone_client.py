@@ -7,6 +7,9 @@ from .schemas import GrantData, SemanticHit
 
 logger = logging.getLogger("rag.pinecone_client")
 
+# Fallback tail of chunk ids deleted when a grant's existing chunks can't be listed.
+_STALE_CHUNK_SWEEP = 64
+
 SEARCH_FIELDS = [
     "grant_id",
     "grant_title",
@@ -94,7 +97,33 @@ class PineconeService:
             })
 
         self.index.upsert(vectors=vectors, namespace=self.namespace)
+        self._delete_stale_chunks(grant.id, {record["id"] for record in records})
         return records
+
+    def _delete_stale_chunks(self, grant_id: int, current_ids: set[str]) -> None:
+        """Remove chunks left over from a longer previous version of a grant.
+
+        Chunk ids are deterministic (grant#{id}-chunk{i}) and upsert only
+        overwrites the ids it sends, so when new text yields fewer chunks the
+        old tail chunks (old text, old deadline metadata) would keep matching
+        searches. Runs after the upsert, so the grant is never missing. A
+        failure here is logged, not raised: the new version is already indexed.
+        """
+        prefix = f"grant#{grant_id}-chunk"
+        try:
+            existing = [vid for page in self.index.list(prefix=prefix, namespace=self.namespace) for vid in page]
+        except Exception as exc:
+            # list() needs a serverless index. Ids are sequential, so fall back
+            # to deleting a generous tail range; unknown ids are a no-op.
+            logger.warning(f"Listing chunks for grant {grant_id} failed ({exc}); deleting tail range instead.")
+            existing = [f"{prefix}{i}" for i in range(len(current_ids), len(current_ids) + _STALE_CHUNK_SWEEP)]
+
+        stale = [vid for vid in existing if vid not in current_ids]
+        stale.append(f"grant#{grant_id}")  # pre-chunking id format
+        try:
+            self.index.delete(ids=stale, namespace=self.namespace)
+        except Exception as exc:
+            logger.warning(f"Deleting stale chunks for grant {grant_id} failed: {exc}")
 
     def delete_grant(self, grant_id: int) -> None:
         try:

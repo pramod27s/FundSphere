@@ -123,7 +123,8 @@ def freshness_score(grant_fields: dict) -> float:
 
     deadline_dt = _parse_date(grant_fields.get("application_deadline"))
     if deadline_dt is None:
-        deadline_score = 0.5
+        # Year-round schemes are always open to apply; unknown/call-based stay neutral.
+        deadline_score = 1.0 if grant_fields.get("deadline_type") == "ROLLING" else 0.5
     else:
         days = (deadline_dt - now).days
         if days < 0:
