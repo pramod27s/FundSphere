@@ -26,11 +26,11 @@ export default function TopLoadingBar({ visible }: TopLoadingBarProps) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
-          className="fixed top-0 left-0 right-0 h-1 z-[60] overflow-hidden bg-primary-100/60 pointer-events-none shadow-[0_1px_2px_rgba(13,148,136,0.15)]"
+          className="fixed top-0 left-0 right-0 h-1 z-[60] overflow-hidden bg-primary-100 pointer-events-none"
           aria-hidden="true"
         >
           <motion.div
-            className="absolute top-0 left-0 h-full w-1/3 bg-gradient-to-r from-primary-400 via-primary-600 to-primary-400 rounded-full shadow-[0_0_8px_rgba(13,148,136,0.5)]"
+            className="absolute top-0 left-0 h-full w-1/3 bg-primary-600 rounded-full"
             initial={{ x: '-100%' }}
             animate={{ x: '300%' }}
             transition={{

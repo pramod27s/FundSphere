@@ -58,13 +58,13 @@ export default function Register({ onRegisterSuccess, onNavigateToLogin }: Regis
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}
-        className="bg-white/80 backdrop-blur-xl border border-white/40 shadow-2xl rounded-3xl p-8 sm:p-10"
+        className="bg-white border border-brand-200 shadow-medium rounded-2xl p-8 sm:p-10"
       >
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-50 text-primary-600 mb-4 shadow-inner">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-50 text-primary-600 mb-4">
             <UserPlus size={32} />
           </div>
-          <h2 className="font-display text-3xl font-semibold text-brand-900 tracking-tight">Create your account</h2>
+          <h2 className="font-display text-3xl font-semibold text-brand-900 tracking-[-0.015em]">Create your account</h2>
           <p className="text-brand-800/60 mt-2 font-medium">Join FundSphere and discover opportunities</p>
         </div>
 
@@ -85,7 +85,7 @@ export default function Register({ onRegisterSuccess, onNavigateToLogin }: Regis
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-3 border border-brand-100 rounded-xl bg-white/50 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all outline-none text-brand-900 placeholder:text-brand-800/40 shadow-sm"
+                  className="block w-full pl-10 pr-3 py-3 border border-brand-200 rounded-lg bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all outline-none text-brand-900 placeholder:text-brand-800/40 shadow-sm"
                   placeholder="John Doe"
                   required
                 />
@@ -102,7 +102,7 @@ export default function Register({ onRegisterSuccess, onNavigateToLogin }: Regis
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-3 border border-brand-100 rounded-xl bg-white/50 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all outline-none text-brand-900 placeholder:text-brand-800/40 shadow-sm"
+                  className="block w-full pl-10 pr-3 py-3 border border-brand-200 rounded-lg bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all outline-none text-brand-900 placeholder:text-brand-800/40 shadow-sm"
                   placeholder="you@example.com"
                   required
                 />
@@ -119,7 +119,7 @@ export default function Register({ onRegisterSuccess, onNavigateToLogin }: Regis
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-10 py-3 border border-brand-100 rounded-xl bg-white/50 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all outline-none text-brand-900 placeholder:text-brand-800/40 shadow-sm"
+                  className="block w-full pl-10 pr-10 py-3 border border-brand-200 rounded-lg bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all outline-none text-brand-900 placeholder:text-brand-800/40 shadow-sm"
                   placeholder="At least 8 characters"
                   required
                   minLength={8}
@@ -146,7 +146,7 @@ export default function Register({ onRegisterSuccess, onNavigateToLogin }: Regis
             type="submit"
             disabled={!canSubmit}
             title={passwordTooWeak ? 'Strengthen your password to continue' : undefined}
-            className="w-full flex items-center justify-center py-3.5 px-4 rounded-xl text-white bg-gradient-to-r from-brand-900 to-brand-800 hover:from-black hover:to-brand-900 shadow-lg shadow-brand-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-900 transform transition-all active:scale-[0.98] font-bold text-lg group mt-2 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:from-brand-900 disabled:hover:to-brand-800"
+            className="w-full flex items-center justify-center py-3.5 px-4 rounded-lg text-white bg-primary-600 hover:bg-primary-700 shadow-xs focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-900 transform transition-all active:scale-[0.98] font-bold text-lg group mt-2 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:from-brand-900 disabled:hover:to-brand-800"
           >
             {isLoading ? 'Signing Up...' : 'Sign Up'}
             {!isLoading && <ArrowRight size={20} className="ml-2 group-hover:translate-x-1 transition-transform" />}

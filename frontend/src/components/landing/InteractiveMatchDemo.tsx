@@ -205,10 +205,10 @@ export default function InteractiveMatchDemo() {
                   setSelectedId(p.id);
                   setIsSaved(false);
                 }}
-                className={`text-left px-4 py-3 rounded-2xl border transition-colors ${
+                className={`text-left px-4 py-3 rounded-xl border transition-colors ${
                   isSelected
                     ? 'bg-white border-primary-500 ring-2 ring-primary-500/20 shadow-soft'
-                    : 'bg-white/60 border-brand-200 hover:border-brand-300 hover:bg-white'
+                    : 'bg-white border-brand-200 hover:border-brand-300 hover:bg-white'
                 }`}
               >
                 <span className={`text-xs font-semibold ${isSelected ? 'text-primary-700' : 'text-brand-500'}`}>
@@ -233,7 +233,7 @@ export default function InteractiveMatchDemo() {
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="bg-white border border-brand-200 rounded-2xl p-5 shadow-soft">
+            <div className="bg-white border border-brand-200 rounded-xl p-5 shadow-soft">
               <p className="text-sm text-brand-600 mb-4">
                 The match score combines five signals. The number in brackets is how much each one counts.
               </p>
@@ -242,7 +242,7 @@ export default function InteractiveMatchDemo() {
                   <div key={signal.label}>
                     <div className="flex justify-between text-sm mb-1.5">
                       <dt className="text-brand-600">
-                        {signal.label} <span className="text-brand-400">({signal.weight}%)</span>
+                        {signal.label} <span className="text-brand-500">({signal.weight}%)</span>
                       </dt>
                       <dd className="font-bold text-brand-900 tabular-nums">{signal.value}</dd>
                     </div>
@@ -266,7 +266,7 @@ export default function InteractiveMatchDemo() {
           exit={{ opacity: 0, y: -6 }}
           transition={{ duration: 0.2 }}
           aria-live="polite"
-          className="bg-white border border-brand-200/80 rounded-2xl p-5 sm:p-6 shadow-medium"
+          className="bg-white border border-brand-200 rounded-xl p-5 sm:p-6 shadow-medium"
         >
           <div className="flex items-start gap-4">
             <div className="flex-1 min-w-0">
@@ -288,7 +288,7 @@ export default function InteractiveMatchDemo() {
                 aria-pressed={isSaved}
                 aria-label={isSaved ? 'Remove from saved' : 'Save grant'}
                 className={`p-2 rounded-lg transition-colors ${
-                  isSaved ? 'text-primary-600 bg-primary-50' : 'text-brand-400 hover:text-primary-600 hover:bg-primary-50'
+                  isSaved ? 'text-primary-600 bg-primary-50' : 'text-brand-500 hover:text-primary-600 hover:bg-primary-50'
                 }`}
               >
                 {isSaved ? <BookmarkCheck className="w-5 h-5" /> : <Bookmark className="w-5 h-5" />}
@@ -297,7 +297,7 @@ export default function InteractiveMatchDemo() {
           </div>
 
           <ul className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm">
-            <li className="flex items-center gap-1.5 font-semibold text-emerald-700">
+            <li className="flex items-center gap-1.5 font-semibold text-primary-700">
               <ShieldCheck className="w-4 h-4" aria-hidden="true" /> {grant.eligibility}
             </li>
             <li className={`flex items-center gap-1.5 ${grant.deadlineTone === 'warn' ? 'font-semibold text-amber-700' : 'text-brand-700'}`}>
@@ -305,11 +305,11 @@ export default function InteractiveMatchDemo() {
             </li>
             <li className="font-semibold text-brand-800 tabular-nums">{grant.amount}</li>
             <li className="flex items-center gap-1.5 text-brand-500">
-              <Clock className="w-4 h-4 text-brand-400" aria-hidden="true" /> {grant.lastVerified}
+              <Clock className="w-4 h-4 text-brand-500" aria-hidden="true" /> {grant.lastVerified}
             </li>
           </ul>
 
-          <p className="mt-4 flex gap-2.5 rounded-xl bg-primary-50/70 px-4 py-3 text-sm text-brand-700 leading-relaxed">
+          <p className="mt-4 flex gap-2.5 rounded-lg bg-primary-50 px-4 py-3 text-sm text-brand-700 leading-relaxed">
             <Sparkles className="w-4 h-4 text-primary-600 shrink-0 mt-0.5" aria-hidden="true" />
             <span>
               <span className="font-semibold text-primary-900">Why it fits: </span>
@@ -323,7 +323,7 @@ export default function InteractiveMatchDemo() {
               {grant.criteria.map((c) => (
                 <li key={c.label} className="flex items-start gap-2 text-sm">
                   {c.verdict === 'match' ? (
-                    <Check className="w-4 h-4 mt-0.5 shrink-0 text-emerald-600" aria-label="Meets requirement" />
+                    <Check className="w-4 h-4 mt-0.5 shrink-0 text-primary-600" aria-label="Meets requirement" />
                   ) : (
                     <TriangleAlert className="w-4 h-4 mt-0.5 shrink-0 text-amber-600" aria-label="Needs checking" />
                   )}

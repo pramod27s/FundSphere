@@ -32,8 +32,8 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
 
     return (
       <div role="alert" className="min-h-screen w-full flex items-center justify-center p-6">
-        <div className="max-w-md w-full bg-white border border-brand-200/70 rounded-2xl shadow-medium p-8 text-center">
-          <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-amber-50 flex items-center justify-center border border-amber-200">
+        <div className="max-w-md w-full bg-white border border-brand-200 rounded-xl shadow-medium p-8 text-center">
+          <div className="w-16 h-16 mx-auto mb-5 rounded-xl bg-amber-50 flex items-center justify-center border border-amber-200">
             <TriangleAlert className="w-8 h-8 text-amber-600" aria-hidden="true" />
           </div>
           <h1 className="text-xl font-bold text-brand-900 tracking-tight mb-2">Something went wrong</h1>

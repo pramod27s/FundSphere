@@ -34,7 +34,7 @@ export default function MatchScoreDial({ score, size = 'md' }: MatchScoreDialPro
       </svg>
       <span className={`absolute inset-0 flex items-center justify-center font-bold text-brand-900 tabular-nums ${size === 'sm' ? 'text-sm' : 'text-base'}`}>
         {clamped}
-        <span className="text-[11px] font-semibold text-brand-400">%</span>
+        <span className="text-[11px] font-semibold text-brand-500">%</span>
       </span>
     </div>
   );

@@ -42,7 +42,7 @@ export default function MatchBreakdown({ grant, profile }: MatchBreakdownProps) 
   if (criteria.length === 0) return null;
 
   return (
-    <div className="rounded-xl border border-brand-200/70 bg-white/80 backdrop-blur-sm p-4">
+    <div className="rounded-lg border border-brand-200 bg-white p-4">
       <h4 className="text-sm font-semibold text-brand-900 mb-3">
         Why this match
       </h4>
@@ -57,7 +57,7 @@ export default function MatchBreakdown({ grant, profile }: MatchBreakdownProps) 
 
 function CriterionChip({ criterion }: { criterion: Criterion }) {
   const tones: Record<Verdict, { bg: string; border: string; text: string; icon: typeof Check }> = {
-    match: { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-700', icon: Check },
+    match: { bg: 'bg-primary-50', border: 'border-primary-200', text: 'text-primary-700', icon: Check },
     warn: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', icon: AlertTriangle },
     miss: { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', icon: X },
     'n/a': { bg: 'bg-brand-50', border: 'border-brand-200', text: 'text-brand-500', icon: Minus },

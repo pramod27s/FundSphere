@@ -63,7 +63,7 @@ export default function ScrollToTopButton({
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 12, scale: 0.9 }}
           transition={{ duration: 0.18, ease: 'easeOut' }}
-          className={`${positionClassName} z-40 w-11 h-11 rounded-full bg-white/95 backdrop-blur-md border border-brand-200 shadow-lg shadow-brand-900/10 hover:shadow-xl hover:shadow-primary-500/20 hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700 text-brand-700 flex items-center justify-center transition-colors active:scale-95`}
+          className={`${positionClassName} z-40 w-11 h-11 rounded-full bg-white border border-brand-200 shadow-xs hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700 text-brand-700 flex items-center justify-center transition-colors active:scale-95`}
         >
           <ArrowUp className="w-5 h-5" />
         </motion.button>

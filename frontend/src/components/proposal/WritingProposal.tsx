@@ -152,7 +152,7 @@ export default function WritingProposal({ onBack }: WritingProposalProps) {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-xl border-b border-brand-100/80 px-4 sm:px-6 py-4 flex items-center gap-4 shadow-xs sticky top-0 z-30">
+      <div className="bg-white border-b border-brand-200 px-4 sm:px-6 h-16 flex items-center gap-4 sticky top-0 z-30">
         <button
           onClick={onBack}
           className="flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-900 transition-colors px-2 py-1.5 -ml-2 rounded-lg hover:bg-brand-100"
@@ -162,14 +162,14 @@ export default function WritingProposal({ onBack }: WritingProposalProps) {
         </button>
         <div className="h-5 w-px bg-brand-200" />
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-md shadow-primary-500/20 shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center shadow-xs shrink-0">
             <FileText className="w-4 h-4 text-white" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-base font-bold text-brand-900 tracking-tight leading-none truncate">
+            <h1 className="text-lg font-bold text-brand-900 tracking-tight leading-none truncate">
               AI Proposal Assistant
             </h1>
-            <p className="text-[11px] text-brand-500 mt-1 leading-none truncate">
+            <p className="text-xs text-brand-600 mt-1 leading-none truncate">
               Compare your draft against grant guidelines
             </p>
           </div>
@@ -258,17 +258,17 @@ function UploadForm(props: UploadFormProps) {
   return (
     <div className="space-y-6 mt-4">
       {/* Hero */}
-      <div className="rounded-2xl border border-brand-200/60 bg-white/70 backdrop-blur-sm p-6 sm:p-8 shadow-medium">
+      <div className="rounded-xl border border-brand-200 bg-white p-6 sm:p-8 shadow-medium">
         <div className="flex items-start gap-4">
-          <div className="relative w-14 h-14 rounded-xl bg-gradient-to-br from-primary-50 to-primary-100/60 flex items-center justify-center shadow-inner border border-primary-100 shrink-0">
+          <div className="relative w-14 h-14 rounded-lg bg-primary-50 flex items-center justify-center border border-primary-200 shrink-0">
             <FileText className="w-7 h-7 text-primary-500" />
-            <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center shadow-md shadow-primary-500/30">
+            <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary-600 flex items-center justify-center shadow-xs">
               <Sparkles className="w-2.5 h-2.5 text-white" />
             </div>
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-xl font-bold text-brand-900 tracking-tight">Compliance Check</h2>
-            <p className="text-sm text-brand-500 mt-1 leading-relaxed">
+            <h2 className="text-base font-bold text-brand-900 tracking-tight">Compliance Check</h2>
+            <p className="text-sm text-brand-600 mt-1 leading-relaxed">
               Upload your draft proposal and the funder's guidelines. The AI reviewer will assess
               section-by-section coverage, score compliance, and tell you exactly what to fix.
             </p>
@@ -293,7 +293,7 @@ function UploadForm(props: UploadFormProps) {
       </div>
 
       {/* Optional title */}
-      <div className="rounded-2xl border border-brand-200/60 bg-white/70 backdrop-blur-sm p-5">
+      <div className="rounded-xl border border-brand-200 bg-white p-5">
         <label className="block text-sm font-medium text-brand-700 mb-2">
           Grant Title <span className="text-brand-500 font-normal normal-case">(optional)</span>
         </label>
@@ -311,7 +311,7 @@ function UploadForm(props: UploadFormProps) {
 
       {/* Error */}
       {props.errorMessage && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 flex items-start gap-2">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 flex items-start gap-2">
           <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
           <p className="text-sm text-red-700">{props.errorMessage}</p>
         </div>
@@ -321,10 +321,10 @@ function UploadForm(props: UploadFormProps) {
       <button
         onClick={props.onAnalyze}
         disabled={!ready}
-        className={`w-full sm:w-auto px-6 py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
+        className={`w-full sm:w-auto px-6 py-3 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
           ready
-            ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30 hover:-translate-y-0.5'
-            : 'bg-brand-100 text-brand-400 cursor-not-allowed'
+            ? 'bg-primary-600 text-white shadow-xs '
+            : 'bg-brand-100 text-brand-500 cursor-not-allowed'
         }`}
       >
         <Sparkles className="w-4 h-4" />
@@ -373,11 +373,11 @@ function FileDropZone({ label, description, file, onFile }: FileDropZoneProps) {
         setHover(false);
         handleFiles(e.dataTransfer.files);
       }}
-      className={`relative rounded-2xl border-2 border-dashed transition-all p-6 bg-white/60 backdrop-blur-sm ${
+      className={`relative rounded-xl border-2 border-dashed transition-all p-6 bg-white ${
         hover
-          ? 'border-primary-400 bg-primary-50/60'
+          ? 'border-primary-400 bg-primary-50'
           : file
-            ? 'border-primary-300 bg-primary-50/40'
+            ? 'border-primary-300 bg-primary-50'
             : 'border-brand-200 hover:border-primary-300'
       }`}
     >
@@ -391,7 +391,7 @@ function FileDropZone({ label, description, file, onFile }: FileDropZoneProps) {
 
       <div className="flex flex-col items-center text-center">
         <div
-          className={`w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition ${
+          className={`w-12 h-12 rounded-lg flex items-center justify-center mb-3 transition ${
             file
               ? 'bg-primary-100 text-primary-600'
               : 'bg-brand-100 text-brand-500'
@@ -441,7 +441,7 @@ function FileDropZone({ label, description, file, onFile }: FileDropZoneProps) {
 
 function ModeToggle({ mode, onMode }: { mode: AnalysisMode; onMode: (m: AnalysisMode) => void }) {
   return (
-    <div className="rounded-2xl border border-brand-200/60 bg-white/70 backdrop-blur-sm p-5">
+    <div className="rounded-xl border border-brand-200 bg-white p-5">
       <div className="flex items-center justify-between gap-4 mb-3">
         <div>
           <h3 className="text-sm font-bold text-brand-900">Analysis Depth</h3>
@@ -484,9 +484,9 @@ function ModeCard({
   return (
     <button
       onClick={onClick}
-      className={`text-left rounded-xl border-2 p-4 transition-all ${
+      className={`text-left rounded-lg border-2 p-4 transition-all ${
         active
-          ? 'border-primary-400 bg-primary-50/60 shadow-md shadow-primary-500/10'
+          ? 'border-primary-400 bg-primary-50 shadow-xs'
           : 'border-brand-200 bg-white hover:border-primary-200'
       }`}
     >
@@ -512,8 +512,8 @@ function ModeCard({
 function AnalyzingState({ mode }: { mode: AnalysisMode }) {
   const eta = mode === 'deep' ? '30-90 seconds' : '~10 seconds';
   return (
-    <div className="rounded-2xl border border-brand-200/60 bg-white/70 backdrop-blur-sm p-12 flex flex-col items-center text-center mt-8">
-      <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-50 to-primary-100/60 flex items-center justify-center mb-5 shadow-inner border border-primary-100">
+    <div className="rounded-xl border border-brand-200 bg-white p-12 flex flex-col items-center text-center mt-8">
+      <div className="w-20 h-20 rounded-xl bg-primary-50 flex items-center justify-center mb-5 border border-primary-200">
         <Loader2 className="w-9 h-9 text-primary-500 animate-spin" />
       </div>
       <h2 className="text-xl font-bold text-brand-900 mb-2">
@@ -552,9 +552,9 @@ interface RevisionFormProps {
 function RevisionForm(props: RevisionFormProps) {
   return (
     <div className="space-y-5 mt-4">
-      <div className="rounded-2xl border border-brand-200/60 bg-white/70 backdrop-blur-sm p-6 shadow-medium">
+      <div className="rounded-xl border border-brand-200 bg-white p-6 shadow-medium">
         <div className="flex items-start gap-4 mb-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-50 to-primary-100/60 flex items-center justify-center shadow-inner border border-primary-100 shrink-0">
+          <div className="w-12 h-12 rounded-lg bg-primary-50 flex items-center justify-center border border-primary-200 shrink-0">
             <Sparkles className="w-6 h-6 text-primary-500" />
           </div>
           <div className="flex-1 min-w-0">
@@ -596,7 +596,7 @@ function RevisionForm(props: RevisionFormProps) {
       />
 
       {props.errorMessage && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 flex items-start gap-2">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 flex items-start gap-2">
           <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
           <p className="text-sm text-red-700">{props.errorMessage}</p>
         </div>
@@ -606,10 +606,10 @@ function RevisionForm(props: RevisionFormProps) {
         <button
           onClick={props.onAnalyze}
           disabled={!props.revisionFile}
-          className={`px-6 py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
+          className={`px-6 py-3 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
             props.revisionFile
-              ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-500/25 hover:shadow-xl hover:-translate-y-0.5'
-              : 'bg-brand-100 text-brand-400 cursor-not-allowed'
+              ? 'bg-primary-600 text-white shadow-xs hover:bg-primary-700'
+              : 'bg-brand-100 text-brand-500 cursor-not-allowed'
           }`}
         >
           <Sparkles className="w-4 h-4" />
@@ -617,7 +617,7 @@ function RevisionForm(props: RevisionFormProps) {
         </button>
         <button
           onClick={props.onCancel}
-          className="px-6 py-3 rounded-xl bg-white border border-brand-200 hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700 text-brand-700 text-sm font-semibold transition-all"
+          className="px-6 py-3 rounded-lg bg-white border border-brand-200 hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700 text-brand-700 text-sm font-semibold transition-all"
         >
           Cancel
         </button>
@@ -661,7 +661,7 @@ function DiffSummaryCard({ diff }: { diff: AnalysisDiff }) {
   );
 
   return (
-    <div className="rounded-2xl border border-primary-200/60 bg-gradient-to-br from-primary-50/60 via-white to-white p-6 shadow-medium">
+    <div className="rounded-xl border border-primary-200 bg-white p-6 shadow-medium">
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <span className="text-[11px] font-semibold uppercase tracking-wide text-primary-700 bg-primary-100 rounded-full px-2.5 py-1">
           Revision Compare
@@ -674,7 +674,7 @@ function DiffSummaryCard({ diff }: { diff: AnalysisDiff }) {
           <div className="text-xs font-medium text-brand-500">Before</div>
           <div className="text-2xl font-bold text-brand-800">{diff.previousScore}</div>
         </div>
-        <ArrowRight className="w-5 h-5 text-brand-400" />
+        <ArrowRight className="w-5 h-5 text-brand-500" />
         <div className="text-center">
           <div className="text-xs font-medium text-brand-500">After</div>
           <div className="text-2xl font-bold text-brand-900">{diff.currentScore}</div>
@@ -697,7 +697,7 @@ function DiffSummaryCard({ diff }: { diff: AnalysisDiff }) {
       {(diff.resolvedMissing.length > 0 || diff.newlyMissing.length > 0) && (
         <div className="grid sm:grid-cols-2 gap-3 mb-4">
           {diff.resolvedMissing.length > 0 && (
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3">
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
               <div className="flex items-center gap-1.5 mb-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                 <span className="text-xs font-medium text-emerald-700">
@@ -717,7 +717,7 @@ function DiffSummaryCard({ diff }: { diff: AnalysisDiff }) {
             </div>
           )}
           {diff.newlyMissing.length > 0 && (
-            <div className="rounded-xl border border-red-200 bg-red-50/70 p-3">
+            <div className="rounded-lg border border-red-200 bg-red-50 p-3">
               <div className="flex items-center gap-1.5 mb-1.5">
                 <XCircle className="w-3.5 h-3.5 text-red-600" />
                 <span className="text-xs font-medium text-red-700">
@@ -777,7 +777,7 @@ function DiffRow({ diff }: { diff: SectionDiff }) {
       <div className="flex-1 min-w-0">
         <div className="text-sm font-semibold text-brand-900 truncate">{diff.section_name}</div>
         <div className="text-[11px] text-brand-500 truncate">
-          {prevLabel} <span className="text-brand-400">→</span> <span className={tone.text}>{currLabel}</span>
+          {prevLabel} <span className="text-brand-500">→</span> <span className={tone.text}>{currLabel}</span>
         </div>
       </div>
       {diff.scoreDelta !== 0 && (
@@ -817,15 +817,15 @@ function transitionTone(t: SectionTransition): TransitionTone {
 
 function ErrorView({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
-    <div className="rounded-2xl border border-red-200 bg-red-50/60 backdrop-blur-sm p-10 flex flex-col items-center text-center mt-8">
-      <div className="w-14 h-14 rounded-xl bg-red-100 flex items-center justify-center mb-4">
+    <div className="rounded-xl border border-red-200 bg-red-50 p-10 flex flex-col items-center text-center mt-8">
+      <div className="w-14 h-14 rounded-lg bg-red-100 flex items-center justify-center mb-4">
         <XCircle className="w-7 h-7 text-red-600" />
       </div>
       <h2 className="text-lg font-bold text-brand-900 mb-2">Analysis failed</h2>
       <p className="text-sm text-red-700 max-w-md leading-relaxed mb-5">{message}</p>
       <button
         onClick={onRetry}
-        className="px-5 py-2.5 rounded-xl bg-white border border-brand-200 hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700 text-brand-700 text-sm font-semibold transition-all"
+        className="px-5 py-2.5 rounded-lg bg-white border border-brand-200 hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700 text-brand-700 text-sm font-semibold transition-all"
       >
         Try Again
       </button>
@@ -897,7 +897,7 @@ function ResultsToolbar({
     <div className="flex flex-wrap items-center gap-2 print:hidden">
       <button
         onClick={onStartRevision}
-        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-gradient-to-r from-primary-500 to-primary-600 text-white text-xs font-semibold shadow-md shadow-primary-500/20 hover:shadow-lg hover:-translate-y-0.5 transition-all"
+        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-primary-600 text-white text-xs font-semibold shadow-xs hover:bg-primary-700 transition-colors"
       >
         <Sparkles className="w-3.5 h-3.5" />
         Re-analyze with Updated Version
@@ -931,12 +931,12 @@ function ResultsToolbar({
 function ScoreHero({ analysis }: { analysis: ProposalAnalysis }) {
   const tone = scoreTone(analysis.overall_score);
   return (
-    <div className="rounded-2xl border border-brand-200/60 bg-white/70 backdrop-blur-sm p-6 sm:p-8 shadow-medium">
+    <div className="rounded-xl border border-brand-200 bg-white p-6 sm:p-8 shadow-medium">
       <div className="flex items-start gap-6 flex-col sm:flex-row">
         <ScoreRing score={analysis.overall_score} tone={tone} />
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-primary-700 bg-primary-50 border border-primary-200/60 rounded-full px-2.5 py-1">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-primary-700 bg-primary-50 border border-primary-200 rounded-full px-2.5 py-1">
               {analysis.mode === 'deep' ? 'Deep Analysis' : 'Quick Analysis'}
             </span>
             {analysis.grant_title && (
@@ -986,7 +986,7 @@ function ScoreRing({ score, tone }: { score: number; tone: ToneSpec }) {
 
 function MissingSectionsBox({ missing }: { missing: string[] }) {
   return (
-    <div className="rounded-2xl border border-amber-200 bg-amber-50/70 backdrop-blur-sm p-5 flex gap-3">
+    <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 flex gap-3">
       <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0">
         <h3 className="text-sm font-bold text-amber-900 mb-1">Missing required sections</h3>
@@ -1010,7 +1010,7 @@ function MissingSectionsBox({ missing }: { missing: string[] }) {
 
 function KeySuggestionsBox({ suggestions }: { suggestions: string[] }) {
   return (
-    <div className="rounded-2xl border border-primary-200/60 bg-gradient-to-br from-primary-50/70 to-white p-5 backdrop-blur-sm">
+    <div className="rounded-xl border border-primary-200 bg-primary-50 p-5">
       <div className="flex items-center gap-2 mb-3">
         <Sparkles className="w-4 h-4 text-primary-600" />
         <h3 className="text-sm font-bold text-brand-900">Top recommendations</h3>
@@ -1040,7 +1040,7 @@ function SectionAccordion({ sections }: { sections: SectionFeedback[] }) {
   }, [sections]);
 
   return (
-    <div className="rounded-2xl border border-brand-200/60 bg-white/70 backdrop-blur-sm overflow-hidden">
+    <div className="rounded-xl border border-brand-200 bg-white overflow-hidden">
       <div className="px-5 py-4 border-b border-brand-100">
         <h3 className="text-sm font-bold text-brand-900">Section-by-section feedback</h3>
         <p className="text-xs text-brand-500 mt-0.5">Click any section to expand details.</p>
@@ -1063,7 +1063,7 @@ function SectionCard({ fb, defaultOpen }: { fb: SectionFeedback; defaultOpen: bo
     <div className="bg-white">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="w-full px-5 py-4 flex items-center gap-3 hover:bg-brand-50/60 transition text-left"
+        className="w-full px-5 py-4 flex items-center gap-3 hover:bg-brand-50 transition text-left"
       >
         <span className={`shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${tone.badgeBg}`}>
           {fb.status === 'strong' && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
@@ -1087,7 +1087,7 @@ function SectionCard({ fb, defaultOpen }: { fb: SectionFeedback; defaultOpen: bo
           <ScoreBar score={fb.score} tone={tone} />
         </div>
         <ChevronDown
-          className={`w-4 h-4 text-brand-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`w-4 h-4 text-brand-500 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
         />
       </button>
       <div
@@ -1134,7 +1134,7 @@ function ComplianceChecklist({ citations }: { citations: Citation[] }) {
         {sorted.map((c, idx) => (
           <li
             key={idx}
-            className="flex items-start gap-3 text-sm rounded-lg border border-brand-100 px-3 py-2 bg-brand-50/40"
+            className="flex items-start gap-3 text-sm rounded-lg border border-brand-100 px-3 py-2 bg-brand-50"
           >
             <VerdictIcon verdict={c.verdict} />
             <div className="flex-1 min-w-0">
@@ -1187,7 +1187,7 @@ function ConsistencyIssuesBox({ issues }: { issues: ConsistencyIssue[] }) {
   const sevRank: Record<Severity, number> = { critical: 0, important: 1, minor: 2 };
   const sorted = [...issues].sort((a, b) => sevRank[a.severity] - sevRank[b.severity]);
   return (
-    <div className="bg-white border border-brand-100 rounded-2xl p-5">
+    <div className="bg-white border border-brand-100 rounded-xl p-5">
       <div className="flex items-center gap-2 mb-1">
         <AlertTriangle className="w-4 h-4 text-amber-600" />
         <p className="text-sm font-bold text-brand-900">Cross-section consistency issues</p>
@@ -1199,7 +1199,7 @@ function ConsistencyIssuesBox({ issues }: { issues: ConsistencyIssue[] }) {
         {sorted.map((ci, idx) => (
           <li
             key={idx}
-            className="border border-brand-100 rounded-xl px-4 py-3 bg-brand-50/40"
+            className="border border-brand-100 rounded-lg px-4 py-3 bg-brand-50"
           >
             <div className="flex flex-wrap items-center gap-2 mb-1.5">
               <SeverityPill severity={ci.severity} />

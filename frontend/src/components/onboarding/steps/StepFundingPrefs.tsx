@@ -19,7 +19,7 @@ const grantTypes = [
 export default function StepFundingPrefs({
   minFunding, maxFunding, grantType, updateFields
 }: StepProps) {
-  const inputClass = "w-full pl-8 pr-4 py-2.5 rounded-lg border border-brand-200 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-colors bg-white/50";
+  const inputClass = "w-full pl-8 pr-4 py-2.5 rounded-lg border border-brand-200 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-colors bg-white";
   const labelClass = "block text-sm font-medium text-brand-700 mb-1.5";
   const fundingRangeInvalid = minFunding !== '' && maxFunding !== '' && Number(minFunding) > Number(maxFunding);
 
@@ -31,7 +31,7 @@ export default function StepFundingPrefs({
         <div>
           <label className={labelClass}>Min Funding Amount</label>
           <div className="relative">
-            <IndianRupee className="absolute left-2.5 top-3 w-4 h-4 text-brand-400" />
+            <IndianRupee className="absolute left-2.5 top-3 w-4 h-4 text-brand-500" />
             <input
               type="number" 
               min="0"
@@ -45,7 +45,7 @@ export default function StepFundingPrefs({
         <div>
           <label className={labelClass}>Max Funding Amount</label>
           <div className="relative">
-            <IndianRupee className="absolute left-2.5 top-3 w-4 h-4 text-brand-400" />
+            <IndianRupee className="absolute left-2.5 top-3 w-4 h-4 text-brand-500" />
             <input
               type="number" 
               min="0"
@@ -77,7 +77,7 @@ export default function StepFundingPrefs({
                     : 'bg-white border-brand-200 text-brand-700 hover:border-primary-300'
                 }`}
               >
-                <Icon className={`w-5 h-5 ${isSelected ? 'text-primary-600' : 'text-brand-400'}`} />
+                <Icon className={`w-5 h-5 ${isSelected ? 'text-primary-600' : 'text-brand-500'}`} />
                 {type.id}
               </button>
             )

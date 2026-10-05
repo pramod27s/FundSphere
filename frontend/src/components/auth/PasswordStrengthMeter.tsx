@@ -73,7 +73,7 @@ export default function PasswordStrengthMeter({
         <ul className="text-xs text-brand-600 space-y-0.5 leading-snug">
           {result.suggestions.map((s, i) => (
             <li key={i} className="flex items-start gap-1.5">
-              <span className="text-brand-400 select-none">·</span>
+              <span className="text-brand-500 select-none">·</span>
               <span>{s}</span>
             </li>
           ))}

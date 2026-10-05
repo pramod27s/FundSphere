@@ -28,13 +28,13 @@ export default function StepUserType({ userType, updateFields }: StepProps) {
             <button
               key={type.id}
               onClick={() => updateFields({ userType: type.id })}
-              className={`flex flex-col items-start p-4 rounded-xl border-2 transition-all duration-200 text-left ${
+              className={`flex flex-col items-start p-4 rounded-lg border-2 transition-all duration-200 text-left ${
                 isSelected 
-                  ? 'border-primary-500 bg-primary-50 shadow-md shadow-primary-500/10' 
+                  ? 'border-primary-500 bg-primary-50 shadow-xs' 
                   : 'border-brand-100 bg-white hover:border-primary-200 hover:bg-brand-50'
               }`}
             >
-              <Icon className={`w-6 h-6 mb-3 ${isSelected ? 'text-primary-600' : 'text-brand-400'}`} />
+              <Icon className={`w-6 h-6 mb-3 ${isSelected ? 'text-primary-600' : 'text-brand-500'}`} />
               <span className={`font-semibold mb-1 ${isSelected ? 'text-primary-900' : 'text-brand-700'}`}>
                 {type.id}
               </span>

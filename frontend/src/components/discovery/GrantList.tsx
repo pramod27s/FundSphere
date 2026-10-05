@@ -18,7 +18,7 @@ interface GrantListProps {
 
 export function GrantSkeleton() {
   return (
-    <div aria-hidden="true" className="bg-white border border-brand-200/70 rounded-2xl p-5 sm:p-6 shadow-soft">
+    <div aria-hidden="true" className="bg-white border border-brand-200 rounded-xl p-4 sm:p-5 shadow-soft">
       <div className="flex gap-4">
         <div className="flex-1">
           <div className="h-4 w-40 skeleton-shimmer rounded-md mb-3"></div>
@@ -32,7 +32,7 @@ export function GrantSkeleton() {
         <div className="h-4 w-28 skeleton-shimmer rounded-md"></div>
         <div className="h-4 w-24 skeleton-shimmer rounded-md"></div>
       </div>
-      <div className="mt-4 h-11 w-full skeleton-shimmer rounded-xl"></div>
+      <div className="mt-4 h-11 w-full skeleton-shimmer rounded-lg"></div>
     </div>
   );
 }
@@ -44,7 +44,7 @@ export default function GrantList({ grants, isLoading, source, profile }: GrantL
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-4" aria-busy="true" aria-live="polite">
+      <div className="flex flex-col gap-3" aria-busy="true" aria-live="polite">
         <span className="sr-only">Loading grants…</span>
         <GrantSkeleton />
         <GrantSkeleton />
@@ -55,7 +55,7 @@ export default function GrantList({ grants, isLoading, source, profile }: GrantL
 
   return (
     <>
-      <ul className="flex flex-col gap-4" aria-live="polite">
+      <ul className="flex flex-col gap-3" aria-live="polite">
         {grants.map((grant) => (
           <li key={grant.id}>
             <GrantCard
@@ -102,7 +102,7 @@ function BookmarkButton({
       className={`p-2 rounded-lg transition-colors shrink-0 ${
         saved
           ? 'text-primary-600 bg-primary-50 hover:bg-primary-100'
-          : 'text-brand-400 hover:text-primary-600 hover:bg-primary-50'
+          : 'text-brand-500 hover:text-primary-600 hover:bg-primary-50'
       }`}
     >
       {saved ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
@@ -167,10 +167,10 @@ function GrantCard({
   const grantType = formatGrantType(grant.grantType);
 
   return (
-    <article className="group relative bg-white border border-brand-200/80 rounded-2xl p-5 sm:p-6 shadow-soft hover:shadow-hover hover:border-primary-300 has-[.card-link:focus-visible]:ring-2 has-[.card-link:focus-visible]:ring-primary-500 transition-[box-shadow,border-color] duration-200">
+    <article className="group relative bg-white border border-brand-200 rounded-xl p-4 sm:p-5 shadow-soft hover:shadow-hover hover:border-primary-300 has-[.card-link:focus-visible]:ring-2 has-[.card-link:focus-visible]:ring-primary-500 transition-[box-shadow,border-color] duration-200">
       <div className="flex items-start gap-4">
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-brand-500 truncate">
+          <p className="text-sm text-brand-600 truncate">
             <span className="font-semibold text-brand-700">{grant.funder}</span>
             {grantType && (
               <>
@@ -179,11 +179,11 @@ function GrantCard({
               </>
             )}
           </p>
-          <h3 className="mt-1 text-lg sm:text-xl font-bold text-brand-900 tracking-tight leading-snug line-clamp-2 wrap-break-word text-pretty">
+          <h3 className="mt-0.5 text-lg font-bold text-brand-900 tracking-tight leading-snug line-clamp-2 wrap-break-word text-pretty">
             <button
               type="button"
               onClick={() => onOpen(grant)}
-              className="card-link text-left group-hover:text-primary-700 transition-colors focus-visible:outline-none after:absolute after:inset-0 after:rounded-2xl after:content-['']"
+              className="card-link text-left group-hover:text-primary-700 transition-colors focus-visible:outline-none after:absolute after:inset-0 after:rounded-xl after:content-['']"
             >
               {grant.title}
             </button>
@@ -202,7 +202,7 @@ function GrantCard({
       <ul className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm">
         {isAi && (
           grant.eligibility === 'Eligible' ? (
-            <li className="flex items-center gap-1.5 font-semibold text-emerald-700">
+            <li className="flex items-center gap-1.5 font-semibold text-primary-700">
               <ShieldCheck className="w-4 h-4" aria-hidden="true" /> Eligible
             </li>
           ) : (
@@ -224,7 +224,7 @@ function GrantCard({
       </ul>
 
       {isAi && grant.rationale && (
-        <p className="mt-4 flex gap-2.5 rounded-xl bg-primary-50/70 px-4 py-3 text-sm text-brand-700 leading-relaxed">
+        <p className="mt-3 flex gap-2.5 rounded-lg bg-primary-50 px-3.5 py-2.5 text-sm text-brand-700 leading-relaxed">
           <Sparkles className="w-4 h-4 text-primary-600 shrink-0 mt-0.5" aria-hidden="true" />
           <span className="line-clamp-2">
             <span className="font-semibold text-primary-900">
@@ -236,14 +236,14 @@ function GrantCard({
       )}
 
       {tags.length > 0 && (
-        <div className="mt-4 flex flex-wrap items-center gap-1.5">
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
           {tags.map((tag) => (
-            <span key={tag} className="text-xs font-medium px-2.5 py-1 rounded-full bg-brand-100 text-brand-600">
+            <span key={tag} className="text-xs font-medium px-2 py-0.5 rounded-md bg-brand-100 text-brand-700">
               {tag}
             </span>
           ))}
           {allTags.length > tags.length && (
-            <span className="text-xs font-medium text-brand-400 px-1">+{allTags.length - tags.length} more</span>
+            <span className="text-xs font-medium text-brand-500 px-1">+{allTags.length - tags.length} more</span>
           )}
         </div>
       )}

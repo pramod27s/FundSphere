@@ -82,7 +82,7 @@ export default function UserAvatarMenu({ researcherId }: UserAvatarMenuProps) {
     <div className="relative z-50" ref={containerRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 text-white text-sm font-semibold flex items-center justify-center shadow-md hover:ring-2 hover:ring-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-300 transition-all overflow-hidden cursor-pointer"
+        className="w-9 h-9 rounded-full bg-primary-600 text-white text-sm font-semibold flex items-center justify-center hover:ring-2 hover:ring-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-300 transition-all overflow-hidden cursor-pointer"
         aria-label="Open user menu"
         aria-expanded={isOpen}
       >
@@ -100,11 +100,11 @@ export default function UserAvatarMenu({ researcherId }: UserAvatarMenuProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.96 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute right-0 mt-2 w-56 bg-white border border-brand-200/80 rounded-2xl shadow-xl shadow-brand-900/10 py-1.5 overflow-hidden z-50"
+            className="absolute right-0 mt-2 w-56 bg-white border border-brand-200 rounded-xl shadow-xs py-1.5 overflow-hidden z-50"
           >
             {/* User Identity Header */}
             {session && (
-              <div className="px-4 py-2.5 border-b border-brand-100 bg-brand-50/50">
+              <div className="px-4 py-2.5 border-b border-brand-100 bg-brand-50">
                 <p className="text-sm font-bold text-brand-900 truncate">{session.user.fullName}</p>
                 <p className="text-xs text-brand-500 truncate">{session.user.email}</p>
               </div>

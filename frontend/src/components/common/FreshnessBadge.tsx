@@ -22,10 +22,10 @@ export default function FreshnessBadge({ timestamp, size = 'compact', className 
   const Icon = meta.tone === 'green' ? ShieldCheck : meta.tone === 'red' ? ShieldAlert : ShieldQuestion;
 
   const tones = {
-    green: 'bg-green-50 text-green-700 border-green-200',
+    green: 'bg-white text-brand-600 border-brand-200',
     amber: 'bg-amber-50 text-amber-700 border-amber-200',
     red: 'bg-red-50 text-red-700 border-red-200',
-    grey: 'bg-brand-50 text-brand-500 border-brand-200',
+    grey: 'bg-brand-50 text-brand-600 border-brand-200',
   } as const;
 
   const sizing =

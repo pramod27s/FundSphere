@@ -35,7 +35,7 @@ export default function WhatsAppShareButton({ grant, size = 'md', showLabel = fa
       onClick={handleClick}
       aria-label={`Share ${grant.title} on WhatsApp`}
       title="Share on WhatsApp"
-      className={`${padding} ${showLabel ? 'inline-flex items-center gap-1.5 px-3 rounded-lg' : 'rounded-lg'} text-[#25D366] hover:bg-[#25D366]/10 hover:text-[#1ebe5d] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366]/40 transition-colors shrink-0`}
+      className={`${padding} ${showLabel ? 'inline-flex items-center gap-1.5 px-3 rounded-lg' : 'rounded-lg'} text-brand-500 hover:bg-[#25D366]/10 hover:text-[#1ebe5d] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366]/40 transition-colors shrink-0`}
     >
       <WhatsAppGlyph className={iconSize} />
       {showLabel && <span className="text-sm font-medium">Share</span>}

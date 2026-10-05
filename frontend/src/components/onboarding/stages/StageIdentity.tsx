@@ -78,7 +78,7 @@ export default function StageIdentity({
   updateFields,
 }: StageIdentityProps) {
   const inputClass =
-    'w-full px-4 py-2.5 rounded-xl border border-brand-200 bg-white/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all text-sm text-brand-900 placeholder:text-brand-400';
+    'w-full px-4 py-2.5 rounded-lg border border-brand-200 bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all text-sm text-brand-900 placeholder:text-brand-400';
   const labelClass = 'block text-sm font-medium text-brand-700 mb-1.5';
 
   return (
@@ -101,10 +101,10 @@ export default function StageIdentity({
                 key={t.id}
                 type="button"
                 onClick={() => updateFields({ userType: t.id })}
-                className={`p-3.5 rounded-xl border text-left transition-all relative flex flex-col justify-between cursor-pointer ${
+                className={`p-3.5 rounded-lg border text-left transition-all relative flex flex-col justify-between cursor-pointer ${
                   isSelected
-                    ? 'border-primary-500 bg-primary-50/60 shadow-sm ring-1 ring-primary-500'
-                    : 'border-brand-200 bg-white hover:border-primary-300 hover:bg-brand-50/50'
+                    ? 'border-primary-500 bg-primary-50 shadow-sm ring-1 ring-primary-500'
+                    : 'border-brand-200 bg-white hover:border-primary-300 hover:bg-brand-50'
                 }`}
               >
                 <div className="flex items-center gap-2.5 mb-1.5">

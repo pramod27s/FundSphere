@@ -26,17 +26,17 @@
   --color-brand-950: #020617;
 
   /* Self-hosted variable fonts (imported in main.tsx). Inter for all UI;
-     Fraunces only for marketing headlines via the font-display utility. */
+     Source Serif 4 only for marketing headlines via the font-display utility. */
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'Fraunces Variable', ui-serif, Georgia, 'Times New Roman', serif;
+  --font-display: 'Source Serif 4 Variable', ui-serif, Georgia, 'Times New Roman', serif;
 
-  /* Layered shadow tokens for depth */
-  --shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 16px rgba(15, 23, 42, 0.04);
-  --shadow-medium: 0 1px 2px rgba(15, 23, 42, 0.06), 0 8px 24px rgba(15, 23, 42, 0.06);
-  --shadow-elevated: 0 2px 4px rgba(15, 23, 42, 0.06), 0 16px 40px rgba(15, 23, 42, 0.08);
-  --shadow-primary-glow: 0 4px 24px rgba(13, 148, 136, 0.15);
-  --shadow-hover: 0 2px 4px rgba(15, 23, 42, 0.04), 0 12px 32px rgba(13, 148, 136, 0.10);
-  --shadow-modal: 0 25px 70px rgba(15, 23, 42, 0.25);
+  /* Tight, neutral shadows. Surfaces are separated by solid 1px borders;
+     shadows only hint at elevation and never blur an edge. */
+  --shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-medium: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px -1px rgba(15, 23, 42, 0.06);
+  --shadow-elevated: 0 4px 8px -2px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+  --shadow-hover: 0 4px 10px -2px rgba(15, 23, 42, 0.10), 0 2px 4px -2px rgba(15, 23, 42, 0.06);
+  --shadow-modal: 0 24px 48px -12px rgba(15, 23, 42, 0.30);
 }
 
 @layer base {
@@ -46,12 +46,7 @@
 
   body {
     @apply antialiased text-brand-900 font-sans;
-    background-color: #f8fafc;
-    background-image:
-      radial-gradient(at 0% 0%, rgba(94, 234, 212, 0.10) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, rgba(45, 212, 191, 0.06) 0px, transparent 50%),
-      radial-gradient(at 50% 100%, rgba(204, 251, 241, 0.30) 0px, transparent 50%);
-    background-attachment: fixed;
+    background-color: var(--color-brand-50);
     min-height: 100vh;
   }
 
@@ -173,7 +168,6 @@
 @media print {
   body {
     background: white !important;
-    background-image: none !important;
   }
 
   /* Hide app chrome that isn't part of the report. */
@@ -198,7 +192,7 @@
   }
 
   /* Don't split a section card across pages if avoidable. */
-  .proposal-report .rounded-2xl,
+  .proposal-report .rounded-xl,
   .proposal-report li {
     break-inside: avoid;
     page-break-inside: avoid;

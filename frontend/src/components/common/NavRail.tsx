@@ -24,17 +24,20 @@ export default function NavRail({ researcherId }: NavRailProps) {
 
   return (
     <aside
-      className="hidden md:flex fixed inset-y-0 right-0 z-40 w-20 flex-col items-center gap-6 py-4 bg-white border-l border-brand-200/70"
+      className="hidden md:flex fixed inset-y-0 right-0 z-40 w-20 flex-col items-center bg-white border-l border-brand-200"
       aria-label="App navigation"
     >
-      <UserAvatarMenu researcherId={researcherId} />
+      {/* 64px, like every page header, so the top borders form one line */}
+      <div className="h-16 w-full flex items-center justify-center border-b border-brand-200 shrink-0">
+        <UserAvatarMenu researcherId={researcherId} />
+      </div>
 
-      <nav aria-label="Primary" className="flex flex-col items-center gap-2 w-full">
+      <nav aria-label="Primary" className="flex flex-col items-center gap-2 w-full pt-4">
         {ITEMS.map(({ to, label, icon: Icon, badge }) => (
           <NavLink
             key={to}
             to={to}
-            className="group flex flex-col items-center gap-1 w-full py-1 rounded-xl"
+            className="group flex flex-col items-center gap-1 w-full py-1 rounded-lg"
           >
             {({ isActive }) => (
               <>

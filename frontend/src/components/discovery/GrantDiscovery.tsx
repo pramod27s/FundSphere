@@ -284,7 +284,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
   };
 
   return (
-    <div className="flex h-screen w-full overflow-hidden relative bg-[#f2f6f5]">
+    <div className="flex h-screen w-full overflow-hidden relative bg-brand-50">
       <TopLoadingBar visible={isLoading} />
 
       {/* Pinned to viewport but listens to main's internal scroll. The
@@ -300,14 +300,14 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
 
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-brand-900/40 backdrop-blur-sm z-40 md:hidden"
+          className="fixed inset-0 bg-brand-900/40 z-40 md:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
       <div className={`fixed inset-y-0 left-0 z-50 transform w-72 ${
-        isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      } md:relative md:translate-x-0 transition-transform duration-300 ease-in-out md:block h-full shrink-0 shadow-2xl md:shadow-none`}>
+        isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
+      } md:relative md:translate-x-0 transition-transform duration-300 ease-in-out md:block h-full shrink-0 md:shadow-none`}>
         <FilterSidebar
           filters={filterState}
           onChange={setFilterState}
@@ -317,9 +317,9 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
       </div>
 
       <div className="flex-1 flex flex-col h-full overflow-hidden">
-        {/* Compact Search Header with Widescreen max-w */}
-        <header className="px-4 md:px-8 pt-3 pb-2.5 md:pt-3.5 md:pb-3 bg-gradient-to-b from-white via-primary-50/25 to-white/95 border-b border-primary-100/70 shrink-0 z-10 shadow-xs">
-          <div className="max-w-4xl xl:max-w-5xl 2xl:max-w-6xl mx-auto">
+        {/* Search header: 64px on desktop, matching the sidebar and nav rail top rows */}
+        <header className="px-4 md:px-8 py-3 md:py-0 md:h-16 md:flex md:items-center bg-white border-b border-brand-200 shrink-0 z-10">
+          <div className="w-full max-w-4xl xl:max-w-5xl 2xl:max-w-6xl mx-auto">
             <div
               className={`md:hidden flex items-center gap-3 mb-4 transition-opacity duration-200 ${
                 isSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
@@ -343,7 +343,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
             </div>
 
             <div className="relative flex flex-col sm:flex-row items-center w-full group gap-2 sm:gap-0">
-              <div className="hidden sm:block absolute left-4 text-brand-400 group-focus-within:text-primary-500 transition-colors z-10">
+              <div className="hidden sm:block absolute left-4 text-brand-500 group-focus-within:text-primary-500 transition-colors z-10">
                 <Search className="w-5 h-5" />
               </div>
               <input
@@ -360,10 +360,10 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                     void loadGrants(searchQuery, true, 0);
                   }
                 }}
-                className="w-full sm:pl-11 sm:pr-56 px-4 py-2 sm:py-2.5 bg-white border border-brand-200/90 rounded-xl focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/15 text-brand-900 placeholder:text-brand-400 text-sm md:text-base transition-all shadow-soft hover:border-primary-300"
+                className="w-full sm:pl-11 sm:pr-56 px-4 py-2 bg-white border border-brand-300 rounded-lg focus:outline-none focus:border-primary-600 focus:ring-3 focus:ring-primary-600/15 text-brand-900 placeholder:text-brand-500 text-sm md:text-base transition-colors hover:border-brand-400"
               />
               {!searchQuery && (
-                <div className="hidden md:flex items-center gap-1 absolute right-36 sm:right-40 pointer-events-none text-[11px] font-medium text-brand-500 bg-brand-50 border border-brand-200 px-1.5 py-0.5 rounded shadow-2xs">
+                <div className="hidden md:flex items-center gap-1 absolute right-36 sm:right-40 pointer-events-none text-[11px] font-medium text-brand-500 bg-brand-50 border border-brand-200 px-1.5 py-0.5 rounded">
                   <kbd className="font-sans">Ctrl</kbd>
                   <span>K</span>
                 </div>
@@ -378,7 +378,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                   }}
                   aria-hidden={dataSource !== 'ai'}
                   tabIndex={dataSource === 'ai' ? 0 : -1}
-                  className={`w-full sm:w-auto px-3 py-2 sm:py-1.5 text-sm bg-white text-brand-600 border border-brand-200 hover:bg-brand-50 hover:text-brand-900 hover:border-brand-300 rounded-xl sm:rounded-lg font-medium transition-opacity shadow-xs ${
+                  className={`w-full sm:w-auto px-3 py-2 sm:py-1.5 text-sm bg-white text-brand-600 border border-brand-200 hover:bg-brand-50 hover:text-brand-900 hover:border-brand-300 rounded-lg font-medium transition-opacity shadow-xs ${
                     dataSource === 'ai'
                       ? 'opacity-100 pointer-events-auto'
                       : 'opacity-0 pointer-events-none'
@@ -392,7 +392,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                     void loadGrants(searchQuery, true, 0);
                   }}
                   disabled={isLoading}
-                  className="w-full sm:w-auto px-5 py-2 sm:py-1.5 text-sm bg-gradient-to-br from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-xl sm:rounded-lg font-semibold transition-all shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30 active:scale-[0.97] flex items-center justify-center gap-1.5 disabled:opacity-85 disabled:cursor-not-allowed cursor-pointer"
+                  className="w-full sm:w-auto px-5 py-2 sm:py-1.5 text-sm bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-semibold transition-colors shadow-xs active:scale-[0.97] flex items-center justify-center gap-1.5 disabled:opacity-85 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {isLoading && dataSource === 'ai' ? (
                     <>
@@ -408,10 +408,18 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                 </button>
               </div>
             </div>
+          </div>
+        </header>
 
-            <div className="flex gap-2 mt-2.5 overflow-x-auto pb-0 scrollbar-hide items-center">
-              <span className="text-xs font-medium text-primary-700/90 py-0.5 shrink-0">Suggested</span>
-              <span className="h-3 w-px bg-primary-200 shrink-0" />
+        {/* Main Feed Container: Widescreen Responsive & Compact Vertical Padding */}
+        <main
+          ref={mainScrollRef}
+          className="flex-1 overflow-y-auto px-4 md:px-8 pt-4 md:pt-5 pb-4 md:pb-8 relative overscroll-contain"
+        >
+          <div className="max-w-4xl xl:max-w-5xl 2xl:max-w-6xl mx-auto">
+            <div className="flex gap-2 mb-4 overflow-x-auto scrollbar-hide items-center">
+              <span className="text-xs font-semibold text-brand-600 shrink-0">Suggested</span>
+              <span className="h-3 w-px bg-brand-300 shrink-0" />
               {[
                 'SERB CRG',
                 'INSPIRE Faculty',
@@ -437,7 +445,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                     className={`px-2.5 py-1 border rounded-full text-xs font-medium transition-colors whitespace-nowrap shrink-0 cursor-pointer disabled:cursor-wait disabled:opacity-60 ${
                       isActive
                         ? 'bg-primary-600 border-primary-600 text-white'
-                        : 'bg-white border-brand-200/90 text-brand-700 hover:border-primary-400 hover:text-primary-700 hover:bg-primary-50/80'
+                        : 'bg-white border-brand-300 text-brand-800 hover:border-primary-500 hover:text-primary-700'
                     }`}
                   >
                     {tag}
@@ -445,23 +453,15 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                 );
               })}
             </div>
-          </div>
-        </header>
 
-        {/* Main Feed Container: Widescreen Responsive & Compact Vertical Padding */}
-        <main
-          ref={mainScrollRef}
-          className="flex-1 overflow-y-auto px-4 md:px-8 pt-2.5 md:pt-3.5 pb-4 md:pb-8 relative overscroll-contain"
-        >
-          <div className="max-w-4xl xl:max-w-5xl 2xl:max-w-6xl mx-auto">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 sm:gap-4 mb-2.5">
-              <div className="sm:pl-4">
-                <p className="text-xs md:text-sm text-brand-500 tabular-nums">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 sm:gap-4 mb-3">
+              <div>
+                <p className="text-xs md:text-sm text-brand-600 tabular-nums">
                   {isLoading
                     ? 'Fetching opportunities...'
                     : dataSource === 'core'
-                      ? <>Showing <span className="font-semibold text-brand-700">{displayedGrants.length}</span> of <span className="font-semibold text-brand-700">{pagination.totalElements}</span> opportunities</>
-                      : <>Showing <span className="font-semibold text-brand-700">{displayedGrants.length}</span>{displayedGrants.length !== filteredGrants.length ? <> of <span className="font-semibold text-brand-700">{filteredGrants.length}</span></> : null} opportunities {dataSource === 'ai' && <>· <span className="text-primary-600 font-medium">AI ranking</span></>}</>}
+                      ? <>Showing <span className="font-semibold text-brand-900">{displayedGrants.length}</span> of <span className="font-semibold text-brand-900">{pagination.totalElements}</span> opportunities</>
+                      : <>Showing <span className="font-semibold text-brand-900">{displayedGrants.length}</span>{displayedGrants.length !== filteredGrants.length ? <> of <span className="font-semibold text-brand-900">{filteredGrants.length}</span></> : null} opportunities {dataSource === 'ai' && <>· <span className="text-primary-600 font-medium">AI ranking</span></>}</>}
                 </p>
               </div>
 
@@ -518,7 +518,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
             </div>
 
             {errorMessage && (
-              <div className="mb-4 rounded-xl border border-red-200/80 bg-gradient-to-r from-red-50 to-red-50/50 px-4 py-3 text-sm text-red-800 flex items-center justify-between gap-4 shadow-sm">
+              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 flex items-center justify-between gap-4 shadow-sm">
                 <span className="font-medium">{errorMessage}</span>
                 <button onClick={() => void loadGrants(searchQuery, dataSource === 'ai', page)} className="px-3 py-1.5 rounded-lg bg-white border border-red-200 text-red-700 font-medium hover:bg-red-50 transition-colors shadow-sm">
                   Retry
@@ -527,7 +527,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
             )}
 
             {warningMessage && (
-              <div className="mb-4 rounded-xl border border-amber-200/80 bg-gradient-to-r from-amber-50 to-amber-50/50 px-4 py-3 text-sm text-amber-900 shadow-sm">
+              <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm">
                 {warningMessage}
               </div>
             )}
@@ -535,7 +535,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
             <GrantList grants={displayedGrants} isLoading={isLoading} source={dataSource} profile={researcher} />
 
             {dataSource === 'core' && pagination.totalPages > 1 && (
-              <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-xl border border-brand-200/70 bg-white/80 px-4 py-3 shadow-xs">
+              <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-lg border border-brand-200 bg-white px-4 py-3 shadow-xs">
                 <p className="text-sm text-brand-500 tabular-nums">
                   Page <span className="font-semibold text-brand-800">{page + 1}</span> of{' '}
                   <span className="font-semibold text-brand-800">{pagination.totalPages}</span>
@@ -621,9 +621,9 @@ function FilteredEmptyState({
   ).flatMap((key) => filters[key].map((value) => ({ key, value })));
 
   return (
-    <div className="rounded-2xl border border-brand-200/60 bg-white/60 backdrop-blur-sm p-10 flex flex-col items-center justify-center text-center mt-4 shadow-medium">
-      <div className="bg-gradient-to-br from-brand-50 to-white p-5 rounded-2xl shadow-inner border border-brand-100 mb-4">
-        <SlidersHorizontal className="w-8 h-8 text-brand-400" />
+    <div className="rounded-xl border border-brand-200 bg-white p-10 flex flex-col items-center justify-center text-center mt-4 shadow-medium">
+      <div className="bg-brand-50 p-5 rounded-xl border border-brand-100 mb-4">
+        <SlidersHorizontal className="w-8 h-8 text-brand-500" />
       </div>
       <h3 className="text-lg font-bold text-brand-900 mb-2 tracking-tight">
         No grants match your filters
@@ -640,7 +640,7 @@ function FilteredEmptyState({
             className="group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-white border border-brand-200 text-brand-700 hover:border-red-300 hover:bg-red-50 hover:text-red-700 transition-all shadow-sm"
             aria-label={`Remove ${FILTER_LABELS[key]} filter ${value}`}
           >
-            <span className="text-xs text-brand-400 group-hover:text-red-400 font-medium">
+            <span className="text-xs text-brand-500 group-hover:text-red-400 font-medium">
               {FILTER_LABELS[key]}
             </span>
             <span>{value}</span>
@@ -650,7 +650,7 @@ function FilteredEmptyState({
       </div>
       <button
         onClick={onClearAll}
-        className="px-6 py-2.5 bg-white border border-brand-200 hover:border-primary-300 hover:text-primary-700 hover:bg-primary-50 text-brand-700 font-semibold rounded-xl shadow-sm hover:shadow-md transition-all text-sm"
+        className="px-6 py-2.5 bg-white border border-brand-200 hover:border-primary-300 hover:text-primary-700 hover:bg-primary-50 text-brand-700 font-semibold rounded-lg shadow-xs transition-colors text-sm"
       >
         Clear all filters
       </button>
@@ -676,8 +676,8 @@ function NoResultsEmptyState({
   ];
 
   return (
-    <div className="rounded-2xl border border-brand-200/60 bg-white/60 backdrop-blur-sm p-10 sm:p-12 flex flex-col items-center justify-center text-center mt-4 shadow-medium">
-      <div className="bg-gradient-to-br from-primary-50 to-white p-5 rounded-2xl shadow-inner border border-primary-100 mb-4">
+    <div className="rounded-xl border border-brand-200 bg-white p-10 sm:p-12 flex flex-col items-center justify-center text-center mt-4 shadow-medium">
+      <div className="bg-primary-50 p-5 rounded-xl border border-primary-200 mb-4">
         <Search className="w-8 h-8 text-primary-400" />
       </div>
       <h3 className="text-lg font-bold text-brand-900 mb-2 tracking-tight">
@@ -709,7 +709,7 @@ function NoResultsEmptyState({
       {searchQuery && (
         <button
           onClick={onClearSearch}
-          className="px-6 py-2.5 bg-white border border-brand-200 hover:border-primary-300 hover:text-primary-700 hover:bg-primary-50 text-brand-700 font-semibold rounded-xl shadow-sm hover:shadow-md transition-all text-sm"
+          className="px-6 py-2.5 bg-white border border-brand-200 hover:border-primary-300 hover:text-primary-700 hover:bg-primary-50 text-brand-700 font-semibold rounded-lg shadow-xs transition-colors text-sm"
         >
           Clear search & view all
         </button>

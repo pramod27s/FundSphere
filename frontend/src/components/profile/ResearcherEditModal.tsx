@@ -210,7 +210,7 @@ export default function ResearcherEditModal({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-950/60 backdrop-blur-sm overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-950/60 overflow-y-auto">
       <motion.div
         ref={dialogRef}
         role="dialog"
@@ -220,10 +220,10 @@ export default function ResearcherEditModal({
         initial={{ opacity: 0, scale: 0.96, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 10 }}
-        className="relative w-full max-w-3xl bg-white rounded-3xl border border-brand-200/80 shadow-2xl overflow-hidden my-6 max-h-[90vh] flex flex-col"
+        className="relative w-full max-w-3xl bg-white rounded-2xl border border-brand-200 shadow-2xl overflow-hidden my-6 max-h-[90vh] flex flex-col"
       >
         {/* Modal Header */}
-        <div className="relative px-6 py-5 border-b border-brand-100 bg-gradient-to-r from-primary-50/60 via-white to-white flex items-center justify-between shrink-0">
+        <div className="relative px-6 py-5 border-b border-brand-100 bg-white flex items-center justify-between shrink-0">
           <div>
             <h2 id={titleId} className="text-xl font-bold text-brand-900 tracking-tight flex items-center gap-2">
               Edit researcher profile
@@ -236,14 +236,14 @@ export default function ResearcherEditModal({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="p-2 rounded-xl text-brand-400 hover:text-brand-700 hover:bg-brand-100/80 transition-colors"
+            className="p-2 rounded-lg text-brand-500 hover:text-brand-700 hover:bg-brand-100 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-brand-100 px-6 bg-brand-50/40 overflow-x-auto no-scrollbar shrink-0 gap-1 pt-2">
+        <div className="flex border-b border-brand-100 px-6 bg-brand-50 overflow-x-auto no-scrollbar shrink-0 gap-1 pt-2">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -252,13 +252,13 @@ export default function ResearcherEditModal({
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-semibold rounded-t-xl transition-all whitespace-nowrap border-b-2 ${
+                className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-semibold rounded-t-lg transition-all whitespace-nowrap border-b-2 ${
                   isActive
                     ? 'border-primary-600 text-primary-700 bg-white shadow-sm'
-                    : 'border-transparent text-brand-500 hover:text-brand-800 hover:bg-brand-100/50'
+                    : 'border-transparent text-brand-500 hover:text-brand-800 hover:bg-brand-100'
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-primary-600' : 'text-brand-400'}`} />
+                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-primary-600' : 'text-brand-500'}`} />
                 {tab.label}
               </button>
             );
@@ -267,7 +267,7 @@ export default function ResearcherEditModal({
 
         {/* Error message banner */}
         {errorMessage && (
-          <div className="mx-6 mt-4 p-3.5 rounded-xl bg-red-50 border border-red-200 flex items-start gap-2.5 text-xs text-red-700 shrink-0">
+          <div className="mx-6 mt-4 p-3.5 rounded-lg bg-red-50 border border-red-200 flex items-start gap-2.5 text-xs text-red-700 shrink-0">
             <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
             <div className="flex-1">{errorMessage}</div>
           </div>
@@ -292,7 +292,7 @@ export default function ResearcherEditModal({
                     <select
                       value={formData.userType}
                       onChange={(e) => handleFieldChange('userType', e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white"
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white"
                       required
                     >
                       {USER_TYPES.map((t) => (
@@ -308,7 +308,7 @@ export default function ResearcherEditModal({
                     <select
                       value={formData.position || 'PROFESSOR'}
                       onChange={(e) => handleFieldChange('position', e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white"
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white"
                     >
                       {POSITIONS.map((p) => (
                         <option key={p.value} value={p.value}>{p.label}</option>
@@ -327,7 +327,7 @@ export default function ResearcherEditModal({
                       value={formData.institutionName}
                       onChange={(e) => handleFieldChange('institutionName', e.target.value)}
                       placeholder="e.g. Indian Institute of Science (IISc)"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                       required
                     />
                   </div>
@@ -341,7 +341,7 @@ export default function ResearcherEditModal({
                       value={formData.department}
                       onChange={(e) => handleFieldChange('department', e.target.value)}
                       placeholder="e.g. Department of Computer Science & Automation"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                     />
                   </div>
                 </div>
@@ -354,7 +354,7 @@ export default function ResearcherEditModal({
                     <select
                       value={formData.institutionType || 'UNIVERSITY'}
                       onChange={(e) => handleFieldChange('institutionType', e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white"
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white"
                     >
                       {INSTITUTION_TYPES.map((it) => (
                         <option key={it.value} value={it.value}>{it.label}</option>
@@ -369,7 +369,7 @@ export default function ResearcherEditModal({
                     <select
                       value={formData.educationLevel || 'PHD'}
                       onChange={(e) => handleFieldChange('educationLevel', e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white"
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white"
                     >
                       {EDUCATION_LEVELS.map((el) => (
                         <option key={el.value} value={el.value}>{el.label}</option>
@@ -395,7 +395,7 @@ export default function ResearcherEditModal({
                   <select
                     value={formData.primaryField}
                     onChange={(e) => handleFieldChange('primaryField', e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white"
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white"
                     required
                   >
                     {PRIMARY_FIELDS.map((f) => (
@@ -424,7 +424,7 @@ export default function ResearcherEditModal({
                     value={formData.orcidId}
                     onChange={(e) => handleFieldChange('orcidId', e.target.value)}
                     placeholder="e.g. 0000-0002-1825-0097"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                   />
                 </div>
 
@@ -437,7 +437,7 @@ export default function ResearcherEditModal({
                     value={formData.researchSummary}
                     onChange={(e) => handleFieldChange('researchSummary', e.target.value)}
                     placeholder="Describe your active research topics, methodologies, and target grant outcomes..."
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 resize-none"
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 resize-none"
                   />
                 </div>
 
@@ -457,19 +457,19 @@ export default function ResearcherEditModal({
                         }
                       }}
                       placeholder="Type keyword and press Enter or click Add"
-                      className="flex-1 px-3.5 py-2 rounded-xl border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                      className="flex-1 px-3.5 py-2 rounded-lg border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                     />
                     <button
                       type="button"
                       onClick={handleAddKeyword}
-                      className="px-4 py-2 bg-brand-100 hover:bg-brand-200 text-brand-800 text-xs font-semibold rounded-xl transition-colors inline-flex items-center gap-1"
+                      className="px-4 py-2 bg-brand-100 hover:bg-brand-200 text-brand-800 text-xs font-semibold rounded-lg transition-colors inline-flex items-center gap-1"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       Add
                     </button>
                   </div>
 
-                  <div className="flex flex-wrap gap-1.5 min-h-[36px] p-2.5 bg-brand-50/60 rounded-xl border border-brand-100">
+                  <div className="flex flex-wrap gap-1.5 min-h-[36px] p-2.5 bg-brand-50 rounded-lg border border-brand-100">
                     {formData.keywords.length > 0 ? (
                       formData.keywords.map((kw, idx) => (
                         <span
@@ -480,14 +480,14 @@ export default function ResearcherEditModal({
                           <button
                             type="button"
                             onClick={() => handleRemoveKeyword(idx)}
-                            className="text-brand-400 hover:text-red-500 transition-colors"
+                            className="text-brand-500 hover:text-red-500 transition-colors"
                           >
                             <X className="w-3 h-3" />
                           </button>
                         </span>
                       ))
                     ) : (
-                      <span className="text-xs text-brand-400 italic">No keywords added yet.</span>
+                      <span className="text-xs text-brand-500 italic">No keywords added yet.</span>
                     )}
                   </div>
                 </div>
@@ -512,7 +512,7 @@ export default function ResearcherEditModal({
                       value={formData.country}
                       onChange={(e) => handleFieldChange('country', e.target.value)}
                       placeholder="e.g. India"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                       required
                     />
                   </div>
@@ -526,7 +526,7 @@ export default function ResearcherEditModal({
                       value={formData.citizenship}
                       onChange={(e) => handleFieldChange('citizenship', e.target.value)}
                       placeholder="e.g. Indian"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                     />
                   </div>
                 </div>
@@ -541,7 +541,7 @@ export default function ResearcherEditModal({
                       value={formData.state}
                       onChange={(e) => handleFieldChange('state', e.target.value)}
                       placeholder="e.g. Karnataka"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                     />
                   </div>
 
@@ -554,7 +554,7 @@ export default function ResearcherEditModal({
                       value={formData.city}
                       onChange={(e) => handleFieldChange('city', e.target.value)}
                       placeholder="e.g. Bengaluru"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                     />
                   </div>
                 </div>
@@ -576,7 +576,7 @@ export default function ResearcherEditModal({
                   <select
                     value={formData.preferredGrantType}
                     onChange={(e) => handleFieldChange('preferredGrantType', e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white"
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white"
                   >
                     {GRANT_TYPES.map((gt) => (
                       <option key={gt.value} value={gt.value}>{gt.label}</option>
@@ -595,7 +595,7 @@ export default function ResearcherEditModal({
                       step={50000}
                       value={formData.minFundingAmount}
                       onChange={(e) => handleFieldChange('minFundingAmount', Number(e.target.value))}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                     />
                   </div>
 
@@ -609,7 +609,7 @@ export default function ResearcherEditModal({
                       step={50000}
                       value={formData.maxFundingAmount}
                       onChange={(e) => handleFieldChange('maxFundingAmount', Number(e.target.value))}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                     />
                   </div>
                 </div>
@@ -625,7 +625,7 @@ export default function ResearcherEditModal({
                       max={50}
                       value={formData.yearsOfExperience}
                       onChange={(e) => handleFieldChange('yearsOfExperience', Number(e.target.value))}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                     />
                   </div>
 
@@ -654,7 +654,7 @@ export default function ResearcherEditModal({
                 exit={{ opacity: 0, x: 10 }}
                 className="space-y-3"
               >
-                <div className="p-4 rounded-2xl border border-brand-200 bg-brand-50/40 space-y-3">
+                <div className="p-4 rounded-xl border border-brand-200 bg-brand-50 space-y-3">
                   <label className="flex items-center justify-between cursor-pointer py-1">
                     <div>
                       <span className="text-sm font-semibold text-brand-900 block">New Grant Email Alerts</span>
@@ -708,14 +708,14 @@ export default function ResearcherEditModal({
               type="button"
               onClick={onClose}
               disabled={isSaving}
-              className="px-4 py-2.5 rounded-xl border border-brand-200 text-brand-700 text-sm font-medium hover:bg-brand-50 transition-colors disabled:opacity-50"
+              className="px-4 py-2.5 rounded-lg border border-brand-200 text-brand-700 text-sm font-medium hover:bg-brand-50 transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-primary-600 to-primary-700 text-white text-sm font-semibold hover:from-primary-700 hover:to-primary-800 shadow-md shadow-primary-500/20 transition-all disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 shadow-xs transition-all disabled:opacity-50"
             >
               {isSaving ? (
                 <>

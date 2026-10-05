@@ -129,7 +129,7 @@ function SectionHeading({
   return (
     <div className={align === 'center' ? 'text-center max-w-2xl mx-auto' : 'max-w-xl'}>
       <p className="text-sm font-semibold text-primary-700">{eyebrow}</p>
-      <h2 className="mt-2 font-display text-3xl sm:text-[2.75rem] sm:leading-[1.1] font-semibold tracking-tight text-brand-900 text-balance">{title}</h2>
+      <h2 className="mt-2 font-display text-3xl sm:text-[2.75rem] sm:leading-[1.1] font-semibold tracking-[-0.015em] text-brand-900 text-balance">{title}</h2>
       {body && <p className="mt-4 text-lg text-brand-600 leading-relaxed text-pretty">{body}</p>}
     </div>
   );
@@ -162,7 +162,7 @@ export default function LandingPage() {
       </a>
 
       {/* ── Navbar ─────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/80 border-b border-brand-200/70">
+      <header className="sticky top-0 z-50 bg-white border-b border-brand-200">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-6">
           <a href="#top" className="flex items-center gap-2.5 rounded-lg" aria-label="FundSphere home">
             <AnimatedLogo className="w-8 h-8" />
@@ -174,7 +174,7 @@ export default function LandingPage() {
               <a
                 key={link.href}
                 href={link.href}
-                className="px-3 py-2 rounded-lg hover:text-brand-900 hover:bg-brand-100/70 transition-colors"
+                className="px-3 py-2 rounded-lg hover:text-brand-900 hover:bg-brand-100 transition-colors"
               >
                 {link.label}
               </a>
@@ -214,10 +214,10 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.05 }}
-            className="mt-6 mx-auto max-w-4xl font-display text-4xl sm:text-6xl lg:text-7xl font-semibold tracking-tight leading-[1.05] text-balance"
+            className="mt-6 mx-auto max-w-4xl font-display text-4xl sm:text-6xl lg:text-7xl font-semibold tracking-[-0.015em] leading-[1.05] text-balance"
           >
             Find the grants you can{' '}
-            <span className="bg-gradient-to-r from-primary-600 to-cyan-600 bg-clip-text text-transparent">actually win</span>.
+            <span className="text-primary-700">actually win</span>.
           </motion.h1>
 
           <motion.p
@@ -236,7 +236,7 @@ export default function LandingPage() {
             transition={{ duration: 0.5, delay: 0.15 }}
             className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3"
           >
-            <button onClick={goToApp} className={buttonClasses('primary', 'lg', 'w-full sm:w-auto px-8 shadow-lg shadow-primary-600/25')}>
+            <button onClick={goToApp} className={buttonClasses('primary', 'lg', 'w-full sm:w-auto px-8 shadow-xs')}>
               {primaryCtaLabel}
               <ArrowRight className="w-5 h-5" aria-hidden="true" />
             </button>
@@ -266,15 +266,15 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="max-w-5xl mx-auto rounded-3xl border border-brand-200/80 bg-white/70 backdrop-blur-sm shadow-elevated overflow-hidden"
+            className="max-w-5xl mx-auto rounded-2xl border border-brand-200 bg-white shadow-elevated overflow-hidden"
           >
-            <div className="flex items-center gap-2 px-4 h-11 border-b border-brand-200/70 bg-brand-50/80">
+            <div className="flex items-center gap-2 px-4 h-11 border-b border-brand-200 bg-brand-50">
               <span className="w-3 h-3 rounded-full bg-brand-200" aria-hidden="true" />
               <span className="w-3 h-3 rounded-full bg-brand-200" aria-hidden="true" />
               <span className="w-3 h-3 rounded-full bg-brand-200" aria-hidden="true" />
               <span className="ml-3 text-xs font-medium text-brand-500">Try it: pick a researcher and see how a grant is matched</span>
             </div>
-            <div className="p-4 sm:p-8 bg-brand-50/40">
+            <div className="p-4 sm:p-8 bg-brand-50">
               <InteractiveMatchDemo />
             </div>
           </motion.div>
@@ -293,7 +293,7 @@ export default function LandingPage() {
         </section>
 
         {/* ── Features (bento) ────────────────────────────────────── */}
-        <section id="features" className="px-4 sm:px-6 py-24 bg-white border-y border-brand-200/70">
+        <section id="features" className="px-4 sm:px-6 py-24 bg-white border-y border-brand-200">
           <div className="max-w-6xl mx-auto">
             <SectionHeading
               eyebrow="Features"
@@ -303,7 +303,7 @@ export default function LandingPage() {
 
             <div className="mt-16 grid grid-cols-1 lg:grid-cols-3 gap-5">
               {/* Ranked matches (wide) */}
-              <motion.div {...fadeUp} className="lg:col-span-2 rounded-3xl border border-brand-200/80 bg-brand-50/60 p-8 flex flex-col">
+              <motion.div {...fadeUp} className="lg:col-span-2 rounded-2xl border border-brand-200 bg-brand-50 p-8 flex flex-col">
                 <h3 className="text-xl font-bold">Matches ranked by how well they fit you</h3>
                 <p className="mt-2 text-brand-600 leading-relaxed max-w-lg">
                   FundSphere reads your research focus and ranks every open call. Each match comes with a plain-language reason, so you can decide in seconds.
@@ -314,7 +314,7 @@ export default function LandingPage() {
                     { title: 'Wellcome Early-Career Award', score: 88 },
                     { title: 'NSF CAREER: Molecular Biosciences', score: 71 },
                   ].map((row) => (
-                    <li key={row.title} className="flex items-center gap-4 rounded-2xl bg-white border border-brand-200/70 px-4 py-3 shadow-soft">
+                    <li key={row.title} className="flex items-center gap-4 rounded-xl bg-white border border-brand-200 px-4 py-3 shadow-soft">
                       <span className="flex-1 min-w-0 truncate text-sm font-semibold text-brand-800">{row.title}</span>
                       <span className="hidden sm:block w-28 h-2 rounded-full bg-brand-100 overflow-hidden">
                         <span className="block h-full rounded-full bg-primary-500" style={{ width: `${row.score}%` }} />
@@ -326,8 +326,8 @@ export default function LandingPage() {
               </motion.div>
 
               {/* Eligibility */}
-              <motion.div {...fadeUp} className="rounded-3xl border border-brand-200/80 bg-brand-50/60 p-8">
-                <span className="inline-flex w-11 h-11 items-center justify-center rounded-xl bg-primary-100 text-primary-700">
+              <motion.div {...fadeUp} className="rounded-2xl border border-brand-200 bg-brand-50 p-8">
+                <span className="inline-flex w-11 h-11 items-center justify-center rounded-lg bg-primary-100 text-primary-700">
                   <ShieldCheck className="w-6 h-6" aria-hidden="true" />
                 </span>
                 <h3 className="mt-5 text-xl font-bold">No more ineligible applications</h3>
@@ -342,8 +342,8 @@ export default function LandingPage() {
               </motion.div>
 
               {/* Freshness */}
-              <motion.div {...fadeUp} className="rounded-3xl border border-brand-200/80 bg-brand-50/60 p-8">
-                <span className="inline-flex w-11 h-11 items-center justify-center rounded-xl bg-primary-100 text-primary-700">
+              <motion.div {...fadeUp} className="rounded-2xl border border-brand-200 bg-brand-50 p-8">
+                <span className="inline-flex w-11 h-11 items-center justify-center rounded-lg bg-primary-100 text-primary-700">
                   <CalendarCheck className="w-6 h-6" aria-hidden="true" />
                 </span>
                 <h3 className="mt-5 text-xl font-bold">Deadlines you can trust</h3>
@@ -353,9 +353,9 @@ export default function LandingPage() {
               </motion.div>
 
               {/* ORCID (wide) */}
-              <motion.div {...fadeUp} className="lg:col-span-2 rounded-3xl bg-gradient-to-br from-primary-600 to-primary-800 p-8 text-white flex flex-col sm:flex-row sm:items-center gap-8">
+              <motion.div {...fadeUp} className="lg:col-span-2 rounded-2xl bg-primary-700 p-8 text-white flex flex-col sm:flex-row sm:items-center gap-8">
                 <div className="flex-1">
-                  <span className="inline-flex w-11 h-11 items-center justify-center rounded-xl bg-white/15">
+                  <span className="inline-flex w-11 h-11 items-center justify-center rounded-lg bg-white/15">
                     <GraduationCap className="w-6 h-6" aria-hidden="true" />
                   </span>
                   <h3 className="mt-5 text-xl font-bold">Your profile in one click</h3>
@@ -363,7 +363,7 @@ export default function LandingPage() {
                     Connect your ORCID iD and we load your biography, publications, keywords and affiliation. Edit anything afterwards.
                   </p>
                 </div>
-                <div className="sm:w-64 rounded-2xl bg-white/10 border border-white/20 p-4 text-sm space-y-2" aria-hidden="true">
+                <div className="sm:w-64 rounded-xl bg-white/10 border border-white/20 p-4 text-sm space-y-2" aria-hidden="true">
                   <p className="font-mono text-xs text-primary-100">0000-0002-1825-0097</p>
                   {['Biography', '24 publications', '12 keywords', 'Affiliation'].map((item) => (
                     <p key={item} className="flex items-center gap-2"><Check className="w-4 h-4 text-primary-200" />{item}</p>
@@ -394,7 +394,7 @@ export default function LandingPage() {
         </section>
 
         {/* ── Proposal review ──────────────────────────────────────── */}
-        <section id="proposal-review" className="px-4 sm:px-6 py-24 bg-white border-y border-brand-200/70">
+        <section id="proposal-review" className="px-4 sm:px-6 py-24 bg-white border-y border-brand-200">
           <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-14 items-center">
             <div>
               <SectionHeading
@@ -427,7 +427,7 @@ export default function LandingPage() {
               </button>
             </div>
 
-            <motion.div {...fadeUp} className="rounded-3xl border border-brand-200 bg-white p-6 shadow-elevated" aria-label="Example proposal review">
+            <motion.div {...fadeUp} className="rounded-2xl border border-brand-200 bg-white p-6 shadow-elevated" aria-label="Example proposal review">
               <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-brand-100">
                 <span className="flex items-center gap-2 text-sm font-semibold text-brand-800">
                   <FileText className="w-4 h-4 text-primary-600" aria-hidden="true" />
@@ -436,21 +436,21 @@ export default function LandingPage() {
                 <span className="text-sm font-bold text-primary-700 tabular-nums">91 / 100</span>
               </div>
               <ul className="mt-4 space-y-3 text-sm">
-                <li className="rounded-2xl bg-brand-50 border border-brand-200/70 p-4">
+                <li className="rounded-xl bg-brand-50 border border-brand-200 p-4">
                   <div className="flex justify-between gap-3 font-semibold">
                     <span>Specific aims &amp; significance</span>
                     <span className="text-primary-700 tabular-nums">9.5</span>
                   </div>
                   <p className="mt-1 text-brand-600">Clear rationale and strong alignment with the call's stated priorities.</p>
                 </li>
-                <li className="rounded-2xl bg-brand-50 border border-brand-200/70 p-4">
+                <li className="rounded-xl bg-brand-50 border border-brand-200 p-4">
                   <div className="flex justify-between gap-3 font-semibold">
                     <span>Research strategy</span>
                     <span className="text-primary-700 tabular-nums">8.8</span>
                   </div>
                   <p className="mt-1 text-brand-600">Power calculation confirmed. Describe control-group parameters in Aim 2.</p>
                 </li>
-                <li className="rounded-2xl bg-amber-50 border border-amber-200 p-4">
+                <li className="rounded-xl bg-amber-50 border border-amber-200 p-4">
                   <div className="flex justify-between gap-3 font-semibold text-amber-900">
                     <span>Budget justification</span>
                     <span className="flex items-center gap-1"><TriangleAlert className="w-4 h-4" aria-hidden="true" />Fix</span>
@@ -479,7 +479,7 @@ export default function LandingPage() {
         </section>
 
         {/* ── Under the hood (for the technically curious) ─────────── */}
-        <section id="technology" className="px-4 sm:px-6 py-24 bg-white border-y border-brand-200/70">
+        <section id="technology" className="px-4 sm:px-6 py-24 bg-white border-y border-brand-200">
           <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-12">
             <div>
               <SectionHeading
@@ -489,7 +489,7 @@ export default function LandingPage() {
                 body="For the technically curious: how FundSphere finds and scores grants."
               />
             </div>
-            <dl className="lg:col-span-2 divide-y divide-brand-200/80 border-y border-brand-200/80">
+            <dl className="lg:col-span-2 divide-y divide-brand-200 border-y border-brand-200">
               {TECH_DETAILS.map(({ term, detail }) => (
                 <div key={term} className="grid grid-cols-1 sm:grid-cols-4 gap-1 sm:gap-6 py-5">
                   <dt className="font-semibold text-brand-900">{term}</dt>
@@ -520,7 +520,7 @@ export default function LandingPage() {
                       >
                         {faq.q}
                         <ChevronDown
-                          className={`w-5 h-5 shrink-0 text-brand-400 transition-transform duration-200 ${isOpen ? 'rotate-180 text-primary-600' : ''}`}
+                          className={`w-5 h-5 shrink-0 text-brand-500 transition-transform duration-200 ${isOpen ? 'rotate-180 text-primary-600' : ''}`}
                           aria-hidden="true"
                         />
                       </button>
@@ -543,13 +543,13 @@ export default function LandingPage() {
 
         {/* ── Final CTA ────────────────────────────────────────────── */}
         <section className="px-4 sm:px-6 pb-24">
-          <div className="relative max-w-6xl mx-auto overflow-hidden rounded-3xl bg-brand-900 px-6 py-16 sm:px-16 sm:py-20 text-center">
+          <div className="relative max-w-6xl mx-auto overflow-hidden rounded-2xl bg-brand-900 px-6 py-16 sm:px-16 sm:py-20 text-center">
             <div
               className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(45,212,191,0.25),transparent_60%)]"
               aria-hidden="true"
             />
             <div className="relative">
-              <h2 className="font-display text-3xl sm:text-5xl font-semibold tracking-tight text-white text-balance">
+              <h2 className="font-display text-3xl sm:text-5xl font-semibold tracking-[-0.015em] text-white text-balance">
                 Your next grant is already out there.
               </h2>
               <p className="mt-4 text-lg text-brand-300 max-w-xl mx-auto">

@@ -49,20 +49,20 @@ export default function CustomSelect({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between bg-white border border-brand-200/90 hover:border-primary-300 hover:bg-brand-50/60 font-semibold text-brand-700 transition-all shadow-2xs focus:outline-none focus:ring-2 focus:ring-primary-500/20 cursor-pointer ${
+        className={`w-full flex items-center justify-between bg-white border border-brand-200 hover:border-primary-300 hover:bg-brand-50 font-semibold text-brand-700 transition-all shadow-2xs focus:outline-none focus:ring-2 focus:ring-primary-500/20 cursor-pointer ${
           isSmall
             ? 'h-7.5 px-2.5 py-1 text-xs rounded-lg'
-            : 'h-9 px-3 py-2 text-sm rounded-xl'
+            : 'h-9 px-3 py-2 text-sm rounded-lg'
         }`}
       >
         <div className="flex items-center gap-1.5 truncate">
-          {icon && <span className="text-brand-400">{icon}</span>}
+          {icon && <span className="text-brand-500">{icon}</span>}
           <span className="truncate">{selectedOption.label}</span>
         </div>
         <motion.div
           animate={{ rotate: isOpen ? 180 : 0 }}
           transition={{ duration: 0.15, ease: 'easeInOut' }}
-          className="text-brand-400 ml-1.5 shrink-0"
+          className="text-brand-500 ml-1.5 shrink-0"
         >
           <ChevronDown className={isSmall ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
         </motion.div>
@@ -75,8 +75,8 @@ export default function CustomSelect({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.98 }}
             transition={{ duration: 0.12, ease: 'easeOut' }}
-            className={`absolute z-50 w-full mt-1.5 bg-white border border-brand-200/90 shadow-lg shadow-brand-900/5 p-1 overflow-hidden ${
-              isSmall ? 'rounded-lg' : 'rounded-xl'
+            className={`absolute z-50 w-full mt-1.5 bg-white border border-brand-200 shadow-xs p-1 overflow-hidden ${
+              isSmall ? 'rounded-lg' : 'rounded-lg'
             }`}
           >
             {options.map((option) => {

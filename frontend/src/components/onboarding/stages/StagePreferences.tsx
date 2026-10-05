@@ -44,7 +44,7 @@ type ToggleRowProps = {
 
 function ToggleRow({ checked, onChange, label, sublabel, icon: Icon }: ToggleRowProps) {
   return (
-    <div className="flex items-center justify-between p-3.5 rounded-xl border border-brand-200 bg-white/80 hover:border-primary-300 transition-all">
+    <div className="flex items-center justify-between p-3.5 rounded-lg border border-brand-200 bg-white hover:border-primary-300 transition-all">
       <div className="flex gap-3 items-center">
         <div className="p-2 rounded-lg bg-brand-50 text-brand-600">
           <Icon className="w-4 h-4" />
@@ -83,7 +83,7 @@ export default function StagePreferences({
   updateFields,
 }: StagePreferencesProps) {
   const inputClass =
-    'w-full px-4 py-2.5 rounded-xl border border-brand-200 bg-white/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all text-sm text-brand-900 placeholder:text-brand-400';
+    'w-full px-4 py-2.5 rounded-lg border border-brand-200 bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all text-sm text-brand-900 placeholder:text-brand-400';
   const labelClass = 'block text-sm font-medium text-brand-700 mb-1.5';
 
   return (
@@ -135,7 +135,7 @@ export default function StagePreferences({
                 </option>
               ))}
             </select>
-            <span className="text-[11px] text-brand-400 mt-1 block">
+            <span className="text-[11px] text-brand-500 mt-1 block">
               Leave blank if same as country of residence.
             </span>
           </div>
@@ -201,7 +201,7 @@ export default function StagePreferences({
       </div>
 
       {/* Completion Banner */}
-      <div className="p-4 rounded-xl border border-primary-200/70 bg-gradient-to-r from-primary-50/70 to-brand-50/50 flex items-start gap-3 text-xs text-brand-700">
+      <div className="p-4 rounded-lg border border-primary-200 bg-primary-50 flex items-start gap-3 text-xs text-brand-700">
         <div className="p-1.5 rounded-lg bg-primary-600 text-white shrink-0 mt-0.5">
           <Sparkles className="w-4 h-4" />
         </div>

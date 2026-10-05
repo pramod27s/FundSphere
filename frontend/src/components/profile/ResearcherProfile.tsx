@@ -160,14 +160,11 @@ function ResearcherProfile({ researcher: initialResearcher, onBack, onLogout }: 
     <div className="min-h-screen px-4 py-6 md:px-8 md:py-8">
       <div className="max-w-6xl mx-auto space-y-5">
         {/* Hero header card */}
-        <section className="relative overflow-hidden rounded-2xl border border-primary-100/80 bg-gradient-to-br from-white via-white to-primary-50/40 p-5 md:p-7 shadow-soft">
-          {/* Decorative accent blur */}
-          <div className="absolute -top-12 -right-12 w-48 h-48 bg-gradient-to-br from-primary-100/40 to-transparent rounded-full blur-2xl pointer-events-none" />
-
+        <section className="relative overflow-hidden rounded-xl border border-brand-200 bg-white p-5 md:p-7 shadow-soft">
           <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-5">
             <div className="flex items-start gap-4">
               <div className="relative group">
-                <div className="h-16 w-16 md:h-20 md:w-20 rounded-2xl bg-gradient-to-br from-primary-100 to-primary-200 text-primary-700 flex items-center justify-center shrink-0 overflow-hidden border-2 border-white shadow-primary-glow">
+                <div className="h-16 w-16 md:h-20 md:w-20 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center shrink-0 overflow-hidden border border-primary-200">
                   {profileImage ? (
                     <img src={profileImage} alt="Profile" className="h-full w-full object-cover" />
                   ) : (
@@ -177,7 +174,7 @@ function ResearcherProfile({ researcher: initialResearcher, onBack, onLogout }: 
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="absolute -bottom-1.5 -right-1.5 bg-white p-1.5 rounded-full border border-brand-200 shadow-md text-brand-600 hover:text-primary-600 hover:border-primary-300 transition-all hover:scale-110 cursor-pointer"
+                  className="absolute -bottom-1.5 -right-1.5 bg-white p-1.5 rounded-full border border-brand-200 shadow-xs text-brand-600 hover:text-primary-600 hover:border-primary-300 transition-all hover:scale-110 cursor-pointer"
                   title="Change profile picture"
                 >
                   <Camera className="w-3.5 h-3.5" />
@@ -198,7 +195,7 @@ function ResearcherProfile({ researcher: initialResearcher, onBack, onLogout }: 
                 <div className="mt-2.5 flex items-center gap-2">
                   <div className="flex-1 max-w-[160px] h-1.5 bg-brand-100 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-primary-400 to-primary-600 rounded-full transition-all"
+                      className="h-full bg-primary-600 rounded-full transition-all"
                       style={{ width: `${completionPercent}%` }}
                     />
                   </div>
@@ -211,7 +208,7 @@ function ResearcherProfile({ researcher: initialResearcher, onBack, onLogout }: 
               <button
                 type="button"
                 onClick={() => setIsEditModalOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary-600 to-primary-700 text-white font-semibold hover:from-primary-700 hover:to-primary-800 transition-all shadow-sm hover:shadow-md text-sm"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary-600 text-white font-semibold hover:bg-primary-700 transition-all shadow-xs text-sm"
               >
                 <Edit3 className="w-4 h-4" />
                 <span>Edit Profile</span>
@@ -221,7 +218,7 @@ function ResearcherProfile({ researcher: initialResearcher, onBack, onLogout }: 
                 <button
                   type="button"
                   onClick={onBack}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-brand-200 text-brand-700 font-medium hover:bg-brand-50 hover:border-brand-300 transition-all shadow-sm hover:shadow-md text-sm"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white border border-brand-200 text-brand-700 font-medium hover:bg-brand-50 hover:border-brand-300 transition-all shadow-xs text-sm"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   <span className="hidden sm:inline">Back to Discovery</span>
@@ -232,7 +229,7 @@ function ResearcherProfile({ researcher: initialResearcher, onBack, onLogout }: 
                 <button
                   type="button"
                   onClick={onLogout}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-red-200 text-red-600 font-medium hover:bg-red-50 hover:border-red-300 transition-all shadow-sm hover:shadow-md text-sm"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white border border-red-200 text-red-600 font-medium hover:bg-red-50 hover:border-red-300 transition-all shadow-xs text-sm"
                 >
                   <LogOut className="w-4 h-4" />
                   Logout
@@ -297,14 +294,14 @@ function ResearcherProfile({ researcher: initialResearcher, onBack, onLogout }: 
                   {researcher.keywords.map((keyword) => (
                     <span
                       key={keyword}
-                      className="px-2.5 py-1 rounded-lg text-xs bg-primary-50 text-primary-800 border border-primary-200/80 font-semibold shadow-2xs"
+                      className="px-2.5 py-1 rounded-lg text-xs bg-primary-50 text-primary-800 border border-primary-200 font-semibold shadow-2xs"
                     >
                       {keyword}
                     </span>
                   ))}
                 </div>
               ) : (
-                <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs bg-brand-50 text-brand-500 border border-brand-200/70 font-medium">
+                <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs bg-brand-50 text-brand-500 border border-brand-200 font-medium">
                   {NOT_PROVIDED}
                 </span>
               )}
@@ -323,9 +320,9 @@ function ResearcherProfile({ researcher: initialResearcher, onBack, onLogout }: 
         </section>
 
         {/* Notifications */}
-        <section className="rounded-2xl border border-brand-200/70 bg-white/80 backdrop-blur-sm p-5 shadow-soft">
+        <section className="rounded-xl border border-brand-200 bg-white p-5 shadow-soft">
           <div className="flex items-center gap-2.5 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-50 to-primary-100 border border-primary-200/70 flex items-center justify-center text-primary-600">
+            <div className="w-8 h-8 rounded-lg bg-primary-50 border border-primary-200 flex items-center justify-center text-primary-600">
               <Bell className="w-4 h-4" />
             </div>
             <div>
@@ -364,23 +361,23 @@ interface StatCardProps {
 function StatCard({ label, value, accent, icon, small }: StatCardProps) {
   const accentMap = {
     primary: {
-      icon: 'bg-primary-50 text-primary-700 border-primary-200/80',
+      icon: 'bg-primary-50 text-primary-700 border-primary-200',
       value: 'text-brand-900',
     },
     green: {
-      icon: 'bg-emerald-50 text-emerald-700 border-emerald-200/80',
+      icon: 'bg-emerald-50 text-emerald-700 border-emerald-200',
       value: 'text-brand-900',
     },
     brand: {
-      icon: 'bg-cyan-50 text-cyan-700 border-cyan-200/80',
+      icon: 'bg-cyan-50 text-cyan-700 border-cyan-200',
       value: 'text-brand-900',
     },
   }[accent];
 
   return (
-    <div className="rounded-2xl border border-brand-200/80 bg-white p-4.5 shadow-soft hover:shadow-md transition-shadow">
+    <div className="rounded-xl border border-brand-200 bg-white p-4.5 shadow-soft hover:shadow-md transition-shadow">
       <div className="flex items-center gap-2.5 mb-2.5">
-        <div className={`w-8 h-8 rounded-xl border ${accentMap.icon} flex items-center justify-center`}>{icon}</div>
+        <div className={`w-8 h-8 rounded-lg border ${accentMap.icon} flex items-center justify-center`}>{icon}</div>
         <p className="text-xs text-brand-500 font-medium">{label}</p>
       </div>
       <p className={`${small ? 'text-sm md:text-base' : 'text-xl'} font-bold ${accentMap.value} tabular-nums`}>{value}</p>
@@ -396,9 +393,9 @@ interface DetailCardProps {
 
 function DetailCard({ icon, title, children }: DetailCardProps) {
   return (
-    <div className="rounded-2xl border border-brand-200/70 bg-white/80 backdrop-blur-sm p-5 shadow-soft hover:shadow-elevated transition-shadow duration-200">
-      <div className="flex items-center gap-2.5 mb-4 pb-3 border-b border-brand-100/80">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-50 to-primary-100 border border-primary-200/70 flex items-center justify-center text-primary-600">
+    <div className="rounded-xl border border-brand-200 bg-white p-5 shadow-soft hover:shadow-elevated transition-shadow duration-200">
+      <div className="flex items-center gap-2.5 mb-4 pb-3 border-b border-brand-100">
+        <div className="w-8 h-8 rounded-lg bg-primary-50 border border-primary-200 flex items-center justify-center text-primary-600">
           {icon}
         </div>
         <h2 className="text-base font-bold text-brand-900 tracking-tight">{title}</h2>
@@ -419,10 +416,10 @@ interface ProfileRowProps {
 
 function ProfileRow({ label, value, icon, isBadge }: ProfileRowProps) {
   return (
-    <div className="flex items-center justify-between gap-4 py-2 border-b border-brand-100/70 last:border-b-0">
+    <div className="flex items-center justify-between gap-4 py-2 border-b border-brand-100 last:border-b-0">
       <span className="text-brand-500 font-medium text-xs shrink-0">{label}</span>
       {isBadge ? (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary-50 text-primary-800 border border-primary-200/80 shadow-2xs">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary-50 text-primary-800 border border-primary-200 shadow-2xs">
           {icon}
           <span>{value}</span>
         </span>
@@ -443,14 +440,14 @@ interface NotificationItemProps {
 
 function NotificationItem({ label, enabled }: NotificationItemProps) {
   return (
-    <div className={`relative rounded-xl border px-4 py-3 flex items-center justify-between transition-all overflow-hidden ${
+    <div className={`relative rounded-lg border px-4 py-3 flex items-center justify-between transition-all overflow-hidden ${
       enabled
-        ? 'border-green-200/70 bg-gradient-to-r from-green-50 to-emerald-50/40 shadow-sm'
-        : 'border-brand-200/70 bg-white shadow-sm'
+        ? 'border-green-200 bg-green-50 shadow-sm'
+        : 'border-brand-200 bg-white shadow-sm'
     }`}>
-      {enabled && <div className="absolute top-0 left-0 w-0.5 h-full bg-gradient-to-b from-green-400 to-emerald-500" />}
+      {enabled && <div className="absolute top-0 left-0 w-0.5 h-full bg-primary-500" />}
       <span className="text-sm font-medium text-brand-800">{label}</span>
-      <span className={`inline-flex items-center gap-1 text-xs font-bold ${enabled ? 'text-green-700' : 'text-brand-400'}`}>
+      <span className={`inline-flex items-center gap-1 text-xs font-bold ${enabled ? 'text-green-700' : 'text-brand-500'}`}>
         {enabled ? <CheckCircle2 className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
         {enabled ? 'Enabled' : 'Disabled'}
       </span>

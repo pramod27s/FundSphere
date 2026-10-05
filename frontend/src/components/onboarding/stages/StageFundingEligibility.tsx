@@ -58,7 +58,7 @@ export default function StageFundingEligibility({
 }: StageFundingEligibilityProps) {
   const currency = getCurrencySymbol(country);
   const inputClass =
-    'w-full px-4 py-2.5 rounded-xl border border-brand-200 bg-white/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all text-sm text-brand-900 placeholder:text-brand-400';
+    'w-full px-4 py-2.5 rounded-lg border border-brand-200 bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all text-sm text-brand-900 placeholder:text-brand-400';
   const labelClass = 'block text-sm font-medium text-brand-700 mb-1.5';
 
   const isInvalidRange = minFunding !== '' && maxFunding !== '' && Number(minFunding) > Number(maxFunding);
@@ -90,10 +90,10 @@ export default function StageFundingEligibility({
                 key={t.id}
                 type="button"
                 onClick={() => updateFields({ grantType: t.id })}
-                className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-3 ${
+                className={`p-3 rounded-lg border text-left transition-all cursor-pointer flex items-center gap-3 ${
                   isSelected
-                    ? 'border-primary-500 bg-primary-50/60 shadow-sm ring-1 ring-primary-500'
-                    : 'border-brand-200 bg-white hover:border-primary-300 hover:bg-brand-50/50'
+                    ? 'border-primary-500 bg-primary-50 shadow-sm ring-1 ring-primary-500'
+                    : 'border-brand-200 bg-white hover:border-primary-300 hover:bg-brand-50'
                 }`}
               >
                 <div
@@ -140,7 +140,7 @@ export default function StageFundingEligibility({
           <div>
             <label className="text-xs text-brand-600 mb-1 block">Minimum Funding</label>
             <div className="relative">
-              <span className="absolute left-3.5 top-2.5 text-xs font-semibold text-brand-400 select-none">
+              <span className="absolute left-3.5 top-2.5 text-xs font-semibold text-brand-500 select-none">
                 {currency}
               </span>
               <input
@@ -157,7 +157,7 @@ export default function StageFundingEligibility({
           <div>
             <label className="text-xs text-brand-600 mb-1 block">Maximum Funding</label>
             <div className="relative">
-              <span className="absolute left-3.5 top-2.5 text-xs font-semibold text-brand-400 select-none">
+              <span className="absolute left-3.5 top-2.5 text-xs font-semibold text-brand-500 select-none">
                 {currency}
               </span>
               <input
@@ -225,7 +225,7 @@ export default function StageFundingEligibility({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-          <div className="p-3.5 rounded-xl border border-brand-200 bg-white/60">
+          <div className="p-3.5 rounded-lg border border-brand-200 bg-white">
             <label className={labelClass}>Have you completed a PhD / doctorate?</label>
             <p className="text-[11px] text-brand-500 mb-2">
               Certain PI grants require a completed degree in hand before application.
@@ -248,7 +248,7 @@ export default function StageFundingEligibility({
             </div>
           </div>
 
-          <div className="p-3.5 rounded-xl border border-brand-200 bg-white/60">
+          <div className="p-3.5 rounded-lg border border-brand-200 bg-white">
             <label className={labelClass}>Have you previously received a grant?</label>
             <p className="text-[11px] text-brand-500 mb-2">
               First-time investigator grants often give preference to newcomers.

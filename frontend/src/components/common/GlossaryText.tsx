@@ -119,7 +119,7 @@ function GlossaryTerm({ term, entry }: GlossaryTermProps): ReactNode {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 4, scale: 0.98 }}
             transition={{ duration: 0.12, ease: 'easeOut' }}
-            className="absolute z-50 left-1/2 -translate-x-1/2 mt-2 top-full w-72 max-w-[min(20rem,calc(100vw-2rem))] bg-brand-900 text-white rounded-lg shadow-xl shadow-brand-900/30 p-3 text-xs leading-relaxed pointer-events-none"
+            className="absolute z-50 left-1/2 -translate-x-1/2 mt-2 top-full w-72 max-w-[min(20rem,calc(100vw-2rem))] bg-brand-900 text-white rounded-lg shadow-xs p-3 text-xs leading-relaxed pointer-events-none"
           >
             <span className="block font-bold text-primary-300 mb-1 tabular-nums">
               {term} <span className="text-brand-300 font-normal">— {entry.full}</span>

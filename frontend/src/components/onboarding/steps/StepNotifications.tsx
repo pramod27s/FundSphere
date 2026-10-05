@@ -19,7 +19,7 @@ type ToggleSwitchProps = {
 
 function ToggleSwitch({ checked, onChange, label, sublabel, icon: Icon }: ToggleSwitchProps) {
   return (
-    <div className="flex items-center justify-between p-4 rounded-xl border border-brand-200 bg-white hover:border-primary-300 transition-colors">
+    <div className="flex items-center justify-between p-4 rounded-lg border border-brand-200 bg-white hover:border-primary-300 transition-colors">
       <div className="flex gap-4 items-center">
         <div className="p-2 rounded-lg bg-brand-50 text-brand-500">
           <Icon className="w-5 h-5" />
@@ -79,7 +79,7 @@ export default function StepNotifications({
         />
       </div>
 
-      <div className="mt-8 bg-brand-50 rounded-xl p-4 border border-brand-100 flex gap-3 text-brand-700 text-sm">
+      <div className="mt-8 bg-brand-50 rounded-lg p-4 border border-brand-100 flex gap-3 text-brand-700 text-sm">
         <div className="mt-0.5 whitespace-nowrap">✨ Almost Done!</div>
         <p>By completing this setup, FundSphere's AI will begin personalizing your discovery feed immediately.</p>
       </div>

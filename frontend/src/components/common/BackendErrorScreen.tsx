@@ -34,9 +34,9 @@ export default function BackendErrorScreen({ message, onRetry, onSignOut }: Back
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-brand-50 via-white to-primary-50/30">
-      <div className="max-w-md w-full bg-white border border-brand-200/70 rounded-2xl shadow-medium p-8 text-center">
-        <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100/60 flex items-center justify-center border border-amber-200 shadow-inner">
+    <div className="min-h-screen flex items-center justify-center p-6 bg-brand-50">
+      <div className="max-w-md w-full bg-white border border-brand-200 rounded-xl shadow-medium p-8 text-center">
+        <div className="w-16 h-16 mx-auto mb-5 rounded-xl bg-amber-50 flex items-center justify-center border border-amber-200">
           <ServerCrash className="w-8 h-8 text-amber-600" />
         </div>
 
@@ -52,7 +52,7 @@ export default function BackendErrorScreen({ message, onRetry, onSignOut }: Back
             type="button"
             onClick={handleRetry}
             disabled={retrying}
-            className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white font-semibold text-sm shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed transition-all"
+            className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white font-semibold text-sm shadow-xs active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed transition-all"
           >
             <RefreshCw className={`w-4 h-4 ${retrying ? 'animate-spin' : ''}`} />
             {retrying ? 'Retrying…' : 'Try again'}
@@ -62,7 +62,7 @@ export default function BackendErrorScreen({ message, onRetry, onSignOut }: Back
             <button
               type="button"
               onClick={handleSignOut}
-              className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-white border border-brand-200 hover:border-brand-300 hover:bg-brand-50 text-brand-700 font-medium text-sm transition-all"
+              className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-white border border-brand-200 hover:border-brand-300 hover:bg-brand-50 text-brand-700 font-medium text-sm transition-all"
             >
               <LogOut className="w-4 h-4" />
               Sign out
@@ -70,7 +70,7 @@ export default function BackendErrorScreen({ message, onRetry, onSignOut }: Back
           )}
         </div>
 
-        <p className="text-[11px] text-brand-400 mt-5 leading-snug">
+        <p className="text-[11px] text-brand-500 mt-5 leading-snug">
           If this keeps happening, the FundSphere services may be down for maintenance.
         </p>
       </div>

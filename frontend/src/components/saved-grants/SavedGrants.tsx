@@ -104,7 +104,7 @@ export default function SavedGrants({ onBack }: SavedGrantsProps) {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-xl border-b border-brand-100/80 px-4 sm:px-6 py-4 flex items-center gap-4 shadow-xs sticky top-0 z-30">
+      <div className="bg-white border-b border-brand-200 px-4 sm:px-6 h-16 flex items-center gap-4 sticky top-0 z-30">
         <button
           onClick={onBack}
           className="flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-900 transition-colors px-2 py-1.5 -ml-2 rounded-lg hover:bg-brand-100"
@@ -114,14 +114,14 @@ export default function SavedGrants({ onBack }: SavedGrantsProps) {
         </button>
         <div className="h-5 w-px bg-brand-200" />
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-md shadow-primary-500/20 shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center shadow-xs shrink-0">
             <Bookmark className="w-4 h-4 text-white" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-base font-bold text-brand-900 tracking-tight leading-none truncate">
+            <h1 className="text-lg font-bold text-brand-900 tracking-tight leading-none truncate">
               Saved Grants
             </h1>
-            <p className="text-[11px] text-brand-500 mt-1 leading-none tabular-nums truncate">
+            <p className="text-xs text-brand-600 mt-1 leading-none tabular-nums truncate">
               {counts.ALL === 0
                 ? 'No grants saved yet'
                 : `${counts.ALL} ${counts.ALL === 1 ? 'grant' : 'grants'} saved`}
@@ -135,7 +135,7 @@ export default function SavedGrants({ onBack }: SavedGrantsProps) {
 
       {/* Status filter chips */}
       {counts.ALL > 0 && (
-        <div className="bg-white/60 backdrop-blur-sm border-b border-brand-100/60 px-4 sm:px-6 py-3 flex items-center gap-2 overflow-x-auto scrollbar-hide">
+        <div className="bg-white border-b border-brand-100 px-4 sm:px-6 py-3 flex items-center gap-2 overflow-x-auto scrollbar-hide">
           <FilterChip
             label="All"
             count={counts.ALL}
@@ -228,11 +228,11 @@ function SavedGrantCard({ entry, onOpenDetails, onUnsave, onChangeStatus, onSave
 
   // Lift this card above its siblings while the status dropdown is open so
   // the menu doesn't get hidden behind the next card's stacking context
-  // (each card creates one via backdrop-blur).
+  // (each card creates one via ).
   const elevation = statusOpen ? 'relative z-30' : 'relative z-0';
 
   return (
-    <article className={`${elevation} bg-white/90 backdrop-blur-sm border border-brand-200/60 rounded-xl p-5 shadow-xs hover:shadow-elevated hover:border-primary-300/70 focus-within:ring-2 focus-within:ring-primary-300/40 transition-all duration-200 group`}>
+    <article className={`${elevation} bg-white border border-brand-200 rounded-lg p-5 shadow-xs hover:shadow-elevated hover:border-primary-300 focus-within:ring-2 focus-within:ring-primary-300/40 transition-all duration-200 group`}>
       {/* Top row: funder + actions */}
       <div className="flex items-start justify-between gap-4 mb-3">
         <div className="flex flex-wrap items-center gap-2">
@@ -354,7 +354,7 @@ function SavedGrantCard({ entry, onOpenDetails, onUnsave, onChangeStatus, onSave
 
       {/* Notes editor (collapsible) */}
       {notesOpen && (
-        <div className="mb-3 rounded-lg border border-brand-200 bg-brand-50/30 p-3">
+        <div className="mb-3 rounded-lg border border-brand-200 bg-brand-50 p-3">
           <textarea
             value={draftNotes}
             onChange={(e) => setDraftNotes(e.target.value)}
@@ -370,7 +370,7 @@ function SavedGrantCard({ entry, onOpenDetails, onUnsave, onChangeStatus, onSave
                   ? 'text-red-600'
                   : draftNotes.length >= 3800
                     ? 'text-amber-600'
-                    : 'text-brand-400'
+                    : 'text-brand-500'
               }`}
             >
               {draftNotes.length}/4000
@@ -408,13 +408,13 @@ function SavedGrantCard({ entry, onOpenDetails, onUnsave, onChangeStatus, onSave
 
       {/* Inline note preview when collapsed */}
       {!notesOpen && notes && (
-        <div className="mb-3 text-xs text-brand-600 bg-brand-50/50 border-l-2 border-brand-300 pl-3 py-1.5 italic line-clamp-2">
+        <div className="mb-3 text-xs text-brand-600 bg-brand-50 border-l-2 border-brand-300 pl-3 py-1.5 italic line-clamp-2">
           {notes}
         </div>
       )}
 
       {/* Bottom row: deadline / amount / details link */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-brand-100/80 text-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-brand-100 text-sm">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-brand-600">
           {(() => {
             const d = formatRelativeDeadline(grant.deadlineRaw);
@@ -433,7 +433,7 @@ function SavedGrantCard({ entry, onOpenDetails, onUnsave, onChangeStatus, onSave
             {grant.amount}
           </span>
           {updatedAt && (
-            <span className="text-[11px] text-brand-400 hidden sm:inline">
+            <span className="text-[11px] text-brand-500 hidden sm:inline">
               Updated {formatRelative(updatedAt)}
             </span>
           )}
@@ -566,8 +566,8 @@ function FilterChip({
 
 function EmptyState({ onBack }: { onBack: () => void }) {
   return (
-    <div className="rounded-2xl border border-brand-200/60 bg-white/60 backdrop-blur-sm p-12 flex flex-col items-center justify-center text-center mt-8 shadow-medium">
-      <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-50 to-primary-100/60 flex items-center justify-center mb-5 shadow-inner border border-primary-100">
+    <div className="rounded-xl border border-brand-200 bg-white p-12 flex flex-col items-center justify-center text-center mt-8 shadow-medium">
+      <div className="relative w-20 h-20 rounded-xl bg-primary-50 flex items-center justify-center mb-5 border border-primary-200">
         <Bookmark className="w-9 h-9 text-primary-400" />
         <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary-400 rounded-full animate-pulse" />
       </div>
@@ -577,7 +577,7 @@ function EmptyState({ onBack }: { onBack: () => void }) {
       </p>
       <button
         onClick={onBack}
-        className="px-6 py-2.5 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white text-sm font-semibold shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30 active:scale-[0.98] transition-all"
+        className="px-6 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold shadow-xs active:scale-[0.98] transition-all"
       >
         Browse Grants
       </button>
@@ -594,7 +594,7 @@ function FilteredEmptyState({
 }) {
   const label = statusFilter === 'ALL' ? '' : STATUS_META[statusFilter as SavedGrantStatus].label;
   return (
-    <div className="rounded-2xl border border-brand-200/60 bg-white/40 p-10 flex flex-col items-center justify-center text-center mt-8">
+    <div className="rounded-xl border border-brand-200 bg-white p-10 flex flex-col items-center justify-center text-center mt-8">
       <p className="text-brand-600 text-sm mb-3">
         No grants match the <span className="font-semibold">{label}</span> filter.
       </p>

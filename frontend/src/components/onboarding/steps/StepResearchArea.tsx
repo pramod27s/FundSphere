@@ -68,7 +68,7 @@ export default function StepResearchArea({
       setOrcidLoading(false);
     }
   };
-  const inputClass = "w-full px-4 py-2.5 rounded-lg border border-brand-200 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-colors bg-white/50";
+  const inputClass = "w-full px-4 py-2.5 rounded-lg border border-brand-200 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-colors bg-white";
   const labelClass = "block text-sm font-medium text-brand-700 mb-1.5";
 
   return (
@@ -76,7 +76,7 @@ export default function StepResearchArea({
       <p className="text-brand-500 mb-1">We use this to match you with highly relevant grants.</p>
 
       {/* Optional ORCID import — prefills the summary & keywords below. */}
-      <div className="rounded-xl border border-primary-100 bg-primary-50/40 p-4">
+      <div className="rounded-lg border border-primary-200 bg-primary-50 p-4">
         <label className={labelClass}>Have an ORCID iD? Import your profile (optional)</label>
         <p className="text-xs text-brand-500 mb-2">We’ll pull your public summary and keywords from ORCID so you don’t have to type them. You can edit everything after.</p>
         <div className="flex flex-col sm:flex-row gap-2">
@@ -95,7 +95,7 @@ export default function StepResearchArea({
             className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium shrink-0 transition-all ${
               orcidLoading
                 ? 'bg-brand-200 text-brand-500 cursor-not-allowed'
-                : 'bg-primary-600 hover:bg-primary-700 text-white shadow-md shadow-primary-500/20 active:scale-95'
+                : 'bg-primary-600 hover:bg-primary-700 text-white shadow-xs active:scale-95'
             }`}
           >
             {orcidLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
