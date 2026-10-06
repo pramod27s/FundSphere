@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Bookmark, Compass, FileText, type LucideIcon } from 'lucide-react';
+import { Bookmark, ClipboardCheck, Compass, FileText, type LucideIcon } from 'lucide-react';
 import UserAvatarMenu from './UserAvatarMenu';
 import { useSavedGrantIds } from '../../hooks/useSavedGrants';
 
@@ -10,6 +10,7 @@ interface NavRailProps {
 const ITEMS: { to: string; label: string; icon: LucideIcon; badge?: 'saved' }[] = [
   { to: '/discovery', label: 'Discover', icon: Compass },
   { to: '/saved', label: 'Saved', icon: Bookmark, badge: 'saved' },
+  { to: '/applications', label: 'Apply', icon: ClipboardCheck },
   { to: '/proposal', label: 'Proposal', icon: FileText },
 ];
 

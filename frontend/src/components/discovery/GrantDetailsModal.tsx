@@ -10,6 +10,7 @@ import MatchBreakdown from '../common/MatchBreakdown';
 import { formatRelativeDeadline, formatKeyDate } from '../../utils/formatDeadline';
 import GlossaryText from '../common/GlossaryText';
 import WhatsAppShareButton from '../common/WhatsAppShareButton';
+import StartApplicationButton from '../applications/StartApplicationButton';
 import { useDialog } from '../../hooks/useDialog';
 
 interface GrantDetailsModalProps {
@@ -330,6 +331,7 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
         {/* Footer actions */}
         <div className="p-4 sm:p-5 border-t border-brand-100 bg-white flex flex-col-reverse sm:flex-row gap-3 justify-end items-center">
             <WhatsAppShareButton grant={grant} size="md" showLabel />
+            <StartApplicationButton grant={grant} />
             <button
                 onClick={() => onToggleSave?.(grant)}
                 className={`w-full sm:w-auto px-5 py-2.5 rounded-lg font-semibold border transition-all flex items-center justify-center gap-2 active:scale-[0.98] ${

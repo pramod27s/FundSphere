@@ -48,7 +48,7 @@ export default function WhatsAppShareButton({ grant, size = 'md', showLabel = fa
  * usage here is "share TO WhatsApp" which is generally accepted under
  * WhatsApp's brand guidelines (not used as our own logo, not modified).
  */
-function WhatsAppGlyph({ className }: { className?: string }) {
+export function WhatsAppGlyph({ className }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 24 24"

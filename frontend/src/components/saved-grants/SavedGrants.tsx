@@ -17,6 +17,7 @@ import type { SavedGrantEntry, SavedGrantStatus } from '../../services/savedGran
 import type { DiscoveryGrant } from '../../services/discoveryService';
 import { formatRelativeDeadline } from '../../utils/formatDeadline';
 import WhatsAppShareButton from '../common/WhatsAppShareButton';
+import StartApplicationButton from '../applications/StartApplicationButton';
 
 interface SavedGrantsProps {
   onBack: () => void;
@@ -350,6 +351,8 @@ function SavedGrantCard({ entry, onOpenDetails, onUnsave, onChangeStatus, onSave
           <StickyNote className="w-3 h-3" />
           {notes ? 'Notes' : 'Add notes'}
         </button>
+
+        <StartApplicationButton grant={grant} size="sm" />
       </div>
 
       {/* Notes editor (collapsible) */}

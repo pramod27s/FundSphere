@@ -92,47 +92,79 @@ public class AiServiceClient {
     }
 
     /**
-     * Forwards two PDFs (proposal + guidelines) and metadata as multipart/form-data
-     * to the FastAPI proposal-analysis endpoint and returns the parsed JSON.
+     * Sends a call's guidelines (a PDF, or a link when guidelinesPdf is null)
+     * to the ai-service checklist extractor and returns the parsed JSON:
+     * items with source quotes, the call deadline if found, and warnings.
      */
-    public Object analyzeProposal(MultipartFile proposalPdf,
-                                  MultipartFile guidelinesPdf,
-                                  String grantTitle,
-                                  String mode) {
-        // Build multipart body using the classic (non-reactive) FormHttpMessageConverter
-        // shape: MultiValueMap<String, Object>. Each PDF part is wrapped in an HttpEntity
-        // so we can attach its Content-Disposition filename and Content-Type.
+    public Map<String, Object> extractChecklist(MultipartFile guidelinesPdf, String url, String grantTitle) {
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-        try {
-            body.add("proposal_pdf", buildPdfPart(proposalPdf, "proposal.pdf"));
-            body.add("guidelines_pdf", buildPdfPart(guidelinesPdf, "guidelines.pdf"));
-        } catch (IOException ex) {
-            throw new ResponseStatusException(BAD_GATEWAY,
-                    "Could not read uploaded PDF: " + ex.getMessage(), ex);
+        if (guidelinesPdf != null) {
+            try {
+                body.add("guidelines_pdf", buildPdfPart(guidelinesPdf, "guidelines.pdf"));
+            } catch (IOException ex) {
+                throw new ResponseStatusException(BAD_GATEWAY,
+                        "Could not read uploaded PDF: " + ex.getMessage(), ex);
+            }
+        } else {
+            body.add("url", url == null ? "" : url);
         }
         body.add("grant_title", grantTitle == null ? "" : grantTitle);
-        body.add("mode", mode == null || mode.isBlank() ? "simple" : mode);
 
+        return postMultipart("/workspace/extract-checklist", body, "checklist extraction",
+                "Reading the guidelines took longer than the configured timeout. Please try again.");
+    }
+
+    /**
+     * Reads a guidelines PDF (checklist + proposal rules). Used by background
+     * jobs, which hold the bytes rather than the upload.
+     */
+    public Map<String, Object> extractGuidelines(byte[] guidelinesPdf, String fileName, String grantTitle) {
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("guidelines_pdf", buildPdfPart(guidelinesPdf, fileName, "guidelines.pdf"));
+        body.add("grant_title", grantTitle == null ? "" : grantTitle);
+        return postMultipart("/workspace/extract-checklist", body, "guidelines extraction",
+                "Reading the guidelines took longer than the configured timeout. Please try again.");
+    }
+
+    /**
+     * Runs a proposal review. Send the PDF for a new draft, or documentJson (the
+     * document read by an earlier review) to re-run a draft without the file.
+     * previousJson is the last finished review of the same series, so the
+     * ai-service can reuse unchanged work.
+     */
+    public Map<String, Object> reviewProposal(byte[] proposalPdf, String fileName, String guidanceJson,
+                                              String extractionHash, String level, String grantTitle,
+                                              String documentJson, String previousJson) {
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        if (proposalPdf != null) {
+            body.add("proposal_pdf", buildPdfPart(proposalPdf, fileName, "proposal.pdf"));
+        }
+        body.add("guidance_json", guidanceJson);
+        body.add("extraction_hash", extractionHash);
+        body.add("level", level);
+        body.add("grant_title", grantTitle == null ? "" : grantTitle);
+        body.add("document_json", documentJson == null ? "" : documentJson);
+        body.add("previous_json", previousJson == null ? "" : previousJson);
+        return postMultipart("/proposal/review", body, "proposal review",
+                "The proposal review took longer than the configured timeout. Please try again.");
+    }
+
+    /**
+     * POSTs multipart/form-data to the ai-service and parses the JSON reply.
+     * Upstream errors keep their status and FastAPI detail message so the
+     * frontend can show the real cause.
+     */
+    private Map<String, Object> postMultipart(String path,
+                                              MultiValueMap<String, Object> body,
+                                              String what,
+                                              String timeoutMessage) {
         try {
             // NOTE: do NOT set Content-Type manually for multipart — Spring's
             // FormHttpMessageConverter must set it itself so it can include
             // the auto-generated boundary parameter.
             String raw = restClient.post()
-                    .uri("/proposal/analyze")
-                    .headers(h -> {
-                        // Level 2 Asymmetric Security: Attach 5-minute RS256 JWT token signed by Spring Boot
-                        try {
-                            String m2mToken = m2mTokenService.getM2mToken();
-                            h.set(HttpHeaders.AUTHORIZATION, "Bearer " + m2mToken);
-                        } catch (Exception ex) {
-                            // Fallback gracefully if keys are missing
-                        }
-
-                        // Backward-compatible fallback: send X-API-KEY if configured
-                        if (StringUtils.hasText(apiKey)) {
-                            h.set("X-API-KEY", apiKey);
-                        }
-                    })
+                    .uri(path)
+                    .headers(this::applyAuthHeaders)
                     .accept(MediaType.APPLICATION_JSON)
                     .body(body)
                     .retrieve()
@@ -140,7 +172,7 @@ public class AiServiceClient {
 
             if (raw == null || raw.isBlank()) {
                 throw new ResponseStatusException(BAD_GATEWAY,
-                        "AI service returned empty body for proposal analysis");
+                        "AI service returned empty body for " + what);
             }
 
             @SuppressWarnings("unchecked")
@@ -165,11 +197,7 @@ public class AiServiceClient {
             // walk the cause chain to detect timeouts and surface them as 504
             // instead of a misleading 502.
             if (isTimeoutCause(ex)) {
-                throw new ResponseStatusException(GATEWAY_TIMEOUT,
-                        "AI analysis took longer than the configured timeout. "
-                        + "Try Quick mode, or retry — the result may have been "
-                        + "computed but the connection was closed before delivery.",
-                        ex);
+                throw new ResponseStatusException(GATEWAY_TIMEOUT, timeoutMessage, ex);
             }
             throw new ResponseStatusException(BAD_GATEWAY,
                     "AI service response could not be read: " + ex.getMessage(), ex);
@@ -229,9 +257,12 @@ public class AiServiceClient {
 
     private static HttpEntity<ByteArrayResource> buildPdfPart(MultipartFile file, String fallbackName)
             throws IOException {
-        String name = file.getOriginalFilename();
+        return buildPdfPart(file.getBytes(), file.getOriginalFilename(), fallbackName);
+    }
+
+    private static HttpEntity<ByteArrayResource> buildPdfPart(byte[] pdf, String name, String fallbackName) {
         final String filename = StringUtils.hasText(name) ? name : fallbackName;
-        final byte[] bytes = file.getBytes();
+        final byte[] bytes = pdf;
         // The resource's getFilename() drives the Content-Disposition filename.
         // The form-field NAME is taken from the MultiValueMap key, so we must
         // NOT set Content-Disposition here — Spring's FormHttpMessageConverter

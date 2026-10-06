@@ -16,14 +16,20 @@ const GrantDiscovery = lazy(() => import('./components/discovery/GrantDiscovery.
 const ResearcherProfile = lazy(() => import('./components/profile/ResearcherProfile.tsx'));
 const AuthPage = lazy(() => import('./components/auth/AuthPage.tsx'));
 const SavedGrants = lazy(() => import('./components/saved-grants/SavedGrants.tsx'));
-const WritingProposal = lazy(() => import('./components/proposal/WritingProposal.tsx'));
+const ProposalAssistant = lazy(() => import('./components/proposal-review/ProposalAssistant.tsx'));
+const Applications = lazy(() => import('./components/applications/Applications.tsx'));
+const ApplicationDetail = lazy(() => import('./components/applications/ApplicationDetail.tsx'));
 import { loadSession, clearSession } from './services/authService';
 import { ResearcherProvider, useResearcher } from './context/ResearcherContext';
 
 const SCROLL_KEY_PREFIX = 'fundsphere.scroll.';
 
-/** Routes rendered inside <AppShell>, i.e. with the desktop nav rail. */
-const RAIL_ROUTES = ['/discovery', '/saved', '/proposal', '/profile'];
+/** Routes rendered inside <AppShell>, i.e. with the desktop nav rail (prefix match). */
+const RAIL_ROUTES = ['/discovery', '/saved', '/applications', '/proposal', '/profile'];
+
+function hasNavRail(pathname: string): boolean {
+  return RAIL_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));
+}
 
 /**
  * Manual scroll-position memory across navigations.
@@ -67,7 +73,7 @@ function ScrollRestoration() {
 function RootLayout() {
   const location = useLocation();
   const centred = location.pathname === '/auth' || location.pathname === '/onboarding';
-  const hasRail = RAIL_ROUTES.includes(location.pathname);
+  const hasRail = hasNavRail(location.pathname);
   return (
     <ResearcherProvider>
       <ScrollRestoration />
@@ -280,11 +286,6 @@ function SavedRoute() {
   return <SavedGrants onBack={() => navigate('/discovery')} />;
 }
 
-function ProposalRoute() {
-  const navigate = useNavigate();
-  return <WritingProposal onBack={() => navigate('/discovery')} />;
-}
-
 export default function App() {
   return (
     <Routes>
@@ -297,7 +298,9 @@ export default function App() {
           <Route element={<AppShell />}>
             <Route path="/discovery" element={<DiscoveryRoute />} />
             <Route path="/saved" element={<SavedRoute />} />
-            <Route path="/proposal" element={<ProposalRoute />} />
+            <Route path="/applications" element={<Applications />} />
+            <Route path="/applications/:id" element={<ApplicationDetail />} />
+            <Route path="/proposal" element={<ProposalAssistant />} />
             <Route path="/profile" element={<ProfileRoute />} />
           </Route>
         </Route>

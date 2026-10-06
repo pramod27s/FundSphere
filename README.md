@@ -246,7 +246,8 @@ INTEGRATION_API_KEY=your_shared_internal_api_key
 #### 2. AI-Service Configuration (`ai-service/.env`)
 ```env
 SPRING_BOOT_BASE_URL=http://localhost:8080
-SPRING_BOOT_API_KEY=your_shared_internal_api_key
+# Same value as INTEGRATION_API_KEY in CoreBackend/.env
+INTEGRATION_API_KEY=your_shared_internal_api_key
 REQUIRE_INTERNAL_API_KEY=true
 
 PINECONE_API_KEY=your_pinecone_key

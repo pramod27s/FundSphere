@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Bookmark, FileText, LogOut } from 'lucide-react';
+import { User, Bookmark, ClipboardCheck, FileText, LogOut } from 'lucide-react';
 import { loadSession, clearSession } from '../../services/authService';
 import { useSavedGrantIds } from '../../hooks/useSavedGrants';
 
@@ -62,11 +62,12 @@ export default function UserAvatarMenu({ researcherId }: UserAvatarMenuProps) {
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, [isOpen]);
 
-  const handleNavigate = (page: 'profile' | 'saved-grants' | 'proposal') => {
+  const handleNavigate = (page: 'profile' | 'saved-grants' | 'applications' | 'proposal') => {
     setIsOpen(false);
     const pathMap = {
       profile: '/profile',
       'saved-grants': '/saved',
+      applications: '/applications',
       proposal: '/proposal',
     } as const;
     navigate(pathMap[page]);
@@ -133,6 +134,14 @@ export default function UserAvatarMenu({ researcherId }: UserAvatarMenuProps) {
                       {savedDisplay}
                     </span>
                   )}
+                </button>
+
+                <button
+                  onClick={() => handleNavigate('applications')}
+                  className="flex items-center gap-3 w-full px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 hover:text-brand-900 transition-colors cursor-pointer"
+                >
+                  <ClipboardCheck className="w-4 h-4 text-primary-600 shrink-0" />
+                  <span>Applications</span>
                 </button>
 
                 <button

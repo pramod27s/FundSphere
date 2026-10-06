@@ -62,15 +62,19 @@ export function shareGrantToWhatsApp(grant: DiscoveryGrant): void {
       })
       .catch(() => {
         // User cancelled or share unsupported — fall through silently.
-        openWhatsAppFallback(message);
+        openWhatsApp(message);
       });
     return;
   }
 
-  openWhatsAppFallback(message);
+  openWhatsApp(message);
 }
 
-function openWhatsAppFallback(message: string): void {
+/**
+ * Open WhatsApp with `message` pre-filled: WhatsApp Web on desktop, the
+ * app on phones. The user picks the chat (e.g. the lab group).
+ */
+export function openWhatsApp(message: string): void {
   const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
   window.open(url, '_blank', 'noopener,noreferrer');
 }

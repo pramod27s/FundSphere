@@ -59,8 +59,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/grants/**").hasRole("ADMIN")
                         .requestMatchers("/api/grants/**").authenticated()
                         .requestMatchers("/api/researchers/**").authenticated()
-                        .requestMatchers("/api/proposal/**").authenticated()
                         .requestMatchers("/api/saved-grants/**").authenticated()
+                        .requestMatchers("/api/applications/**").authenticated()
+                        .requestMatchers("/api/proposal-reviews/**").authenticated()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

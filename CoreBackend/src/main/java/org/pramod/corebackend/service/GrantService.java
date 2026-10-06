@@ -11,6 +11,7 @@ import jakarta.persistence.criteria.Predicate;
 import org.pramod.corebackend.dto.GrantRequest;
 import org.pramod.corebackend.dto.GrantResponse;
 import org.pramod.corebackend.entity.Grant;
+import org.pramod.corebackend.repository.ApplicationRepository;
 import org.pramod.corebackend.repository.GrantRepository;
 import org.pramod.corebackend.repository.SavedGrantRepository;
 import org.springframework.data.domain.Page;
@@ -47,6 +48,7 @@ public class GrantService {
     private final GrantRepository grantRepository;
     private final GrantIndexingService grantIndexingService;
     private final SavedGrantRepository savedGrantRepository;
+    private final ApplicationRepository applicationRepository;
 
     public record SaveOrUpdateResult(GrantResponse response, boolean created) {}
     public record KeywordSearchHit(Long grantId, double keywordScore) {}
@@ -56,10 +58,12 @@ public class GrantService {
 
     public GrantService(GrantRepository grantRepository,
                         GrantIndexingService grantIndexingService,
-                        SavedGrantRepository savedGrantRepository) {
+                        SavedGrantRepository savedGrantRepository,
+                        ApplicationRepository applicationRepository) {
         this.grantRepository = grantRepository;
         this.grantIndexingService = grantIndexingService;
         this.savedGrantRepository = savedGrantRepository;
+        this.applicationRepository = applicationRepository;
     }
 
     /**
@@ -220,9 +224,13 @@ public class GrantService {
         return grantOpt.map(Grant::getId);
     }
 
-    /** Drops users' bookmarks (FK), the row, and — once committed — its vectors. */
+    /**
+     * Drops users' bookmarks (FK), unlinks their applications (which keep their
+     * own copy of the call details), deletes the row and — once committed — its vectors.
+     */
     private void removeGrant(Long id) {
         savedGrantRepository.deleteAllByGrantId(id);
+        applicationRepository.detachGrant(id);
         grantRepository.deleteById(id);
         afterCommit(() -> grantIndexingService.tryDeleteAsync(id));
     }

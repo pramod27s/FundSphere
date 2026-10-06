@@ -1,8 +1,13 @@
+import logging
 import os
 from dataclasses import dataclass
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Names this key had before it was unified; still read so older .env files
+# keep working, with a warning to rename.
+_OLD_INTEGRATION_KEY_NAMES = ("SPRING_BOOT_API_KEY", "INTERNAL_API_KEY", "BACKEND_API_KEY")
 
 
 def _as_bool(value: str | None, default: bool = False) -> bool:
@@ -11,13 +16,37 @@ def _as_bool(value: str | None, default: bool = False) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
+def _integration_api_key() -> str:
+    """The key shared with CoreBackend (its INTEGRATION_API_KEY / integration.api-key).
+
+    One secret, used both ways as X-API-KEY: CoreBackend and the scraper send
+    it to this service, and this service sends it to CoreBackend.
+    """
+    value = os.getenv("INTEGRATION_API_KEY", "").strip()
+    if value:
+        return value
+    for old_name in _OLD_INTEGRATION_KEY_NAMES:
+        value = os.getenv(old_name, "").strip()
+        if value:
+            logging.getLogger("rag.config").warning(
+                "%s is an old name: rename it to INTEGRATION_API_KEY in ai-service/.env", old_name
+            )
+            return value
+    return ""
+
+
+INTEGRATION_API_KEY = _integration_api_key()
+
+
 @dataclass
 class Settings:
     require_internal_api_key: bool = _as_bool(os.getenv("REQUIRE_INTERNAL_API_KEY"), True)
-    internal_api_key: str = os.getenv("INTERNAL_API_KEY", os.getenv("SPRING_BOOT_API_KEY", ""))
+    # Key callers must send to this service (X-API-KEY fallback to the M2M token).
+    internal_api_key: str = INTEGRATION_API_KEY
 
     spring_boot_base_url: str = os.getenv("SPRING_BOOT_BASE_URL", "http://localhost:8080")
-    spring_boot_api_key: str = os.getenv("SPRING_BOOT_API_KEY", "")
+    # Key this service sends to CoreBackend: the same shared secret.
+    spring_boot_api_key: str = INTEGRATION_API_KEY
     spring_boot_timeout_seconds: float = float(os.getenv("SPRING_BOOT_TIMEOUT_SECONDS", "20"))
     spring_boot_retry_count: int = int(os.getenv("SPRING_BOOT_RETRY_COUNT", "2"))
     spring_boot_retry_backoff_seconds: float = float(os.getenv("SPRING_BOOT_RETRY_BACKOFF_SECONDS", "0.5"))

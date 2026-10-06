@@ -31,6 +31,8 @@ if _parent_env.exists():
 else:
     load_dotenv()
 
+from rag.config import INTEGRATION_API_KEY
+
 # Import scraper logic (supports package-level, relative, and direct script execution)
 try:
     from .firecrawl_scraper import (scrape_grant, crawl_for_grants, _is_non_grant_url,
@@ -50,12 +52,8 @@ logger = logging.getLogger(__name__)
 STATE_FILE = os.path.join(os.path.dirname(__file__), "scraper_state.json")
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8080").rstrip("/")
 # CoreBackend's scraper endpoints (/api/grants POST, /verify, /remove, /urls)
-# require the internal API key — the same key ai-service uses for CoreBackend.
-BACKEND_API_KEY = (
-    os.getenv("BACKEND_API_KEY")
-    or os.getenv("SPRING_BOOT_API_KEY")
-    or os.getenv("INTERNAL_API_KEY", "")
-)
+# require the shared INTEGRATION_API_KEY — the same key ai-service uses for CoreBackend.
+BACKEND_API_KEY = INTEGRATION_API_KEY
 RESPECT_ROBOTS = os.getenv("RESPECT_ROBOTS", "true").strip().lower() not in ("false", "0", "no")
 SCRAPER_USER_AGENT = os.getenv(
     "SCRAPER_USER_AGENT",
@@ -362,8 +360,8 @@ def backend_credentials_ok() -> bool:
         return False
     if response.status_code in (401, 403):
         logger.error(
-            "CoreBackend rejected the scraper's API key. Set BACKEND_API_KEY (or "
-            "SPRING_BOOT_API_KEY) in ai-service/.env to CoreBackend's integration.api-key."
+            "CoreBackend rejected the scraper's API key. Set INTEGRATION_API_KEY in "
+            "ai-service/.env to the same value as INTEGRATION_API_KEY in CoreBackend/.env."
         )
         return False
     return True
