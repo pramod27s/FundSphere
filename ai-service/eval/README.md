@@ -1,173 +1,119 @@
-# RAG Eval
+# Recommender eval
 
-Two ways to measure recommender quality:
+Measures how good the grant recommendations are, and whether a change makes
+them better or worse.
 
-| Tool | When to use | Effort |
-|---|---|---|
-| **`auto_eval.py`** | Daily — automated, no labelling needed | 0 (just run it) |
-| `run_eval.py` | When you want hand-labelled gold cases | High (manual labelling) |
+```
+eval/
+  cases.json    the test users: 26 profiles + queries across the grant corpus
+  labels.json   ratings: for each case, which grants are relevant (0–3)
+  run.py        runs the cases, rates new results, prints the scores
+```
 
----
+## Run it
 
-## Quick start (recommended)
+From `ai-service/`, with CoreBackend running:
 
 ```powershell
-cd e:\FundSphere\ai-service
-
-# Single run with current settings
-python -m eval.auto_eval --n 15
-
-# Compare baseline (flags off) vs improved (HyDE + split + structured rerank)
-python -m eval.auto_eval --n 15 --compare --save report.json
+python -m eval.run                                   # score the current settings
+python -m eval.run --compare ENABLE_HYDE=false       # current vs. one change
+python -m eval.run --compare WEIGHT_SEMANTIC=0.6 WEIGHT_ELIGIBILITY=0.1
+python -m eval.run --tune                            # find better scoring weights
 ```
 
-The script:
-1. Pulls 15 random real researcher profiles from CoreBackend.
-2. Asks the LLM to invent a realistic query each researcher might type.
-3. Runs the recommender → top-K candidates per profile.
-4. Asks the LLM to rate each candidate 0–3 for relevance.
-5. Computes **Recall@K**, **MRR**, **NDCG@K**.
-6. (`--compare`) re-runs with the new accuracy flags ON, diffs the two reports.
+`--compare` takes any `.env` setting name, so the same command tests a flag,
+a weight or a pool size. `--tune` searches for better weights by itself (see
+below). Other options: `--top-k` (default 10), `--depth` (results rated per
+case, default 20) and `--save report.json`.
 
-Cost: ~$0.05–$0.15 in Groq tokens per full run.
+## What happens
 
-### Requirements
+1. Each case runs through the recommender: once with your current `.env`
+   settings and, with `--compare`, once more with the changed values.
+2. Any returned grant that `labels.json` has no rating for is rated 0–3 by an
+   LLM (`LLM_JUDGE_MODEL`) and saved there. Ratings already in the file are
+   never changed, so only new grants cost tokens.
+3. Each config is scored against all of the case's ratings:
 
-- CoreBackend running (the `/api/ai/users/sample-profiles` endpoint must be live).
-  If it isn't, the script falls back to LLM-synthesised profiles automatically
-  — pass `--synthetic-profiles` to force this.
-- ai-service `.env` populated with at least one Groq key.
-- Pinecone reachable.
+| Metric | Meaning |
+|---|---|
+| Recall@10 | share of the case's relevant grants (rating ≥ 2) that made the top 10 |
+| MRR | 1 / rank of the first relevant grant (1.0 = it was first) |
+| NDCG@10 | quality of the whole ranking, using the 0–3 grades (1.0 = ideal order) |
 
-### Sample output (compare mode)
+Because both configs are scored against the same ratings, a relevant grant
+that one config found and the other missed counts against the one that
+missed it.
 
-```
-┌─ Comparison ──────────────────────────────────────────────────────┐
-│ BASELINE_OFF    → IMPROVED_ON     │ 15 cases · top_k=10
-├───────────────────────────────────────────────────────────────────┤
-│ Recall@10  :  41.32%  →  58.91%   (+17.59pp)
-│ MRR        :  0.412   →  0.617    (+0.205)
-│ NDCG@10    :  0.503   →  0.681    (+0.178)
-│ Latency    :    784ms →   1190ms  (+406 ms)
-└───────────────────────────────────────────────────────────────────┘
-```
-
-If improved metrics > baseline, ship the flags. Done.
-
----
-
-## Manual `run_eval.py` (still available)
-
-## Why
-
-Without numbers, every "is this better?" question is a vibe check. With this,
-you can compare two configs:
+Example output:
 
 ```
-# Baseline
-python -m eval.run_eval
-
-# With the profile/query split turned on
-$env:ENABLE_PROFILE_QUERY_SPLIT="true"; python -m eval.run_eval
+                                             current       variant
+  Recall@10                                    62.0%         58.4%   (-3.6%)
+  MRR                                          0.712         0.690   (-0.022)
+  NDCG@10                                      0.655         0.631   (-0.024)
+  Avg latency (s)                                5.1           3.9   (-1.2)
+  Scored 24/26 cases
 ```
 
-The metrics that move (or don't) tell you whether the change was real.
+These numbers illustrate the format; they are not real results.
 
-## Setup
+## Reading the numbers
 
-1. **Make sure the ai-service can run locally.** You need:
-   - `.env` populated with `PINECONE_API_KEY`, `PINECONE_INDEX_HOST`,
-     `GROQ_API_KEY_QUERY_EXPANSION`, `GROQ_API_KEY_LLM_JUDGE`,
-     `SPRING_BOOT_BASE_URL`.
-   - The Spring Boot backend running (the recommender calls it for the keyword
-     channel). If you want to skip the keyword channel during eval, set
-     `USE_KEYWORD_CHANNEL=false` in your shell.
+- **Compare configs within one run.** Absolute numbers drift between runs as
+  `labels.json` grows (more known relevant grants) and as grants expire.
+- **With ~25 cases, a few points can be noise.** Look at the per-case lines
+  printed below the summary: a change worth keeping wins on most cases.
+- A case is left out when a returned grant couldn't be rated (re-run to
+  retry) or when no relevant grant is known for it yet.
 
-2. **Label the test set.** Open `eval/testset.json` and for each case:
-   - Tweak the `userQuery` and `userProfile` to match a realistic researcher.
-   - Fill in `expectedGrantIds` with the **grant IDs you (the human) consider
-     correct** for that query. 3–5 IDs per case is fine.
+## Tuning the weights (--tune)
 
-   To find grant IDs, query your Postgres `grants` table directly, or look at
-   what your existing recommender returns and pick the ones a human would call
-   correct.
+`--tune` looks for better values of the five `WEIGHT_*` settings
+(semantic / eligibility / keyword / funding / freshness).
 
-3. **Run the eval.**
-
-```powershell
-cd e:\FundSphere\ai-service
-python -m eval.run_eval
-```
-
-## How to compare configs
-
-The runner prints all the relevant flags at the top of every run, so you
-always know what produced a number. Save runs side by side:
-
-```powershell
-# Baseline → out_baseline.csv
-python -m eval.run_eval --csv out_baseline.csv
-
-# With profile/query split + structured rerank prompt
-$env:ENABLE_PROFILE_QUERY_SPLIT="true"
-$env:ENABLE_STRUCTURED_RERANK_PROMPT="true"
-python -m eval.run_eval --csv out_split.csv
-```
-
-Diff the CSVs to see which cases improved, which regressed.
-
-## Output
+1. It runs the cases once and rates every grant the reranker picked. The
+   weights only reorder those grants, so no more searching is needed.
+2. It re-ranks them under 42 weight sets (yours plus a grid) and measures
+   NDCG@10 for each. This takes seconds and costs no tokens.
+3. **The overfitting check:** it picks the best set using half the cases,
+   then measures it on the other half, and does the same the other way round.
+4. It suggests the best set only if it beats your current weights by at least
+   0.01 NDCG on the unseen half, **both times**. Otherwise it tells you to keep
+   your weights: a set that only wins on the cases it was picked on is fitting
+   noise, not making recommendations better.
 
 ```
-==============================================================================
-FundSphere RAG eval
-------------------------------------------------------------------------------
-  testset                       : eval/testset.json
-  cases                         : 3
-  top_k                         : 10
-  ENABLE_PROFILE_QUERY_SPLIT    : False
-  …
-==============================================================================
-case_id                      expected    r@K    mrr   ndcg first  lat(ms)
-------------------------------------------------------------------------------
-gis-flood-mapping                   3   66.7%  0.500  0.612     2     842
-ai-drug-discovery                   3  100.0%  1.000  1.000     1     901
-climate-rural-india                 3   33.3%  0.250  0.387     4     788
-------------------------------------------------------------------------------
-  Recall@10                        :  66.7%  (3 labelled cases)
-  MRR                              : 0.583
-  NDCG@10                          : 0.666  (3 labelled cases)
-  Avg latency                      : 844 ms
-==============================================================================
+Weight tuning: 42 weight sets on 24 cases, NDCG@10
+  (weights are semantic/eligibility/keyword/funding/freshness)
+  current  0.50/0.20/0.10/0.10/0.10   NDCG 0.655
+  best     0.60/0.20/0.07/0.07/0.06   NDCG 0.681
+  Gain on unseen cases (picked on one half, tested on the other): +0.018, +0.012
+
+  -> The gain holds on cases the weights weren't picked on. Paste into ai-service/.env:
+       WEIGHT_SEMANTIC=0.60
+       ...
 ```
 
-### How to read the metrics
+These numbers illustrate the format; they are not real results. Tuning needs
+at least 6 scored cases.
 
-- **Recall@K** — out of all expected grants, how many appeared in top-K?
-  Ignores position. Hit at rank 1 and at rank 10 count the same.
-- **MRR** — `1 / rank` of the *first* expected hit. Heavily rewards getting one
-  great result very early; useless for distinguishing "great + many" from
-  "great + one".
-- **NDCG@K** — full ranking quality. Penalises pushing relevant grants down
-  the list (logarithmic discount). The metric most directly tied to user
-  experience: it cares both *how many* expected grants appeared AND *where*.
+## labels.json is the benchmark — commit it
 
-If you can only watch one number, watch NDCG@K. The other two are useful
-when NDCG moves and you want to understand whether it was a positional
-shift (MRR) or a coverage shift (Recall).
+```json
+"national-postdoc-physics-in": {
+  "412": {"rating": 3, "title": "National Post Doctoral Fellowship (N-PDF)",
+          "deadline": null, "reason": "postdoc fellowship for fresh PhDs in India"}
+}
+```
 
-## Adding more cases
+- **Disagree with the LLM?** Change the `rating`. Your edit is kept.
+- **Know a relevant grant the recommender never returns?** Add an entry for
+  it with its grant id. It then counts as a miss until a config finds it.
+- Ratings of grants whose `deadline` has passed are ignored, since the
+  recommender no longer returns expired grants.
 
-Just append to the `cases` array in `testset.json`. Aim for **20–30 cases**
-spanning different fields (AI, climate, social science, biomedical), career
-stages, and countries — that's the minimum you need before the metrics stop
-being noisy.
+## Adding a case
 
-## Notes
-
-- `expectedGrantIds: []` (empty) means the case runs but is excluded from the
-  Recall/MRR averages. Useful for smoke-testing a query before labelling.
-- The runner imports the recommender directly — no HTTP, no auth headers
-  needed.
-- LLM-judge explanations still run (controlled by `ENABLE_LLM_JUDGE`); turn
-  them off during eval to save tokens: `$env:ENABLE_LLM_JUDGE="false"`.
+Append to `cases.json` with a new unique `id`, a `profile` (same fields
+CoreBackend sends) and a `query`. The next run rates its results.

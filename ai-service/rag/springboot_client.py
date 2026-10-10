@@ -81,12 +81,15 @@ class SpringBootClient:
         user_profile: Optional[UserProfile] = None,
         top_k: int = 20,
     ) -> List[KeywordCandidate]:
+        # Only the country narrows the search, and leniently (grants listing no
+        # country or open to all are kept). Applicant and institution fit are
+        # scored downstream instead: an exact-match filter here dropped grants
+        # over naming differences ("Academic Institutions" vs "University").
         body = {
             "query": query,
             "topK": top_k,
             "country": user_profile.country if user_profile else None,
-            "institutionType": user_profile.institutionType if user_profile else None,
-            "applicantType": user_profile.applicantType if user_profile else None,
+            "includeClosed": not settings.exclude_expired_grants,
         }
         data = self._post("/api/ai/grants/keyword-search", body)
         return [KeywordCandidate(**item) for item in data]

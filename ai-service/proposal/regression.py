@@ -3,7 +3,7 @@
 Runs the real pipeline, with real AI calls, on test-samples/proposal-assistant
 and checks each sample against what it was written to test.
 
-Run from ai-service/:  .venv\\Scripts\\python.exe -m eval.proposal_regression
+Run from ai-service/:  .venv\\Scripts\\python.exe -m proposal.regression
 Uses about 11 AI calls. Exit code 1 if any check fails.
 """
 from __future__ import annotations

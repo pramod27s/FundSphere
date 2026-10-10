@@ -135,6 +135,39 @@ public class ApplicationService {
         return new CreateResult(toResponse(applicationRepository.save(application), true), true);
     }
 
+    /**
+     * Starts an application for a grant that the user had marked Applying,
+     * Submitted or Rejected on the old Saved page (used once, by
+     * SavedGrantStatusMigration). The history reads "started" when the grant
+     * was saved and the final status when the bookmark was last changed.
+     * Returns false if the user already has an application for the grant.
+     */
+    @Transactional
+    public boolean importFromSavedGrant(Long userId, Long grantId, ApplicationStatus status,
+                                        LocalDateTime savedAt, LocalDateTime lastChangedAt) {
+        if (applicationRepository.findFirstByOwnerIdAndGrantIdOrderByCreatedAtDesc(userId, grantId).isPresent()) {
+            return false;
+        }
+        ApplicationCreateRequest request = new ApplicationCreateRequest();
+        request.setGrantId(grantId);
+        Long id = create(userId, request).application().getId();
+
+        Application application = applicationRepository.findById(id).orElseThrow();
+        application.getStatusHistory().get(0).setChangedAt(savedAt);
+        application.setStatusChangedAt(savedAt);
+        if (status != ApplicationStatus.PREPARING) {
+            application.getStatusHistory().add(ApplicationStatusChange.builder()
+                    .application(application)
+                    .fromStatus(ApplicationStatus.PREPARING)
+                    .toStatus(status)
+                    .changedAt(lastChangedAt)
+                    .build());
+            application.setStatus(status);
+            application.setStatusChangedAt(lastChangedAt);
+        }
+        return true;
+    }
+
     @Transactional(readOnly = true)
     public ApplicationResponse get(Long userId, Long applicationId) {
         return toResponse(requireOwned(userId, applicationId), true);

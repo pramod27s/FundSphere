@@ -8,18 +8,18 @@ import lombok.RequiredArgsConstructor;
 import org.pramod.corebackend.dto.GrantRequest;
 import org.pramod.corebackend.dto.GrantResponse;
 import org.pramod.corebackend.security.InternalAuthVerifier;
+import org.pramod.corebackend.service.GrantFilter;
 import org.pramod.corebackend.service.GrantService;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
 @RestController
 @RequestMapping("/api/grants")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class GrantController {
 
@@ -54,14 +54,29 @@ public class GrantController {
     }
 
     /**
-     * Retrieves grants one page at a time for the discovery browse feed.
+     * Retrieves grants one page at a time for the discovery browse feed,
+     * filtered and sorted in the database so filters cover every page.
+     * Optional parameters: includeClosed (default true), sortBy (recent,
+     * deadline or funding) and the repeatable funder, grantType,
+     * applicantType, fundingRange and deadlineRange (see GrantFilter).
      * Existing clients that call /api/grants without page/size still receive
      * the legacy full list response above.
      */
     @GetMapping(params = {"page", "size"})
-    public ResponseEntity<Page<GrantResponse>> getPagedGrants(Pageable pageable) {
-        Page<GrantResponse> grants = grantService.getPagedGrants(pageable);
-        return ResponseEntity.ok(grants);
+    public ResponseEntity<Page<GrantResponse>> getPagedGrants(@RequestParam int page,
+                                                              @RequestParam int size,
+                                                              @RequestParam MultiValueMap<String, String> params) {
+        return ResponseEntity.ok(grantService.getPagedGrants(GrantFilter.from(params), page, size));
+    }
+
+    /**
+     * Funding agency names for the discovery agency filter, across all
+     * grants rather than one page. Leaves out agencies whose grants are all
+     * closed unless includeClosed is true.
+     */
+    @GetMapping("/agencies")
+    public ResponseEntity<List<String>> getAgencies(@RequestParam(defaultValue = "true") boolean includeClosed) {
+        return ResponseEntity.ok(grantService.listAgencies(includeClosed));
     }
 
     /**

@@ -1,26 +1,21 @@
 import { Search, Menu, SlidersHorizontal, X, ChevronLeft, ChevronRight, Loader2, Sparkles } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import GrantList from './GrantList.tsx';
-import FilterSidebar, { type FilterState, EMPTY_FILTERS } from './FilterSidebar.tsx';
+import FilterSidebar from './FilterSidebar.tsx';
 import AnimatedLogo from '../common/AnimatedLogo.tsx';
 import CustomSelect from '../common/CustomSelect.tsx';
 import UserAvatarMenu from '../common/UserAvatarMenu.tsx';
 import ScrollToTopButton from '../common/ScrollToTopButton.tsx';
 import TopLoadingBar from '../common/TopLoadingBar.tsx';
 import type { ResearcherResponse } from '../../services/researcherService';
-import { getDiscoveryGrants, type DiscoveryGrant } from '../../services/discoveryService';
-
-const INR_RATE: Record<string, number> = { INR: 1, USD: 83, EUR: 90, GBP: 105, AUD: 55, CAD: 62 };
-
-function toInr(amount: number, currency?: string): number {
-  const rate = INR_RATE[(currency ?? '').toUpperCase()] ?? 0;
-  return rate > 0 ? amount * rate : 0;
-}
+import { fetchGrantAgencies, getDiscoveryGrants, type DiscoveryGrant } from '../../services/discoveryService';
+import { applyFilters, countActiveFilters, EMPTY_FILTERS, grantInrAmount, type FilterState } from '../../utils/grantFilters';
 
 /**
- * Sort key for "deadline (closing soonest)". Grants without a parsable
- * deadline sink to the bottom; past deadlines also bury after future ones
- * so the user always sees actionable rows first.
+ * Sort key for "deadline (closing soonest)" on AI results. Grants without a
+ * parsable deadline sink to the bottom; past deadlines also bury after
+ * future ones so the user always sees actionable rows first. The server
+ * sorts the browse list the same way.
  */
 function deadlineMs(g: DiscoveryGrant): number {
   if (!g.deadlineRaw) return Number.POSITIVE_INFINITY;
@@ -28,74 +23,6 @@ function deadlineMs(g: DiscoveryGrant): number {
   if (Number.isNaN(t)) return Number.POSITIVE_INFINITY;
   if (t < Date.now()) return t + 1e15;
   return t;
-}
-
-/**
- * Sort key for "funding (highest)". Uses the max raw amount converted to
- * INR, so a $50,000 USD grant outranks a ₹10 Lakh grant. Unspecified
- * amounts sort to the bottom.
- */
-function fundingInrValue(g: DiscoveryGrant): number {
-  const raw = g.fundingAmountMaxRaw ?? g.fundingAmountMinRaw;
-  if (typeof raw !== 'number') return -1;
-  const inr = toInr(raw, g.fundingCurrencyRaw);
-  return inr > 0 ? inr : raw;
-}
-
-function applyFilters(grants: DiscoveryGrant[], f: FilterState): DiscoveryGrant[] {
-  return grants.filter((g) => {
-    if (f.funders.length > 0 && !f.funders.includes(g.funder)) {
-      return false;
-    }
-
-    if (f.grantTypes.length > 0) {
-      const text = `${g.title} ${g.tags.join(' ')} ${g.description}`.toLowerCase();
-      const match =
-        (f.grantTypes.includes('Research Projects') && /research|project/i.test(text)) ||
-        (f.grantTypes.includes('Fellowships') && /fellowship/i.test(text)) ||
-        (f.grantTypes.includes('Travel Grants') && /travel/i.test(text)) ||
-        (f.grantTypes.includes('Equipment / Lab') && /equipment|lab\b|instrument|apparatus/i.test(text));
-      if (!match) return false;
-    }
-
-    if (f.applicantTypes.length > 0) {
-      const text = `${g.eligibilityCriteria ?? ''} ${g.tags.join(' ')} ${g.description}`.toLowerCase();
-      const match =
-        (f.applicantTypes.includes('Early Career') && /early.?career|postdoc|young researcher|junior|early stage/i.test(text)) ||
-        (f.applicantTypes.includes('Students (PhD/MSc)') && /phd|m\.?sc|student|doctoral|graduate|post.?graduate/i.test(text)) ||
-        (f.applicantTypes.includes('Senior Researchers') && /senior|faculty|professor|principal investigator|\bpi\b/i.test(text)) ||
-        (f.applicantTypes.includes('Startups / Industry') && /startup|industry|company|sme|enterprise|commercial/i.test(text));
-      if (!match) return false;
-    }
-
-    if (f.fundingRanges.length > 0) {
-      const currency = g.fundingCurrencyRaw;
-      const rate = INR_RATE[(currency ?? '').toUpperCase()] ?? 0;
-      if (rate > 0 && (g.fundingAmountMinRaw !== undefined || g.fundingAmountMaxRaw !== undefined)) {
-        const representative = toInr(g.fundingAmountMaxRaw ?? g.fundingAmountMinRaw ?? 0, currency);
-        const match =
-          (f.fundingRanges.includes('< ₹5 Lakh') && representative < 500_000) ||
-          (f.fundingRanges.includes('₹5L - ₹25L') && representative >= 500_000 && representative <= 2_500_000) ||
-          (f.fundingRanges.includes('₹25L - ₹1 Cr') && representative > 2_500_000 && representative <= 10_000_000) ||
-          (f.fundingRanges.includes('> ₹1 Cr') && representative > 10_000_000);
-        if (!match) return false;
-      }
-    }
-
-    if (f.deadlineRanges.length > 0 && g.deadlineRaw) {
-      const deadlineMs = new Date(g.deadlineRaw).getTime();
-      if (!isNaN(deadlineMs)) {
-        const daysUntil = Math.ceil((deadlineMs - Date.now()) / 86_400_000);
-        const match =
-          (f.deadlineRanges.includes('Closing in < 30 days') && daysUntil >= 0 && daysUntil < 30) ||
-          (f.deadlineRanges.includes('Closing in 1-3 months') && daysUntil >= 30 && daysUntil <= 90) ||
-          (f.deadlineRanges.includes('Closing in > 3 months') && daysUntil > 90);
-        if (!match) return false;
-      }
-    }
-
-    return true;
-  });
 }
 
 interface GrantDiscoveryProps {
@@ -123,6 +50,11 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
   const [dataSource, setDataSource] = useState<'ai' | 'core' | null>(null);
   const [filterState, setFilterState] = useState<FilterState>(EMPTY_FILTERS);
+  const [showClosed, setShowClosed] = useState(false);
+  const [agencies, setAgencies] = useState<string[]>([]);
+  // Only the newest load may update the list, so a slow response to an
+  // older filter change can't replace newer results.
+  const loadSeq = useRef(0);
 
   const loadGrants = async (queryOverride?: string, useRerank = false, pageOverride = page) => {
     if (!researcher) {
@@ -131,6 +63,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
       return;
     }
 
+    const seq = ++loadSeq.current;
     setIsLoading(true);
     setErrorMessage(null);
     setWarningMessage(null);
@@ -143,7 +76,10 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
         page: pageOverride,
         pageSize,
         sortBy,
+        filters: filterState,
+        includeClosed: showClosed,
       });
+      if (seq !== loadSeq.current) return;
       setGrants(fetchedGrants);
       setDataSource(source);
       setPagination(fetchedPagination ?? {
@@ -160,11 +96,12 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
         setWarningMessage(`AI matching is currently unavailable (${aiError}), showing fallback grants from CoreBackend.`);
       }
     } catch (error) {
+      if (seq !== loadSeq.current) return;
       setGrants([]);
       setDataSource(null);
       setErrorMessage(error instanceof Error ? error.message : 'Failed to load grants.');
     } finally {
-      setIsLoading(false);
+      if (seq === loadSeq.current) setIsLoading(false);
     }
   };
 
@@ -201,6 +138,28 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortBy]);
+
+  // In browse mode the server applies the filters and the closed-grants
+  // switch across every page, so a change reloads from page 1. AI results
+  // are filtered in place below.
+  useEffect(() => {
+    if (dataSource === 'core') {
+      setPage(0);
+      void loadGrants(searchQuery, false, 0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterState, showClosed]);
+
+  // The agency filter lists every agency, not just the ones on this page.
+  useEffect(() => {
+    let cancelled = false;
+    fetchGrantAgencies(showClosed)
+      .then((list) => !cancelled && setAgencies(list))
+      .catch(() => !cancelled && setAgencies([]));
+    return () => {
+      cancelled = true;
+    };
+  }, [showClosed]);
 
   // Clamp AI result count to the normal AI cap when transitioning into AI
   // mode. The "All" sentinel (Infinity) is allowed through; the backend caps
@@ -239,31 +198,45 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // The server sorts and filters the browse list; AI results are sorted
+  // and filtered here, with the same rules.
   const sortedGrants = useMemo(() => {
+    if (dataSource === 'core') return grants;
     const copy = [...grants];
     if (sortBy === 'deadline') {
       copy.sort((a, b) => deadlineMs(a) - deadlineMs(b));
     } else if (sortBy === 'funding') {
       // Sort on raw INR-normalized amounts, not the formatted string.
-      copy.sort((a, b) => fundingInrValue(b) - fundingInrValue(a));
+      copy.sort((a, b) => (grantInrAmount(b) ?? -1) - (grantInrAmount(a) ?? -1));
     } else if (sortBy === 'recent') {
       copy.sort((a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''));
     } else {
       copy.sort((a, b) => b.matchScore - a.matchScore);
     }
     return copy;
-  }, [grants, sortBy]);
+  }, [grants, sortBy, dataSource]);
 
-  const filteredGrants = useMemo(() => applyFilters(sortedGrants, filterState), [sortedGrants, filterState]);
+  const filteredGrants = useMemo(
+    () => (dataSource === 'core' ? sortedGrants : applyFilters(sortedGrants, filterState, showClosed)),
+    [dataSource, sortedGrants, filterState, showClosed],
+  );
 
-  // searchable Funding Agency filter in the sidebar.
+  // Searchable Funding Agency filter in the sidebar: every agency when
+  // browsing, the agencies in the results for AI ranking.
   const availableFunders = useMemo(() => {
+    if (dataSource !== 'ai' && agencies.length > 0) return agencies;
     const set = new Set<string>();
     grants.forEach((g) => {
       if (g.funder && g.funder !== 'Unknown Agency') set.add(g.funder);
     });
     return Array.from(set);
-  }, [grants]);
+  }, [dataSource, agencies, grants]);
+
+  // Nothing to show because of the filters or the closed-grants switch,
+  // rather than because there are no grants at all.
+  const narrowedAway = dataSource === 'core'
+    ? countActiveFilters(filterState) > 0 || !showClosed
+    : sortedGrants.length > 0;
 
   // Browse mode is already paginated by the backend. AI mode may still use
   // the local slice when "All" is not selected.
@@ -460,12 +433,25 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                   {isLoading
                     ? 'Fetching opportunities...'
                     : dataSource === 'core'
-                      ? <>Showing <span className="font-semibold text-brand-900">{displayedGrants.length}</span> of <span className="font-semibold text-brand-900">{pagination.totalElements}</span> opportunities</>
-                      : <>Showing <span className="font-semibold text-brand-900">{displayedGrants.length}</span>{displayedGrants.length !== filteredGrants.length ? <> of <span className="font-semibold text-brand-900">{filteredGrants.length}</span></> : null} opportunities {dataSource === 'ai' && <>· <span className="text-primary-600 font-medium">AI ranking</span></>}</>}
+                      ? <>Showing <span className="font-semibold text-brand-900">{displayedGrants.length}</span> of <span className="font-semibold text-brand-900">{pagination.totalElements}</span> {showClosed ? '' : 'open '}opportunities</>
+                      : <>Showing <span className="font-semibold text-brand-900">{displayedGrants.length}</span>{displayedGrants.length !== filteredGrants.length ? <> of <span className="font-semibold text-brand-900">{filteredGrants.length}</span></> : null} {showClosed ? '' : 'open '}opportunities {dataSource === 'ai' && <>· <span className="text-primary-600 font-medium">AI ranking</span></>}</>}
                 </p>
               </div>
 
               <div className="flex items-center gap-3 sm:gap-3.5 flex-wrap">
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={showClosed}
+                  onClick={() => setShowClosed((v) => !v)}
+                  className="inline-flex items-center gap-2 h-7.5 text-xs font-medium text-brand-600 hover:text-brand-900 transition-colors"
+                >
+                  <span className={`relative inline-flex h-4 w-7 shrink-0 rounded-full transition-colors ${showClosed ? 'bg-primary-600' : 'bg-brand-300'}`}>
+                    <span className={`absolute top-0.5 left-0.5 h-3 w-3 rounded-full bg-white shadow-xs transition-transform ${showClosed ? 'translate-x-3' : ''}`} />
+                  </span>
+                  Show closed
+                </button>
+
                 <div className="flex items-center gap-1.5 h-7.5">
                   <span className="text-xs font-medium text-brand-500 hidden sm:inline-block leading-none">
                     {dataSource === 'core' ? 'Per page' : 'Show'}
@@ -564,10 +550,11 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
               </div>
             )}
 
-            {!isLoading && filteredGrants.length === 0 && sortedGrants.length > 0 && (
+            {!isLoading && !errorMessage && displayedGrants.length === 0 && narrowedAway && (
               <FilteredEmptyState
-                totalLoaded={sortedGrants.length}
                 filters={filterState}
+                closedHidden={!showClosed}
+                onShowClosed={() => setShowClosed(true)}
                 onRemoveFilter={(key, value) =>
                   setFilterState({ ...filterState, [key]: filterState[key].filter((v) => v !== value) })
                 }
@@ -575,7 +562,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
               />
             )}
 
-            {!isLoading && sortedGrants.length === 0 && (
+            {!isLoading && !errorMessage && displayedGrants.length === 0 && !narrowedAway && (
               <NoResultsEmptyState
                 searchQuery={searchQuery}
                 onClearSearch={() => {
@@ -606,19 +593,22 @@ const FILTER_LABELS: Record<keyof FilterState, string> = {
 };
 
 function FilteredEmptyState({
-  totalLoaded,
   filters,
+  closedHidden,
+  onShowClosed,
   onRemoveFilter,
   onClearAll,
 }: {
-  totalLoaded: number;
   filters: FilterState;
+  closedHidden: boolean;
+  onShowClosed: () => void;
   onRemoveFilter: (key: keyof FilterState, value: string) => void;
   onClearAll: () => void;
 }) {
   const activeChips: Array<{ key: keyof FilterState; value: string }> = (
     Object.keys(filters) as Array<keyof FilterState>
   ).flatMap((key) => filters[key].map((value) => ({ key, value })));
+  const filtered = activeChips.length > 0;
 
   return (
     <div className="rounded-xl border border-brand-200 bg-white p-10 flex flex-col items-center justify-center text-center mt-4 shadow-medium">
@@ -626,34 +616,50 @@ function FilteredEmptyState({
         <SlidersHorizontal className="w-8 h-8 text-brand-500" />
       </div>
       <h3 className="text-lg font-bold text-brand-900 mb-2 tracking-tight">
-        No grants match your filters
+        {filtered ? 'No grants match your filters' : 'No open grants right now'}
       </h3>
       <p className="text-brand-500 max-w-md mb-5 text-sm">
-        {totalLoaded} grants loaded, but your filters filtered all of them out. Remove one to widen your results:
+        {filtered
+          ? `Remove a filter to widen your results${closedHidden ? ', or include closed grants' : ''}:`
+          : 'All the grants here have closed. Show closed grants to see past calls.'}
       </p>
-      <div className="flex flex-wrap gap-2 justify-center max-w-xl mb-6">
-        {activeChips.map(({ key, value }) => (
+      {filtered && (
+        <div className="flex flex-wrap gap-2 justify-center max-w-xl mb-6">
+          {activeChips.map(({ key, value }) => (
+            <button
+              key={`${key}-${value}`}
+              type="button"
+              onClick={() => onRemoveFilter(key, value)}
+              className="group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-white border border-brand-200 text-brand-700 hover:border-red-300 hover:bg-red-50 hover:text-red-700 transition-all shadow-sm"
+              aria-label={`Remove ${FILTER_LABELS[key]} filter ${value}`}
+            >
+              <span className="text-xs text-brand-500 group-hover:text-red-400 font-medium">
+                {FILTER_LABELS[key]}
+              </span>
+              <span>{value}</span>
+              <X className="w-3 h-3 opacity-50 group-hover:opacity-100" />
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="flex flex-wrap gap-3 justify-center">
+        {closedHidden && (
           <button
-            key={`${key}-${value}`}
-            type="button"
-            onClick={() => onRemoveFilter(key, value)}
-            className="group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-white border border-brand-200 text-brand-700 hover:border-red-300 hover:bg-red-50 hover:text-red-700 transition-all shadow-sm"
-            aria-label={`Remove ${FILTER_LABELS[key]} filter ${value}`}
+            onClick={onShowClosed}
+            className="px-6 py-2.5 bg-white border border-brand-200 hover:border-primary-300 hover:text-primary-700 hover:bg-primary-50 text-brand-700 font-semibold rounded-lg shadow-xs transition-colors text-sm"
           >
-            <span className="text-xs text-brand-500 group-hover:text-red-400 font-medium">
-              {FILTER_LABELS[key]}
-            </span>
-            <span>{value}</span>
-            <X className="w-3 h-3 opacity-50 group-hover:opacity-100" />
+            Show closed grants
           </button>
-        ))}
+        )}
+        {filtered && (
+          <button
+            onClick={onClearAll}
+            className="px-6 py-2.5 bg-white border border-brand-200 hover:border-primary-300 hover:text-primary-700 hover:bg-primary-50 text-brand-700 font-semibold rounded-lg shadow-xs transition-colors text-sm"
+          >
+            Clear all filters
+          </button>
+        )}
       </div>
-      <button
-        onClick={onClearAll}
-        className="px-6 py-2.5 bg-white border border-brand-200 hover:border-primary-300 hover:text-primary-700 hover:bg-primary-50 text-brand-700 font-semibold rounded-lg shadow-xs transition-colors text-sm"
-      >
-        Clear all filters
-      </button>
     </div>
   );
 }

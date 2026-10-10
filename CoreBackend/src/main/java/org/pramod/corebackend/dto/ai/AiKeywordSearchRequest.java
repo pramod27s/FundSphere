@@ -20,8 +20,8 @@ public class AiKeywordSearchRequest {
     private String query;
     private Integer topK;
     private String country;
-    private String institutionType;
-    private String applicantType;
+    /** Include grants whose deadline has passed; default false. */
+    private Boolean includeClosed;
 }
 
 

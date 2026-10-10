@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Bookmark,
   ArrowLeft,
@@ -13,94 +14,70 @@ import { useSavedGrants } from '../../hooks/useSavedGrants';
 import GrantDetailsModal from '../discovery/GrantDetailsModal';
 import FreshnessBadge from '../common/FreshnessBadge';
 import ProviderUpdatedInfo from '../common/ProviderUpdatedInfo';
-import type { SavedGrantEntry, SavedGrantStatus } from '../../services/savedGrantsService';
+import type { SavedGrantEntry } from '../../services/savedGrantsService';
 import type { DiscoveryGrant } from '../../services/discoveryService';
+import { fetchApplications, type Application } from '../../services/applicationsService';
 import { formatRelativeDeadline } from '../../utils/formatDeadline';
 import WhatsAppShareButton from '../common/WhatsAppShareButton';
 import StartApplicationButton from '../applications/StartApplicationButton';
+import { STATUS_META } from '../applications/applicationMeta';
 
 interface SavedGrantsProps {
   onBack: () => void;
 }
 
-type StatusFilter = 'ALL' | SavedGrantStatus;
-type SortKey = 'saved' | 'deadline' | 'amount' | 'updated';
+type SortKey = 'saved' | 'deadline' | 'amount';
 
-const STATUS_META: Record<
-  SavedGrantStatus,
-  { label: string; chip: string; dot: string; icon: string }
-> = {
-  INTERESTED: {
-    label: 'Interested',
-    chip: 'bg-blue-50 text-blue-700 border-blue-200',
-    dot: 'bg-blue-500',
-    icon: '✦',
-  },
-  APPLYING: {
-    label: 'Applying',
-    chip: 'bg-amber-50 text-amber-700 border-amber-200',
-    dot: 'bg-amber-500',
-    icon: '✎',
-  },
-  SUBMITTED: {
-    label: 'Submitted',
-    chip: 'bg-primary-50 text-primary-700 border-primary-200',
-    dot: 'bg-primary-500',
-    icon: '✓',
-  },
-  REJECTED: {
-    label: 'Rejected',
-    chip: 'bg-red-50 text-red-700 border-red-200',
-    dot: 'bg-red-500',
-    icon: '×',
-  },
-};
-
-const STATUS_ORDER: SavedGrantStatus[] = ['INTERESTED', 'APPLYING', 'SUBMITTED', 'REJECTED'];
-
+/**
+ * Bookmarked grants. Progress on a grant lives on its application, so each
+ * card links to that application (with its status) or offers to start one.
+ */
 export default function SavedGrants({ onBack }: SavedGrantsProps) {
   const { savedGrants, isSaved, toggleSave, updateSaved, isLoading } = useSavedGrants();
   const [selectedGrant, setSelectedGrant] = useState<DiscoveryGrant | null>(null);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [sortKey, setSortKey] = useState<SortKey>('saved');
+  const [applications, setApplications] = useState<Application[]>([]);
 
-  // Per-status counts for the filter chips
-  const counts = useMemo(() => {
-    const c: Record<StatusFilter, number> = {
-      ALL: savedGrants.length,
-      INTERESTED: 0,
-      APPLYING: 0,
-      SUBMITTED: 0,
-      REJECTED: 0,
+  useEffect(() => {
+    let cancelled = false;
+    fetchApplications()
+      .then((rows) => !cancelled && setApplications(rows))
+      .catch(() => !cancelled && setApplications([]));
+    return () => {
+      cancelled = true;
     };
-    for (const e of savedGrants) c[e.status] = (c[e.status] ?? 0) + 1;
-    return c;
-  }, [savedGrants]);
+  }, []);
 
-  // Filtered + sorted view
-  const visible = useMemo(() => {
-    const filtered =
-      statusFilter === 'ALL'
-        ? savedGrants
-        : savedGrants.filter((e) => e.status === statusFilter);
-    const sorted = [...filtered];
+  // The application for each grant; the list is newest first, so keep the first one seen.
+  const applicationByGrant = useMemo(() => {
+    const map = new Map<number, Application>();
+    for (const application of applications) {
+      if (application.grantId !== null && !map.has(application.grantId)) {
+        map.set(application.grantId, application);
+      }
+    }
+    return map;
+  }, [applications]);
+
+  const sorted = useMemo(() => {
+    const rows = [...savedGrants];
     switch (sortKey) {
       case 'deadline':
-        sorted.sort((a, b) => deadlineMs(a) - deadlineMs(b));
+        rows.sort((a, b) => deadlineMs(a) - deadlineMs(b));
         break;
       case 'amount':
-        sorted.sort((a, b) => amountValue(b) - amountValue(a));
-        break;
-      case 'updated':
-        sorted.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+        rows.sort((a, b) => amountValue(b) - amountValue(a));
         break;
       case 'saved':
       default:
-        sorted.sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime());
+        rows.sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime());
         break;
     }
-    return sorted;
-  }, [savedGrants, statusFilter, sortKey]);
+    return rows;
+  }, [savedGrants, sortKey]);
+
+  const total = savedGrants.length;
+  const withApplication = savedGrants.filter((e) => applicationByGrant.has(e.grant.id)).length;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -123,60 +100,35 @@ export default function SavedGrants({ onBack }: SavedGrantsProps) {
               Saved Grants
             </h1>
             <p className="text-xs text-brand-600 mt-1 leading-none tabular-nums truncate">
-              {counts.ALL === 0
+              {total === 0
                 ? 'No grants saved yet'
-                : `${counts.ALL} ${counts.ALL === 1 ? 'grant' : 'grants'} saved`}
+                : `${total} ${total === 1 ? 'grant' : 'grants'} saved${withApplication > 0 ? ` · ${withApplication} with an application` : ''}`}
             </p>
           </div>
         </div>
-        {counts.ALL > 0 && (
+        {total > 0 && (
           <SortDropdown sortKey={sortKey} onChange={setSortKey} />
         )}
       </div>
 
-      {/* Status filter chips */}
-      {counts.ALL > 0 && (
-        <div className="bg-white border-b border-brand-100 px-4 sm:px-6 py-3 flex items-center gap-2 overflow-x-auto scrollbar-hide">
-          <FilterChip
-            label="All"
-            count={counts.ALL}
-            active={statusFilter === 'ALL'}
-            onClick={() => setStatusFilter('ALL')}
-            tone="neutral"
-          />
-          {STATUS_ORDER.map((s) => (
-            <FilterChip
-              key={s}
-              label={STATUS_META[s].label}
-              count={counts[s]}
-              active={statusFilter === s}
-              onClick={() => setStatusFilter(s)}
-              tone={s}
-            />
-          ))}
-        </div>
-      )}
-
       {/* Content */}
       <div className="flex-1 max-w-3xl w-full mx-auto px-4 py-8">
-        {isLoading && counts.ALL === 0 ? (
+        {isLoading && total === 0 ? (
           <div className="flex items-center justify-center py-24 text-brand-500">
             <Loader2 className="w-5 h-5 animate-spin mr-2" />
             Loading your saved grants…
           </div>
-        ) : counts.ALL === 0 ? (
+        ) : total === 0 ? (
           <EmptyState onBack={onBack} />
-        ) : visible.length === 0 ? (
-          <FilteredEmptyState onClear={() => setStatusFilter('ALL')} statusFilter={statusFilter} />
         ) : (
           <div className="flex flex-col gap-4">
-            {visible.map((entry) => (
+            {sorted.map((entry) => (
               <SavedGrantCard
                 key={entry.id}
                 entry={entry}
+                application={applicationByGrant.get(entry.grant.id) ?? null}
                 onOpenDetails={() => setSelectedGrant(entry.grant)}
                 onUnsave={() => toggleSave(entry.grant)}
-                onChangeStatus={(status) => updateSaved(entry.grant.id, { status })}
                 onSaveNotes={(notes) => updateSaved(entry.grant.id, { notes })}
               />
             ))}
@@ -203,19 +155,18 @@ export default function SavedGrants({ onBack }: SavedGrantsProps) {
 
 interface CardProps {
   entry: SavedGrantEntry;
+  application: Application | null;
   onOpenDetails: () => void;
   onUnsave: () => void;
-  onChangeStatus: (status: SavedGrantStatus) => Promise<void> | void;
   onSaveNotes: (notes: string) => Promise<void> | void;
 }
 
-function SavedGrantCard({ entry, onOpenDetails, onUnsave, onChangeStatus, onSaveNotes }: CardProps) {
-  const { grant, status, notes, updatedAt } = entry;
-  const [statusOpen, setStatusOpen] = useState(false);
+function SavedGrantCard({ entry, application, onOpenDetails, onUnsave, onSaveNotes }: CardProps) {
+  const { grant, notes } = entry;
+  const navigate = useNavigate();
   const [notesOpen, setNotesOpen] = useState(false);
   const [draftNotes, setDraftNotes] = useState(notes ?? '');
   const [savingNotes, setSavingNotes] = useState(false);
-  const meta = STATUS_META[status];
 
   const handleSaveNotes = async () => {
     setSavingNotes(true);
@@ -227,13 +178,8 @@ function SavedGrantCard({ entry, onOpenDetails, onUnsave, onChangeStatus, onSave
     }
   };
 
-  // Lift this card above its siblings while the status dropdown is open so
-  // the menu doesn't get hidden behind the next card's stacking context
-  // (each card creates one via ).
-  const elevation = statusOpen ? 'relative z-30' : 'relative z-0';
-
   return (
-    <article className={`${elevation} bg-white border border-brand-200 rounded-lg p-5 shadow-xs hover:shadow-elevated hover:border-primary-300 focus-within:ring-2 focus-within:ring-primary-300/40 transition-all duration-200 group`}>
+    <article className="relative bg-white border border-brand-200 rounded-lg p-5 shadow-xs hover:shadow-elevated hover:border-primary-300 focus-within:ring-2 focus-within:ring-primary-300/40 transition-all duration-200 group">
       {/* Top row: funder + actions */}
       <div className="flex items-start justify-between gap-4 mb-3">
         <div className="flex flex-wrap items-center gap-2">
@@ -280,60 +226,22 @@ function SavedGrantCard({ entry, onOpenDetails, onUnsave, onChangeStatus, onSave
         </div>
       )}
 
-      {/* Status + notes row */}
+      {/* Application + notes row */}
       <div className="flex flex-wrap items-center gap-2 mb-3">
-        <div className="relative">
+        {application ? (
           <button
             type="button"
-            onClick={() => setStatusOpen((v) => !v)}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border ${meta.chip} hover:brightness-95 transition`}
-            aria-haspopup="listbox"
-            aria-expanded={statusOpen}
+            onClick={() => navigate(`/applications/${application.id}`)}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border ${STATUS_META[application.status].chip} hover:brightness-95 transition`}
+            title="Open the application"
           >
-            <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
-            {meta.label}
-            <ChevronDown className="w-3 h-3 opacity-60" />
+            <span className={`w-1.5 h-1.5 rounded-full ${STATUS_META[application.status].dot}`} />
+            Application: {STATUS_META[application.status].label}
+            <ChevronRight className="w-3 h-3 opacity-60" />
           </button>
-          {statusOpen && (
-            <>
-              <button
-                type="button"
-                aria-label="Close status menu"
-                className="fixed inset-0 z-10 cursor-default"
-                onClick={() => setStatusOpen(false)}
-              />
-              <ul
-                role="listbox"
-                className="absolute z-20 left-0 mt-1 w-44 bg-white border border-brand-200 rounded-lg shadow-lg overflow-hidden"
-              >
-                {STATUS_ORDER.map((s) => {
-                  const sm = STATUS_META[s];
-                  const selected = s === status;
-                  return (
-                    <li key={s}>
-                      <button
-                        type="button"
-                        role="option"
-                        aria-selected={selected}
-                        onClick={async () => {
-                          setStatusOpen(false);
-                          if (!selected) await onChangeStatus(s);
-                        }}
-                        className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-left hover:bg-brand-50 transition ${
-                          selected ? 'bg-brand-50' : ''
-                        }`}
-                      >
-                        <span className={`w-1.5 h-1.5 rounded-full ${sm.dot}`} />
-                        <span className="flex-1 text-brand-800">{sm.label}</span>
-                        {selected && <span className="text-primary-600 text-[11px]">●</span>}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </>
-          )}
-        </div>
+        ) : (
+          <StartApplicationButton grant={grant} size="sm" />
+        )}
 
         <button
           type="button"
@@ -351,8 +259,6 @@ function SavedGrantCard({ entry, onOpenDetails, onUnsave, onChangeStatus, onSave
           <StickyNote className="w-3 h-3" />
           {notes ? 'Notes' : 'Add notes'}
         </button>
-
-        <StartApplicationButton grant={grant} size="sm" />
       </div>
 
       {/* Notes editor (collapsible) */}
@@ -436,11 +342,6 @@ function SavedGrantCard({ entry, onOpenDetails, onUnsave, onChangeStatus, onSave
           <span className="font-semibold text-green-700 whitespace-nowrap tabular-nums">
             {grant.amount}
           </span>
-          {updatedAt && (
-            <span className="text-[11px] text-brand-500 hidden sm:inline">
-              Updated {formatRelative(updatedAt)}
-            </span>
-          )}
         </div>
         <button
           type="button"
@@ -464,7 +365,6 @@ function SortDropdown({ sortKey, onChange }: { sortKey: SortKey; onChange: (s: S
   const [open, setOpen] = useState(false);
   const labels: Record<SortKey, string> = {
     saved: 'Recently saved',
-    updated: 'Recently updated',
     deadline: 'Deadline (soonest)',
     amount: 'Funding (highest)',
   };
@@ -514,58 +414,7 @@ function SortDropdown({ sortKey, onChange }: { sortKey: SortKey; onChange: (s: S
 }
 
 // =============================================================================
-// Filter chip
-// =============================================================================
-
-function FilterChip({
-  label,
-  count,
-  active,
-  onClick,
-  tone,
-}: {
-  label: string;
-  count: number;
-  active: boolean;
-  onClick: () => void;
-  tone: 'neutral' | SavedGrantStatus;
-}) {
-  const activeTone =
-    tone === 'neutral'
-      ? 'bg-brand-900 text-white border-brand-900'
-      : `${STATUS_META[tone].chip} ring-2 ring-offset-0 ring-current/30`;
-
-  const idleTone =
-    tone === 'neutral'
-      ? 'bg-white text-brand-700 border-brand-200 hover:bg-brand-50'
-      : 'bg-white text-brand-700 border-brand-200 hover:bg-brand-50';
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition ${
-        active ? activeTone : idleTone
-      }`}
-      aria-pressed={active}
-    >
-      {tone !== 'neutral' && (
-        <span className={`w-1.5 h-1.5 rounded-full ${STATUS_META[tone].dot}`} />
-      )}
-      {label}
-      <span
-        className={`ml-1 px-1.5 py-0.5 rounded-full text-[11px] tabular-nums ${
-          active ? 'bg-white/20' : 'bg-brand-100 text-brand-600'
-        }`}
-      >
-        {count}
-      </span>
-    </button>
-  );
-}
-
-// =============================================================================
-// Empty states
+// Empty state
 // =============================================================================
 
 function EmptyState({ onBack }: { onBack: () => void }) {
@@ -589,29 +438,6 @@ function EmptyState({ onBack }: { onBack: () => void }) {
   );
 }
 
-function FilteredEmptyState({
-  onClear,
-  statusFilter,
-}: {
-  onClear: () => void;
-  statusFilter: StatusFilter;
-}) {
-  const label = statusFilter === 'ALL' ? '' : STATUS_META[statusFilter as SavedGrantStatus].label;
-  return (
-    <div className="rounded-xl border border-brand-200 bg-white p-10 flex flex-col items-center justify-center text-center mt-8">
-      <p className="text-brand-600 text-sm mb-3">
-        No grants match the <span className="font-semibold">{label}</span> filter.
-      </p>
-      <button
-        onClick={onClear}
-        className="px-4 py-1.5 rounded-md text-xs font-semibold text-primary-700 bg-primary-50 hover:bg-primary-100 transition"
-      >
-        Show all
-      </button>
-    </div>
-  );
-}
-
 // =============================================================================
 // Pure helpers used by sorting
 // =============================================================================
@@ -630,19 +456,4 @@ function amountValue(entry: SavedGrantEntry): number {
   const max = entry.grant.fundingAmountMaxRaw;
   const min = entry.grant.fundingAmountMinRaw;
   return max ?? min ?? 0;
-}
-
-function formatRelative(iso: string): string {
-  const t = new Date(iso).getTime();
-  if (Number.isNaN(t)) return '';
-  const ms = Date.now() - t;
-  const minutes = Math.floor(ms / 60_000);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-  if (minutes < 1) return 'just now';
-  if (minutes < 60) return `${minutes}m ago`;
-  if (hours < 24) return `${hours}h ago`;
-  if (days === 1) return 'yesterday';
-  if (days < 30) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString();
 }

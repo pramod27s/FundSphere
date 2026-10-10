@@ -1,5 +1,6 @@
 import { apiFetch } from './apiClient';
 import { formatFundingRange } from '../utils/formatFunding';
+import { EMPTY_FILTERS, filterParams, type FilterState } from '../utils/grantFilters';
 
 export interface DiscoveryGrant {
   id: number;
@@ -8,7 +9,10 @@ export interface DiscoveryGrant {
   matchScore: number;
   amount: string;
   deadline: string;
+  /** Up to 6 tags and fields, for display. */
   tags: string[];
+  /** Every tag and field, for the Discovery filters (tags is trimmed for display). */
+  searchTags?: string[];
   eligibility: 'Eligible' | 'Warning';
   rationale: string;
   description: string;
@@ -64,6 +68,9 @@ interface RecommendationRequest {
   page?: number;
   pageSize?: number;
   sortBy?: string;
+  /** Browse list only: applied on the server across every page. */
+  filters?: FilterState;
+  includeClosed?: boolean;
 }
 
 interface RecommendationResponse {
@@ -122,7 +129,7 @@ interface CoreGrantPageResponse {
 
 export async function getDiscoveryGrants(request: RecommendationRequest): Promise<DiscoveryResult> {
   if (request.useRerank !== true) {
-    const corePage = await fetchCoreGrantPage(request.page ?? 0, request.pageSize ?? 12, request.sortBy);
+    const corePage = await fetchCoreGrantPage(request);
     return {
       grants: corePage.content.map(mapCoreGrantToDiscoveryGrant),
       source: 'core',
@@ -142,7 +149,7 @@ export async function getDiscoveryGrants(request: RecommendationRequest): Promis
     console.warn('AI recommendation failed, trying CoreBackend grant list fallback.', error);
   }
 
-  const corePage = await fetchCoreGrantPage(request.page ?? 0, request.pageSize ?? 12, request.sortBy);
+  const corePage = await fetchCoreGrantPage(request);
   return {
     grants: corePage.content.map(mapCoreGrantToDiscoveryGrant),
     source: 'core',
@@ -178,12 +185,13 @@ async function fetchAiRecommendations(request: RecommendationRequest): Promise<D
   return payload.results.map(mapRecommendationToGrant);
 }
 
-async function fetchCoreGrantPage(page: number, size: number, sortBy?: string): Promise<CoreGrantPageResponse> {
-  const params = new URLSearchParams({
-    page: String(Math.max(0, page)),
-    size: String(Math.max(1, size)),
-    sort: coreSortParam(sortBy),
-  });
+async function fetchCoreGrantPage(request: RecommendationRequest): Promise<CoreGrantPageResponse> {
+  const params = new URLSearchParams([
+    ['page', String(Math.max(0, request.page ?? 0))],
+    ['size', String(Math.max(1, request.pageSize ?? 12))],
+    ['sortBy', coreSortKey(request.sortBy)],
+    ...filterParams(request.filters ?? EMPTY_FILTERS, request.includeClosed ?? true),
+  ]);
 
   const response = await apiFetch(`/api/grants?${params.toString()}`);
 
@@ -204,14 +212,18 @@ function mapCorePageMetadata(page: CoreGrantPageResponse): DiscoveryPagination {
   };
 }
 
-function coreSortParam(sortBy?: string): string {
-  if (sortBy === 'deadline') {
-    return 'applicationDeadline,asc';
+/** Every funding agency in the browse list, for the agency filter. */
+export async function fetchGrantAgencies(includeClosed: boolean): Promise<string[]> {
+  const response = await apiFetch(`/api/grants/agencies?includeClosed=${includeClosed}`);
+  if (!response.ok) {
+    throw new Error(`Could not load agencies: ${response.status}`);
   }
-  if (sortBy === 'funding') {
-    return 'fundingAmountMax,desc';
-  }
-  return 'updatedAt,desc';
+  return response.json();
+}
+
+/** The server sorts the browse list; "match" only applies to AI results. */
+function coreSortKey(sortBy?: string): string {
+  return sortBy === 'deadline' || sortBy === 'funding' ? sortBy : 'recent';
 }
 
 function mapRecommendationToGrant(item: RecommendationItem): DiscoveryGrant {
@@ -232,8 +244,11 @@ function mapRecommendationToGrant(item: RecommendationItem): DiscoveryGrant {
     matchScore: clampToPercentage(item.finalScore),
     amount,
     deadline: formatDate(deadlineRaw),
-    tags: mergeTags(asStringArray(fields.tags), asStringArray(fields.field)),
-    eligibility: item.eligibilityScore >= 0.45 ? 'Eligible' : 'Warning',
+    tags: mergeTags(asStringArray(fields.tags), asStringArray(fields.field)).slice(0, 6),
+    searchTags: mergeTags(asStringArray(fields.tags), asStringArray(fields.field)),
+    // A grant stating none of its eligibility rules scores a neutral 0.5, so
+    // "Eligible" needs positive evidence (e.g. the user's country is listed).
+    eligibility: item.eligibilityScore >= 0.55 ? 'Eligible' : 'Warning',
     rationale: item.reason ?? 'Matched by semantic and keyword relevance to your profile.',
     description: asString(fields.chunk_text) ?? `No detailed description available for ${title}.`,
     objectives: asString(fields.objectives),
@@ -269,7 +284,8 @@ function mapCoreGrantToDiscoveryGrant(grant: CoreGrantResponse): DiscoveryGrant 
     matchScore: 50,
     amount: formatFunding(grant.fundingAmountMin, grant.fundingAmountMax, grant.fundingCurrency),
     deadline: formatDate(grant.applicationDeadline),
-    tags: mergeTags(grant.tags ?? [], splitTextList(grant.field)),
+    tags: mergeTags(grant.tags ?? [], splitTextList(grant.field)).slice(0, 6),
+    searchTags: mergeTags(grant.tags ?? [], splitTextList(grant.field)),
     eligibility: 'Warning',
     rationale: 'Fallback result from CoreBackend grant list while AI ranking is unavailable.',
     description: grant.description || `No detailed description available for ${grant.grantTitle}.`,
@@ -376,6 +392,6 @@ function mergeTags(...groups: string[][]): string[] {
       set.add(cleaned);
     }
   });
-  return Array.from(set).slice(0, 6);
+  return Array.from(set);
 }
 

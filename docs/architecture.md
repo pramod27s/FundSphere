@@ -85,15 +85,25 @@ The final per-grant score is a weighted blend of **five** signals plus small pre
               ▼                             ▼
    ┌────────────────────┐         ┌────────────────────┐
    │  Semantic Search   │         │  Keyword Search    │
-   │  (Pinecone hybrid) │         │  (PostgreSQL FTS)  │
+   │  (Pinecone hybrid, │         │  (PostgreSQL full- │
+   │   open deadlines)  │         │   text, tsvector)  │
    └─────────┬──────────┘         └─────────┬──────────┘
              │ top-N semantic               │ top-N keyword
+             │      (both channels run concurrently)
              └──────────────┬───────────────┘
                             ▼
             ┌─────────────────────────────────┐
             │   Reciprocal Rank Fusion (RRF)  │
             └────────────────┬────────────────┘
                              │ fused candidate pool
+                             ▼
+            ┌─────────────────────────────────┐
+            │  Expired + hard-ineligible      │
+            │  grants removed BEFORE rerank   │
+            │  (deadline passed · PhD-required│
+            │   · citizenship · country ·     │
+            │   min-experience)               │
+            └────────────────┬────────────────┘
                              ▼
             ┌─────────────────────────────────┐
             │  Cross-encoder rerank           │
@@ -105,22 +115,16 @@ The final per-grant score is a weighted blend of **five** signals plus small pre
             │   (per applicant-type preset    │
             │    when ENABLE_SEGMENT_WEIGHTS)  │
             ├─────────────────────────────────┤
-            │   35%   Semantic similarity     │
-            │   25%   Eligibility fit  (*)    │
-            │   15%   Keyword match           │
-            │   15%   Funding fit             │
+            │   50%   Semantic (raw rerank)   │
+            │   20%   Eligibility fit  (*)    │
+            │   10%   Keyword match           │
+            │   10%   Funding fit             │
             │   10%   Deadline freshness      │
             │  +.05   grant-type pref match   │
             │  +.05   career-stage match      │
             └────────────────┬────────────────┘
-                             │ (*) eligibility applies hard guards now:
-                             │     PhD-required · min-experience · citizenship
-                             ▼
-            ┌─────────────────────────────────┐
-            │  Expired grants filtered out    │
-            │  (deadline passed → removed,    │
-            │   EXCLUDE_EXPIRED_GRANTS=on)    │
-            └────────────────┬────────────────┘
+                             │ (*) unknown eligibility data scores a
+                             │     neutral 0.5, not 0
                              │ score clamped to [0,1]
                              ▼
                    Top-K cut → Gemini rationale
@@ -143,7 +147,7 @@ AI-Service           rag/recommender.py                                      RRF
 AI-Service           rag/filters.py                                          eligibility/funding/freshness + grant-type/career fits
 AI-Service           rag/config.py                                           weights + feature flags (all env-overridable)
 AI-Service           rag/gemini_client.py                                    Pro → Flash auto-fallback
-AI-Service           eval/auto_eval.py · eval/tune.py                        measure NDCG + auto-tune weights (see §5)
+AI-Service           eval/run.py                                             measure + compare configs (see §5)
 Vector DB            Pinecone · namespace grants                             Grant + researcher embeddings
 ```
 
@@ -347,25 +351,22 @@ Both subsystems use the same two-hop trust chain.
 
 ---
 
-## 5 · RAG evaluation & weight tuning
+## 5 · RAG evaluation
 
-Measure matching quality and auto-tune the scoring weights — without burning LLM tokens on every run. One-click via `ai-service/eval.bat` (preflight refuses to run unless CoreBackend `:8080` + ai-service `:8000` are reachable).
+Measure matching quality, and whether a change helps, with one command (from `ai-service/`, CoreBackend running):
 
 ```
-  eval.bat [1] Compare  ──►  auto_eval.py
-                             • frozen test set (profiles+queries) — generated ONCE
-                             • run recommender → LLM judges each candidate 0–3
-                             • Recall@K / MRR / NDCG@K, baseline flags vs improved
-                             └─ judgments cached → re-runs cost ~0 tokens, resumable
-
-  eval.bat [4] Auto-tune ──►  tune.py
-                             • snapshot per-candidate sub-scores ONCE (Pinecone)
-                             • sweep 1000s of weight vectors = pure arithmetic
-                             • prints best-NDCG weights → paste into .env
-                             (zero LLM tokens; reuses the cached snapshot + labels)
+  python -m eval.run [--compare NAME=VALUE ... | --tune]
+     • eval/cases.json   → 26 test researchers (profile + query)
+     • runs the current settings (+ the variant: current with NAME=VALUE changed)
+     • eval/labels.json  → LLM rates only grants it hasn't rated before (0–3)
+     • Recall@10 / MRR / NDCG@10 per config, side by side, plus per-case lines
+     • --tune: re-ranks the reranked grants offline under 42 weight sets
+       (same blend() as the recommender); picks on half the cases, checks on
+       the other half both ways; suggests WEIGHT_* only if it wins on both
 ```
 
-The tuner *recommends*, it does not auto-apply — you paste the winning `WEIGHT_*` lines into `.env` and re-run `[1]` to confirm NDCG moved. **Caveat:** LLM judgments are pseudo-labels, so trust the *deltas* and confirm before shipping.
+`labels.json` is committed: it is the benchmark. Hand-edit a rating to correct the LLM, or add a known-relevant grant so missing it counts. `--tune` searches a small grid (not thousands of random sets) and requires the gain to hold on unseen cases, since 26 cases are easy to overfit. **Caveat:** LLM ratings are pseudo-labels; trust the deltas within one run, and check the per-case lines before shipping a change.
 
 ---
 

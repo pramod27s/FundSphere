@@ -1,10 +1,9 @@
 /**
  * Saved-grants hook backed by the Spring Boot persistence layer.
  *
- * Returns rich SavedGrantEntry rows: each carries the embedded grant +
- * the user's workflow status (INTERESTED / APPLYING / SUBMITTED /
- * REJECTED) and personal notes. State updates are optimistic with
- * rollback on failure.
+ * Returns rich SavedGrantEntry rows: each carries the embedded grant and
+ * the user's personal notes. State updates are optimistic with rollback
+ * on failure.
  *
  * Legacy localStorage entries from the older client-only implementation
  * are migrated up to the server on first run for a logged-in user, then
@@ -19,7 +18,6 @@ import {
   unsaveGrantOnServer,
   updateSavedGrantOnServer,
   type SavedGrantEntry,
-  type SavedGrantStatus,
 } from '../services/savedGrantsService';
 import type { DiscoveryGrant } from '../services/discoveryService';
 
@@ -130,7 +128,6 @@ export function useSavedGrants() {
       const synthetic: SavedGrantEntry = {
         id: -grant.id, // negative id signals "optimistic, not yet confirmed"
         grant,
-        status: 'INTERESTED',
         notes: null,
         savedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -178,12 +175,12 @@ export function useSavedGrants() {
   );
 
   /**
-   * Update status and/or notes on an existing saved grant. Optimistic with
-   * rollback. If the row isn't currently in our state (rare race), this is
-   * a no-op locally — the server still receives the update.
+   * Update the notes on an existing saved grant. Optimistic with rollback.
+   * If the row isn't currently in our state (rare race), this is a no-op
+   * locally — the server still receives the update.
    */
   const updateSaved = useCallback(
-    async (grantId: number, changes: { status?: SavedGrantStatus; notes?: string }) => {
+    async (grantId: number, changes: { notes: string }) => {
       const previous = savedGrants.find((e) => e.grant.id === grantId);
       if (previous) {
         // Optimistic patch
@@ -192,8 +189,7 @@ export function useSavedGrants() {
             e.grant.id === grantId
               ? {
                   ...e,
-                  status: changes.status ?? e.status,
-                  notes: changes.notes === undefined ? e.notes : (changes.notes === '' ? null : changes.notes),
+                  notes: changes.notes === '' ? null : changes.notes,
                   updatedAt: new Date().toISOString(),
                 }
               : e,
@@ -203,8 +199,7 @@ export function useSavedGrants() {
       try {
         const updated = await updateSavedGrantOnServer(grantId, changes);
         setSavedGrants((prev) => prev.map((e) => (e.grant.id === grantId ? updated : e)));
-        if (changes.status !== undefined) toast.success('Status updated');
-        else if (changes.notes !== undefined) toast.success('Notes saved');
+        toast.success('Notes saved');
       } catch (e) {
         if (previous) {
           // Rollback to previous state on failure

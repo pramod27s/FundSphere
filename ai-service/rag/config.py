@@ -84,18 +84,23 @@ class Settings:
     llm_judge_model: str = os.getenv("LLM_JUDGE_MODEL", "openai/gpt-oss-120b")
     llm_judge_candidate_count: int = int(os.getenv("LLM_JUDGE_CANDIDATE_COUNT", "10"))
 
-    # 5-signal Scoring Weights (sum = 1.00)
-    weight_semantic: float = float(os.getenv("WEIGHT_SEMANTIC", "0.35"))
-    weight_eligibility: float = float(os.getenv("WEIGHT_ELIGIBILITY", "0.25"))
-    weight_keyword: float = float(os.getenv("WEIGHT_KEYWORD", "0.15"))
-    weight_funding: float = float(os.getenv("WEIGHT_FUNDING", "0.15"))
+    # 5-signal Scoring Weights (sum = 1.00). Semantic is the reranker's raw
+    # relevance score, so it carries half the weight: the other four signals
+    # adjust the order among relevant grants but can't lift an off-topic grant
+    # above an on-topic one. A starting point: `python -m eval.run --tune`
+    # suggests better values when the eval data supports them.
+    weight_semantic: float = float(os.getenv("WEIGHT_SEMANTIC", "0.50"))
+    weight_eligibility: float = float(os.getenv("WEIGHT_ELIGIBILITY", "0.20"))
+    weight_keyword: float = float(os.getenv("WEIGHT_KEYWORD", "0.10"))
+    weight_funding: float = float(os.getenv("WEIGHT_FUNDING", "0.10"))
     weight_freshness: float = float(os.getenv("WEIGHT_FRESHNESS", "0.10"))
     expired_penalty: float = float(os.getenv("EXPIRED_PENALTY", "0.30"))
 
     # Drop grants whose application deadline has already passed — they aren't
     # actionable, so showing them wastes a result slot. Grants with no/unknown
-    # deadline are kept. When this is ON the expired_penalty rarely fires (the
-    # rows are removed first); it remains as a fallback if this is disabled.
+    # deadline are kept. Applied in the Pinecone query, the keyword search and
+    # again before reranking. When this is ON the expired_penalty never fires;
+    # it remains as a fallback if this is disabled.
     exclude_expired_grants: bool = _as_bool(os.getenv("EXCLUDE_EXPIRED_GRANTS"), True)
 
     # Positive-only preference nudges, applied on top of the normalized 5-signal

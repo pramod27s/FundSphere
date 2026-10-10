@@ -4,10 +4,6 @@
  */
 package org.pramod.corebackend.service;
 
-import jakarta.persistence.criteria.Expression;
-import jakarta.persistence.criteria.Join;
-import jakarta.persistence.criteria.JoinType;
-import jakarta.persistence.criteria.Predicate;
 import org.pramod.corebackend.dto.GrantRequest;
 import org.pramod.corebackend.dto.GrantResponse;
 import org.pramod.corebackend.entity.Grant;
@@ -17,7 +13,6 @@ import org.pramod.corebackend.repository.SavedGrantRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,7 +22,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -40,10 +34,10 @@ import java.util.stream.Collectors;
 @Service
 public class GrantService {
 
-    /** Longest query tokens used in the keyword-search SQL prefilter (bounds the WHERE clause). */
-    private static final int KEYWORD_PREFILTER_TOKEN_LIMIT = 24;
-    /** Most-recent rows scored when a keyword query has no usable tokens. */
-    private static final int EMPTY_QUERY_CANDIDATES = 200;
+    /** Rows fetched per requested keyword hit when results are then filtered by country. */
+    private static final int KEYWORD_COUNTRY_OVERFETCH = 4;
+    /** Largest Discovery browse page. */
+    private static final int MAX_PAGE_SIZE = 100;
 
     private final GrantRepository grantRepository;
     private final GrantIndexingService grantIndexingService;
@@ -178,9 +172,18 @@ public class GrantService {
                 .collect(Collectors.toList());
     }
 
-    public Page<GrantResponse> getPagedGrants(Pageable pageable) {
-        return grantRepository.findAll(pageable)
+    /** One page of the Discovery browse list, filtered and sorted in the database (see {@link GrantFilter}). */
+    @Transactional(readOnly = true)
+    public Page<GrantResponse> getPagedGrants(GrantFilter filter, int page, int size) {
+        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), MAX_PAGE_SIZE));
+        return grantRepository.findAll(filter.toSpecification(LocalDateTime.now()), pageable)
                 .map(this::mapToResponse);
+    }
+
+    /** Funding agency names for the Discovery agency filter. */
+    @Transactional(readOnly = true)
+    public List<String> listAgencies(boolean includeClosed) {
+        return grantRepository.findAgencies(includeClosed, LocalDateTime.now());
     }
 
     public GrantResponse getGrantById(Long id) {
@@ -332,60 +335,33 @@ public class GrantService {
         return grantRepository.findIdsChangedSince(since);
     }
 
+    /**
+     * Keyword channel for the AI recommender: PostgreSQL full-text search
+     * (see GrantRepository.keywordSearch), best match first.
+     *
+     * Only the country narrows the results, and leniently (KeywordQuery.countryAllows):
+     * the ai-service scores applicant and institution fit itself, and an exact
+     * match here dropped grants over naming differences.
+     */
     public List<KeywordSearchHit> keywordSearch(String query,
                                                 String country,
-                                                String institutionType,
-                                                String applicantType,
+                                                boolean includeClosed,
                                                 int topK) {
-        String normalizedQuery = query == null ? "" : query.trim().toLowerCase();
-        Set<String> queryTokens = tokenize(normalizedQuery);
+        Optional<String> tsQuery = KeywordQuery.toTsQuery(query);
+        if (tsQuery.isEmpty()) {
+            return List.of();
+        }
 
-        List<Grant> candidates = queryTokens.isEmpty()
-                ? grantRepository.findAllByOrderByUpdatedAtDesc(PageRequest.of(0, EMPTY_QUERY_CANDIDATES))
-                : grantRepository.findAll(containsAnyToken(queryTokens));
+        int limit = Math.max(topK, 1);
+        // The country check runs after the SQL LIMIT, so fetch extra rows to fill topK.
+        boolean filterCountry = country != null && !country.isBlank();
+        int fetch = filterCountry ? limit * KEYWORD_COUNTRY_OVERFETCH : limit;
 
-        return candidates.stream()
-                .filter(grant -> matchesFilters(grant, country, institutionType, applicantType))
-                .map(grant -> new KeywordSearchHit(grant.getId(), keywordScore(grant, normalizedQuery, queryTokens)))
-                .filter(hit -> hit.keywordScore() > 0)
-                .sorted((a, b) -> Double.compare(b.keywordScore(), a.keywordScore()))
-                .limit(Math.max(topK, 1))
+        return grantRepository.keywordSearch(tsQuery.get(), includeClosed, LocalDateTime.now(), fetch).stream()
+                .filter(match -> KeywordQuery.countryAllows(match.getCountries(), country))
+                .limit(limit)
+                .map(match -> new KeywordSearchHit(match.getId(), match.getScore()))
                 .toList();
-    }
-
-    /**
-     * SQL prefilter for keyword search: rows where at least one query token
-     * appears in a scored text column or a tag, so scoring no longer loads the
-     * whole table. keywordScore still scores against every token; only the
-     * prefilter is capped to the longest (most distinctive) tokens.
-     */
-    private Specification<Grant> containsAnyToken(Set<String> tokens) {
-        List<String> prefilterTokens = tokens.stream()
-                .sorted(Comparator.comparingInt(String::length).reversed())
-                .limit(KEYWORD_PREFILTER_TOKEN_LIMIT)
-                .toList();
-
-        return (root, query, cb) -> {
-            query.distinct(true);
-            Join<Grant, String> tags = root.join("tags", JoinType.LEFT);
-            List<Expression<String>> columns = List.of(
-                    cb.lower(root.get("grantTitle")),
-                    cb.lower(root.get("fundingAgency")),
-                    cb.lower(root.get("programName")),
-                    cb.lower(root.get("description")),
-                    cb.lower(root.get("field")),
-                    cb.lower(root.get("eligibleApplicants")),
-                    cb.lower(tags));
-
-            // Tokens are [a-z0-9]+ (see tokenize), so they need no LIKE escaping.
-            List<Predicate> anyMatch = new ArrayList<>();
-            for (String token : prefilterTokens) {
-                for (Expression<String> column : columns) {
-                    anyMatch.add(cb.like(column, "%" + token + "%"));
-                }
-            }
-            return cb.or(anyMatch.toArray(Predicate[]::new));
-        };
     }
 
     // --- Mapping helpers ---
@@ -633,56 +609,5 @@ public class GrantService {
                 .map(String::trim)
                 .filter(token -> token.length() > 1)
                 .collect(Collectors.toSet());
-    }
-
-    private boolean matchesFilters(Grant grant, String country, String institutionType, String applicantType) {
-        return matchesGrantListField(grant.getEligibleCountries(), country)
-                && matchesGrantListField(grant.getInstitutionType(), institutionType)
-                && matchesGrantListField(grant.getEligibleApplicants(), applicantType);
-    }
-
-    private boolean matchesGrantListField(String rawField, String requestedValue) {
-        if (requestedValue == null || requestedValue.isBlank()) {
-            return true;
-        }
-
-        String expected = requestedValue.trim().toLowerCase();
-        if (rawField == null || rawField.isBlank()) {
-            return false;
-        }
-
-        return Arrays.stream(rawField.split("[,;/|]"))
-                .map(String::trim)
-                .map(String::toLowerCase)
-                .anyMatch(value -> value.equals("global") || value.equals("any") || value.equals(expected));
-    }
-
-    private double keywordScore(Grant grant, String normalizedQuery, Set<String> queryTokens) {
-        String corpus = String.join(" ",
-                safe(grant.getGrantTitle()),
-                safe(grant.getFundingAgency()),
-                safe(grant.getProgramName()),
-                safe(grant.getDescription()),
-                safe(grant.getField()),
-                safe(grant.getEligibleApplicants()),
-                String.join(" ", grant.getTags() == null ? List.of() : grant.getTags())
-        ).toLowerCase();
-
-        if (queryTokens.isEmpty()) {
-            return 0.1;
-        }
-
-        long tokenMatches = queryTokens.stream().filter(corpus::contains).count();
-        double score = (double) tokenMatches / (double) queryTokens.size();
-
-        if (!normalizedQuery.isBlank() && safe(grant.getGrantTitle()).toLowerCase().contains(normalizedQuery)) {
-            score += 0.2;
-        }
-
-        return Math.min(score, 1.0);
-    }
-
-    private String safe(String value) {
-        return value == null ? "" : value;
     }
 }

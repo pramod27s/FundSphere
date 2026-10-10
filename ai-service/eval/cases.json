@@ -1,0 +1,551 @@
+{
+  "description": "Eval cases (profile + query) spread across the grant corpus: Indian S&T schemes and fellowships, biotech and startup funding, international company and NGO grants. Profile values follow what CoreBackend sends (AiProfileMapper). Ratings live in labels.json; add a case by appending here with a new unique id.",
+  "cases": [
+    {
+      "id": "medtech-diagnostics-startup-in",
+      "profile": {
+        "country": "India",
+        "institutionType": "Startup",
+        "applicantType": "Startup Company",
+        "careerStage": "Founder",
+        "department": "biomedical engineering",
+        "researchBio": "Founder of a two-year-old medtech startup building low-cost point-of-care diagnostic devices for rural clinics.",
+        "researchInterests": ["Healthcare", "Medical Devices", "Diagnostics"],
+        "keywords": ["point-of-care diagnostics", "medtech"],
+        "preferredMinAmount": 1000000,
+        "preferredMaxAmount": 5000000,
+        "preferredCurrency": "INR",
+        "hasPhd": false,
+        "yearsOfExperience": 4,
+        "citizenship": "India",
+        "preferredGrantType": "Startup Funding"
+      },
+      "query": "non-dilutive seed grant to build a prototype of our point-of-care diagnostic device"
+    },
+    {
+      "id": "biotech-ignition-founder-in",
+      "profile": {
+        "country": "India",
+        "institutionType": "Startup",
+        "applicantType": "Startup Company",
+        "careerStage": "Founder",
+        "department": "biotechnology",
+        "researchBio": "Biotech founder developing an enzyme-based process for converting agricultural waste into bio-based chemicals.",
+        "researchInterests": ["Environment", "Biotechnology", "Bio-based chemicals"],
+        "keywords": ["industrial biotechnology", "enzymes", "agricultural waste"],
+        "preferredMinAmount": 2500000,
+        "preferredMaxAmount": 10000000,
+        "preferredCurrency": "INR",
+        "hasPhd": true,
+        "yearsOfExperience": 8,
+        "citizenship": "India",
+        "preferredGrantType": "Startup Funding"
+      },
+      "query": "early-stage biotech funding to take our lab-validated enzyme process to proof of concept"
+    },
+    {
+      "id": "farm-machinery-startup-in",
+      "profile": {
+        "country": "India",
+        "institutionType": "Startup",
+        "applicantType": "Startup Company",
+        "careerStage": "Founder",
+        "department": "agricultural engineering",
+        "researchBio": "Agritech founder designing affordable mechanised tools for smallholder farmers.",
+        "researchInterests": ["Agriculture", "Farm Mechanization"],
+        "keywords": ["agritech", "smallholder farmers", "farm machinery"],
+        "preferredMinAmount": 500000,
+        "preferredMaxAmount": 5000000,
+        "preferredCurrency": "INR",
+        "hasPhd": false,
+        "yearsOfExperience": 3,
+        "citizenship": "India",
+        "preferredGrantType": "Startup Funding"
+      },
+      "query": "grant or challenge for a startup building low-cost farm machinery for smallholder farmers"
+    },
+    {
+      "id": "drone-uav-startup-in",
+      "profile": {
+        "country": "India",
+        "institutionType": "Startup",
+        "applicantType": "Startup Company",
+        "careerStage": "Founder",
+        "department": "aerospace engineering",
+        "researchBio": "Building autonomous drones for crop spraying and infrastructure inspection.",
+        "researchInterests": ["Robotics", "Drones", "Aerospace"],
+        "keywords": ["UAV", "drone", "autonomous navigation"],
+        "preferredMinAmount": 1000000,
+        "preferredMaxAmount": 20000000,
+        "preferredCurrency": "INR",
+        "hasPhd": false,
+        "yearsOfExperience": 5,
+        "citizenship": "India",
+        "preferredGrantType": "Startup Funding"
+      },
+      "query": "accelerator or incubation funding for a drone and UAV hardware startup"
+    },
+    {
+      "id": "space-tech-startup-in",
+      "profile": {
+        "country": "India",
+        "institutionType": "Startup",
+        "applicantType": "Startup Company",
+        "careerStage": "Founder",
+        "department": "space technology",
+        "researchBio": "Early-stage startup building small-satellite subsystems for Earth observation.",
+        "researchInterests": ["Data Science", "Space Technology"],
+        "keywords": ["satellite", "earth observation", "spacetech"],
+        "preferredMinAmount": 5000000,
+        "preferredMaxAmount": 50000000,
+        "preferredCurrency": "INR",
+        "hasPhd": false,
+        "yearsOfExperience": 6,
+        "citizenship": "India",
+        "preferredGrantType": "Startup Funding"
+      },
+      "query": "fund for space tech startups working on satellites and earth observation"
+    },
+    {
+      "id": "national-postdoc-physics-in",
+      "profile": {
+        "country": "India",
+        "institutionType": "Research Institute",
+        "applicantType": "Researcher",
+        "careerStage": "Research Assistant",
+        "department": "physics",
+        "researchBio": "Recently completed a PhD in condensed matter physics on topological materials; looking for my first postdoctoral position in India.",
+        "researchInterests": ["Data Science", "Condensed Matter Physics", "Quantum Materials"],
+        "keywords": ["topological materials", "postdoc"],
+        "preferredMinAmount": 600000,
+        "preferredMaxAmount": 1500000,
+        "preferredCurrency": "INR",
+        "hasPhd": true,
+        "yearsOfExperience": 1,
+        "citizenship": "India",
+        "preferredGrantType": "Fellowship"
+      },
+      "query": "national postdoctoral fellowship for a fresh PhD in physics"
+    },
+    {
+      "id": "returning-scientist-in",
+      "profile": {
+        "country": "India",
+        "institutionType": "University",
+        "applicantType": "Researcher",
+        "careerStage": "Research Assistant",
+        "department": "chemistry",
+        "researchBio": "Indian chemist currently a postdoc in Germany, planning to move back to an Indian university to set up an independent lab.",
+        "researchInterests": ["Environment", "Catalysis", "Green Chemistry"],
+        "keywords": ["catalysis", "independent research group"],
+        "preferredMinAmount": 1000000,
+        "preferredMaxAmount": 3000000,
+        "preferredCurrency": "INR",
+        "hasPhd": true,
+        "yearsOfExperience": 6,
+        "citizenship": "India",
+        "preferredGrantType": "Fellowship"
+      },
+      "query": "fellowship for Indian scientists working abroad who want to return and start a lab in India"
+    },
+    {
+      "id": "women-scientist-career-break-in",
+      "profile": {
+        "country": "India",
+        "institutionType": "University",
+        "applicantType": "Researcher",
+        "careerStage": "Research Assistant",
+        "department": "biotechnology",
+        "researchBio": "Molecular biologist returning to research after a four-year career break for family reasons.",
+        "researchInterests": ["Healthcare", "Biotechnology", "Molecular Biology"],
+        "keywords": ["women scientists", "career break", "re-entry"],
+        "preferredMinAmount": 500000,
+        "preferredMaxAmount": 3000000,
+        "preferredCurrency": "INR",
+        "hasPhd": true,
+        "yearsOfExperience": 7,
+        "citizenship": "India",
+        "preferredGrantType": "Fellowship"
+      },
+      "query": "re-entry fellowship for women scientists coming back after a career break"
+    },
+    {
+      "id": "engineering-teacher-phd-in",
+      "profile": {
+        "country": "India",
+        "institutionType": "College",
+        "applicantType": "Professor Faculty",
+        "careerStage": "Professor",
+        "department": "mechanical engineering",
+        "researchBio": "Assistant professor at an engineering college; I teach thermodynamics and want to complete a doctorate.",
+        "researchInterests": ["Education", "Mechanical Engineering", "Thermal Engineering"],
+        "keywords": ["doctoral research", "engineering education"],
+        "preferredMinAmount": 200000,
+        "preferredMaxAmount": 1500000,
+        "preferredCurrency": "INR",
+        "hasPhd": false,
+        "yearsOfExperience": 9,
+        "citizenship": "India",
+        "preferredGrantType": "Fellowship"
+      },
+      "query": "fellowship that lets engineering college teachers pursue a PhD"
+    },
+    {
+      "id": "senior-scientist-national-fellowship-in",
+      "profile": {
+        "country": "India",
+        "institutionType": "University",
+        "applicantType": "Professor Faculty",
+        "careerStage": "Professor",
+        "department": "chemical biology",
+        "researchBio": "Professor with 25 years of research in chemical biology and a long record of publications and mentorship.",
+        "researchInterests": ["Healthcare", "Chemical Biology"],
+        "keywords": ["senior scientist", "national fellowship"],
+        "preferredMinAmount": 1000000,
+        "preferredMaxAmount": 10000000,
+        "preferredCurrency": "INR",
+        "hasPhd": true,
+        "yearsOfExperience": 25,
+        "citizenship": "India",
+        "preferredGrantType": "Fellowship"
+      },
+      "query": "national fellowship recognising senior scientists for outstanding research careers"
+    },
+    {
+      "id": "sociology-urban-migration-in",
+      "profile": {
+        "country": "India",
+        "institutionType": "University",
+        "applicantType": "Professor Faculty",
+        "careerStage": "Professor",
+        "department": "sociology",
+        "researchBio": "Sociologist studying internal migration, informal labour and urban poverty in Indian cities.",
+        "researchInterests": ["Social Impact", "Sociology", "Migration Studies"],
+        "keywords": ["urban migration", "informal labour", "social science"],
+        "preferredMinAmount": 500000,
+        "preferredMaxAmount": 2500000,
+        "preferredCurrency": "INR",
+        "hasPhd": true,
+        "yearsOfExperience": 12,
+        "citizenship": "India",
+        "preferredGrantType": "Research Grant"
+      },
+      "query": "social science research project grant for a study on urban migration in India"
+    },
+    {
+      "id": "solar-energy-fellowship-in",
+      "profile": {
+        "country": "India",
+        "institutionType": "Research Institute",
+        "applicantType": "Researcher",
+        "careerStage": "Research Assistant",
+        "department": "materials science",
+        "researchBio": "PhD student working on perovskite solar cells and their long-term stability.",
+        "researchInterests": ["Environment", "Solar Energy", "Renewable Energy"],
+        "keywords": ["perovskite", "photovoltaics", "solar cells"],
+        "preferredMinAmount": 300000,
+        "preferredMaxAmount": 3000000,
+        "preferredCurrency": "INR",
+        "hasPhd": false,
+        "yearsOfExperience": 3,
+        "citizenship": "India",
+        "preferredGrantType": "Fellowship"
+      },
+      "query": "fellowship to do advanced solar energy research at a lab abroad"
+    },
+    {
+      "id": "biogas-power-ngo-in",
+      "profile": {
+        "country": "India",
+        "institutionType": "Ngo",
+        "applicantType": "Nonprofit Organization",
+        "careerStage": "Ngo Member",
+        "department": "rural energy",
+        "researchBio": "NGO working with village cooperatives on decentralised renewable energy from cattle dung and crop residue.",
+        "researchInterests": ["Environment", "Renewable Energy", "Rural Development"],
+        "keywords": ["biogas", "waste to energy"],
+        "preferredMinAmount": 1000000,
+        "preferredMaxAmount": 10000000,
+        "preferredCurrency": "INR",
+        "hasPhd": false,
+        "yearsOfExperience": 10,
+        "citizenship": "India",
+        "preferredGrantType": "Ngo Funding"
+      },
+      "query": "government support for setting up biogas plants for power and thermal energy"
+    },
+    {
+      "id": "agro-meteorology-research-in",
+      "profile": {
+        "country": "India",
+        "institutionType": "Government Lab",
+        "applicantType": "Researcher",
+        "careerStage": "Research Assistant",
+        "department": "agricultural meteorology",
+        "researchBio": "Scientist modelling how monsoon variability affects crop yields to improve farm advisories.",
+        "researchInterests": ["Agriculture", "Climate", "Agro-meteorology"],
+        "keywords": ["monsoon", "crop modelling", "weather advisories"],
+        "preferredMinAmount": 1000000,
+        "preferredMaxAmount": 5000000,
+        "preferredCurrency": "INR",
+        "hasPhd": true,
+        "yearsOfExperience": 8,
+        "citizenship": "India",
+        "preferredGrantType": "Research Grant"
+      },
+      "query": "research funding for weather and climate based crop advisories for farmers"
+    },
+    {
+      "id": "livestock-health-research-in",
+      "profile": {
+        "country": "India",
+        "institutionType": "University",
+        "applicantType": "Professor Faculty",
+        "careerStage": "Professor",
+        "department": "veterinary science",
+        "researchBio": "Veterinary scientist working on vaccines and diagnostics for diseases of cattle and poultry.",
+        "researchInterests": ["Agriculture", "Animal Health", "Veterinary Science"],
+        "keywords": ["livestock disease", "animal vaccines"],
+        "preferredMinAmount": 1000000,
+        "preferredMaxAmount": 8000000,
+        "preferredCurrency": "INR",
+        "hasPhd": true,
+        "yearsOfExperience": 15,
+        "citizenship": "India",
+        "preferredGrantType": "Research Grant"
+      },
+      "query": "research grant on livestock and animal health, vaccines and disease diagnostics"
+    },
+    {
+      "id": "bioinformatics-big-data-in",
+      "profile": {
+        "country": "India",
+        "institutionType": "Research Institute",
+        "applicantType": "Researcher",
+        "careerStage": "Research Assistant",
+        "department": "computational biology",
+        "researchBio": "Computational biologist applying machine learning to large-scale genomics data.",
+        "researchInterests": ["Data Science", "Bioinformatics", "Genomics"],
+        "keywords": ["machine learning", "big data", "genomics"],
+        "preferredMinAmount": 1000000,
+        "preferredMaxAmount": 6000000,
+        "preferredCurrency": "INR",
+        "hasPhd": true,
+        "yearsOfExperience": 5,
+        "citizenship": "India",
+        "preferredGrantType": "Research Grant"
+      },
+      "query": "funding for AI and big data methods in bioinformatics and genomics"
+    },
+    {
+      "id": "frontier-ai-benchmarks-uk",
+      "profile": {
+        "country": "United Kingdom",
+        "institutionType": "University",
+        "applicantType": "Researcher",
+        "careerStage": "Research Assistant",
+        "department": "computer science",
+        "researchBio": "Machine learning researcher building evaluation datasets to measure the capabilities and risks of large language models.",
+        "researchInterests": ["Artificial Intelligence", "AI Safety", "Machine Learning"],
+        "keywords": ["benchmarks", "evaluation datasets", "large language models"],
+        "preferredMinAmount": 50000,
+        "preferredMaxAmount": 500000,
+        "preferredCurrency": "GBP",
+        "hasPhd": true,
+        "yearsOfExperience": 4,
+        "citizenship": "United Kingdom",
+        "preferredGrantType": "Research Grant"
+      },
+      "query": "funding to build benchmark datasets for evaluating frontier AI models"
+    },
+    {
+      "id": "ai-data-solutions-startup-in",
+      "profile": {
+        "country": "India",
+        "institutionType": "Startup",
+        "applicantType": "Startup Company",
+        "careerStage": "Founder",
+        "department": "computer science",
+        "researchBio": "Startup using machine learning on public-sector data to improve service delivery.",
+        "researchInterests": ["Artificial Intelligence", "Data Science", "GovTech"],
+        "keywords": ["machine learning", "data-driven solutions"],
+        "preferredMinAmount": 1000000,
+        "preferredMaxAmount": 20000000,
+        "preferredCurrency": "INR",
+        "hasPhd": false,
+        "yearsOfExperience": 4,
+        "citizenship": "India",
+        "preferredGrantType": "Startup Funding"
+      },
+      "query": "grant for startups building AI and data-driven solutions"
+    },
+    {
+      "id": "industrial-cybersecurity-es",
+      "profile": {
+        "country": "Spain",
+        "institutionType": "Industry",
+        "applicantType": "Startup Company",
+        "careerStage": "Founder",
+        "department": "information security",
+        "researchBio": "Small company securing industrial control systems for manufacturing plants.",
+        "researchInterests": ["Data Science", "Cybersecurity", "Industrial Control Systems"],
+        "keywords": ["OT security", "cybersecurity"],
+        "preferredMinAmount": 20000,
+        "preferredMaxAmount": 300000,
+        "preferredCurrency": "EUR",
+        "hasPhd": false,
+        "yearsOfExperience": 7,
+        "citizenship": "Spain",
+        "preferredGrantType": "Startup Funding"
+      },
+      "query": "industrial cybersecurity grant for a small company"
+    },
+    {
+      "id": "recycling-entrepreneur-ph",
+      "profile": {
+        "country": "Philippines",
+        "institutionType": "Startup",
+        "applicantType": "Startup Company",
+        "careerStage": "Founder",
+        "department": "environmental management",
+        "researchBio": "Social entrepreneur running a plastic collection and recycling business with informal waste pickers.",
+        "researchInterests": ["Environment", "Recycling", "Circular Economy"],
+        "keywords": ["plastic recycling", "waste management"],
+        "preferredMinAmount": 5000,
+        "preferredMaxAmount": 100000,
+        "preferredCurrency": "USD",
+        "hasPhd": false,
+        "yearsOfExperience": 3,
+        "citizenship": "Philippines",
+        "preferredGrantType": "Startup Funding"
+      },
+      "query": "support program for recycling and waste management entrepreneurs"
+    },
+    {
+      "id": "women-led-business-co",
+      "profile": {
+        "country": "Colombia",
+        "institutionType": "Ngo",
+        "applicantType": "Nonprofit Organization",
+        "careerStage": "Ngo Member",
+        "department": "economic empowerment",
+        "researchBio": "Organisation helping rural women start and grow small businesses.",
+        "researchInterests": ["Social Impact", "Women Entrepreneurship"],
+        "keywords": ["women entrepreneurs", "economic empowerment"],
+        "preferredMinAmount": 5000,
+        "preferredMaxAmount": 200000,
+        "preferredCurrency": "USD",
+        "hasPhd": false,
+        "yearsOfExperience": 6,
+        "citizenship": "Colombia",
+        "preferredGrantType": "Ngo Funding"
+      },
+      "query": "fund supporting women-led small businesses and women's economic empowerment"
+    },
+    {
+      "id": "community-services-nonprofit-us",
+      "profile": {
+        "country": "United States",
+        "institutionType": "Ngo",
+        "applicantType": "Nonprofit Organization",
+        "careerStage": "Ngo Member",
+        "department": "community services",
+        "researchBio": "Community action nonprofit providing housing, food and employment support to low-income families.",
+        "researchInterests": ["Social Impact", "Community Development", "Poverty Alleviation"],
+        "keywords": ["low-income families", "community services"],
+        "preferredMinAmount": 50000,
+        "preferredMaxAmount": 1000000,
+        "preferredCurrency": "USD",
+        "hasPhd": false,
+        "yearsOfExperience": 12,
+        "citizenship": "United States",
+        "preferredGrantType": "Ngo Funding"
+      },
+      "query": "block grant for a nonprofit that delivers community services to low-income families"
+    },
+    {
+      "id": "small-business-growth-us",
+      "profile": {
+        "country": "United States",
+        "institutionType": "Industry",
+        "applicantType": "Startup Company",
+        "careerStage": "Founder",
+        "department": "retail",
+        "researchBio": "Owner of a five-person bakery looking to expand into a second location.",
+        "researchInterests": ["Social Impact", "Small Business"],
+        "keywords": ["small business", "business expansion"],
+        "preferredMinAmount": 5000,
+        "preferredMaxAmount": 50000,
+        "preferredCurrency": "USD",
+        "hasPhd": false,
+        "yearsOfExperience": 8,
+        "citizenship": "United States",
+        "preferredGrantType": "Startup Funding"
+      },
+      "query": "grant to help my small business grow"
+    },
+    {
+      "id": "carbontech-startup",
+      "profile": {
+        "country": "Canada",
+        "institutionType": "Startup",
+        "applicantType": "Startup Company",
+        "careerStage": "Founder",
+        "department": "chemical engineering",
+        "researchBio": "Startup converting captured CO2 into building materials.",
+        "researchInterests": ["Environment", "Carbon Capture", "Climate Tech"],
+        "keywords": ["carbon utilisation", "CO2", "carbontech"],
+        "preferredMinAmount": 50000,
+        "preferredMaxAmount": 1000000,
+        "preferredCurrency": "USD",
+        "hasPhd": true,
+        "yearsOfExperience": 6,
+        "citizenship": "Canada",
+        "preferredGrantType": "Startup Funding"
+      },
+      "query": "early-stage funding for carbon capture and utilisation startups"
+    },
+    {
+      "id": "milestone-grants-startup-ke",
+      "profile": {
+        "country": "Kenya",
+        "institutionType": "Startup",
+        "applicantType": "Startup Company",
+        "careerStage": "Founder",
+        "department": "fintech",
+        "researchBio": "Founder of a mobile-money savings app for informal workers in Nairobi.",
+        "researchInterests": ["Social Impact", "Fintech", "Financial Inclusion"],
+        "keywords": ["mobile money", "financial inclusion"],
+        "preferredMinAmount": 10000,
+        "preferredMaxAmount": 150000,
+        "preferredCurrency": "USD",
+        "hasPhd": false,
+        "yearsOfExperience": 4,
+        "citizenship": "Kenya",
+        "preferredGrantType": "Startup Funding"
+      },
+      "query": "milestone-based grant funding for early-stage startups in Kenya"
+    },
+    {
+      "id": "student-conference-travel-in",
+      "profile": {
+        "country": "India",
+        "institutionType": "University",
+        "applicantType": "Student",
+        "careerStage": "Student",
+        "department": "electrical engineering",
+        "researchBio": "Second-year PhD student in power electronics; my paper was accepted at an international conference.",
+        "researchInterests": ["Robotics", "Power Electronics"],
+        "keywords": ["conference travel", "power electronics"],
+        "preferredMinAmount": 50000,
+        "preferredMaxAmount": 300000,
+        "preferredCurrency": "INR",
+        "hasPhd": false,
+        "yearsOfExperience": 2,
+        "citizenship": "India",
+        "preferredGrantType": "Travel Grant"
+      },
+      "query": "travel grant for a PhD student to present a paper at an international conference"
+    }
+  ]
+}

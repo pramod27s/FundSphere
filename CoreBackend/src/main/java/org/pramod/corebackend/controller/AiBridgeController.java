@@ -30,7 +30,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/ai")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class AiBridgeController {
 
@@ -157,8 +156,7 @@ public class AiBridgeController {
         List<AiKeywordCandidateResponse> results = grantService.keywordSearch(
                         request.getQuery(),
                         request.getCountry(),
-                        request.getInstitutionType(),
-                        request.getApplicantType(),
+                        Boolean.TRUE.equals(request.getIncludeClosed()),
                         topK)
                 .stream()
                 .map(hit -> AiKeywordCandidateResponse.builder()

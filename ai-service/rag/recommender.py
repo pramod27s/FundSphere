@@ -1,4 +1,5 @@
 import logging
+import time
 from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Optional, Tuple
 
@@ -14,6 +15,7 @@ from .filters import (
     career_stage_fit,
     is_strictly_disqualified,
     _expand_aliases,
+    _match_strength,
     _norm,
     _norm_set,
     APPLICANT_ALIASES,
@@ -43,22 +45,54 @@ logger = logging.getLogger("rag.recommender")
 
 
 # Per-segment weight presets (4b). Each is a conservative nudge (±≤0.10) around
-# the global defaults (0.35/0.25/0.15/0.15/0.10) and sums to 1.0. Enabled via
+# the global defaults (0.50/0.20/0.10/0.10/0.10) and sums to 1.0. Enabled via
 # ENABLE_SEGMENT_WEIGHTS; unknown/missing segments fall back to the global
 # settings weights. These are domain hypotheses — NOT yet validated by the eval
 # harness (2b) — so they are deliberately small and fully reversible.
 _SEGMENT_WEIGHT_PRESETS: Dict[str, Dict[str, float]] = {
     # Academics (independent researchers, professors/faculty): research-fit
     # dominates, funding fit matters least.
-    "academic": {"semantic": 0.42, "eligibility": 0.23, "keyword": 0.15, "funding": 0.10, "freshness": 0.10},
+    "academic": {"semantic": 0.55, "eligibility": 0.20, "keyword": 0.10, "funding": 0.05, "freshness": 0.10},
     # Students: eligibility restrictions and deadline urgency matter most;
     # funding-amount fit matters least.
-    "student": {"semantic": 0.33, "eligibility": 0.30, "keyword": 0.15, "funding": 0.07, "freshness": 0.15},
+    "student": {"semantic": 0.45, "eligibility": 0.25, "keyword": 0.10, "funding": 0.05, "freshness": 0.15},
     # Startups / companies: funding fit and commercialization keywords lead.
-    "startup": {"semantic": 0.30, "eligibility": 0.20, "keyword": 0.18, "funding": 0.25, "freshness": 0.07},
+    "startup": {"semantic": 0.45, "eligibility": 0.15, "keyword": 0.12, "funding": 0.20, "freshness": 0.08},
     # NGOs / nonprofits: funding fit plus sector/geography eligibility.
-    "ngo": {"semantic": 0.30, "eligibility": 0.28, "keyword": 0.15, "funding": 0.20, "freshness": 0.07},
+    "ngo": {"semantic": 0.45, "eligibility": 0.23, "keyword": 0.10, "funding": 0.15, "freshness": 0.07},
 }
+
+# The weighted signals besides semantic, in the order they're reported.
+FIT_SIGNALS = ("eligibility", "keyword", "funding", "freshness")
+
+
+def candidate_signals(profile: UserProfile, user_query: Optional[str], fields: dict) -> Dict[str, float]:
+    """The four fit signals for one candidate, plus `adjustment`: the
+    preference bonuses minus the expired-deadline penalty. Shared with the
+    eval's weight tuner, so tuning scores exactly what the recommender does."""
+    deadline = fields.get("application_deadline")
+    penalty = settings.expired_penalty if (deadline and not deadline_is_open(deadline)) else 0.0
+
+    # Positive-only preference nudges (never penalize a non-match).
+    gt_fit = grant_type_fit(profile, fields)
+    grant_type_bonus = settings.grant_type_match_bonus if gt_fit >= 1.0 else 0.0
+    cs_fit = career_stage_fit(profile, fields)
+    career_stage_bonus = settings.career_stage_match_bonus * cs_fit if cs_fit > 0.5 else 0.0
+
+    return {
+        "eligibility": eligibility_score(profile, fields),
+        "keyword": keyword_overlap_score(profile, user_query, fields),
+        "funding": funding_fit(profile, fields),
+        "freshness": freshness_score(fields),
+        "adjustment": grant_type_bonus + career_stage_bonus - penalty,
+    }
+
+
+def blend(weights: Dict[str, float], semantic: float, signals: Dict[str, float]) -> float:
+    """The final match score: weighted signals plus the adjustment, clamped so
+    the displayed match percentage stays within 0–100%."""
+    total = weights["semantic"] * semantic + sum(weights[name] * signals[name] for name in FIT_SIGNALS)
+    return max(0.0, min(1.0, total + signals["adjustment"]))
 
 
 class RecommenderService:
@@ -69,6 +103,7 @@ class RecommenderService:
     # ---------- Public entry point ----------
 
     def recommend(self, request: RecommendationRequest) -> RecommendationResponse:
+        started = time.perf_counter()
         profile = request.userProfile
         if profile is None:
             if request.userId is None:
@@ -79,14 +114,13 @@ class RecommenderService:
         use_rerank = settings.use_rerank if request.useRerank is None else request.useRerank
 
         # Stage 0 — Query cache lookup
-        cache_key = query_cache.make_key(profile, request.userQuery, target_top_k, use_rerank)
+        cache_key = query_cache.make_key(profile, request, target_top_k, use_rerank)
         cached_resp = query_cache.get(cache_key)
         if cached_resp is not None:
             return cached_resp
 
         query_text = build_user_query_text(profile, request.userQuery)
 
-        # Stage 1 & 1.5 — Concurrent query expansion & conditional HyDE
         # Skip HyDE if live query is empty or already rich (>= threshold words)
         live_query_words = len((request.userQuery or "").strip().split())
         should_run_hyde = (
@@ -94,7 +128,11 @@ class RecommenderService:
             and (0 < live_query_words < settings.hyde_max_query_words_to_trigger)
         )
 
-        with ThreadPoolExecutor(max_workers=2) as executor:
+        # Stages 1–2 — the keyword channel needs no LLM output, so it runs
+        # alongside query expansion and HyDE; the semantic channel starts as
+        # soon as those return, while the keyword channel may still be running.
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            future_keyword = executor.submit(self._keyword_channel, profile, request, query_text)
             future_expansion = (
                 executor.submit(expand_queries, profile, request.userQuery)
                 if settings.enable_query_expansion
@@ -108,40 +146,41 @@ class RecommenderService:
 
             query_strings = future_expansion.result() if future_expansion else [query_text]
             hyde_doc = future_hyde.result() if future_hyde else None
+            prepared = time.perf_counter()
 
-        if hyde_doc:
-            query_strings = self._inject_hyde(query_strings, hyde_doc)
+            if hyde_doc:
+                query_strings = self._inject_hyde(query_strings, hyde_doc)
 
-        alpha = self._resolve_alpha(request, query_text)
+            alpha = self._resolve_alpha(request, query_text)
 
-        # Stage 2 — parallel retrieval channels
-        if settings.enable_profile_query_split:
-            semantic_hits = self._semantic_channel_split(
-                profile, request.userQuery, query_strings, alpha, hyde_doc=hyde_doc
-            )
-        else:
-            semantic_hits = self._semantic_channel(profile, query_strings, alpha)
-        keyword_hits = self._keyword_channel(profile, request, query_strings)
+            if settings.enable_profile_query_split:
+                semantic_hits = self._semantic_channel_split(
+                    profile, request.userQuery, query_strings, alpha, hyde_doc=hyde_doc
+                )
+            else:
+                semantic_hits = self._semantic_channel(profile, query_strings, alpha)
+            keyword_hits = future_keyword.result()
+        retrieved = time.perf_counter()
 
-        # Stage 3 — RRF fusion across channels
+        # Stage 3 — RRF fusion across channels. Fuse twice the pool size: the
+        # eligibility filter below removes some, then the rest is cut to the pool.
         fused = self._rrf_fuse(
             channels=[semantic_hits, keyword_hits],
             k=settings.rrf_k,
-            pool_size=settings.rrf_pool_size,
+            pool_size=settings.rrf_pool_size * 2,
         )
 
-        if not fused:
-            resp = RecommendationResponse(queryText=query_text, results=[])
-            query_cache.set(cache_key, resp)
-            return resp
-
-        # Hydrate keyword-only candidates (no Pinecone metadata) before scoring/reranking
+        # Hydrate keyword-only candidates (no Pinecone metadata) before filtering/reranking
         fused = self._hydrate_missing_metadata(fused)
 
         # Drop anything we still couldn't hydrate — without a title or chunk text,
         # we can't render or rerank it meaningfully.
         fused = [h for h in fused if h.fields.get("grant_title") or h.fields.get("chunk_text")]
-        if not fused:
+
+        # Drop expired and ineligible grants BEFORE reranking, so they neither
+        # take rerank slots nor come back as results.
+        candidates = self._drop_ineligible(profile, fused)[: settings.rrf_pool_size]
+        if not candidates:
             resp = RecommendationResponse(queryText=query_text, results=[])
             query_cache.set(cache_key, resp)
             return resp
@@ -150,37 +189,28 @@ class RecommenderService:
         rerank_query = (request.userQuery or "").strip() if settings.enable_structured_rerank_prompt else query_text
         if not rerank_query:
             rerank_query = query_text
-        reranked = self._rerank_stage(rerank_query, fused, top_k=settings.rerank_top_k) if use_rerank else fused[: settings.rerank_top_k]
+        reranked = self._rerank_stage(rerank_query, candidates, top_k=settings.rerank_top_k) if use_rerank else candidates[: settings.rerank_top_k]
+        ranked = time.perf_counter()
 
         # Stage 5 — 5-signal business-rule scoring
         scored = self._score_candidates(profile, request.userQuery, reranked)
-
-        # Drop grants whose application deadline has already passed
-        if settings.exclude_expired_grants:
-            before = len(scored)
-            scored = [it for it in scored if deadline_is_open(it.fields.get("application_deadline"))]
-            if before != len(scored):
-                logger.debug("Filtered %d expired grant(s) from results.", before - len(scored))
-
-        # Hard-eligibility guardrails: drop grants strictly violating non-negotiables
-        if settings.enable_hard_eligibility_filter:
-            qualified = []
-            for it in scored:
-                disqualified, reason = is_strictly_disqualified(profile, it.fields or {})
-                if disqualified:
-                    logger.debug("Grant %d disqualified: %s", it.grantId, reason)
-                    continue
-                qualified.append(it)
-            # Safety fallback: only apply if not all results were filtered out
-            if qualified:
-                scored = qualified
-
         scored.sort(key=lambda x: x.finalScore, reverse=True)
         top_items = scored[:target_top_k]
 
         # Stage 6 — LLM explanations (never filters)
         if settings.enable_llm_judge:
             top_items = explain_candidates(profile, query_text, top_items)
+        finished = time.perf_counter()
+
+        logger.info(
+            "recommend: %d results in %.0f ms (llm prep %.0f, retrieval %.0f, fuse+rerank %.0f, score+explain %.0f)",
+            len(top_items),
+            (finished - started) * 1000,
+            (prepared - started) * 1000,
+            (retrieved - prepared) * 1000,
+            (ranked - retrieved) * 1000,
+            (finished - ranked) * 1000,
+        )
 
         response = RecommendationResponse(queryText=query_text, results=top_items)
         query_cache.set(cache_key, response)
@@ -195,8 +225,8 @@ class RecommenderService:
         alpha: float,
     ) -> List[SemanticHit]:
         """Pinecone hybrid (dense + sparse) with batched queries."""
-        soft_filter = self._soft_filter(profile) if settings.use_soft_filters else None
-        return self._run_semantic_queries(query_strings, alpha, soft_filter)
+        metadata_filter, relaxed_filter = self._metadata_filters(profile)
+        return self._run_semantic_queries(query_strings, alpha, metadata_filter, relaxed_filter)
 
     @staticmethod
     def _inject_hyde(query_strings: List[str], hyde_doc: str) -> List[str]:
@@ -231,7 +261,7 @@ class RecommenderService:
         if not live_query:
             return self._semantic_channel(profile, query_strings, alpha)
 
-        soft_filter = self._soft_filter(profile) if settings.use_soft_filters else None
+        metadata_filter, relaxed_filter = self._metadata_filters(profile)
 
         # Channel A: intent (live user query, lightly grounded with interests/keywords).
         # Use the LLM-expanded query strings here when available — they were
@@ -248,12 +278,16 @@ class RecommenderService:
         seen: set[str] = set()
         intent_queries = [q for q in intent_queries if q and not (q in seen or seen.add(q))]
 
-        intent_hits = self._run_semantic_queries(intent_queries, alpha, soft_filter)
+        intent_hits = self._run_semantic_queries(intent_queries, alpha, metadata_filter, relaxed_filter)
 
         # Channel B: fit (profile-only, no live query). Heavier on dense recall
         # of grants matching the researcher's standing background.
         fit_query = build_profile_only_text(profile)
-        fit_hits = self._run_semantic_queries([fit_query], alpha, soft_filter) if fit_query else []
+        fit_hits = (
+            self._run_semantic_queries([fit_query], alpha, metadata_filter, relaxed_filter)
+            if fit_query
+            else []
+        )
 
         # Weighted RRF: each intent hit contributes intent_weight × 1/(k+rank);
         # each fit hit contributes 1.0 × 1/(k+rank).
@@ -268,13 +302,17 @@ class RecommenderService:
         self,
         queries: List[str],
         alpha: float,
-        soft_filter: Optional[dict],
+        metadata_filter: Optional[dict],
+        relaxed_filter: Optional[dict],
     ) -> List[SemanticHit]:
-        """Helper: run a list of queries through Pinecone with batched embeddings and concurrency."""
+        """Helper: run a list of queries through Pinecone with batched embeddings
+        and concurrency. A query whose filtered hits are thin (< 5) is retried
+        under `relaxed_filter` and the extra hits appended."""
         clean_queries = [q for q in queries if q and q.strip()]
         if not clean_queries:
             return []
 
+        retry_relaxed = metadata_filter != relaxed_filter
         merged: Dict[int, SemanticHit] = {}
 
         if settings.enable_batch_embeddings:
@@ -282,7 +320,7 @@ class RecommenderService:
                 batch_hits = self.pinecone_service.batch_search(
                     queries=clean_queries,
                     top_k=settings.semantic_top_k,
-                    metadata_filter=soft_filter,
+                    metadata_filter=metadata_filter,
                     alpha=alpha,
                 )
             except Exception as exc:
@@ -291,12 +329,12 @@ class RecommenderService:
 
             for q, hits in zip(clean_queries, batch_hits):
                 # Fallback if filtered hits were thin
-                if len(hits) < 5 and soft_filter is not None:
+                if len(hits) < 5 and retry_relaxed:
                     try:
                         extra = self.pinecone_service.search(
                             query_text=q,
                             top_k=settings.semantic_top_k,
-                            metadata_filter=None,
+                            metadata_filter=relaxed_filter,
                             alpha=alpha,
                         )
                         hits = self._merge_hits(hits, extra)
@@ -313,19 +351,19 @@ class RecommenderService:
                     hits = self.pinecone_service.search(
                         query_text=q,
                         top_k=settings.semantic_top_k,
-                        metadata_filter=soft_filter,
+                        metadata_filter=metadata_filter,
                         alpha=alpha,
                     )
                 except Exception as exc:
                     logger.error(f"Semantic search failed for q='{q[:60]}': {exc}")
                     hits = []
 
-                if len(hits) < 5 and soft_filter is not None:
+                if len(hits) < 5 and retry_relaxed:
                     try:
                         extra = self.pinecone_service.search(
                             query_text=q,
                             top_k=settings.semantic_top_k,
-                            metadata_filter=None,
+                            metadata_filter=relaxed_filter,
                             alpha=alpha,
                         )
                         hits = self._merge_hits(hits, extra)
@@ -370,10 +408,13 @@ class RecommenderService:
         self,
         profile: UserProfile,
         request: RecommendationRequest,
-        query_strings: List[str],
+        fallback_query: str,
     ) -> List[SemanticHit]:
-        """PostgreSQL FTS via Spring Boot. Each KeywordCandidate becomes a thin
-        SemanticHit with score-only (no metadata) — RRF only needs rank order."""
+        """PostgreSQL full-text search via Spring Boot, one call per query
+        string, run concurrently. Each KeywordCandidate becomes a thin
+        SemanticHit with score-only (no metadata) — RRF only needs rank order.
+        `fallback_query` is searched only when the request and profile give
+        nothing else to search for."""
         if not settings.use_keyword_channel:
             return []
 
@@ -381,7 +422,6 @@ class RecommenderService:
         if request.keywordCandidates:
             return self._kw_to_hits(request.keywordCandidates)
 
-        merged: Dict[int, KeywordCandidate] = {}
         seed_query = (request.userQuery or "").strip()
         queries: List[str] = []
         if seed_query:
@@ -390,26 +430,30 @@ class RecommenderService:
             queries.append(" ".join(profile.keywords))
         if profile.researchInterests:
             queries.append(" ".join(profile.researchInterests))
-        if not queries and query_strings:
-            queries.append(query_strings[0])
+        if not queries and fallback_query:
+            queries.append(fallback_query)
+        queries = list(dict.fromkeys(q for q in queries if q.strip()))
+        if not queries:
+            return []
 
-        for q in queries:
-            if not q.strip():
-                continue
+        def _search(q: str) -> List[KeywordCandidate]:
             try:
-                results = self.spring_client.keyword_search(
+                return self.spring_client.keyword_search(
                     query=q,
                     user_profile=profile,
                     top_k=settings.keyword_top_k,
                 )
             except Exception as exc:
                 logger.warning(f"Keyword channel failed for query='{q[:60]}': {exc}")
-                continue
+                return []
 
-            for kc in results:
-                prev = merged.get(kc.grantId)
-                if prev is None or kc.keywordScore > prev.keywordScore:
-                    merged[kc.grantId] = kc
+        merged: Dict[int, KeywordCandidate] = {}
+        with ThreadPoolExecutor(max_workers=len(queries)) as executor:
+            for results in executor.map(_search, queries):
+                for kc in results:
+                    prev = merged.get(kc.grantId)
+                    if prev is None or kc.keywordScore > prev.keywordScore:
+                        merged[kc.grantId] = kc
 
         ranked = sorted(merged.values(), key=lambda c: c.keywordScore, reverse=True)
         return self._kw_to_hits(ranked)
@@ -446,6 +490,27 @@ class RecommenderService:
             else:
                 hydrated.append(h)
         return hydrated
+
+    @staticmethod
+    def _drop_ineligible(profile: UserProfile, hits: List[SemanticHit]) -> List[SemanticHit]:
+        """Remove candidates the user can't act on: deadline passed, or a hard
+        eligibility conflict (PhD, citizenship, country, experience). If every
+        candidate goes, the result is empty — grants the user is known to be
+        ineligible for are never shown as matches."""
+        kept: List[SemanticHit] = []
+        for hit in hits:
+            fields = hit.fields or {}
+            if settings.exclude_expired_grants and not deadline_is_open(fields.get("application_deadline")):
+                continue
+            if settings.enable_hard_eligibility_filter:
+                disqualified, reason = is_strictly_disqualified(profile, fields)
+                if disqualified:
+                    logger.debug("Grant %d disqualified: %s", hit.grantId, reason)
+                    continue
+            kept.append(hit)
+        if len(kept) != len(hits):
+            logger.debug("Dropped %d expired/ineligible candidate(s) before reranking.", len(hits) - len(kept))
+        return kept
 
     @staticmethod
     def _merge_hits(primary: List[SemanticHit], extra: List[SemanticHit]) -> List[SemanticHit]:
@@ -627,59 +692,34 @@ class RecommenderService:
         # Resolve scoring weights once per request (global, or per-segment when enabled).
         weights = self._resolve_weights(profile)
 
-        rerank_scores = [c.fields.get("_rerank_score") for c in candidates if c.fields.get("_rerank_score") is not None]
-        rr_min = min(rerank_scores) if rerank_scores else 0.0
-        rr_max = max(rerank_scores) if rerank_scores else 1.0
-        rr_span = (rr_max - rr_min) or 1.0
-
-        sem_scores = [c.semanticScore for c in candidates]
-        s_min = min(sem_scores) if sem_scores else 0.0
-        s_max = max(sem_scores) if sem_scores else 1.0
-        s_span = (s_max - s_min) or 1.0
+        # Fallback semantic signal when there are no rerank scores (rerank off
+        # or failed): the RRF score min-max normalised within this pool —
+        # relative, but on one scale for both channels.
+        rrf_scores = [c.fields.get("_rrf_score", 0.0) for c in candidates]
+        f_min = min(rrf_scores) if rrf_scores else 0.0
+        f_span = ((max(rrf_scores) - f_min) if rrf_scores else 0.0) or 1.0
 
         for hit in candidates:
             fields = hit.fields or {}
 
-            # Semantic signal: prefer reranker score (normalised) when available
+            # Semantic signal: the reranker's relevance score, used as-is.
+            # bge-reranker-v2-m3 scores already come back in [0, 1], so a pool
+            # of weak candidates scores low instead of being stretched to fill
+            # the range — the match % means the same thing across queries.
             rr = fields.get("_rerank_score")
             if rr is not None:
-                semantic = (rr - rr_min) / rr_span
+                semantic = float(rr)
             else:
-                semantic = (hit.semanticScore - s_min) / s_span
+                semantic = (fields.get("_rrf_score", 0.0) - f_min) / f_span
             semantic = max(0.0, min(1.0, semantic))
 
-            elig = eligibility_score(profile, fields)
-            keyword = keyword_overlap_score(profile, user_query, fields)
-            funding = funding_fit(profile, fields)
-            fresh = freshness_score(fields)
-
-            deadline = fields.get("application_deadline")
-            penalty = settings.expired_penalty if (deadline and not deadline_is_open(deadline)) else 0.0
-
-            # Positive-only preference nudges (never penalize a non-match).
-            gt_fit = grant_type_fit(profile, fields)
-            grant_type_bonus = settings.grant_type_match_bonus if gt_fit >= 1.0 else 0.0
-            cs_fit = career_stage_fit(profile, fields)
-            career_stage_bonus = settings.career_stage_match_bonus * cs_fit if cs_fit > 0.5 else 0.0
-
-            final = (
-                weights["semantic"] * semantic
-                + weights["eligibility"] * elig
-                + weights["keyword"] * keyword
-                + weights["funding"] * funding
-                + weights["freshness"] * fresh
-                - penalty
-                + grant_type_bonus
-                + career_stage_bonus
-            )
-            # Clamp so the displayed match percentage stays within 0–100%.
-            final = max(0.0, min(1.0, final))
+            signals = candidate_signals(profile, user_query, fields)
+            final = blend(weights, semantic, signals)
 
             logger.debug(
-                f"GrantId={hit.grantId} | Sem={semantic:.3f} | Eli={elig:.3f} | "
-                f"Kw={keyword:.3f} | Fund={funding:.3f} | Fresh={fresh:.3f} | "
-                f"Pen={penalty:.2f} | GtB={grant_type_bonus:.2f} | CsB={career_stage_bonus:.2f} | "
-                f"Final={final:.3f}"
+                f"GrantId={hit.grantId} | Sem={semantic:.3f} | Eli={signals['eligibility']:.3f} | "
+                f"Kw={signals['keyword']:.3f} | Fund={signals['funding']:.3f} | "
+                f"Fresh={signals['freshness']:.3f} | Adj={signals['adjustment']:+.2f} | Final={final:.3f}"
             )
 
             items.append(
@@ -687,12 +727,14 @@ class RecommenderService:
                     grantId=hit.grantId,
                     finalScore=round(final, 6),
                     semanticScore=round(semantic, 6),
-                    keywordScore=round(keyword, 6),
-                    eligibilityScore=round(elig, 6),
-                    freshnessScore=round(fresh, 6),
+                    keywordScore=round(signals["keyword"], 6),
+                    eligibilityScore=round(signals["eligibility"], 6),
+                    freshnessScore=round(signals["freshness"], 6),
                     title=fields.get("grant_title"),
                     fundingAgency=fields.get("funding_agency"),
-                    reason=self._build_reason(profile, fields, semantic, elig, keyword, funding),
+                    reason=self._build_reason(
+                        profile, fields, semantic, signals["eligibility"], signals["keyword"], signals["funding"]
+                    ),
                     fields=fields,
                 )
             )
@@ -750,11 +792,45 @@ class RecommenderService:
             return 0.75
         return 0.7
 
-    def _soft_filter(self, profile: UserProfile) -> Optional[dict]:
+    def _metadata_filters(self, profile: UserProfile) -> Tuple[Optional[dict], Optional[dict]]:
         """
-        Soft metadata filter: include grants that explicitly match the user's
+        Pinecone metadata filters as (filter, relaxed_filter).
+
+        - Deadline (when expired grants are excluded): deadline still ahead,
+          or no deadline_epoch at all (rolling / unknown deadlines stay).
+        - Country (soft, see _country_clause).
+
+        Each clause lets unknowns through, so ANDing them only drops grants
+        known to be expired or known to exclude the user's country.
+        relaxed_filter is for the thin-results retry: it drops the country
+        clause but keeps the deadline clause, so the retry can't bring
+        expired grants back.
+        """
+        deadline_clause = None
+        if settings.exclude_expired_grants:
+            deadline_clause = {
+                "$or": [
+                    {"deadline_epoch": {"$gte": int(time.time())}},
+                    {"deadline_epoch": {"$exists": False}},
+                ]
+            }
+        country_clause = self._country_clause(profile) if settings.use_soft_filters else None
+
+        clauses = [c for c in (deadline_clause, country_clause) if c]
+        if not clauses:
+            metadata_filter = None
+        elif len(clauses) == 1:
+            metadata_filter = clauses[0]
+        else:
+            metadata_filter = {"$and": clauses}
+        return metadata_filter, deadline_clause
+
+    @staticmethod
+    def _country_clause(profile: UserProfile) -> Optional[dict]:
+        """
+        Soft country filter: include grants that explicitly match the user's
         country OR are open to all OR have no country listed at all. Never AND
-        across multiple structured fields — that silently kills recall.
+        across multiple eligibility fields — that silently kills recall.
         """
         if not profile.country:
             return None
@@ -786,18 +862,14 @@ class RecommenderService:
         bits: List[str] = []
 
         country_aliases = _expand_aliases(profile.country, COUNTRY_ALIASES)
-        applicant_aliases = _expand_aliases(profile.applicantType, APPLICANT_ALIASES)
-        institution_aliases = _expand_aliases(profile.institutionType, INSTITUTION_ALIASES)
-
         grant_countries = _norm_set(fields.get("eligible_countries", []))
-        grant_applicants = _norm_set(fields.get("eligible_applicants", []))
-        grant_institutions = _norm_set(fields.get("institution_type", []))
 
         if profile.country and (country_aliases & grant_countries):
             bits.append(f"country match: {profile.country}")
-        if profile.applicantType and (applicant_aliases & grant_applicants):
+        # 0.7+ = exact or alias match; UNKNOWN_FIT (0.5) is not a fit to report.
+        if _match_strength(profile.applicantType, fields.get("eligible_applicants"), APPLICANT_ALIASES) >= 0.7:
             bits.append(f"applicant fit: {profile.applicantType}")
-        if profile.institutionType and (institution_aliases & grant_institutions):
+        if _match_strength(profile.institutionType, fields.get("institution_type"), INSTITUTION_ALIASES) >= 0.7:
             bits.append(f"institution fit: {profile.institutionType}")
 
         grant_fields_list = fields.get("field") or []

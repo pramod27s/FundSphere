@@ -1,9 +1,9 @@
 /**
  * Frontend client for the persisted saved-grants API on Spring Boot.
  *
- * The list endpoint now returns rich entries (grant + workflow status +
- * personal notes + savedAt/updatedAt). Status defaults to INTERESTED on
- * first save and is mutated via PATCH /api/saved-grants/{grantId}.
+ * The list endpoint returns rich entries (grant + personal notes +
+ * savedAt/updatedAt). A saved grant is only a bookmark: progress on a grant
+ * (preparing, submitted...) lives on its application.
  *
  * The lightweight /ids endpoint still returns a bare number[] so the
  * discovery page can do "is this grant saved?" checks cheaply without
@@ -13,13 +13,10 @@ import { apiFetch } from './apiClient';
 import type { DiscoveryGrant } from './discoveryService';
 import { formatFundingRange } from '../utils/formatFunding';
 
-export type SavedGrantStatus = 'INTERESTED' | 'APPLYING' | 'SUBMITTED' | 'REJECTED';
-
 export interface SavedGrantEntry {
   /** SavedGrant row id (NOT the grant id — that's nested under .grant.id). */
   id: number;
   grant: DiscoveryGrant;
-  status: SavedGrantStatus;
   notes: string | null;
   savedAt: string;
   updatedAt: string;
@@ -53,7 +50,6 @@ interface CoreGrantResponse {
 interface SavedGrantApiResponse {
   id: number;
   grant: CoreGrantResponse;
-  status: SavedGrantStatus;
   notes: string | null;
   savedAt: string;
   updatedAt: string;
@@ -93,15 +89,11 @@ export async function unsaveGrantOnServer(grantId: number): Promise<void> {
 }
 
 /**
- * Update workflow status and/or notes on an existing saved grant.
- *
- * - status omitted => server leaves it unchanged
- * - notes omitted  => server leaves it unchanged
- * - notes === ""   => server clears notes
+ * Update the notes on an existing saved grant ("" clears them).
  */
 export async function updateSavedGrantOnServer(
   grantId: number,
-  changes: { status?: SavedGrantStatus; notes?: string },
+  changes: { notes: string },
 ): Promise<SavedGrantEntry> {
   const response = await apiFetch(`/api/saved-grants/${grantId}`, {
     method: 'PATCH',
@@ -123,7 +115,6 @@ function mapRow(row: SavedGrantApiResponse): SavedGrantEntry {
   return {
     id: row.id,
     grant: mapCoreGrantToDiscoveryGrant(row.grant),
-    status: row.status,
     notes: row.notes,
     savedAt: row.savedAt,
     updatedAt: row.updatedAt,

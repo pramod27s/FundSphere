@@ -29,7 +29,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/researchers")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class ResearcherController {
 
@@ -112,11 +111,11 @@ public class ResearcherController {
                 ? profileQuery + " " + userQuery
                 : profileQuery;
 
+        // Closed grants are left out, as the recommender does by default (EXCLUDE_EXPIRED_GRANTS).
         List<AiKeywordCandidateResponse> keywordCandidates = grantService.keywordSearch(
                         queryText,
                         userProfile.getCountry(),
-                        userProfile.getInstitutionType(),
-                        userProfile.getApplicantType(),
+                        false,
                         Math.max(topK * 3, 20))
                 .stream()
                 .map(hit -> AiKeywordCandidateResponse.builder()

@@ -2,22 +2,15 @@ import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 import { Filter, ChevronDown, Check, X, RotateCcw, Search } from 'lucide-react';
 import AnimatedLogo from '../common/AnimatedLogo.tsx';
-
-export interface FilterState {
-  grantTypes: string[];
-  applicantTypes: string[];
-  fundingRanges: string[];
-  deadlineRanges: string[];
-  funders: string[];
-}
-
-export const EMPTY_FILTERS: FilterState = {
-  grantTypes: [],
-  applicantTypes: [],
-  fundingRanges: [],
-  deadlineRanges: [],
-  funders: [],
-};
+import {
+  APPLICANT_TYPE_OPTIONS,
+  DEADLINE_RANGE_OPTIONS,
+  EMPTY_FILTERS,
+  FUNDING_RANGE_OPTIONS,
+  GRANT_TYPE_OPTIONS,
+  countActiveFilters,
+  type FilterState,
+} from '../../utils/grantFilters';
 
 function toggleItem(arr: string[], value: string): string[] {
   return arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value];
@@ -91,9 +84,10 @@ interface FilterSidebarProps {
   onChange: (filters: FilterState) => void;
   onClose?: () => void;
   /**
-   * Unique funder names derived from the currently-loaded grants. Sorted
-   * with the user's already-selected funders pinned at the top so they
-   * stay visible even after filtering wipes out other rows.
+   * Funder names to offer: every agency in the browse list, or the agencies
+   * in the AI results. Sorted with the user's already-selected funders
+   * pinned at the top so they stay visible even after filtering wipes out
+   * other rows.
    */
   availableFunders?: string[];
 }
@@ -103,12 +97,7 @@ export default function FilterSidebar({ filters, onChange, onClose, availableFun
     onChange({ ...filters, [key]: toggleItem(filters[key], value) });
   };
 
-  const activeCount =
-    filters.grantTypes.length +
-    filters.applicantTypes.length +
-    filters.fundingRanges.length +
-    filters.deadlineRanges.length +
-    filters.funders.length;
+  const activeCount = countActiveFilters(filters);
 
   const [funderQuery, setFunderQuery] = useState('');
 
@@ -165,7 +154,7 @@ export default function FilterSidebar({ filters, onChange, onClose, availableFun
 
       <div className="flex-1 overflow-y-auto px-5 pt-3 pb-5 custom-scrollbar">
         <FilterSection title="Grant type" count={filters.grantTypes.length}>
-          {(['Research Projects', 'Fellowships', 'Travel Grants', 'Equipment / Lab'] as const).map((label) => (
+          {GRANT_TYPE_OPTIONS.map(({ label }) => (
             <Checkbox
               key={label}
               label={label}
@@ -176,7 +165,7 @@ export default function FilterSidebar({ filters, onChange, onClose, availableFun
         </FilterSection>
 
         <FilterSection title="Applicant type" count={filters.applicantTypes.length}>
-          {(['Early Career', 'Students (PhD/MSc)', 'Senior Researchers', 'Startups / Industry'] as const).map((label) => (
+          {APPLICANT_TYPE_OPTIONS.map(({ label }) => (
             <Checkbox
               key={label}
               label={label}
@@ -187,7 +176,7 @@ export default function FilterSidebar({ filters, onChange, onClose, availableFun
         </FilterSection>
 
         <FilterSection title="Funding amount" count={filters.fundingRanges.length}>
-          {(['< ₹5 Lakh', '₹5L - ₹25L', '₹25L - ₹1 Cr', '> ₹1 Cr'] as const).map((label) => (
+          {FUNDING_RANGE_OPTIONS.map(({ label }) => (
             <Checkbox
               key={label}
               label={label}
@@ -198,7 +187,7 @@ export default function FilterSidebar({ filters, onChange, onClose, availableFun
         </FilterSection>
 
         <FilterSection title="Deadline" count={filters.deadlineRanges.length}>
-          {(['Closing in < 30 days', 'Closing in 1-3 months', 'Closing in > 3 months'] as const).map((label) => (
+          {DEADLINE_RANGE_OPTIONS.map(({ label }) => (
             <Checkbox
               key={label}
               label={label}

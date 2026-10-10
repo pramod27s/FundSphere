@@ -28,6 +28,15 @@ public interface GrantRepository extends JpaRepository<Grant, Long>, JpaSpecific
     @Query("SELECT g.grantUrl FROM Grant g WHERE g.grantUrl IS NOT NULL AND g.grantUrl <> ''")
     List<String> findAllGrantUrls();
 
+    /** Every funding agency name, for the Discovery agency filter; without closed grants unless asked. */
+    @Query("""
+            SELECT DISTINCT g.fundingAgency FROM Grant g
+            WHERE g.fundingAgency IS NOT NULL AND TRIM(g.fundingAgency) <> ''
+              AND (:includeClosed = true OR g.applicationDeadline IS NULL OR g.applicationDeadline >= :now)
+            ORDER BY g.fundingAgency
+            """)
+    List<String> findAgencies(@Param("includeClosed") boolean includeClosed, @Param("now") LocalDateTime now);
+
     @Query("""
             SELECT g.id FROM Grant g
             WHERE g.updatedAt >= :since
@@ -36,7 +45,50 @@ public interface GrantRepository extends JpaRepository<Grant, Long>, JpaSpecific
             """)
     List<Long> findIdsChangedSince(@Param("since") LocalDateTime since);
 
-    List<Grant> findAllByOrderByUpdatedAtDesc(Pageable pageable);
+    /** One keyword-search result row; {@code countries} is the raw eligible_countries text. */
+    interface KeywordMatch {
+        Long getId();
+        String getCountries();
+        Double getScore();
+    }
+
+    /**
+     * Full-text keyword search: PostgreSQL tsvector/tsquery with English
+     * stemming and stop words, matched on whole words. Title and program
+     * weigh most (A), then fields, themes and tags (B), then the long text (C),
+     * then agency and applicant types (D). The score is ts_rank normalised by
+     * document length and mapped into [0, 1).
+     *
+     * @param tsQuery a to_tsquery expression built by KeywordQuery.toTsQuery
+     */
+    @Query(value = """
+            SELECT d.id AS id,
+                   d.eligible_countries AS countries,
+                   CAST(ts_rank(d.document, query, 1 | 32) AS double precision) AS score
+            FROM (
+                SELECT g.id, g.eligible_countries,
+                       setweight(to_tsvector('english',
+                               coalesce(g.grant_title, '') || ' ' || coalesce(g.program_name, '')), 'A')
+                    || setweight(to_tsvector('english',
+                               coalesce(g.field, '') || ' ' || coalesce(g.research_themes, '') || ' ' || coalesce(t.tags, '')), 'B')
+                    || setweight(to_tsvector('english',
+                               coalesce(g.description, '') || ' ' || coalesce(g.objectives, '') || ' ' || coalesce(g.funding_scope, '')), 'C')
+                    || setweight(to_tsvector('english',
+                               coalesce(g.funding_agency, '') || ' ' || coalesce(g.eligible_applicants, '')), 'D') AS document
+                FROM grants g
+                LEFT JOIN (SELECT grant_id, string_agg(tag, ' ') AS tags FROM grant_tags GROUP BY grant_id) t
+                       ON t.grant_id = g.id
+                WHERE :includeClosed = TRUE OR g.application_deadline IS NULL OR g.application_deadline >= :now
+            ) d
+            CROSS JOIN to_tsquery('english', :tsQuery) AS query
+            WHERE d.document @@ query
+            ORDER BY score DESC, d.id
+            LIMIT :limit
+            """, nativeQuery = true)
+    List<KeywordMatch> keywordSearch(@Param("tsQuery") String tsQuery,
+                                     @Param("includeClosed") boolean includeClosed,
+                                     @Param("now") LocalDateTime now,
+                                     @Param("limit") int limit);
 
     boolean existsByGrantUrl(String grantUrl);
 

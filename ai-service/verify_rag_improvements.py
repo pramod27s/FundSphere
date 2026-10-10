@@ -71,7 +71,7 @@ def test_query_cache():
         researchInterests=["Artificial Intelligence"],
     )
     query = "Lightweight AI models"
-    key = query_cache.make_key(profile, query, 5, True)
+    key = query_cache.make_key(profile, RecommendationRequest(userProfile=profile, userQuery=query), 5, True)
     
     # 1. Miss initially
     assert query_cache.get(key) is None, "Expected cache miss on empty cache"

@@ -5,8 +5,8 @@
  * on (user_id, grant_id) so save() is idempotent.
  *
  * Returns rich SavedGrantResponse objects that include per-user metadata
- * (workflow status, free-form notes, savedAt, updatedAt) so the frontend
- * can render an organised saved-grants page rather than a flat list.
+ * (free-form notes, savedAt, updatedAt). A saved grant is only a bookmark:
+ * the user's progress on it lives on its application.
  */
 package org.pramod.corebackend.service;
 
@@ -16,7 +16,6 @@ import org.pramod.corebackend.dto.SavedGrantUpdateRequest;
 import org.pramod.corebackend.entity.AppUser;
 import org.pramod.corebackend.entity.Grant;
 import org.pramod.corebackend.entity.SavedGrant;
-import org.pramod.corebackend.enums.SavedGrantStatus;
 import org.pramod.corebackend.repository.AppUserRepository;
 import org.pramod.corebackend.repository.GrantRepository;
 import org.pramod.corebackend.repository.SavedGrantRepository;
@@ -61,7 +60,6 @@ public class SavedGrantService {
         SavedGrant entity = SavedGrant.builder()
                 .user(user)
                 .grant(grant)
-                .status(SavedGrantStatus.INTERESTED)
                 .build();
         SavedGrant saved = savedGrantRepository.save(entity);
         return toResponse(saved);
@@ -73,10 +71,6 @@ public class SavedGrantService {
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Saved grant not found"));
 
         if (request != null) {
-            // status: null = don't touch
-            if (request.getStatus() != null) {
-                entity.setStatus(request.getStatus());
-            }
             // notes: null = don't touch; "" = clear; otherwise = set (truncated to cap)
             if (request.getNotes() != null) {
                 String notes = request.getNotes();
@@ -105,7 +99,6 @@ public class SavedGrantService {
         return SavedGrantResponse.builder()
                 .id(sg.getId())
                 .grant(grantService.mapToResponse(sg.getGrant()))
-                .status(sg.getStatus() == null ? SavedGrantStatus.INTERESTED : sg.getStatus())
                 .notes(sg.getNotes())
                 .savedAt(sg.getSavedAt())
                 .updatedAt(sg.getUpdatedAt())

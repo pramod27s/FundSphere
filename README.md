@@ -104,10 +104,10 @@ FundSphere breaks down every match into five explainable signals, augmented with
 ├────────────────────────────────┬─────────┬─────────────────────────────┤
 │ Signal                         │ Weight  │ Description                 │
 ├────────────────────────────────┼─────────┼─────────────────────────────┤
-│ 1. Semantic Similarity         │   35%   │ Vector embeddings + HyDE    │
-│ 2. Eligibility Alignment       │   25%   │ Degree, citizenship, career │
-│ 3. Keyword Match               │   15%   │ Lexical search overlap      │
-│ 4. Funding Fit                 │   15%   │ Budget ceiling & grant size │
+│ 1. Semantic Similarity         │   50%   │ Cross-encoder relevance     │
+│ 2. Eligibility Alignment       │   20%   │ Country, applicant, field   │
+│ 3. Keyword Match               │   10%   │ Whole-word term overlap     │
+│ 4. Funding Fit                 │   10%   │ Budget ceiling & grant size │
 │ 5. Deadline Freshness          │   10%   │ Submission window recency   │
 └────────────────────────────────┴─────────┴─────────────────────────────┘
 ```
@@ -154,11 +154,12 @@ FundSphere breaks down every match into five explainable signals, augmented with
  └──────────┬───────────┘
             │ 3. Checks In-Memory Cache (returns immediately on hit)
             │ 4. Generates query embeddings (+ HyDE if enabled)
-            │ 5. Pinecone Vector Search + PostgreSQL Keyword Search
+            │ 5. Pinecone Vector Search (open deadlines only) and
+            │    PostgreSQL full-text Keyword Search, run concurrently
             │ 6. Merges candidates using Reciprocal Rank Fusion (RRF)
-            │ 7. Cross-Encoder Reranking (bge-reranker-v2-m3)
-            │ 8. Evaluates 5 scoring signals + hard disqualification guardrails
-            │ 9. Removes expired grants; computes AI match explanation
+            │ 7. Removes expired grants + hard disqualifications
+            │ 8. Cross-Encoder Reranking (bge-reranker-v2-m3)
+            │ 9. Evaluates 5 scoring signals; computes AI match explanation
             ▼
  ┌──────────────────────┐
  │  Frontend Match Card │  Displays match percentage, eligibility badge,
@@ -208,7 +209,7 @@ FundSphere/
 ├── ai-service/             # Python FastAPI: Hybrid Search, RAG, Proposal Analysis, Scrapers
 │   ├── rag/                # Recommender, Pinecone client, HyDE, query expander, scoring
 │   ├── proposal/           # Gemini client, PDF extractor, rubric analyzer, diff builder
-│   ├── eval/               # Evaluation metrics (auto_eval.py) & weight tuner (tune.py)
+│   ├── eval/               # Recommender eval: test cases, ratings, run.py
 │   ├── scraper/            # Delta scheduler (smart_scheduler.py) & Firecrawl crawler
 │   ├── main.py             # FastAPI entry point & security middleware
 │   └── requirements.txt
@@ -341,12 +342,17 @@ npm run dev
 ---
 
 <a id="evaluation-and-tuning"></a>
-## 📊 Offline Evaluation & Weight Auto-Tuning
+## 📊 Offline Evaluation
 
-FundSphere includes an offline evaluation suite under `ai-service/eval/` (executable via `ai-service/eval.bat`):
+`ai-service/eval/` measures recommendation quality with one command:
 
-- **Benchmark (`auto_eval.py`)**: Runs real/sample researcher profiles against the recommender, evaluating retrieved candidates for **Recall@K**, **MRR**, and **NDCG@K**. Test sets and LLM judgments are cached locally to prevent token waste.
-- **Auto-Tune (`tune.py`)**: Leverages pre-computed candidate subscores to simulate thousands of weight combinations via vector arithmetic, calculating optimal `WEIGHT_*` settings for `.env` without incurring LLM charges.
+```powershell
+python -m eval.run                                # score the current settings
+python -m eval.run --compare ENABLE_HYDE=false    # current vs. any .env change (flags, weights)
+python -m eval.run --tune                         # suggest better WEIGHT_* values, checked on unseen cases
+```
+
+It runs 26 test researchers (`cases.json`) through the recommender, has an LLM rate any grant not yet rated (saved in `labels.json`, the committed benchmark you can hand-correct), and reports **Recall@10**, **MRR** and **NDCG@10**. Both configs are scored against the same ratings, so a relevant grant one config found and the other missed counts against the one that missed it. See [`ai-service/eval/README.md`](ai-service/eval/README.md).
 
 ---
 
