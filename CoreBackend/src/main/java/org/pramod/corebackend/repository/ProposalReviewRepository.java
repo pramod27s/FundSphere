@@ -20,6 +20,8 @@ public interface ProposalReviewRepository extends JpaRepository<ProposalReview, 
 
     List<ProposalReview> findAllByApplicationIdAndOwnerIdOrderByVersionNoDesc(Long applicationId, Long ownerId);
 
+    List<ProposalReview> findAllByOwnerIdAndApplicationIsNotNullOrderByVersionNoDesc(Long ownerId);
+
     List<ProposalReview> findTop20ByOwnerIdAndApplicationIsNullOrderByCreatedAtDesc(Long ownerId);
 
     @Query("select coalesce(max(r.versionNo), 0) from ProposalReview r where r.application.id = :applicationId")

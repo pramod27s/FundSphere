@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import {
   ArrowLeft,
@@ -35,6 +35,7 @@ import ProposalTab from '../proposal-review/ProposalTab';
 import { STATUS_META, STATUS_ORDER } from './applicationMeta';
 
 type Tab = 'checklist' | 'readiness' | 'proposal';
+const TABS: Tab[] = ['checklist', 'readiness', 'proposal'];
 
 /** One application's workspace: checklist (3.2), readiness tracker (3.3), share and remind (3.4). */
 export default function ApplicationDetail() {
@@ -42,9 +43,14 @@ export default function ApplicationDetail() {
   const applicationId = Number(id);
   const validId = Number.isInteger(applicationId) && applicationId > 0;
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [application, setApplication] = useState<Application | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>('checklist');
+  // ?tab=proposal (or checklist, readiness) opens that tab, e.g. from the Proposals overview.
+  const [tab, setTab] = useState<Tab>(() => {
+    const requested = searchParams.get('tab') as Tab | null;
+    return requested && TABS.includes(requested) ? requested : 'checklist';
+  });
   const [editing, setEditing] = useState(false);
   // Only the newest item mutation's response is applied, so quick taps
   // can't be undone by an older response arriving late.

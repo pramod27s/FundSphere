@@ -120,6 +120,13 @@ export async function fetchApplicationReviews(applicationId: number): Promise<Pr
   return (await response.json()) as ProposalReview[];
 }
 
+/** Every application's reviews in one call (newest version first), for the Proposals overview. */
+export async function fetchAllApplicationReviews(): Promise<ProposalReview[]> {
+  const response = await apiFetch('/api/applications/proposal-reviews');
+  await ensureOk(response, 'Could not load the reviews');
+  return (await response.json()) as ProposalReview[];
+}
+
 export async function reviewStandalone(
   proposalPdf: File,
   guidelinesPdf: File,

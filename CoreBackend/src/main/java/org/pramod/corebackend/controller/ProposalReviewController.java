@@ -5,6 +5,7 @@
  *
  * POST   /api/applications/{id}/proposal-reviews  -> check a draft against the application's stored guidelines
  * GET    /api/applications/{id}/proposal-reviews  -> the application's review history (newest first)
+ * GET    /api/applications/proposal-reviews       -> every application's review history (Proposals overview)
  * POST   /api/proposal-reviews                    -> standalone check: proposal PDF + guidelines PDF
  * GET    /api/proposal-reviews                    -> my recent standalone reviews
  * GET    /api/proposal-reviews/{reviewId}         -> one review, with the full result
@@ -66,6 +67,12 @@ public class ProposalReviewController {
     public ResponseEntity<List<ProposalReviewResponse>> listForApplication(
             @AuthenticationPrincipal UserPrincipal principal, @PathVariable Long id) {
         return ResponseEntity.ok(reviewService.listForApplication(requireUserId(principal), id));
+    }
+
+    @GetMapping("/api/applications/proposal-reviews")
+    public ResponseEntity<List<ProposalReviewResponse>> listForAllApplications(
+            @AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(reviewService.listForAllApplications(requireUserId(principal)));
     }
 
     @PostMapping("/api/proposal-reviews")

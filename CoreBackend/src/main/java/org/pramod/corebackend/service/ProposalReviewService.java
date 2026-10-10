@@ -126,6 +126,15 @@ public class ProposalReviewService {
                 .toList();
     }
 
+    /** Every application's review history in one call, for the Proposals overview. */
+    @Transactional
+    public List<ProposalReviewResponse> listForAllApplications(Long userId) {
+        failStaleRuns();
+        return reviewRepository.findAllByOwnerIdAndApplicationIsNotNullOrderByVersionNoDesc(userId).stream()
+                .map(r -> toResponse(r, false))
+                .toList();
+    }
+
     @Transactional
     public List<ProposalReviewResponse> listStandalone(Long userId) {
         failStaleRuns();
