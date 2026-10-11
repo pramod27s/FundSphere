@@ -2,7 +2,7 @@
 versions of one proposal (weak, better, strong), for trying the Checklist
 and Proposal tabs and watching the score go up.
 
-Run from the repo root:  ai-service\\.venv\\Scripts\\python.exe samples\\make_samples.py
+Run from the repo root:  ai-service\\.venv\\Scripts\\python.exe test-samples\\proposal-demo\\make_samples.py
 
 The call, the council and the proposal are made up.
 """
@@ -12,7 +12,7 @@ import os
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, "..", "test-samples", "objective3"))
+sys.path.insert(0, os.path.join(HERE, "..", "objective3"))
 import make_samples as pdf_tools  # noqa: E402  (shared tiny PDF writer)
 
 pdf_tools.HERE = HERE  # write into this folder

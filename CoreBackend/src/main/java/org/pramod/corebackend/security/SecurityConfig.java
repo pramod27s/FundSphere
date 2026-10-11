@@ -63,6 +63,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/researchers/**").authenticated()
                         .requestMatchers("/api/saved-grants/**").authenticated()
                         .requestMatchers("/api/applications/**").authenticated()
+                        .requestMatchers("/api/awards/**").authenticated()
+                        // Calendar apps can't log in: the feed is protected by the secret token in its URL.
+                        .requestMatchers(HttpMethod.GET, "/api/calendar/feed/*").permitAll()
+                        .requestMatchers("/api/calendar/**").authenticated()
                         .requestMatchers("/api/proposal-reviews/**").authenticated()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated())

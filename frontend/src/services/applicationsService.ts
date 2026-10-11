@@ -61,6 +61,8 @@ export interface Application {
   checklistGeneratedAt: string | null;
   /** Set once the guidelines have been read; the Proposal tab checks drafts against them. */
   guidelineExtractionId: number | null;
+  /** Only on the detail endpoints: the grant set up in My grants once this was awarded. */
+  awardId?: number | null;
   readiness: Readiness;
   itemCount: number;
   createdAt: string;

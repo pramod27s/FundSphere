@@ -9,6 +9,7 @@ import {
   ClipboardCheck,
   Download,
   ExternalLink,
+  Landmark,
   Loader2,
   Pencil,
   TriangleAlert,
@@ -32,6 +33,8 @@ import ApplicationFormModal from './ApplicationFormModal';
 import ChecklistTab from './ChecklistTab';
 import ReadinessTab from './ReadinessTab';
 import ProposalTab from '../proposal-review/ProposalTab';
+import AwardFormModal from '../awards/AwardFormModal';
+import { guessPortal, guessProfile } from '../awards/awardMeta';
 import { STATUS_META, STATUS_ORDER } from './applicationMeta';
 
 type Tab = 'checklist' | 'readiness' | 'proposal';
@@ -52,6 +55,8 @@ export default function ApplicationDetail() {
     return requested && TABS.includes(requested) ? requested : 'checklist';
   });
   const [editing, setEditing] = useState(false);
+  // The "Add my grant" form (Objective 4), opened when the application is marked Awarded.
+  const [settingUpGrant, setSettingUpGrant] = useState(false);
   // Only the newest item mutation's response is applied, so quick taps
   // can't be undone by an older response arriving late.
   const mutationSeq = useRef(0);
@@ -140,8 +145,10 @@ export default function ApplicationDetail() {
   const changeStatus = async (status: ApplicationStatus) => {
     if (!application || status === application.status) return;
     try {
-      setApplication(await updateApplication(application.id, { status }));
+      const updated = await updateApplication(application.id, { status });
+      setApplication(updated);
       toast.success(`Marked as ${STATUS_META[status].label.toLowerCase()}`);
+      if (status === 'AWARDED' && !updated.awardId) setSettingUpGrant(true);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Could not change the status');
     }
@@ -177,6 +184,14 @@ export default function ApplicationDetail() {
       actions={<StatusMenu status={application.status} onChange={changeStatus} />}
     >
       <Summary application={application} onEdit={() => setEditing(true)} />
+
+      {application.status === 'AWARDED' && (
+        <AwardedBanner
+          awardId={application.awardId ?? null}
+          onSetUp={() => setSettingUpGrant(true)}
+          onOpen={(awardId) => navigate(`/my-grants/${awardId}`)}
+        />
+      )}
 
       <div className="flex items-center gap-1 border-b border-brand-200 mt-6 mb-5 overflow-x-auto" role="tablist">
         <TabButton active={tab === 'checklist'} onClick={() => setTab('checklist')} label="Checklist" count={items.length} />
@@ -216,7 +231,53 @@ export default function ApplicationDetail() {
           onDeleted={() => navigate('/applications', { replace: true })}
         />
       )}
+
+      {settingUpGrant && (
+        <AwardFormModal
+          prefill={{
+            applicationId: application.id,
+            agency: application.agency,
+            scheme: application.title,
+            submissionPortal: guessPortal(application.agency),
+            reportingProfile: guessProfile(application.agency),
+          }}
+          onClose={() => setSettingUpGrant(false)}
+          onSaved={(award, created) => {
+            toast.success(created ? 'Added to My grants' : 'This application already has a grant');
+            navigate(`/my-grants/${award.id}`);
+          }}
+        />
+      )}
     </PageFrame>
+  );
+}
+
+/** Shown on awarded applications: hand over to My grants (Objective 4). */
+function AwardedBanner({
+  awardId,
+  onSetUp,
+  onOpen,
+}: {
+  awardId: number | null;
+  onSetUp: () => void;
+  onOpen: (awardId: number) => void;
+}) {
+  return (
+    <section className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl border border-primary-200 bg-primary-50 px-5 py-4">
+      <Landmark className="w-5 h-5 text-primary-600 shrink-0" aria-hidden="true" />
+      <p className="flex-1 text-sm text-primary-900">
+        {awardId
+          ? 'This grant is in My grants, with its dates, budget heads and reporting portal.'
+          : 'Congratulations on the award. Add the grant to My grants, and keep its dates, budget heads and reporting portal there.'}
+      </p>
+      <button
+        type="button"
+        onClick={() => (awardId ? onOpen(awardId) : onSetUp())}
+        className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 shadow-xs shrink-0"
+      >
+        {awardId ? 'Open in My grants' : 'Set up the grant'}
+      </button>
+    </section>
   );
 }
 

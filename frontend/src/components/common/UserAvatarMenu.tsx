@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Bookmark, ClipboardCheck, FileText, LogOut } from 'lucide-react';
+import { User, Bookmark, ClipboardCheck, FileText, Landmark, LogOut } from 'lucide-react';
 import { loadSession, clearSession } from '../../services/authService';
 import { useSavedGrantIds } from '../../hooks/useSavedGrants';
+import { useDeadlineAlerts } from '../../hooks/useDeadlineAlerts';
 
 interface UserAvatarMenuProps {
   researcherId?: number;
@@ -27,6 +28,7 @@ export default function UserAvatarMenu({ researcherId }: UserAvatarMenuProps) {
   const { savedIds } = useSavedGrantIds();
   const savedCount = savedIds.size;
   const savedDisplay = savedCount > 9 ? '9+' : String(savedCount);
+  const { urgent } = useDeadlineAlerts();
 
   const [profileImage, setProfileImage] = useState<string | null>(() =>
     researcherId ? localStorage.getItem(`profile_image_${researcherId}`) : null,
@@ -62,13 +64,14 @@ export default function UserAvatarMenu({ researcherId }: UserAvatarMenuProps) {
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, [isOpen]);
 
-  const handleNavigate = (page: 'profile' | 'saved-grants' | 'applications' | 'proposal') => {
+  const handleNavigate = (page: 'profile' | 'saved-grants' | 'applications' | 'proposal' | 'my-grants') => {
     setIsOpen(false);
     const pathMap = {
       profile: '/profile',
       'saved-grants': '/saved',
       applications: '/applications',
       proposal: '/proposal',
+      'my-grants': '/my-grants',
     } as const;
     navigate(pathMap[page]);
   };
@@ -150,6 +153,22 @@ export default function UserAvatarMenu({ researcherId }: UserAvatarMenuProps) {
                 >
                   <FileText className="w-4 h-4 text-primary-600 shrink-0" />
                   <span>Proposal Assistant</span>
+                </button>
+
+                <button
+                  onClick={() => handleNavigate('my-grants')}
+                  className="flex items-center gap-3 w-full px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 hover:text-brand-900 transition-colors cursor-pointer"
+                >
+                  <Landmark className="w-4 h-4 text-primary-600 shrink-0" />
+                  <span className="flex-1 text-left">My grants</span>
+                  {urgent > 0 && (
+                    <span
+                      className="text-[11px] font-bold tabular-nums bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full min-w-[20px] text-center"
+                      aria-label={`${urgent} overdue or due within a week`}
+                    >
+                      {urgent > 9 ? '9+' : urgent}
+                    </span>
+                  )}
                 </button>
               </div>
 

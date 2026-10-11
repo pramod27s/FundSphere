@@ -37,6 +37,14 @@ public class AppUser {
     @Builder.Default
     private Role role = Role.USER;
 
+    /**
+     * SHA-256 (hex) of the secret in the user's calendar subscription link
+     * (4.2); null when no link is active. Only the hash is kept, so a
+     * database leak doesn't expose anyone's deadlines.
+     */
+    @Column(name = "calendar_token_hash", length = 64, unique = true)
+    private String calendarTokenHash;
+
     @Column(updatable = false)
     private LocalDateTime createdAt;
 

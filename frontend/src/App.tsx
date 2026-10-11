@@ -19,13 +19,15 @@ const SavedGrants = lazy(() => import('./components/saved-grants/SavedGrants.tsx
 const ProposalAssistant = lazy(() => import('./components/proposal-review/ProposalAssistant.tsx'));
 const Applications = lazy(() => import('./components/applications/Applications.tsx'));
 const ApplicationDetail = lazy(() => import('./components/applications/ApplicationDetail.tsx'));
+const Awards = lazy(() => import('./components/awards/Awards.tsx'));
+const AwardDetail = lazy(() => import('./components/awards/AwardDetail.tsx'));
 import { loadSession, clearSession } from './services/authService';
 import { ResearcherProvider, useResearcher } from './context/ResearcherContext';
 
 const SCROLL_KEY_PREFIX = 'fundsphere.scroll.';
 
 /** Routes rendered inside <AppShell>, i.e. with the desktop nav rail (prefix match). */
-const RAIL_ROUTES = ['/discovery', '/saved', '/applications', '/proposal', '/profile'];
+const RAIL_ROUTES = ['/discovery', '/saved', '/applications', '/my-grants', '/proposal', '/profile'];
 
 function hasNavRail(pathname: string): boolean {
   return RAIL_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));
@@ -300,6 +302,8 @@ export default function App() {
             <Route path="/saved" element={<SavedRoute />} />
             <Route path="/applications" element={<Applications />} />
             <Route path="/applications/:id" element={<ApplicationDetail />} />
+            <Route path="/my-grants" element={<Awards />} />
+            <Route path="/my-grants/:id" element={<AwardDetail />} />
             <Route path="/proposal" element={<ProposalAssistant />} />
             <Route path="/profile" element={<ProfileRoute />} />
           </Route>

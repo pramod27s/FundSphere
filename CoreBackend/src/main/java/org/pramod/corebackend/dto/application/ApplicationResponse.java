@@ -36,6 +36,8 @@ public class ApplicationResponse {
     private LocalDateTime checklistGeneratedAt;
     /** Set once the guidelines have been read; the Proposal tab needs it to check drafts. */
     private Long guidelineExtractionId;
+    /** Detail only: the grant set up from this application once it was awarded (Objective 4), if any. */
+    private Long awardId;
     private ReadinessCalculator.Readiness readiness;
     private int itemCount;
     private LocalDateTime createdAt;

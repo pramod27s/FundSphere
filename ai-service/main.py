@@ -11,6 +11,7 @@ from rag.config import settings
 from rag.routes import router as rag_router
 from proposal.review_routes import router as proposal_review_router
 from workspace.routes import router as workspace_router
+from award.routes import router as award_router
 from rag.m2m_auth import verify_m2m_token
 
 app = FastAPI(title="FundSphere AI Service")
@@ -21,6 +22,7 @@ if settings.require_internal_api_key and not settings.internal_api_key:
 app.include_router(rag_router)
 app.include_router(proposal_review_router)
 app.include_router(workspace_router)
+app.include_router(award_router)
 
 
 def _is_exempt_path(path: str) -> bool:

@@ -115,6 +115,23 @@ public class AiServiceClient {
     }
 
     /**
+     * Sends a sanction order PDF to the ai-service reader (Objective 4, 4.5)
+     * and returns the parsed JSON: each "Add my grant" value with the
+     * sentence it came from, the budget heads, and warnings. Nothing is stored.
+     */
+    public Map<String, Object> readSanctionOrder(MultipartFile sanctionOrderPdf) {
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        try {
+            body.add("sanction_order_pdf", buildPdfPart(sanctionOrderPdf, "sanction-order.pdf"));
+        } catch (IOException ex) {
+            throw new ResponseStatusException(BAD_GATEWAY,
+                    "Could not read uploaded PDF: " + ex.getMessage(), ex);
+        }
+        return postMultipart("/award/read-sanction-order", body, "sanction order reading",
+                "Reading the sanction order took longer than the configured timeout. Please try again.");
+    }
+
+    /**
      * Reads a guidelines PDF (checklist + proposal rules). Used by background
      * jobs, which hold the bytes rather than the upload.
      */

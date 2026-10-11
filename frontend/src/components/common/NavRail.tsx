@@ -1,17 +1,19 @@
 import { NavLink } from 'react-router-dom';
-import { Bookmark, ClipboardCheck, Compass, FileText, type LucideIcon } from 'lucide-react';
+import { Bookmark, ClipboardCheck, Compass, FileText, Landmark, type LucideIcon } from 'lucide-react';
 import UserAvatarMenu from './UserAvatarMenu';
 import { useSavedGrantIds } from '../../hooks/useSavedGrants';
+import { useDeadlineAlerts } from '../../hooks/useDeadlineAlerts';
 
 interface NavRailProps {
   researcherId: number;
 }
 
-const ITEMS: { to: string; label: string; icon: LucideIcon; badge?: 'saved' }[] = [
+const ITEMS: { to: string; label: string; icon: LucideIcon; badge?: 'saved' | 'deadlines' }[] = [
   { to: '/discovery', label: 'Discover', icon: Compass },
   { to: '/saved', label: 'Saved', icon: Bookmark, badge: 'saved' },
   { to: '/applications', label: 'Apply', icon: ClipboardCheck },
   { to: '/proposal', label: 'Proposal', icon: FileText },
+  { to: '/my-grants', label: 'My grants', icon: Landmark, badge: 'deadlines' },
 ];
 
 /**
@@ -22,6 +24,7 @@ const ITEMS: { to: string; label: string; icon: LucideIcon; badge?: 'saved' }[] 
 export default function NavRail({ researcherId }: NavRailProps) {
   const { savedIds } = useSavedGrantIds();
   const savedCount = savedIds.size;
+  const { urgent } = useDeadlineAlerts();
 
   return (
     <aside
@@ -56,6 +59,14 @@ export default function NavRail({ researcherId }: NavRailProps) {
                       aria-label={`${savedCount} saved`}
                     >
                       {savedCount > 99 ? '99+' : savedCount}
+                    </span>
+                  )}
+                  {badge === 'deadlines' && urgent > 0 && (
+                    <span
+                      className="absolute -top-1 right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[11px] font-bold leading-[18px] text-center tabular-nums ring-2 ring-white"
+                      aria-label={`${urgent} grant ${urgent === 1 ? 'deadline' : 'deadlines'} overdue or due within a week`}
+                    >
+                      {urgent > 99 ? '99+' : urgent}
                     </span>
                   )}
                 </span>

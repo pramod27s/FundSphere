@@ -24,6 +24,7 @@ import org.pramod.corebackend.enums.ChecklistItemOrigin;
 import org.pramod.corebackend.enums.ChecklistItemStatus;
 import org.pramod.corebackend.repository.AppUserRepository;
 import org.pramod.corebackend.repository.ApplicationRepository;
+import org.pramod.corebackend.repository.AwardRepository;
 import org.pramod.corebackend.repository.ChecklistItemRepository;
 import org.pramod.corebackend.repository.GrantRepository;
 import org.pramod.corebackend.repository.ProposalReviewRepository;
@@ -72,6 +73,7 @@ public class ApplicationService {
     private final TransactionTemplate transactionTemplate;
     private final GuidelineExtractionService guidelineExtractionService;
     private final ProposalReviewRepository proposalReviewRepository;
+    private final AwardRepository awardRepository;
 
     // ------------------------------------------------------------------
     // Applications
@@ -224,6 +226,8 @@ public class ApplicationService {
     public void delete(Long userId, Long applicationId) {
         Application application = requireOwned(userId, applicationId);
         proposalReviewRepository.deleteAllByApplicationId(application.getId());
+        // A grant set up from this application stays; it keeps its own copy of the details.
+        awardRepository.detachApplication(application.getId());
         applicationRepository.delete(application);
     }
 
@@ -455,7 +459,8 @@ public class ApplicationService {
                 .createdAt(application.getCreatedAt())
                 .updatedAt(application.getUpdatedAt());
         if (detail) {
-            builder.items(items.stream().map(ApplicationService::toItemResponse).toList())
+            builder.awardId(awardRepository.findIdByApplicationId(application.getId()).orElse(null))
+                    .items(items.stream().map(ApplicationService::toItemResponse).toList())
                     .statusHistory(application.getStatusHistory().stream()
                             .map(change -> new ApplicationResponse.StatusChangeResponse(
                                     change.getFromStatus(), change.getToStatus(), change.getChangedAt()))

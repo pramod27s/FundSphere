@@ -13,6 +13,9 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
     Optional<AppUser> findByEmailIgnoreCase(String email);
 
     boolean existsByEmailIgnoreCase(String email);
+
+    /** The owner of a calendar subscription link, found by the hash of its secret. */
+    Optional<AppUser> findByCalendarTokenHash(String calendarTokenHash);
 }
 
 
