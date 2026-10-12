@@ -33,14 +33,44 @@ export interface DeadlineFormat {
   isClosed: boolean;
 }
 
+/**
+ * A grant deadline as a moment in local time, or null when it can't be read.
+ * A date with no time, or one stamped at exactly midnight (how older rows
+ * stored a date-only deadline), means the whole day: open until 23:59:59.
+ * The scraper stores date-only deadlines at 23:59:59 itself; this keeps the
+ * older rows from closing at the start of their last day. Every "closed?"
+ * check and deadline sort goes through here so they agree with the label.
+ */
+export function parseDeadline(raw: string | undefined | null): Date | null {
+  if (!raw) return null;
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})(?:T00:00(?::00(?:\.0+)?)?)?$/.exec(raw);
+  if (dateOnly) {
+    return new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]), 23, 59, 59, 999);
+  }
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+/** The deadline in ms for sorting and comparisons; NaN when there's none. */
+export function deadlineTime(raw: string | undefined | null): number {
+  return parseDeadline(raw)?.getTime() ?? Number.NaN;
+}
+
+/** Whole calendar days from today to the date's day in local time: 0 today, 1 tomorrow, -1 yesterday. */
+function calendarDaysUntil(date: Date, now: Date = new Date()): number {
+  const target = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((target - today) / DAY);
+}
+
 export function formatRelativeDeadline(
   raw: string | undefined | null,
   deadlineType?: DeadlineType | string | null,
 ): DeadlineFormat {
   if (!raw) return formatUndatedDeadline(deadlineType);
 
-  const parsed = new Date(raw);
-  if (Number.isNaN(parsed.getTime())) {
+  const parsed = parseDeadline(raw);
+  if (!parsed) {
     return { ...formatUndatedDeadline(deadlineType), tooltip: raw };
   }
 
@@ -50,15 +80,12 @@ export function formatRelativeDeadline(
     day: 'numeric',
   });
 
-  const now = Date.now();
-  const target = parsed.getTime();
-  const diffMs = target - now;
-
-  if (diffMs < 0) {
+  if (parsed.getTime() < Date.now()) {
     return { label: 'Closed', tone: 'overdue', tooltip, isClosed: true };
   }
 
-  const days = Math.ceil(diffMs / DAY);
+  // Calendar days, not 24-hour blocks: a deadline at 23:59 today is "today", not "tomorrow".
+  const days = calendarDaysUntil(parsed);
 
   if (days === 0) return { label: 'Closes today', tone: 'urgent', tooltip, isClosed: false };
   if (days === 1) return { label: 'Closes tomorrow', tone: 'urgent', tooltip, isClosed: false };
@@ -129,9 +156,8 @@ export interface KeyDateFormat {
  * verb — so it reads correctly for any milestone, not just the closing date.
  */
 export function formatKeyDate(raw: string | undefined | null): KeyDateFormat | null {
-  if (!raw) return null;
-  const parsed = new Date(raw);
-  if (Number.isNaN(parsed.getTime())) return null;
+  const parsed = parseDeadline(raw);
+  if (!parsed) return null;
 
   const abs = parsed.toLocaleDateString(undefined, {
     year: 'numeric',
@@ -139,9 +165,9 @@ export function formatKeyDate(raw: string | undefined | null): KeyDateFormat | n
     day: '2-digit',
   });
 
-  const diffMs = parsed.getTime() - Date.now();
-  const days = Math.round(Math.abs(diffMs) / DAY);
-  const past = diffMs < 0;
+  const dayOffset = calendarDaysUntil(parsed);
+  const days = Math.abs(dayOffset);
+  const past = dayOffset < 0;
 
   let hint: string;
   if (days === 0) {

@@ -2,8 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, ChevronRight, ClipboardCheck, Compass, Loader2, Plus, TriangleAlert } from 'lucide-react';
 import { fetchApplications, type Application, type ApplicationStatus } from '../../services/applicationsService';
+import { fetchSavedGrants, type SavedGrantEntry } from '../../services/savedGrantsService';
 import { deadlineCountdown, formatDay, TONE_TEXT } from '../../utils/applicationDates';
+import { ListLayout, PAGE_WIDTH } from '../common/PageLayout';
 import ApplicationFormModal from './ApplicationFormModal';
+import ApplicationsPanel from './ApplicationsPanel';
 import { STATUS_META, STATUS_ORDER } from './applicationMeta';
 
 type StatusFilter = 'ALL' | ApplicationStatus;
@@ -16,6 +19,7 @@ export default function Applications() {
   const navigate = useNavigate();
   const [applications, setApplications] = useState<Application[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState<SavedGrantEntry[] | null>(null);
   const [filter, setFilter] = useState<StatusFilter>('ALL');
   const [adding, setAdding] = useState(false);
 
@@ -24,6 +28,10 @@ export default function Applications() {
     fetchApplications()
       .then((rows) => !cancelled && setApplications(rows))
       .catch((e: unknown) => !cancelled && setError(e instanceof Error ? e.message : 'Could not load your applications'));
+    // Only for the side panel's "Saved, not started" card, which is left out if this fails.
+    fetchSavedGrants()
+      .then((rows) => !cancelled && setSaved(rows))
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -88,33 +96,44 @@ export default function Applications() {
       </div>
 
       {counts.ALL > 0 && (
-        <div className="bg-white border-b border-brand-100 px-4 sm:px-6 py-3 flex items-center gap-2 overflow-x-auto">
-          {(['ALL', ...STATUS_ORDER] as StatusFilter[]).map((s) => {
-            const active = filter === s;
-            return (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setFilter(s)}
-                aria-pressed={active}
-                className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition ${
-                  active
-                    ? s === 'ALL' ? 'bg-brand-900 text-white border-brand-900' : STATUS_META[s].chip
-                    : 'bg-white text-brand-700 border-brand-200 hover:bg-brand-50'
-                }`}
-              >
-                {s !== 'ALL' && <span className={`w-1.5 h-1.5 rounded-full ${STATUS_META[s].dot}`} />}
-                {s === 'ALL' ? 'All' : STATUS_META[s].label}
-                <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[11px] tabular-nums ${active ? 'bg-white/20' : 'bg-brand-100 text-brand-600'}`}>
-                  {counts[s]}
-                </span>
-              </button>
-            );
-          })}
+        <div className="bg-white border-b border-brand-100">
+          <div className={`${PAGE_WIDTH} py-3 flex items-center gap-2 overflow-x-auto`}>
+            {(['ALL', ...STATUS_ORDER] as StatusFilter[]).map((s) => {
+              const active = filter === s;
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setFilter(s)}
+                  aria-pressed={active}
+                  className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition ${
+                    active
+                      ? s === 'ALL' ? 'bg-brand-900 text-white border-brand-900' : STATUS_META[s].chip
+                      : 'bg-white text-brand-700 border-brand-200 hover:bg-brand-50'
+                  }`}
+                >
+                  {s !== 'ALL' && <span className={`w-1.5 h-1.5 rounded-full ${STATUS_META[s].dot}`} />}
+                  {s === 'ALL' ? 'All' : STATUS_META[s].label}
+                  <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[11px] tabular-nums ${active ? 'bg-white/20' : 'bg-brand-100 text-brand-600'}`}>
+                    {counts[s]}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
-      <div className="flex-1 max-w-3xl w-full mx-auto px-4 py-8">
+      <ListLayout
+        panel={applications && applications.length > 0 && (
+          <ApplicationsPanel
+            applications={applications}
+            saved={saved}
+            onOpen={(id) => navigate(`/applications/${id}`)}
+            onSaved={() => navigate('/saved')}
+          />
+        )}
+      >
         {error ? (
           <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-800">{error}</div>
         ) : applications === null ? (
@@ -135,7 +154,7 @@ export default function Applications() {
             ))}
           </div>
         )}
-      </div>
+      </ListLayout>
 
       {adding && (
         <ApplicationFormModal

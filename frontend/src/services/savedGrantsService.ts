@@ -12,6 +12,7 @@
 import { apiFetch } from './apiClient';
 import type { DiscoveryGrant } from './discoveryService';
 import { formatFundingRange } from '../utils/formatFunding';
+import { parseDeadline } from '../utils/formatDeadline';
 
 export interface SavedGrantEntry {
   /** SavedGrant row id (NOT the grant id — that's nested under .grant.id). */
@@ -154,8 +155,8 @@ function mapCoreGrantToDiscoveryGrant(grant: CoreGrantResponse): DiscoveryGrant 
 
 function formatDate(value?: string): string {
   if (!value) return 'Deadline not specified';
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value;
+  const parsed = parseDeadline(value);
+  if (!parsed) return value;
   return parsed.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: '2-digit' });
 }
 

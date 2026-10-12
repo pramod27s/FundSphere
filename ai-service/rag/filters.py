@@ -1,5 +1,5 @@
 import re
-from datetime import datetime, timezone
+from datetime import datetime, time as day_time, timezone
 from dateutil import parser as date_parser
 from .config import settings
 from .schemas import UserProfile
@@ -167,16 +167,30 @@ def _expand_aliases(value: str | None, alias_map: dict) -> set[str]:
     return {x for x in expanded if x}
 
 
-def deadline_is_open(deadline: str | None) -> bool:
+def deadline_moment(deadline: str | None) -> datetime | None:
+    """The deadline as a datetime, or None when there's none or it can't be read.
+
+    A date with no time, or one stamped at exactly midnight (how older rows
+    stored a date-only deadline), means the whole day, so it becomes 23:59:59.
+    Without a zone it's the backend's local time, as Java's LocalDateTime is;
+    the frontend and the backend's own "closed" checks read it the same way.
+    """
     if not deadline:
-        return True
+        return None
     try:
         dt = date_parser.parse(deadline)
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
-        return dt >= datetime.now(timezone.utc)
-    except Exception:
+    except (ValueError, OverflowError, TypeError):
+        return None
+    if dt.tzinfo is None and dt.time() == day_time(0, 0):
+        dt = dt.replace(hour=23, minute=59, second=59)
+    return dt
+
+
+def deadline_is_open(deadline: str | None) -> bool:
+    dt = deadline_moment(deadline)
+    if dt is None:
         return True
+    return dt >= (datetime.now(dt.tzinfo) if dt.tzinfo else datetime.now())
 
 
 def _parse_date(value: str | None):

@@ -430,6 +430,7 @@ public class AwardService {
                 .events(events)
                 .nextEvent(pending.isEmpty() ? null : pending.get(0))
                 .overdueCount((int) pending.stream().filter(event -> event.dueDate().isBefore(today)).count())
+                .spendWarnings(SpendService.currentWarnings(award, today))
                 .createdAt(award.getCreatedAt())
                 .updatedAt(award.getUpdatedAt())
                 .build();

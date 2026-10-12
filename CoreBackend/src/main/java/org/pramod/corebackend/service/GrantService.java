@@ -22,6 +22,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -373,10 +374,10 @@ public class GrantService {
                 .programName(request.getProgramName())
                 .description(request.getDescription())
                 .grantUrl(normalizeGrantUrl(request.getGrantUrl()))
-                .applicationDeadline(request.getApplicationDeadline())
+                .applicationDeadline(endOfDayIfMidnight(request.getApplicationDeadline()))
                 .deadlineType(resolveDeadlineType(request))
                 .openingDate(request.getOpeningDate())
-                .loiDeadline(request.getLoiDeadline())
+                .loiDeadline(endOfDayIfMidnight(request.getLoiDeadline()))
                 .decisionDate(request.getDecisionDate())
                 .projectStartDate(request.getProjectStartDate())
                 .fundingAmountMin(request.getFundingAmountMin())
@@ -411,10 +412,10 @@ public class GrantService {
         entity.setProgramName(request.getProgramName());
         entity.setDescription(request.getDescription());
         entity.setGrantUrl(normalizeGrantUrl(request.getGrantUrl()));
-        entity.setApplicationDeadline(request.getApplicationDeadline());
+        entity.setApplicationDeadline(endOfDayIfMidnight(request.getApplicationDeadline()));
         entity.setDeadlineType(resolveDeadlineType(request));
         entity.setOpeningDate(request.getOpeningDate());
-        entity.setLoiDeadline(request.getLoiDeadline());
+        entity.setLoiDeadline(endOfDayIfMidnight(request.getLoiDeadline()));
         entity.setDecisionDate(request.getDecisionDate());
         entity.setProjectStartDate(request.getProjectStartDate());
         entity.setFundingAmountMin(request.getFundingAmountMin());
@@ -485,6 +486,17 @@ public class GrantService {
                 .lastScrapedAt(grant.getLastScrapedAt())
                 .lastVerifiedAt(grant.getLastVerifiedAt())
                 .build();
+    }
+
+    /**
+     * A deadline sent without a time arrives as midnight, but it means the
+     * whole day: kept as 23:59:59 so the grant stays open on its last day
+     * (rows saved before this are moved by DeadlineEndOfDayMigration).
+     */
+    static LocalDateTime endOfDayIfMidnight(LocalDateTime deadline) {
+        return deadline != null && deadline.toLocalTime().equals(LocalTime.MIDNIGHT)
+                ? deadline.with(LocalTime.of(23, 59, 59))
+                : deadline;
     }
 
     private static final Set<String> DEADLINE_TYPES = Set.of("FIXED", "ROLLING", "CALL_BASED", "UNKNOWN");

@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { FileSearch, Loader2 } from 'lucide-react';
 import type { Application } from '../../services/applicationsService';
 import {
-  fetchApplicationReviews,
   fetchReview,
   reviewDraftForApplication,
   runFullReview,
@@ -11,10 +10,13 @@ import {
 } from '../../services/proposalReviewService';
 import DraftUpload from './DraftUpload';
 import ReviewStatusView from './ReviewStatusView';
+import type { ApplicationReviews } from './useApplicationReviews';
 import { useReview } from './useReview';
 
 interface ProposalTabProps {
   application: Application;
+  /** The draft versions, held by the application page so its side panel can list them too. */
+  versions: ApplicationReviews;
   onOpenChecklist: () => void;
 }
 
@@ -23,39 +25,18 @@ interface ProposalTabProps {
  * guidelines already read for the checklist, and every version is kept so
  * the score trend shows how the proposal improves.
  */
-export default function ProposalTab({ application, onOpenChecklist }: ProposalTabProps) {
-  const [reviews, setReviews] = useState<ProposalReview[] | null>(null);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+export default function ProposalTab({ application, versions, onOpenChecklist }: ProposalTabProps) {
+  const { reviews, selectedId, select, reload: reloadList, add } = versions;
   const [starting, setStarting] = useState(false);
   const [startingFull, setStartingFull] = useState(false);
   const [previous, setPrevious] = useState<ProposalReview | null>(null);
   const { review, error, reload } = useReview(selectedId);
 
-  const loadList = useCallback(async () => {
-    try {
-      const rows = await fetchApplicationReviews(application.id);
-      setReviews(rows);
-      setSelectedId((current) => current ?? rows[0]?.id ?? null);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Could not load the reviews');
-      setReviews([]);
-    }
-  }, [application.id]);
-
-  useEffect(() => {
-    fetchApplicationReviews(application.id)
-      .then((rows) => {
-        setReviews(rows);
-        setSelectedId(rows[0]?.id ?? null);
-      })
-      .catch(() => setReviews([]));
-  }, [application.id]);
-
   // Refresh the history when the selected review finishes, so its score shows in the list.
   const finished = review !== null && review.status !== 'RUNNING';
   useEffect(() => {
-    if (finished) void loadList();
-  }, [finished, loadList]);
+    if (finished) void reloadList();
+  }, [finished, reloadList]);
 
   // The previous finished version of this application, for "what changed".
   const previousId = reviews && review
@@ -87,9 +68,7 @@ export default function ProposalTab({ application, onOpenChecklist }: ProposalTa
   const start = async ({ proposal, level }: { proposal: File; level: 'INSTANT' | 'FULL' }) => {
     setStarting(true);
     try {
-      const created = await reviewDraftForApplication(application.id, proposal, level);
-      setReviews((rows) => [created, ...(rows ?? [])]);
-      setSelectedId(created.id);
+      add(await reviewDraftForApplication(application.id, proposal, level));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Could not start the review');
     } finally {
@@ -119,14 +98,15 @@ export default function ProposalTab({ application, onOpenChecklist }: ProposalTa
           <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading reviews…
         </div>
       ) : reviews.length > 0 && (
-        <div className="flex items-center gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Draft versions">
+        // From xl the side panel lists the versions instead.
+        <div className="flex xl:hidden items-center gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Draft versions">
           {reviews.map((r) => (
             <button
               key={r.id}
               type="button"
               role="tab"
               aria-selected={r.id === selectedId}
-              onClick={() => setSelectedId(r.id)}
+              onClick={() => select(r.id)}
               className={`shrink-0 px-3 py-2 rounded-lg border text-left transition ${
                 r.id === selectedId ? 'border-primary-400 bg-primary-50' : 'border-brand-200 bg-white hover:bg-brand-50'
               }`}

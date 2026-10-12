@@ -23,9 +23,12 @@ import {
   runFullReview,
   type ProposalReview,
 } from '../../services/proposalReviewService';
-import { daysUntil, deadlineCountdown, TONE_TEXT } from '../../utils/applicationDates';
+import { daysUntil, deadlineCountdown, formatTimestampDay, TONE_TEXT } from '../../utils/applicationDates';
+import { ListLayout, PanelCard } from '../common/PageLayout';
 import { STATUS_META } from '../applications/applicationMeta';
 import DraftUpload from './DraftUpload';
+import { ReviewOutcome, ScoreSparkline } from './reviewDisplay';
+import { scoreTone } from './reviewMeta';
 import ReviewStatusView from './ReviewStatusView';
 import { useReview } from './useReview';
 
@@ -89,7 +92,7 @@ export default function ProposalAssistant() {
   const preparing = rows.filter((r) => r.application.status === 'PREPARING');
   const decided = rows.filter((r) => r.application.status !== 'PREPARING');
 
-  const open = (row: ProposalRow) => navigate(`/applications/${row.application.id}?tab=${row.next.tab}`);
+  const open = (row: ProposalRow, tab: WorkspaceTab = row.next.tab) => navigate(`/applications/${row.application.id}?tab=${tab}`);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -111,7 +114,15 @@ export default function ProposalAssistant() {
         </div>
       </div>
 
-      <div className="flex-1 max-w-4xl w-full mx-auto px-4 py-6 sm:py-8 flex flex-col gap-6">
+      <ListLayout
+        panel={rows.length > 0 && (
+          <>
+            {preparing.length > 1 && <NextSteps rows={preparing} onOpen={open} />}
+            <RecentChecks rows={rows} onOpen={(row) => open(row, 'proposal')} />
+            <ScoreGuide />
+          </>
+        )}
+      >
         {error ? (
           <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-800">{error}</div>
         ) : data === null ? (
@@ -137,7 +148,7 @@ export default function ProposalAssistant() {
                 suffix={stats.averageScore === null ? undefined : '/100'}
                 detail={stats.scoredApps === 0
                   ? 'Run an AI review for a score'
-                  : `Latest draft of ${stats.scoredApps} ${stats.scoredApps === 1 ? 'application' : 'applications'}`}
+                  : `Latest scored draft of ${stats.scoredApps} ${stats.scoredApps === 1 ? 'application' : 'applications'}`}
               />
               <StatTile
                 label="Improvement"
@@ -172,7 +183,7 @@ export default function ProposalAssistant() {
         )}
 
         <QuickCheck />
-      </div>
+      </ListLayout>
     </div>
   );
 }
@@ -249,7 +260,11 @@ function nextStep({ application, latest, latestFinished, scores }: Omit<Proposal
     return { text: `Version ${latest.versionNo} couldn't be checked. Run it again`, tone: 'warning', tab: 'proposal' };
   }
   const score = latestFinished.overallScore;
-  if (score === null) return { text: 'Run the AI review to get a score', tone: 'neutral', tab: 'proposal' };
+  if (score === null) {
+    return scores.length > 0
+      ? { text: `Run the AI review on version ${latestFinished.versionNo} to update the score`, tone: 'neutral', tab: 'proposal' }
+      : { text: 'Run the AI review to get a score', tone: 'neutral', tab: 'proposal' };
+  }
   if (score < 50) return { text: 'Below 50: start with the top fixes', tone: 'critical', tab: 'proposal' };
   if (score < 75) return { text: 'Strengthen the weakest criteria', tone: 'warning', tab: 'proposal' };
   const ready = application.readiness.percent;
@@ -276,11 +291,6 @@ function summarize(rows: ProposalRow[]) {
 
 function average(values: number[]): number | null {
   return values.length === 0 ? null : Math.round(values.reduce((a, b) => a + b, 0) / values.length);
-}
-
-/** Same thresholds as the score in the review report. */
-function scoreTone(score: number): string {
-  return score >= 75 ? 'text-primary-700' : score >= 50 ? 'text-amber-700' : 'text-red-700';
 }
 
 // ----------------------------------------------------------------------
@@ -322,6 +332,9 @@ function ProposalRowCard({ row, onOpen }: { row: ProposalRow; onOpen: () => void
   const meta = STATUS_META[application.status];
   const countdown = deadlineCountdown(application.deadline);
   const latestScore = scores.at(-1)?.score ?? null;
+  // The score shown is from an older version when the newest check was instant.
+  const scoredVersion = scores.at(-1)?.versionNo ?? null;
+  const scoreIsOlder = scoredVersion !== null && latestFinished !== null && scoredVersion !== latestFinished.versionNo;
   const gain = scores.length >= 2 ? scores[scores.length - 1].score - scores[0].score : null;
   const readiness = application.readiness;
   const step = STEP_META[next.tone];
@@ -353,9 +366,12 @@ function ProposalRowCard({ row, onOpen }: { row: ProposalRow; onOpen: () => void
       <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-4">
         <Metric label="Latest score">
           {latestScore !== null ? (
-            <span className="flex items-baseline gap-1">
-              <span className={`text-xl font-bold tabular-nums leading-none ${scoreTone(latestScore)}`}>{latestScore}</span>
-              <span className="text-xs text-brand-500">/100</span>
+            <span className="flex flex-col gap-1">
+              <span className="flex items-baseline gap-1">
+                <span className={`text-xl font-bold tabular-nums leading-none ${scoreTone(latestScore)}`}>{latestScore}</span>
+                <span className="text-xs text-brand-500">/100</span>
+              </span>
+              {scoreIsOlder && <span className="text-[11px] text-brand-500">From version {scoredVersion}</span>}
             </span>
           ) : (
             <span className="text-sm text-brand-500">{latestFinished ? 'Instant check only' : 'Not checked yet'}</span>
@@ -424,52 +440,96 @@ function Metric({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-/** Score by version: earlier versions in a muted line, the latest as an accent dot. */
-function ScoreSparkline({ scores }: { scores: { versionNo: number; score: number }[] }) {
-  const W = 96;
-  const H = 28;
-  const PAD = 4;
-  const values = scores.map((s) => s.score);
-  let lo = Math.min(...values);
-  let hi = Math.max(...values);
-  // At least a 20-point window, so a 2-point wobble doesn't look like a cliff.
-  if (hi - lo < 20) {
-    const mid = (hi + lo) / 2;
-    lo = mid - 10;
-    hi = mid + 10;
-  }
-  const x = (i: number) => PAD + (i * (W - 2 * PAD)) / (scores.length - 1);
-  const y = (v: number) => H - PAD - ((v - lo) * (H - 2 * PAD)) / (hi - lo);
+// ----------------------------------------------------------------------
+// Side panel
+// ----------------------------------------------------------------------
+
+const STEP_RANK: Record<StepTone, number> = { critical: 0, warning: 1, neutral: 2, good: 3 };
+const NEXT_STEPS_SHOWN = 5;
+const RECENT_SHOWN = 6;
+
+/** Every proposal in preparation's next step, most urgent first; rows arrive soonest deadline first. */
+function NextSteps({ rows, onOpen }: { rows: ProposalRow[]; onOpen: (row: ProposalRow) => void }) {
+  const ranked = [...rows].sort((a, b) => STEP_RANK[a.next.tone] - STEP_RANK[b.next.tone]);
+  return (
+    <PanelCard title="Next steps" detail={String(rows.length)}>
+      <ul className="-mx-2 flex flex-col">
+        {ranked.slice(0, NEXT_STEPS_SHOWN).map((row) => {
+          const step = STEP_META[row.next.tone];
+          const StepIcon = step.icon;
+          return (
+            <li key={row.application.id}>
+              <button type="button" onClick={() => onOpen(row)} className="w-full text-left flex items-start gap-2.5 px-2 py-2 rounded-md hover:bg-brand-50 group">
+                <StepIcon className={`w-4 h-4 mt-0.5 shrink-0 ${step.text}`} />
+                <span className="min-w-0 flex-1">
+                  <span className={`block text-sm font-medium ${step.text}`}>{row.next.text}</span>
+                  <span className="block text-xs text-brand-500 truncate group-hover:text-primary-700">{row.application.title}</span>
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </PanelCard>
+  );
+}
+
+/** The latest drafts checked across every application, newest first. */
+function RecentChecks({ rows, onOpen }: { rows: ProposalRow[]; onOpen: (row: ProposalRow) => void }) {
+  const recent = rows
+    .flatMap((row) => row.reviews.map((review) => ({ row, review })))
+    .sort((a, b) => b.review.createdAt.localeCompare(a.review.createdAt));
+  if (recent.length === 0) return null;
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} role="img" aria-label={`Score by version: ${values.join(', ')}`} className="overflow-visible">
-      <polyline
-        points={scores.map((s, i) => `${x(i)},${y(s.score)}`).join(' ')}
-        fill="none"
-        className="stroke-brand-300"
-        strokeWidth={2}
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
-      {scores.map((s, i) => {
-        const last = i === scores.length - 1;
-        return (
-          <g key={s.versionNo}>
-            <circle
-              cx={x(i)}
-              cy={y(s.score)}
-              r={last ? 4 : 2.5}
-              className={last ? 'fill-primary-600 stroke-white' : 'fill-brand-400'}
-              strokeWidth={last ? 2 : 0}
-            />
-            {/* Larger invisible target for the hover tooltip. */}
-            <circle cx={x(i)} cy={y(s.score)} r={8} fill="transparent">
-              <title>{`Version ${s.versionNo}: ${s.score}/100`}</title>
-            </circle>
-          </g>
-        );
-      })}
-    </svg>
+    <PanelCard title="Recent checks" detail={`${recent.length} in total`}>
+      <ul className="-mx-2 flex flex-col">
+        {recent.slice(0, RECENT_SHOWN).map(({ row, review }) => (
+          <li key={review.id}>
+            <button type="button" onClick={() => onOpen(row)} className="w-full text-left flex items-center gap-3 px-2 py-2 rounded-md hover:bg-brand-50 group">
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-medium text-brand-900 truncate group-hover:text-primary-700">{row.application.title}</span>
+                <span className="block text-xs text-brand-500 tabular-nums">
+                  Version {review.versionNo} · {formatTimestampDay(review.createdAt)}
+                </span>
+              </span>
+              <ReviewOutcome review={review} />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </PanelCard>
+  );
+}
+
+const SCORE_BANDS = [
+  { range: '75–100', label: 'Strong', dot: 'bg-primary-600', text: 'text-primary-700' },
+  { range: '50–74', label: 'Needs work', dot: 'bg-amber-500', text: 'text-amber-700' },
+  { range: '0–49', label: 'Weak: start with the top fixes', dot: 'bg-red-500', text: 'text-red-700' },
+];
+
+/** What the numbers on this page mean; the bands match scoreTone. */
+function ScoreGuide() {
+  return (
+    <PanelCard title="How scores work">
+      <ul className="flex flex-col gap-2 text-xs">
+        {SCORE_BANDS.map((band) => (
+          <li key={band.range} className="flex items-center gap-2">
+            <span className={`w-2 h-2 rounded-full shrink-0 ${band.dot}`} aria-hidden="true" />
+            <span className={`w-12 shrink-0 font-semibold tabular-nums ${band.text}`}>{band.range}</span>
+            <span className="text-brand-600">{band.label}</span>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-3 pt-3 border-t border-brand-100 flex flex-col gap-2 text-xs text-brand-500 leading-relaxed">
+        <p>
+          <span className="font-semibold text-brand-700">Rules met</span> counts the call's rules your draft follows, such as
+          required sections, page and word limits, and items that aren't allowed.
+        </p>
+        <p>An instant check counts the rules only. The AI review adds the score.</p>
+        <p>A broken rule that would get the proposal returned holds the score at 49 or below until it's fixed.</p>
+      </div>
+    </PanelCard>
   );
 }
 

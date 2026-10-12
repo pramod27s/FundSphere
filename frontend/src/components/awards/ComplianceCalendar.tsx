@@ -21,6 +21,9 @@ interface ComplianceCalendarProps {
   onDraftReport?: (eventId: number) => void;
 }
 
+/** Later deadlines shown before "Show more"; the overdue and next-30-days ones always show. */
+const LATER_SHOWN = 3;
+
 const INPUT =
   'bg-white border border-brand-200 rounded-lg px-2.5 py-1.5 text-sm text-brand-900 focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-200';
 
@@ -32,6 +35,7 @@ const INPUT =
 export default function ComplianceCalendar({ award, onAward, onDraftReport }: ComplianceCalendarProps) {
   const [busyId, setBusyId] = useState<number | 'past' | 'new' | null>(null);
   const [showDone, setShowDone] = useState(false);
+  const [showAllLater, setShowAllLater] = useState(false);
   const [adding, setAdding] = useState(false);
 
   const today = todayIso();
@@ -132,7 +136,23 @@ export default function ComplianceCalendar({ award, onAward, onDraftReport }: Co
         <div className="flex flex-col gap-5">
           <Group title="Overdue" count={overdue.length}>{overdue.map(row)}</Group>
           <Group title="Next 30 days" count={soon.length}>{soon.map(row)}</Group>
-          <Group title="Later" count={later.length}>{later.map(row)}</Group>
+          <Group
+            title="Later"
+            count={later.length}
+            footer={later.length > LATER_SHOWN && (
+              <button
+                type="button"
+                onClick={() => setShowAllLater((v) => !v)}
+                aria-expanded={showAllLater}
+                className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-primary-600 hover:text-primary-700"
+              >
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showAllLater ? 'rotate-180' : ''}`} />
+                {showAllLater ? 'Show fewer' : `Show ${later.length - LATER_SHOWN} more`}
+              </button>
+            )}
+          >
+            {(showAllLater ? later : later.slice(0, LATER_SHOWN)).map(row)}
+          </Group>
           {pending.length === 0 && (
             <p className="text-sm text-brand-600">Nothing pending. Every deadline is submitted or not applicable.</p>
           )}
@@ -156,7 +176,7 @@ export default function ComplianceCalendar({ award, onAward, onDraftReport }: Co
   );
 }
 
-function Group({ title, count, children }: { title: string; count: number; children: ReactNode }) {
+function Group({ title, count, footer, children }: { title: string; count: number; footer?: ReactNode; children: ReactNode }) {
   if (count === 0) return null;
   return (
     <div>
@@ -164,6 +184,7 @@ function Group({ title, count, children }: { title: string; count: number; child
         {title} <span className="tabular-nums">({count})</span>
       </h3>
       <ul className="flex flex-col divide-y divide-brand-100">{children}</ul>
+      {footer}
     </div>
   );
 }

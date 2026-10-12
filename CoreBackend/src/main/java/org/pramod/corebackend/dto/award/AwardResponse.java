@@ -50,6 +50,8 @@ public class AwardResponse {
     /** The earliest pending deadline (overdue ones included), for the My grants list; null if none. */
     private EventResponse nextEvent;
     private int overdueCount;
+    /** The spend check's warnings for the year today falls in (4.3), for the My grants list; empty when none. */
+    private List<String> spendWarnings;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

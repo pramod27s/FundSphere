@@ -1,5 +1,6 @@
 import { apiFetch } from './apiClient';
 import { formatFundingRange } from '../utils/formatFunding';
+import { parseDeadline } from '../utils/formatDeadline';
 import { EMPTY_FILTERS, filterParams, type FilterState } from '../utils/grantFilters';
 
 export interface DiscoveryGrant {
@@ -339,8 +340,8 @@ function formatDate(value?: string): string {
     return 'Deadline not specified';
   }
 
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
+  const parsed = parseDeadline(value);
+  if (!parsed) {
     return value;
   }
 

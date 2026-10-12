@@ -125,6 +125,21 @@ public class Award {
     @OrderBy("id ASC")
     private List<AwardOutput> outputs = new ArrayList<>();
 
+    /** Spending copied from the institute's statement, per year and head (4.3). Loaded for a whole list of grants in one extra query. */
+    @Builder.Default
+    @OneToMany(mappedBy = "award", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("fyStartYear ASC, head ASC")
+    @Fetch(FetchMode.SUBSELECT)
+    private List<SpendRecord> spendRecords = new ArrayList<>();
+
+    /** The Equipment warning (4.3) fires when less than this % is used by equipmentAlertMonth; null means 25. */
+    @Column(name = "equipment_alert_percent")
+    private Integer equipmentAlertPercent;
+
+    /** 1-12; null means October. */
+    @Column(name = "equipment_alert_month")
+    private Integer equipmentAlertMonth;
+
     /** Progress-report drafts (4.4). Mapped only so deleting the grant deletes them; read through GeneratedDraftRepository. */
     @Builder.Default
     @OneToMany(mappedBy = "award", cascade = CascadeType.REMOVE)

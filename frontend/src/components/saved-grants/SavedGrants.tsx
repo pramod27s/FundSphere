@@ -13,14 +13,15 @@ import {
 import { useSavedGrants } from '../../hooks/useSavedGrants';
 import GrantDetailsModal from '../discovery/GrantDetailsModal';
 import FreshnessBadge from '../common/FreshnessBadge';
-import ProviderUpdatedInfo from '../common/ProviderUpdatedInfo';
 import type { SavedGrantEntry } from '../../services/savedGrantsService';
 import type { DiscoveryGrant } from '../../services/discoveryService';
 import { fetchApplications, type Application } from '../../services/applicationsService';
-import { formatRelativeDeadline } from '../../utils/formatDeadline';
+import { deadlineTime, formatRelativeDeadline } from '../../utils/formatDeadline';
 import WhatsAppShareButton from '../common/WhatsAppShareButton';
 import StartApplicationButton from '../applications/StartApplicationButton';
 import { STATUS_META } from '../applications/applicationMeta';
+import { ListLayout } from '../common/PageLayout';
+import SavedPanel from './SavedPanel';
 
 interface SavedGrantsProps {
   onBack: () => void;
@@ -112,7 +113,16 @@ export default function SavedGrants({ onBack }: SavedGrantsProps) {
       </div>
 
       {/* Content */}
-      <div className="flex-1 max-w-3xl w-full mx-auto px-4 py-8">
+      <ListLayout
+        panel={total > 0 && (
+          <SavedPanel
+            entries={savedGrants}
+            applicationByGrant={applicationByGrant}
+            onOpen={(entry) => setSelectedGrant(entry.grant)}
+            onUnsave={(entry) => toggleSave(entry.grant)}
+          />
+        )}
+      >
         {isLoading && total === 0 ? (
           <div className="flex items-center justify-center py-24 text-brand-500">
             <Loader2 className="w-5 h-5 animate-spin mr-2" />
@@ -134,7 +144,7 @@ export default function SavedGrants({ onBack }: SavedGrantsProps) {
             ))}
           </div>
         )}
-      </div>
+      </ListLayout>
 
       {selectedGrant && (
         <GrantDetailsModal
@@ -178,18 +188,23 @@ function SavedGrantCard({ entry, application, onOpenDetails, onUnsave, onSaveNot
     }
   };
 
+  // The whole card opens the details: the title button's click area is
+  // stretched over it (after:absolute), and everything with its own action
+  // or tooltip sits above that (relative z-10). Like the Discovery cards,
+  // only "Verified" shows here; the provider's own update date is in the details.
   return (
-    <article className="relative bg-white border border-brand-200 rounded-lg p-5 shadow-xs hover:shadow-elevated hover:border-primary-300 focus-within:ring-2 focus-within:ring-primary-300/40 transition-all duration-200 group">
+    <article className="relative bg-white border border-brand-200 rounded-lg p-5 shadow-xs hover:shadow-elevated hover:border-primary-300 focus-within:ring-2 focus-within:ring-primary-300/40 transition-all duration-200 group cursor-pointer">
       {/* Top row: funder + actions */}
       <div className="flex items-start justify-between gap-4 mb-3">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-brand-100 text-brand-700">
             {grant.funder}
           </span>
-          <FreshnessBadge timestamp={grant.lastVerifiedAt ?? grant.lastScrapedAt} />
-          <ProviderUpdatedInfo timestamp={grant.lastScrapedAt} />
+          <span className="relative z-10 inline-flex cursor-default">
+            <FreshnessBadge timestamp={grant.lastVerifiedAt ?? grant.lastScrapedAt} />
+          </span>
         </div>
-        <div className="flex items-center gap-0.5">
+        <div className="relative z-10 flex items-center gap-0.5">
           <WhatsAppShareButton grant={grant} size="sm" />
           <button
             type="button"
@@ -208,7 +223,7 @@ function SavedGrantCard({ entry, application, onOpenDetails, onUnsave, onSaveNot
       <button
         type="button"
         onClick={onOpenDetails}
-        className="text-left w-full"
+        className="text-left w-full focus-visible:outline-none after:absolute after:inset-0 after:rounded-lg"
       >
         <h3 className="text-lg font-semibold text-brand-900 group-hover:text-primary-700 transition-colors line-clamp-2 mb-2 tracking-tight">
           {grant.title}
@@ -227,7 +242,7 @@ function SavedGrantCard({ entry, application, onOpenDetails, onUnsave, onSaveNot
       )}
 
       {/* Application + notes row */}
-      <div className="flex flex-wrap items-center gap-2 mb-3">
+      <div className="relative z-10 flex flex-wrap items-center gap-2 mb-3 w-fit">
         {application ? (
           <button
             type="button"
@@ -263,7 +278,7 @@ function SavedGrantCard({ entry, application, onOpenDetails, onUnsave, onSaveNot
 
       {/* Notes editor (collapsible) */}
       {notesOpen && (
-        <div className="mb-3 rounded-lg border border-brand-200 bg-brand-50 p-3">
+        <div className="relative z-10 mb-3 rounded-lg border border-brand-200 bg-brand-50 p-3 cursor-default">
           <textarea
             value={draftNotes}
             onChange={(e) => setDraftNotes(e.target.value)}
@@ -345,7 +360,7 @@ function SavedGrantCard({ entry, application, onOpenDetails, onUnsave, onSaveNot
         </div>
         <button
           type="button"
-          className="inline-flex items-center gap-1 text-primary-600 hover:text-primary-700 font-semibold text-xs transition-colors shrink-0"
+          className="relative z-10 inline-flex items-center gap-1 text-primary-600 hover:text-primary-700 font-semibold text-xs transition-colors shrink-0"
           onClick={onOpenDetails}
           aria-label={`View details for ${grant.title}`}
         >
@@ -443,9 +458,7 @@ function EmptyState({ onBack }: { onBack: () => void }) {
 // =============================================================================
 
 function deadlineMs(entry: SavedGrantEntry): number {
-  const raw = entry.grant.deadlineRaw || entry.grant.deadline;
-  if (!raw) return Number.POSITIVE_INFINITY;
-  const t = new Date(raw).getTime();
+  const t = deadlineTime(entry.grant.deadlineRaw || entry.grant.deadline);
   // Push past-deadlines to the end of "soonest"
   if (Number.isNaN(t)) return Number.POSITIVE_INFINITY;
   if (t < Date.now()) return t + 1e15; // bury past deadlines while preserving order

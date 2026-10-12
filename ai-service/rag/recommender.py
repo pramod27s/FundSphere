@@ -43,6 +43,9 @@ from .springboot_client import SpringBootClient
 
 logger = logging.getLogger("rag.recommender")
 
+# How far back Pinecone's deadline pre-filter reaches (see _metadata_filters).
+DEADLINE_EPOCH_GRACE_SECONDS = 24 * 60 * 60
+
 
 # Per-segment weight presets (4b). Each is a conservative nudge (±≤0.10) around
 # the global defaults (0.50/0.20/0.10/0.10/0.10) and sums to 1.0. Enabled via
@@ -808,9 +811,12 @@ class RecommenderService:
         """
         deadline_clause = None
         if settings.exclude_expired_grants:
+            # A day's grace: vectors indexed before the end-of-day rule carry
+            # midnight (UTC) of the last day. This only narrows the candidates;
+            # deadline_is_open on each result makes the exact call.
             deadline_clause = {
                 "$or": [
-                    {"deadline_epoch": {"$gte": int(time.time())}},
+                    {"deadline_epoch": {"$gte": int(time.time()) - DEADLINE_EPOCH_GRACE_SECONDS}},
                     {"deadline_epoch": {"$exists": False}},
                 ]
             }

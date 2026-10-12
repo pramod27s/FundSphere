@@ -10,6 +10,7 @@ import TopLoadingBar from '../common/TopLoadingBar.tsx';
 import type { ResearcherResponse } from '../../services/researcherService';
 import { fetchGrantAgencies, getDiscoveryGrants, type DiscoveryGrant } from '../../services/discoveryService';
 import { applyFilters, countActiveFilters, EMPTY_FILTERS, grantInrAmount, type FilterState } from '../../utils/grantFilters';
+import { deadlineTime } from '../../utils/formatDeadline';
 
 /**
  * Sort key for "deadline (closing soonest)" on AI results. Grants without a
@@ -18,8 +19,7 @@ import { applyFilters, countActiveFilters, EMPTY_FILTERS, grantInrAmount, type F
  * sorts the browse list the same way.
  */
 function deadlineMs(g: DiscoveryGrant): number {
-  if (!g.deadlineRaw) return Number.POSITIVE_INFINITY;
-  const t = new Date(g.deadlineRaw).getTime();
+  const t = deadlineTime(g.deadlineRaw);
   if (Number.isNaN(t)) return Number.POSITIVE_INFINITY;
   if (t < Date.now()) return t + 1e15;
   return t;

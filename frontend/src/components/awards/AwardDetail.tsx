@@ -3,20 +3,32 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { ArrowLeft, CalendarDays, ExternalLink, FileText, Landmark, Loader2, Pencil } from 'lucide-react';
 import { fetchAward, type Award } from '../../services/awardsService';
-import { formatDay } from '../../utils/applicationDates';
+import { formatDay, todayIso } from '../../utils/applicationDates';
 import { formatInr } from '../../utils/formatFunding';
+import { DetailLayout, PanelCard } from '../common/PageLayout';
 import AwardFormModal from './AwardFormModal';
 import ComplianceCalendar from './ComplianceCalendar';
 import GenerateReportModal from './GenerateReportModal';
 import ProgressReports from './ProgressReports';
 import ProjectObjectives from './ProjectObjectives';
 import ProjectOutputs from './ProjectOutputs';
-import { AWARD_STATUS_META, HEAD_LABEL, PORTAL_LABEL, projectLength, UNSPENT_LABEL } from './awardMeta';
+import SpendCheckCard from './SpendCheckCard';
+import { AWARD_STATUS_META, PORTAL_LABEL, projectLength, timeUsed, UNSPENT_LABEL } from './awardMeta';
+
+const SECTIONS = [
+  { id: 'deadlines', label: 'Reporting deadlines' },
+  { id: 'objectives', label: 'Project objectives' },
+  { id: 'outputs', label: 'Outputs' },
+  { id: 'reports', label: 'Progress reports' },
+  { id: 'spending', label: 'Budget and spending' },
+] as const;
+type SectionId = (typeof SECTIONS)[number]['id'];
+const SECTION_IDS: readonly SectionId[] = SECTIONS.map((section) => section.id);
 
 /**
- * One grant: its sanction details, reporting portal and budget heads (4.1),
- * its deadlines (4.2), and the objectives, outputs and progress-report drafts
- * of 4.4.
+ * One grant: its sanction details and reporting portal (4.1), its deadlines
+ * (4.2), the objectives, outputs and progress-report drafts of 4.4, and its
+ * budget heads with this year's spending (4.3).
  */
 export default function AwardDetail() {
   const { id } = useParams();
@@ -62,8 +74,6 @@ export default function AwardDetail() {
     );
   }
 
-  const meta = AWARD_STATUS_META[award.status];
-
   return (
     <PageFrame
       onBack={back}
@@ -79,75 +89,30 @@ export default function AwardDetail() {
           Edit
         </button>
       }
+      panel={
+        <>
+          <GrantFacts award={award} />
+          <SectionNav award={award} />
+        </>
+      }
     >
-      <section className="bg-white border border-brand-200 rounded-xl p-5 sm:p-6 shadow-xs flex flex-col gap-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold border ${meta.chip}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
-            {meta.label}
-          </span>
-          {award.applicationId && (
-            <Link
-              to={`/applications/${award.applicationId}`}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-primary-700 hover:text-primary-800"
-            >
-              <FileText className="w-3.5 h-3.5" />
-              From your application
-            </Link>
-          )}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-          <CalendarDays className="w-4 h-4 text-brand-400" />
-          <span className="font-semibold text-brand-900">
-            {formatDay(award.startDate)} – {formatDay(award.endDate)}
-          </span>
-          <span className="text-brand-600">{projectLength(award.startDate, award.endDate)}</span>
-        </div>
-
-        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-          <Detail label="Sanction order">
-            {award.sanctionNo || award.sanctionDate
-              ? [award.sanctionNo, award.sanctionDate && `dated ${formatDay(award.sanctionDate)}`].filter(Boolean).join(', ')
-              : <Missing />}
-          </Detail>
-          <Detail label="Total sanctioned">
-            {award.totalSanctioned !== null ? <span className="tabular-nums">{formatInr(award.totalSanctioned)}</span> : <Missing />}
-          </Detail>
-          <Detail label="UCs and reports go to">
-            {award.portalUrl ? (
-              <a
-                href={award.portalUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 font-medium text-primary-700 hover:text-primary-800"
-              >
-                {award.submissionPortal === 'OTHER' ? linkHost(award.portalUrl) : PORTAL_LABEL[award.submissionPortal]}
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            ) : (
-              <Missing />
-            )}
-          </Detail>
-          <Detail label="Money unspent on 31 March">
-            {award.unspentPolicy === 'UNKNOWN' ? (
-              <span className="text-amber-800">Not sure yet. Check your sanction order.</span>
-            ) : (
-              UNSPENT_LABEL[award.unspentPolicy]
-            )}
-          </Detail>
-        </dl>
-      </section>
-
-      <ComplianceCalendar award={award} onAward={setAward} onDraftReport={(eventId) => setDrafting({ eventId })} />
-
-      <ProjectObjectives award={award} onAward={setAward} />
-
-      <ProjectOutputs award={award} />
-
-      <ProgressReports award={award} onDraft={() => setDrafting({})} />
-
-      <BudgetCard award={award} onEdit={() => setEditing(true)} />
+      <div className="flex flex-col gap-6">
+        <Section id="deadlines">
+          <ComplianceCalendar award={award} onAward={setAward} onDraftReport={(eventId) => setDrafting({ eventId })} />
+        </Section>
+        <Section id="objectives">
+          <ProjectObjectives award={award} onAward={setAward} />
+        </Section>
+        <Section id="outputs">
+          <ProjectOutputs award={award} />
+        </Section>
+        <Section id="reports">
+          <ProgressReports award={award} onDraft={() => setDrafting({})} />
+        </Section>
+        <Section id="spending">
+          <SpendCheckCard award={award} onEdit={() => setEditing(true)} />
+        </Section>
+      </div>
 
       {drafting && <GenerateReportModal award={award} eventId={drafting.eventId} onClose={() => setDrafting(null)} />}
 
@@ -167,56 +132,161 @@ export default function AwardDetail() {
   );
 }
 
-function BudgetCard({ award, onEdit }: { award: Award; onEdit: () => void }) {
-  const lines = award.budgetLines;
-  const base = award.totalSanctioned ?? award.allocatedTotal;
-  const gap = award.totalSanctioned !== null && award.allocatedTotal > 0 ? award.totalSanctioned - award.allocatedTotal : 0;
-
+/** The grant's dates and sanction details: the side panel from xl up, the page's first card below. */
+function GrantFacts({ award }: { award: Award }) {
+  const meta = AWARD_STATUS_META[award.status];
+  const time = timeUsed(award);
   return (
-    <section className="bg-white border border-brand-200 rounded-xl p-5 sm:p-6 shadow-xs mt-6">
-      <h2 className="text-base font-bold text-brand-900 tracking-tight mb-4">Budget heads</h2>
-      {lines.length === 0 ? (
-        <div className="text-sm text-brand-600">
-          No budget heads yet.{' '}
-          <button type="button" onClick={onEdit} className="font-semibold text-primary-700 hover:text-primary-800">
-            Add them from your sanction order
-          </button>
-        </div>
-      ) : (
-        <>
-          <ul className="flex flex-col gap-3">
-            {lines.map((line) => {
-              const share = base > 0 ? Math.round((line.allocated * 100) / base) : 0;
-              return (
-                <li key={line.id}>
-                  <div className="flex items-baseline justify-between gap-3 text-sm mb-1">
-                    <span className="font-medium text-brand-800">{HEAD_LABEL[line.head]}</span>
-                    <span className="tabular-nums text-brand-900 font-semibold">
-                      {formatInr(line.allocated)}
-                      <span className="text-brand-500 font-normal ml-2">{share}%</span>
-                    </span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-brand-100 overflow-hidden" aria-hidden="true">
-                    <div className="h-full rounded-full bg-primary-500" style={{ width: `${Math.min(share, 100)}%` }} />
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-          <div className="flex items-baseline justify-between gap-3 text-sm pt-3 mt-4 border-t border-brand-100">
-            <span className="font-semibold text-brand-900">Heads total</span>
-            <span className="tabular-nums font-bold text-brand-900">{formatInr(award.allocatedTotal)}</span>
+    <section aria-label="Grant details" className="bg-white border border-brand-200 rounded-xl xl:rounded-lg p-5 sm:p-6 xl:p-4 shadow-xs flex flex-col gap-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold border ${meta.chip}`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
+          {meta.label}
+        </span>
+        {award.applicationId && (
+          <Link
+            to={`/applications/${award.applicationId}`}
+            className="inline-flex items-center gap-1 text-xs font-semibold text-primary-700 hover:text-primary-800"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            From your application
+          </Link>
+        )}
+      </div>
+
+      <div>
+        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+          <CalendarDays className="w-4 h-4 text-brand-400" />
+          <span className="font-semibold text-brand-900">
+            {formatDay(award.startDate)} – {formatDay(award.endDate)}
+          </span>
+          <span className="text-brand-600">{projectLength(award.startDate, award.endDate)}</span>
+        </p>
+        {award.status === 'ACTIVE' && (
+          <div className="mt-2.5 max-w-md xl:max-w-none">
+            <span className="block h-1.5 rounded-full bg-brand-100 overflow-hidden" aria-hidden="true">
+              <span className="block h-full rounded-full bg-primary-500" style={{ width: `${time.percent}%` }} />
+            </span>
+            <span className="mt-1 block text-xs text-brand-500 tabular-nums">{time.label}</span>
           </div>
-          {gap !== 0 && (
-            <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-3">
-              The heads are {formatInr(Math.abs(gap))} {gap > 0 ? 'less' : 'more'} than the total sanctioned.
-              Check the figures against your sanction order.
-            </p>
+        )}
+      </div>
+
+      <dl className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-x-6 gap-y-3 text-sm">
+        <Detail label="Sanction order">
+          {award.sanctionNo || award.sanctionDate
+            ? [award.sanctionNo, award.sanctionDate && `dated ${formatDay(award.sanctionDate)}`].filter(Boolean).join(', ')
+            : <Missing />}
+        </Detail>
+        <Detail label="Total sanctioned">
+          {award.totalSanctioned !== null ? <span className="tabular-nums">{formatInr(award.totalSanctioned)}</span> : <Missing />}
+        </Detail>
+        <Detail label="UCs and reports go to">
+          {award.portalUrl ? (
+            <a
+              href={award.portalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 font-medium text-primary-700 hover:text-primary-800 break-all"
+            >
+              {award.submissionPortal === 'OTHER' ? linkHost(award.portalUrl) : PORTAL_LABEL[award.submissionPortal]}
+              <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+            </a>
+          ) : (
+            <Missing />
           )}
-        </>
-      )}
+        </Detail>
+        <Detail label="Money unspent on 31 March">
+          {award.unspentPolicy === 'UNKNOWN' ? (
+            <span className="text-amber-800">Not sure yet. Check your sanction order.</span>
+          ) : (
+            UNSPENT_LABEL[award.unspentPolicy]
+          )}
+        </Detail>
+      </dl>
     </section>
   );
+}
+
+/** "On this page": jumps to each section and marks the one being read. Only beside the page (xl up). */
+function SectionNav({ award }: { award: Award }) {
+  const active = useActiveSection(SECTION_IDS);
+  const today = todayIso();
+  const pending = award.events.filter((e) => e.status === 'PENDING');
+  const overdue = pending.filter((e) => e.dueDate < today).length;
+  const warnings = award.spendWarnings.length;
+  const hints: Partial<Record<SectionId, ReactNode>> = {
+    deadlines: overdue > 0 ? <span className="font-semibold text-red-700">{overdue} overdue</span> : `${pending.length} pending`,
+    objectives: award.objectives.length > 0 ? String(award.objectives.length) : 'None yet',
+    spending: warnings > 0
+      ? <span className="font-semibold text-amber-800">{warnings} {warnings === 1 ? 'warning' : 'warnings'}</span>
+      : undefined,
+  };
+
+  return (
+    <PanelCard title="On this page" className="hidden xl:block">
+      <nav>
+        <ul className="-mx-2 flex flex-col">
+          {SECTIONS.map(({ id, label }) => {
+            const current = active === id;
+            return (
+              <li key={id}>
+                <a
+                  href={`#${id}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    scrollToSection(id);
+                  }}
+                  aria-current={current ? 'location' : undefined}
+                  className={`flex items-center justify-between gap-3 px-2 py-1.5 rounded-md text-sm ${
+                    current ? 'bg-primary-50 text-primary-800 font-semibold' : 'text-brand-700 hover:bg-brand-50'
+                  }`}
+                >
+                  <span>{label}</span>
+                  {hints[id] && <span className="text-xs font-normal text-brand-500 tabular-nums">{hints[id]}</span>}
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+    </PanelCard>
+  );
+}
+
+/** A section's anchor. The page spaces its sections, so the card's own top margin is dropped. */
+function Section({ id, children }: { id: SectionId; children: ReactNode }) {
+  return <div id={id} className="scroll-mt-22 *:mt-0">{children}</div>;
+}
+
+function scrollToSection(id: string) {
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  document.getElementById(id)?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+}
+
+/** The last section whose top has scrolled past a line just under the header; the last one at the page's end. */
+function useActiveSection(ids: readonly string[]): string | null {
+  const [active, setActive] = useState<string | null>(ids[0] ?? null);
+  useEffect(() => {
+    const update = () => {
+      let current = ids[0] ?? null;
+      for (const id of ids) {
+        const top = document.getElementById(id)?.getBoundingClientRect().top;
+        if (top !== undefined && top <= 120) current = id;
+      }
+      // Short sections at the end can't reach the line, so the page's end marks the last one.
+      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) current = ids[ids.length - 1] ?? current;
+      setActive(current);
+    };
+    update();
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    return () => {
+      window.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+    };
+  }, [ids]);
+  return active;
 }
 
 function Detail({ label, children }: { label: string; children: ReactNode }) {
@@ -246,12 +316,14 @@ function PageFrame({
   title,
   subtitle,
   actions,
+  panel,
   children,
 }: {
   onBack: () => void;
   title: string;
   subtitle?: string;
   actions?: ReactNode;
+  panel?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -278,7 +350,7 @@ function PageFrame({
         </div>
         {actions}
       </div>
-      <div className="flex-1 max-w-4xl w-full mx-auto px-4 py-6 sm:py-8">{children}</div>
+      <DetailLayout panel={panel}>{children}</DetailLayout>
     </div>
   );
 }

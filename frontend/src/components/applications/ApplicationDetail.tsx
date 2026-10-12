@@ -25,15 +25,20 @@ import {
   type Application,
   type ApplicationStatus,
   type ChecklistItemChanges,
+  type StatusChange,
 } from '../../services/applicationsService';
 import { deadlineCountdown, formatDay, formatTimestampDay, todayIso, TONE_TEXT } from '../../utils/applicationDates';
 import { googleCalendarDeadlineUrl, sendPendingListToWhatsApp } from '../../utils/shareApplication';
 import { ROW_ACTION } from '../common/buttonStyles';
+import { DetailLayout } from '../common/PageLayout';
 import { WhatsAppGlyph } from '../common/WhatsAppShareButton';
 import ApplicationFormModal from './ApplicationFormModal';
 import ChecklistTab from './ChecklistTab';
 import ReadinessTab from './ReadinessTab';
 import ProposalTab from '../proposal-review/ProposalTab';
+import VersionHistory from '../proposal-review/VersionHistory';
+import { useApplicationReviews } from '../proposal-review/useApplicationReviews';
+import { CategoryProgress, OwnerLoad } from './WorkspacePanels';
 import AwardFormModal from '../awards/AwardFormModal';
 import { guessPortal, guessProfile } from '../awards/awardMeta';
 import { STATUS_META, STATUS_ORDER } from './applicationMeta';
@@ -55,6 +60,8 @@ export default function ApplicationDetail() {
     const requested = searchParams.get('tab') as Tab | null;
     return requested && TABS.includes(requested) ? requested : 'checklist';
   });
+  // The Proposal tab's draft versions, kept here so the side panel can list them too.
+  const versions = useApplicationReviews(applicationId, tab === 'proposal');
   const [editing, setEditing] = useState(false);
   // The "Add my grant" form (Objective 4), opened when the application is marked Awarded.
   const [settingUpGrant, setSettingUpGrant] = useState(false);
@@ -183,9 +190,15 @@ export default function ApplicationDetail() {
       title={application.title}
       subtitle={application.agency ?? undefined}
       actions={<StatusMenu status={application.status} onChange={changeStatus} />}
+      panel={
+        <>
+          <Summary application={application} onEdit={() => setEditing(true)} />
+          {tab === 'checklist' && <CategoryProgress items={items} />}
+          {tab === 'readiness' && <OwnerLoad items={items} />}
+          {tab === 'proposal' && application.guidelineExtractionId !== null && <VersionHistory versions={versions} />}
+        </>
+      }
     >
-      <Summary application={application} onEdit={() => setEditing(true)} />
-
       {application.status === 'AWARDED' && (
         <AwardedBanner
           awardId={application.awardId ?? null}
@@ -194,7 +207,7 @@ export default function ApplicationDetail() {
         />
       )}
 
-      <div className="flex items-center gap-1 border-b border-brand-200 mt-6 mb-5 overflow-x-auto" role="tablist">
+      <div className="flex items-center gap-1 border-b border-brand-200 mb-5 overflow-x-auto" role="tablist">
         <TabButton active={tab === 'checklist'} onClick={() => setTab('checklist')} label="Checklist" count={items.length} />
         <TabButton active={tab === 'readiness'} onClick={() => setTab('readiness')} label="Readiness tracker" shortLabel="Tracker" count={pendingCount} countLabel="to do" />
         <TabButton active={tab === 'proposal'} onClick={() => setTab('proposal')} label="Proposal" />
@@ -216,7 +229,7 @@ export default function ApplicationDetail() {
       ) : tab === 'readiness' ? (
         <ReadinessTab application={application} items={items} onPatchItem={patchItem} onEditDetails={() => setEditing(true)} />
       ) : (
-        <ProposalTab application={application} onOpenChecklist={() => setTab('checklist')} />
+        <ProposalTab application={application} versions={versions} onOpenChecklist={() => setTab('checklist')} />
       )}
 
       {editing && (
@@ -264,7 +277,7 @@ function AwardedBanner({
   onOpen: (awardId: number) => void;
 }) {
   return (
-    <section className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl border border-primary-200 bg-primary-50 px-5 py-4">
+    <section className="mb-6 flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl border border-primary-200 bg-primary-50 px-5 py-4">
       <Landmark className="w-5 h-5 text-primary-600 shrink-0" aria-hidden="true" />
       <p className="flex-1 text-sm text-primary-900">
         {awardId
@@ -287,12 +300,14 @@ function PageFrame({
   title,
   subtitle,
   actions,
+  panel,
   children,
 }: {
   onBack: () => void;
   title: string;
   subtitle?: string;
   actions?: ReactNode;
+  panel?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -319,11 +334,16 @@ function PageFrame({
         </div>
         {actions}
       </div>
-      <div className="flex-1 max-w-4xl w-full mx-auto px-4 py-6 sm:py-8">{children}</div>
+      <DetailLayout panel={panel}>{children}</DetailLayout>
     </div>
   );
 }
 
+/**
+ * Readiness, deadline and the share actions. Below xl it's the page's first
+ * card with the ring beside everything; in the xl side panel the ring sits
+ * beside the headline and the rest stacks under them.
+ */
 function Summary({ application, onEdit }: { application: Application; onEdit: () => void }) {
   const { readiness } = application;
   const countdown = deadlineCountdown(application.deadline);
@@ -333,12 +353,12 @@ function Summary({ application, onEdit }: { application: Application; onEdit: ()
   const history = application.statusHistory ?? [];
 
   return (
-    <section className="bg-white border border-brand-200 rounded-xl p-5 sm:p-6 shadow-xs">
-      <div className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-6 items-center">
+    <section aria-label="Readiness" className="bg-white border border-brand-200 rounded-xl xl:rounded-lg p-5 sm:p-6 xl:p-4 shadow-xs">
+      <div className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-6 xl:gap-4 items-center">
         <ReadinessRing percent={readiness.percent} />
 
-        <div className="flex flex-col gap-3 min-w-0">
-          <div>
+        <div className="flex flex-col gap-3 min-w-0 xl:contents">
+          <div className="min-w-0">
             <p className="text-sm font-semibold text-brand-900">
               {readiness.percent === null
                 ? 'No required items yet'
@@ -352,7 +372,7 @@ function Summary({ application, onEdit }: { application: Application; onEdit: ()
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm xl:col-span-2">
             <CalendarDays className="w-4 h-4 text-brand-400" />
             {application.deadline ? (
               <>
@@ -368,12 +388,12 @@ function Summary({ application, onEdit }: { application: Application; onEdit: ()
             </button>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 xl:col-span-2 xl:flex-col xl:items-stretch">
             <button
               type="button"
               onClick={() => sendPendingListToWhatsApp(application, items)}
               disabled={items.length === 0}
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold text-white bg-[#1fa855] hover:bg-[#1a9049] disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
+              className="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold text-white bg-[#1fa855] hover:bg-[#1a9049] disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
               title={items.length === 0 ? 'Build the checklist first' : 'Pending items grouped by owner, ready to send to your lab group'}
             >
               <WhatsAppGlyph className="w-4 h-4" />
@@ -391,7 +411,7 @@ function Summary({ application, onEdit }: { application: Application; onEdit: ()
                 href={application.callUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-brand-700 hover:bg-brand-100"
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-brand-700 hover:bg-brand-100"
               >
                 Call page
                 <ExternalLink className="w-3.5 h-3.5" />
@@ -399,16 +419,49 @@ function Summary({ application, onEdit }: { application: Application; onEdit: ()
             )}
           </div>
 
-          {history.length > 1 && (
-            <p className="text-xs text-brand-500">
-              {history
-                .map((h) => `${h.fromStatus === null ? 'Started' : STATUS_META[h.toStatus].label} ${formatTimestampDay(h.changedAt)}`)
-                .join(' · ')}
-            </p>
-          )}
+          {history.length > 1 && <StatusTimeline history={history} />}
         </div>
       </div>
     </section>
+  );
+}
+
+const HISTORY_SHOWN = 3;
+
+/** The status changes, newest first; older ones fold away after three. */
+function StatusTimeline({ history }: { history: StatusChange[] }) {
+  const [showAll, setShowAll] = useState(false);
+  const newestFirst = [...history].reverse();
+  const shown = showAll ? newestFirst : newestFirst.slice(0, HISTORY_SHOWN);
+  return (
+    <div className="pt-3 border-t border-brand-100 xl:col-span-2">
+      <h3 className="text-[11px] font-semibold uppercase tracking-wide text-brand-500 mb-2">History</h3>
+      <ol className="flex flex-col gap-1.5">
+        {shown.map((change, i) => (
+          <li key={`${change.changedAt}-${i}`} className="flex items-center gap-2 text-xs">
+            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_META[change.toStatus].dot}`} aria-hidden="true" />
+            <span className="font-medium text-brand-800">
+              {change.fromStatus === null
+                ? 'Started'
+                : change.toStatus === 'PREPARING'
+                  ? 'Back to preparing'
+                  : `Marked ${STATUS_META[change.toStatus].label.toLowerCase()}`}
+            </span>
+            <span className="ml-auto text-brand-500 tabular-nums">{formatTimestampDay(change.changedAt)}</span>
+          </li>
+        ))}
+      </ol>
+      {newestFirst.length > HISTORY_SHOWN && (
+        <button
+          type="button"
+          onClick={() => setShowAll((v) => !v)}
+          aria-expanded={showAll}
+          className="mt-2 text-xs font-semibold text-primary-600 hover:text-primary-700"
+        >
+          {showAll ? 'Show fewer' : `Show all ${newestFirst.length}`}
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -417,7 +470,7 @@ function ReadinessRing({ percent }: { percent: number | null }) {
   const circumference = 2 * Math.PI * radius;
   const value = percent ?? 0;
   return (
-    <div className="relative w-24 h-24 shrink-0 mx-auto md:mx-0" role="img" aria-label={percent === null ? 'Readiness not available yet' : `${percent}% ready`}>
+    <div className="relative w-24 h-24 xl:w-20 xl:h-20 shrink-0 mx-auto md:mx-0" role="img" aria-label={percent === null ? 'Readiness not available yet' : `${percent}% ready`}>
       <svg viewBox="0 0 80 80" className="w-full h-full -rotate-90">
         <circle cx="40" cy="40" r={radius} fill="none" stroke="var(--color-brand-100)" strokeWidth="8" />
         <circle
@@ -444,13 +497,13 @@ function ReadinessRing({ percent }: { percent: number | null }) {
 function CalendarMenu({ onDownload, googleUrl }: { onDownload: () => void; googleUrl: string | null }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="relative">
+    <div className="relative xl:w-full">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold text-brand-900 bg-white border border-brand-300 hover:bg-brand-50 shadow-xs"
+        className="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold text-brand-900 bg-white border border-brand-300 hover:bg-brand-50 shadow-xs xl:w-full"
       >
         <CalendarPlus className="w-4 h-4" />
         Add to calendar

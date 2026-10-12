@@ -1,4 +1,5 @@
 import type {
+  Award,
   AwardOutputType,
   AwardStatus,
   BudgetHead,
@@ -143,6 +144,18 @@ export function projectLength(startDate: string, endDate: string): string {
   const monthText = rest === 1 ? '1 month' : `${rest} months`;
   if (years === 0) return monthText;
   return rest === 0 ? yearText : `${yearText} ${monthText}`;
+}
+
+/** How much of the project's time has gone, e.g. "Year 1 of 3 · 5% of the time used". */
+export function timeUsed(award: Pick<Award, 'startDate' | 'endDate'>, today: string = todayIso()): { percent: number; label: string } {
+  const totalDays = daysUntil(award.endDate, award.startDate) + 1;
+  const goneDays = daysUntil(today, award.startDate);
+  if (goneDays < 0) return { percent: 0, label: `Starts ${formatDay(award.startDate)}` };
+  if (goneDays >= totalDays) return { percent: 100, label: `Ended ${formatDay(award.endDate)}` };
+  const percent = Math.round((goneDays / totalDays) * 100);
+  const years = Math.max(1, Math.ceil(Math.round(totalDays / 30.44) / 12));
+  const year = Math.min(years, Math.floor(goneDays / 30.44 / 12) + 1);
+  return { percent, label: years === 1 ? `${percent}% of the time used` : `Year ${year} of ${years} · ${percent}% of the time used` };
 }
 
 export const OUTPUT_ORDER: AwardOutputType[] = ['PAPER', 'STUDENT', 'EQUIPMENT', 'PATENT', 'MILESTONE', 'OTHER'];

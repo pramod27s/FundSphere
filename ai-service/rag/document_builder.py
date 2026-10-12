@@ -1,8 +1,7 @@
 import re
-from datetime import datetime, timezone
-from dateutil import parser as date_parser
 from .schemas import GrantData
 from .config import settings
+from .filters import deadline_moment
 
 
 def _clean_str(value: str | None) -> str:
@@ -23,15 +22,9 @@ def _clean_list(values: list[str] | None) -> list[str]:
 
 
 def _to_epoch(date_value: str | None) -> int | None:
-    if not date_value:
-        return None
-    try:
-        dt = date_parser.parse(date_value)
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
-        return int(dt.timestamp())
-    except Exception:
-        return None
+    """The deadline's epoch seconds for Pinecone's filter, read like deadline_is_open."""
+    dt = deadline_moment(date_value)
+    return int(dt.timestamp()) if dt else None
 
 
 def build_grant_document(grant: GrantData) -> str:

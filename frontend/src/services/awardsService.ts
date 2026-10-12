@@ -92,6 +92,8 @@ export interface Award {
   /** The earliest pending deadline, overdue ones included. */
   nextEvent: ComplianceEvent | null;
   overdueCount: number;
+  /** The spend check's warnings for the year today falls in (4.3); empty when none. */
+  spendWarnings: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -246,6 +248,74 @@ export async function updateAwardObjectives(awardId: number, objectives: string[
   });
   await ensureOk(response, 'Could not save the objectives');
   return (await response.json()) as Award;
+}
+
+// ---------------------------------------------------------------------------
+// Spend check (4.3): totals per head copied from the institute's statement
+// ---------------------------------------------------------------------------
+
+export type SpendWarningKind = 'OVERSPENT' | 'YEAR_END' | 'EQUIPMENT' | 'STALE' | 'ESTIMATED' | 'NO_SPENDING';
+
+export interface SpendHead {
+  head: BudgetHead;
+  /** The head's allocation for the whole project. */
+  allocated: number;
+  /** Its budget for this year: what the PI entered, or FundSphere's estimate. */
+  budget: number;
+  estimated: boolean;
+  /** Spent this year so far; null when not entered. */
+  spent: number | null;
+  usedPercent: number | null;
+}
+
+export interface SpendCheck {
+  fyStartYear: number;
+  /** "FY 2026-27" */
+  label: string;
+  /** YYYY-MM-DD: the year cut to the project's dates. */
+  yearStart: string;
+  yearEnd: string;
+  /** The project ends before 31 March of this year. */
+  endsWithProject: boolean;
+  /** Today falls in this year. */
+  current: boolean;
+  yearGonePercent: number;
+  /** YYYY-MM-DD: the statement the figures were copied from; null when none. */
+  asOf: string | null;
+  heads: SpendHead[];
+  totalBudget: number;
+  totalSpent: number | null;
+  /** notice: asks for data (stale, estimated, nothing recorded) rather than warning about money. */
+  warnings: { kind: SpendWarningKind; head: BudgetHead | null; message: string; notice: boolean }[];
+  years: { fyStartYear: number; label: string }[];
+  equipmentAlertPercent: number;
+  equipmentAlertMonth: number;
+}
+
+/** Replaces a year's figures; budget null = use the estimate. Amounts are whole rupees. */
+export interface SpendInput {
+  asOf: string | null;
+  heads: { head: BudgetHead; budget: number | null; spent: number | null }[];
+  equipmentAlertPercent?: number;
+  equipmentAlertMonth?: number;
+}
+
+/** The given year's spend check, or the year today falls in. */
+export async function fetchSpending(awardId: number, fyStartYear?: number): Promise<SpendCheck> {
+  const query = fyStartYear === undefined ? '' : `?fy=${fyStartYear}`;
+  const response = await apiFetch(`/api/awards/${awardId}/spending${query}`);
+  await ensureOk(response, 'Could not load the spending');
+  return (await response.json()) as SpendCheck;
+}
+
+export async function updateSpending(awardId: number, fyStartYear: number, input: SpendInput): Promise<SpendCheck> {
+  const response = await apiFetch(`/api/awards/${awardId}/spending/${fyStartYear}`, {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  });
+  await ensureOk(response, 'Could not save the spending');
+  grantsChanged();
+  return (await response.json()) as SpendCheck;
 }
 
 // ---------------------------------------------------------------------------

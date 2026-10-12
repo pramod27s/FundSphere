@@ -7,6 +7,7 @@
  * Keep the two in step.
  */
 import type { DiscoveryGrant } from '../services/discoveryService';
+import { deadlineTime } from './formatDeadline';
 
 /** The sidebar's selections, by option label. */
 export interface FilterState {
@@ -83,8 +84,7 @@ export function grantInrAmount(g: DiscoveryGrant): number | null {
 
 /** Same rule as the deadline label: closed once the deadline has passed. */
 export function isClosed(g: DiscoveryGrant, now: number = Date.now()): boolean {
-  if (!g.deadlineRaw) return false;
-  const t = new Date(g.deadlineRaw).getTime();
+  const t = deadlineTime(g.deadlineRaw);
   return !Number.isNaN(t) && t < now;
 }
 
@@ -126,7 +126,7 @@ export function applyFilters(grants: DiscoveryGrant[], f: FilterState, includeCl
     }
 
     if (deadlineRanges.length > 0) {
-      const t = g.deadlineRaw ? new Date(g.deadlineRaw).getTime() : NaN;
+      const t = deadlineTime(g.deadlineRaw);
       if (Number.isNaN(t)) return false;
       const daysLeft = (t - now) / DAY_MS;
       if (!deadlineRanges.some((key) => inDeadlineRange(key, daysLeft))) return false;

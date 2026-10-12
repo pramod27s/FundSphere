@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, CalendarDays, CalendarPlus, ChevronRight, Landmark, Loader2, Plus, TriangleAlert } from 'lucide-react';
 import { fetchAwards, type Award, type ComplianceEvent } from '../../services/awardsService';
-import { daysUntil, formatDay, todayIso } from '../../utils/applicationDates';
+import { formatDay } from '../../utils/applicationDates';
 import { formatInr } from '../../utils/formatFunding';
+import { ListLayout } from '../common/PageLayout';
 import AwardFormModal from './AwardFormModal';
+import AwardsPanel from './AwardsPanel';
 import CalendarSyncModal from './CalendarSyncModal';
 import { AWARD_STATUS_META, DEADLINE_TONE_CLASS, deadlineStatus, projectLength } from './awardMeta';
 
@@ -81,7 +83,11 @@ export default function Awards() {
         </button>
       </div>
 
-      <div className="flex-1 max-w-3xl w-full mx-auto px-4 py-8">
+      <ListLayout
+        panel={awards && awards.length > 0 && (
+          <AwardsPanel awards={awards} onOpen={(id) => navigate(`/my-grants/${id}`)} onSync={() => setSyncing(true)} />
+        )}
+      >
         {error ? (
           <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-800">{error}</div>
         ) : awards === null ? (
@@ -93,13 +99,12 @@ export default function Awards() {
           <EmptyState onAdd={() => setAdding(true)} onApplications={() => navigate('/applications')} />
         ) : (
           <div className="flex flex-col gap-4">
-            <DueSoonCard awards={awards} onOpen={(id) => navigate(`/my-grants/${id}`)} />
             {sorted.map((award) => (
               <AwardCard key={award.id} award={award} onOpen={() => navigate(`/my-grants/${award.id}`)} />
             ))}
           </div>
         )}
-      </div>
+      </ListLayout>
 
       {adding && (
         <AwardFormModal
@@ -136,6 +141,12 @@ function AwardCard({ award, onOpen }: { award: Award; onOpen: () => void }) {
             {award.overdueCount} overdue
           </span>
         )}
+        {award.spendWarnings.length > 0 && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+            <TriangleAlert className="w-3 h-3" />
+            {award.spendWarnings.length} spending {award.spendWarnings.length === 1 ? 'warning' : 'warnings'}
+          </span>
+        )}
       </div>
 
       <h3 className="text-lg font-semibold text-brand-900 group-hover:text-primary-700 transition-colors line-clamp-2 tracking-tight">
@@ -143,6 +154,9 @@ function AwardCard({ award, onOpen }: { award: Award; onOpen: () => void }) {
       </h3>
       {award.scheme && <p className="text-sm text-brand-600 mt-0.5 line-clamp-1">{award.scheme}</p>}
       {award.nextEvent && <NextDeadline event={award.nextEvent} />}
+      {award.spendWarnings.length > 0 && (
+        <p className="mt-2 text-xs text-amber-800 line-clamp-2">{award.spendWarnings[0]}</p>
+      )}
 
       <div className="flex flex-wrap items-center justify-between gap-3 pt-3 mt-3 border-t border-brand-100 text-sm">
         <span className="inline-flex items-center gap-1.5 text-brand-600 font-medium">
@@ -159,64 +173,6 @@ function AwardCard({ award, onOpen }: { award: Award; onOpen: () => void }) {
         </span>
       </div>
     </button>
-  );
-}
-
-const DUE_SOON_DAYS = 30;
-const DUE_SOON_SHOWN = 6;
-
-/**
- * 4.2 "Due this month": every grant's pending deadlines that are overdue or
- * due in the next 30 days, soonest first. Hidden when there are none.
- */
-function DueSoonCard({ awards, onOpen }: { awards: Award[]; onOpen: (awardId: number) => void }) {
-  const today = todayIso();
-  const due = awards
-    .flatMap((award) => award.events
-      .filter((event) => event.status === 'PENDING' && daysUntil(event.dueDate, today) <= DUE_SOON_DAYS)
-      .map((event) => ({ award, event })))
-    .sort((a, b) => a.event.dueDate.localeCompare(b.event.dueDate));
-  if (due.length === 0) return null;
-  const overdue = due.filter(({ event }) => event.dueDate < today).length;
-
-  return (
-    <section className="bg-white border border-brand-200 rounded-lg p-5 shadow-xs" aria-labelledby="due-soon-heading">
-      <div className="flex flex-wrap items-baseline justify-between gap-2 mb-2">
-        <h2 id="due-soon-heading" className="text-base font-bold text-brand-900 tracking-tight">Due in the next 30 days</h2>
-        <p className="text-xs text-brand-500 tabular-nums">
-          {due.length} {due.length === 1 ? 'deadline' : 'deadlines'}
-          {overdue > 0 && <span className="font-semibold text-red-700"> · {overdue} overdue</span>}
-        </p>
-      </div>
-      <ul className="flex flex-col divide-y divide-brand-100">
-        {due.slice(0, DUE_SOON_SHOWN).map(({ award, event }) => {
-          const status = deadlineStatus(event.dueDate, today);
-          const tone = DEADLINE_TONE_CLASS[status.tone];
-          return (
-            <li key={event.id}>
-              <button
-                type="button"
-                onClick={() => onOpen(award.id)}
-                className="w-full text-left py-2.5 flex items-start gap-3 group"
-              >
-                <span className={`w-2 h-2 mt-1.5 rounded-full shrink-0 ${tone.dot}`} aria-hidden="true" />
-                <span className="flex-1 min-w-0">
-                  <span className="block text-sm font-medium text-brand-900 group-hover:text-primary-700">{event.title}</span>
-                  <span className="block text-xs text-brand-500 truncate">{award.projectTitle}</span>
-                </span>
-                <span className="text-right shrink-0">
-                  <span className="block text-xs text-brand-700">{formatDay(event.dueDate)}</span>
-                  <span className={`block text-xs font-semibold ${tone.text}`}>{status.label}</span>
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-      {due.length > DUE_SOON_SHOWN && (
-        <p className="text-xs text-brand-500 mt-2">And {due.length - DUE_SOON_SHOWN} more. Open a grant to see all of its deadlines.</p>
-      )}
-    </section>
   );
 }
 
