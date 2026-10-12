@@ -1,0 +1,138 @@
+<svg viewBox="0 0 1200 456" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="fs-arch-title fs-arch-desc">
+  <title id="fs-arch-title">FundSphere architecture</title>
+  <desc id="fs-arch-desc">The React frontend calls the Spring Boot CoreBackend with a user JWT. CoreBackend stores data in PostgreSQL and calls the FastAPI ai-service with RS256-signed tokens; ai-service calls back with an integration API key and uses Pinecone, Gemini and Groq. A daily grant scraper posts new and changed grants to CoreBackend.</desc>
+  <defs>
+    <linearGradient id="arch-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#050a14" />
+      <stop offset="50%" stop-color="#0b1528" />
+      <stop offset="100%" stop-color="#041e24" />
+    </linearGradient>
+    <radialGradient id="arch-glow" cx="50%" cy="35%" r="55%">
+      <stop offset="0%" stop-color="#0d9488" stop-opacity="0.14" />
+      <stop offset="100%" stop-color="#0d9488" stop-opacity="0" />
+    </radialGradient>
+    <pattern id="arch-grid" width="30" height="30" patternUnits="userSpaceOnUse">
+      <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#1e293b" stroke-width="0.75" stroke-opacity="0.45" />
+    </pattern>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 Z" fill="#2dd4bf" />
+    </marker>
+  </defs>
+
+  <!-- Card -->
+  <rect width="1200" height="456" rx="20" fill="url(#arch-bg)" />
+  <rect width="1200" height="456" rx="20" fill="url(#arch-grid)" />
+  <rect width="1200" height="456" rx="20" fill="url(#arch-glow)" />
+  <rect x="0.75" y="0.75" width="1198.5" height="454.5" rx="19.25" fill="none" stroke="#134e4a" stroke-opacity="0.55" stroke-width="1.5" />
+
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Inter, 'Helvetica Neue', Arial, sans-serif">
+
+    <!-- ============ Connections (drawn first, under the boxes) ============ -->
+    <g stroke="#2dd4bf" stroke-opacity="0.8" stroke-width="1.75" fill="none">
+      <!-- frontend → CoreBackend -->
+      <path d="M 342 150 H 446" marker-end="url(#arrow)" />
+      <!-- CoreBackend → ai-service -->
+      <path d="M 752 138 H 856" marker-end="url(#arrow)" />
+      <!-- ai-service → CoreBackend -->
+      <path d="M 858 168 H 754" marker-end="url(#arrow)" />
+      <!-- CoreBackend ↔ PostgreSQL -->
+      <path d="M 600 278 V 344" marker-start="url(#arrow)" marker-end="url(#arrow)" />
+      <!-- ai-service → Pinecone, Gemini · Groq -->
+      <path d="M 932 278 V 344" marker-end="url(#arrow)" />
+      <path d="M 1088 278 V 344" marker-end="url(#arrow)" />
+      <!-- scraper → CoreBackend -->
+      <path d="M 342 380 H 470 V 280" marker-end="url(#arrow)" />
+    </g>
+
+    <g font-size="12" fill="#94a3b8" text-anchor="middle">
+      <text x="394" y="140">REST · user JWT</text>
+      <text x="804" y="128">RS256 JWT</text>
+      <text x="804" y="188">API key</text>
+      <text x="406" y="370">grants · API key</text>
+    </g>
+
+    <!-- ============ frontend ============ -->
+    <g transform="translate(40, 60)">
+      <rect width="300" height="216" rx="14" fill="#0f172a" fill-opacity="0.9" stroke="#0d9488" stroke-opacity="0.7" stroke-width="1.25" />
+      <text x="20" y="36" font-size="18" font-weight="800" fill="#ffffff">frontend</text>
+      <rect x="226" y="20" width="56" height="22" rx="11" fill="#0f766e" fill-opacity="0.35" stroke="#14b8a6" stroke-opacity="0.6" />
+      <text x="254" y="35" font-size="11.5" font-weight="700" fill="#5eead4" text-anchor="middle">:5173</text>
+      <text x="20" y="60" font-size="12.5" font-weight="600" fill="#5eead4">React 19 · TypeScript · Vite 7</text>
+      <path d="M 20 76 H 280" stroke="#1e3a4a" />
+      <g font-size="12.5" fill="#cbd5e1">
+        <text x="20" y="100">Discovery and saved grants</text>
+        <text x="20" y="122">Applications and checklists</text>
+        <text x="20" y="144">Proposal review</text>
+        <text x="20" y="166">My grants and reports</text>
+      </g>
+    </g>
+
+    <!-- ============ CoreBackend ============ -->
+    <g transform="translate(450, 60)">
+      <rect width="300" height="216" rx="14" fill="#0f172a" fill-opacity="0.9" stroke="#0d9488" stroke-opacity="0.7" stroke-width="1.25" />
+      <text x="20" y="36" font-size="18" font-weight="800" fill="#ffffff">CoreBackend</text>
+      <rect x="226" y="20" width="56" height="22" rx="11" fill="#0f766e" fill-opacity="0.35" stroke="#14b8a6" stroke-opacity="0.6" />
+      <text x="254" y="35" font-size="11.5" font-weight="700" fill="#5eead4" text-anchor="middle">:8080</text>
+      <text x="20" y="60" font-size="12.5" font-weight="600" fill="#5eead4">Spring Boot 4 · Java 21</text>
+      <path d="M 20 76 H 280" stroke="#1e3a4a" />
+      <g font-size="12.5" fill="#cbd5e1">
+        <text x="20" y="100">Accounts, JWT auth, profiles</text>
+        <text x="20" y="122">Grants and keyword search</text>
+        <text x="20" y="144">Applications and checklists</text>
+        <text x="20" y="166">Awards, deadlines, reports</text>
+        <text x="20" y="188">Calendar feeds</text>
+      </g>
+    </g>
+
+    <!-- ============ ai-service ============ -->
+    <g transform="translate(860, 60)">
+      <rect width="300" height="216" rx="14" fill="#0f172a" fill-opacity="0.9" stroke="#0d9488" stroke-opacity="0.7" stroke-width="1.25" />
+      <text x="20" y="36" font-size="18" font-weight="800" fill="#ffffff">ai-service</text>
+      <rect x="226" y="20" width="56" height="22" rx="11" fill="#0f766e" fill-opacity="0.35" stroke="#14b8a6" stroke-opacity="0.6" />
+      <text x="254" y="35" font-size="11.5" font-weight="700" fill="#5eead4" text-anchor="middle">:8000</text>
+      <text x="20" y="60" font-size="12.5" font-weight="600" fill="#5eead4">FastAPI · Python 3.11</text>
+      <path d="M 20 76 H 280" stroke="#1e3a4a" />
+      <g font-size="12.5" fill="#cbd5e1">
+        <text x="20" y="100"><tspan fill="#99f6e4" font-weight="600">rag</tspan> · matching and indexing</text>
+        <text x="20" y="122"><tspan fill="#99f6e4" font-weight="600">workspace</tspan> · checklist extraction</text>
+        <text x="20" y="144"><tspan fill="#99f6e4" font-weight="600">proposal</tspan> · draft review</text>
+        <text x="20" y="166"><tspan fill="#99f6e4" font-weight="600">award</tspan> · sanction orders, reports</text>
+        <text x="20" y="188"><tspan fill="#99f6e4" font-weight="600">llm</tspan> · gateway for every AI call</text>
+      </g>
+    </g>
+
+    <!-- ============ Data stores and outside services ============ -->
+    <!-- Grant scraper -->
+    <g transform="translate(40, 346)">
+      <rect width="300" height="70" rx="12" fill="#0b1324" fill-opacity="0.95" stroke="#134e4a" stroke-width="1.25" stroke-dasharray="5 4" />
+      <text x="20" y="30" font-size="15" font-weight="700" fill="#f1f5f9">Grant scraper</text>
+      <text x="20" y="51" font-size="12" fill="#94a3b8">Daily via GitHub Actions · Firecrawl</text>
+    </g>
+
+    <!-- PostgreSQL -->
+    <g transform="translate(500, 346)">
+      <rect width="200" height="70" rx="12" fill="#0b1324" fill-opacity="0.95" stroke="#134e4a" stroke-width="1.25" />
+      <g transform="translate(18, 18)" stroke="#2dd4bf" stroke-width="1.5" fill="none">
+        <ellipse cx="13" cy="5" rx="13" ry="5" />
+        <path d="M 0 5 V 29 C 0 32 6 34 13 34 C 20 34 26 32 26 29 V 5" />
+        <path d="M 0 17 C 0 20 6 22 13 22 C 20 22 26 20 26 17" />
+      </g>
+      <text x="58" y="31" font-size="15" font-weight="700" fill="#f1f5f9">PostgreSQL</text>
+      <text x="58" y="51" font-size="12" fill="#94a3b8">Data · full-text search</text>
+    </g>
+
+    <!-- Pinecone -->
+    <g transform="translate(860, 346)">
+      <rect width="145" height="70" rx="12" fill="#0b1324" fill-opacity="0.95" stroke="#134e4a" stroke-width="1.25" />
+      <text x="18" y="31" font-size="15" font-weight="700" fill="#f1f5f9">Pinecone</text>
+      <text x="18" y="51" font-size="12" fill="#94a3b8">Vectors · reranking</text>
+    </g>
+
+    <!-- Gemini · Groq -->
+    <g transform="translate(1015, 346)">
+      <rect width="145" height="70" rx="12" fill="#0b1324" fill-opacity="0.95" stroke="#134e4a" stroke-width="1.25" />
+      <text x="18" y="31" font-size="15" font-weight="700" fill="#f1f5f9">Gemini · Groq</text>
+      <text x="18" y="51" font-size="12" fill="#94a3b8">Language models</text>
+    </g>
+  </g>
+</svg>

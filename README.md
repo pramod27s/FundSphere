@@ -1,372 +1,318 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/fundsphere-banner.svg">
-    <source media="(prefers-color-scheme: light)" srcset="assets/fundsphere-banner.svg">
-    <img src="assets/fundsphere-banner.svg" alt="FundSphere - Intelligent Grant Discovery & Proposal Compliance Engine" width="100%">
-  </picture>
+  <img src="assets/fundsphere-banner.svg" alt="FundSphere: grant discovery, applications and grant management for researchers" width="100%">
 </p>
 
 <p align="center">
-  <strong>Next-generation AI platform bridging researchers, academic institutions, and startups with high-impact global funding opportunities.</strong>
+  <strong>Find research funding, prepare applications that meet every requirement, and stay on top of the grants you win.</strong>
 </p>
 
 <p align="center">
-  <a href="#architecture-overview"><img src="https://img.shields.io/badge/Architecture-Three--Tier%20Microservices-0d9488?style=for-the-badge&logo=databricks&logoColor=white" alt="Architecture" /></a>
-  <a href="#key-features"><img src="https://img.shields.io/badge/Search%20Engine-Hybrid%20RRF%20%2B%20HyDE-0f766e?style=for-the-badge&logo=pinecone&logoColor=white" alt="Search Engine" /></a>
-  <a href="#frontend-application-routes"><img src="https://img.shields.io/badge/Frontend-React%2019%20%7C%20Tailwind-0f172a?style=for-the-badge&logo=react&logoColor=61dafb" alt="Frontend" /></a>
-  <a href="#quickstart"><img src="https://img.shields.io/badge/Core%20Backend-Spring%20Boot%204.0.3%20%7C%20Java%2021-115e59?style=for-the-badge&logo=springboot&logoColor=white" alt="Core Backend" /></a>
-  <a href="#quickstart"><img src="https://img.shields.io/badge/AI%20Engine-FastAPI%20%7C%20Gemini%20%7C%20Groq-0d9488?style=for-the-badge&logo=google&logoColor=white" alt="AI Engine" /></a>
-  <a href="#machine-to-machine-m2m-rsa-key-setup"><img src="https://img.shields.io/badge/M2M%20Security-RS256%20Zero--Trust-134e4a?style=for-the-badge&logo=auth0&logoColor=white" alt="M2M Security" /></a>
+  <img src="https://img.shields.io/badge/React-19-0f172a?logo=react&logoColor=61dafb" alt="React 19" />
+  <img src="https://img.shields.io/badge/TypeScript-5.9-0f172a?logo=typescript&logoColor=white" alt="TypeScript 5.9" />
+  <img src="https://img.shields.io/badge/Spring%20Boot-4.0-115e59?logo=springboot&logoColor=white" alt="Spring Boot 4.0" />
+  <img src="https://img.shields.io/badge/Java-21-115e59?logo=openjdk&logoColor=white" alt="Java 21" />
+  <img src="https://img.shields.io/badge/FastAPI-Python%203.11-0d9488?logo=fastapi&logoColor=white" alt="FastAPI on Python 3.11" />
+  <img src="https://img.shields.io/badge/PostgreSQL-database-0d9488?logo=postgresql&logoColor=white" alt="PostgreSQL" />
+  <img src="https://img.shields.io/badge/Pinecone-vector%20search-0d9488" alt="Pinecone" />
 </p>
 
 <p align="center">
-  <a href="#architecture-overview">Architecture Overview</a> &nbsp;•&nbsp;
-  <a href="#frontend-application-routes">Frontend Routes</a> &nbsp;•&nbsp;
-  <a href="#key-features">Key Features</a> &nbsp;•&nbsp;
-  <a href="#how-ai-match-works">AI Match Engine</a> &nbsp;•&nbsp;
-  <a href="#scraping--indexing-pipeline">Delta Scraper Pipeline</a> &nbsp;•&nbsp;
-  <a href="#quickstart">Quickstart</a> &nbsp;•&nbsp;
-  <a href="#documentation-links">Documentation</a>
+  <a href="#features">Features</a> ·
+  <a href="#architecture">Architecture</a> ·
+  <a href="#getting-started">Getting started</a> ·
+  <a href="#configuration">Configuration</a> ·
+  <a href="#testing">Testing</a> ·
+  <a href="#project-structure">Project structure</a> ·
+  <a href="#documentation">Documentation</a>
 </p>
 
 ---
 
-<a id="about-fundsphere"></a>
-## 🧭 About FundSphere
+## Overview
 
-**FundSphere** combines hybrid retrieval (**Pinecone** vector embeddings + **PostgreSQL** lexical keyword search), **Reciprocal Rank Fusion (RRF)**, **cross-encoder reranking** (`bge-reranker-v2-m3`), and two-pass delta web scraping to surface funding opportunities tailored to a researcher's academic profile.
+FundSphere covers a research grant from first search to final report. Researchers discover calls matched to their profile, turn a call's guidelines into a checklist they can work through, check proposal drafts against the call's rules before submitting, and track reporting deadlines, outputs and spending once a grant is awarded.
 
-Every recommendation includes an **explainable match score breakdown** (5 signals), hard eligibility guardrails to eliminate false positives, and an **AI Proposal Assistant** with multi-LLM resiliency (**Google Gemini 2.5** with automatic failover to **Groq Llama 4**).
+It is built for researchers in India. It indexes Indian funding agencies, shows amounts in lakh and crore, and knows the reporting rules of agencies such as ANRF (formerly SERB), DST and ICMR.
 
-> [!TIP]
-> **Live Color Theme**: FundSphere's signature palette uses **Teal-600 (`#0d9488`)** and **Slate/Navy-900 (`#0f172a`)**, highlighting trust, precision, and modern intelligence.
+## Features
 
----
+### Find funding
 
-<a id="architecture-overview"></a>
-## 🏛️ Architecture Overview
+- **Browse** every indexed call, with filters for agency, grant type, applicant type, funding range and closing date, and sorting by recency, deadline or amount.
+- **AI Match** ranks calls against the researcher's profile and an optional free-text query. Each result has a match score that breaks down into semantic fit, eligibility, keywords, funding fit and deadline, plus a short explanation.
+- **Hard eligibility rules** remove calls the researcher can't apply for, such as those requiring a PhD, a citizenship or years of experience they don't have. Closed calls are left out.
+- **Saved grants** keep a shortlist with private notes, showing what closes soonest and which saved calls already have an application.
+- **Freshness**: each call shows when its source page was last verified.
 
-FundSphere is structured as a resilient three-tier microservice system with strict separation of concerns across the client interface, transaction persistence, and asynchronous vector intelligence.
+### Prepare applications
 
-```
-┌────────────────────────────────┐            ┌────────────────────────────────┐            ┌────────────────────────────────┐
-│      Frontend (Port 5173)      │   HTTP     │    CoreBackend (Port 8080)     │  M2M JWT   │     AI-Service (Port 8000)     │
-│     React 19 + TypeScript      │ ─────────▶ |     Java 21 + Spring Boot      │ ─────────▶│        Python + FastAPI        |
-│     Tailwind CSS v4 + Vite     │ (User JWT) │     PostgreSQL + M2M RS256     │ ◀───────── │     Pinecone + Groq/Gemini     |
-└────────────────────────────────┘            └───────────────┬────────────────┘  (RS256)   └───────────────┬────────────────┘
-                                                              │                                             │
-                                                       ┌──────▼──────┐                               ┌──────▼──────┐
-                                                       │ PostgreSQL  │                               │  Pinecone   │
-                                                       │  Database   │                               │  Vector DB  │
-                                                       └─────────────┘                               └─────────────┘
-```
+- **Checklist from the guidelines**: upload a call's guidelines and FundSphere lists every document, format limit, eligibility proof, budget rule, submission detail and key date. Each item comes with the quote and page it was taken from.
+- **Readiness tracker**: give each item an owner and a due date counted back from the call deadline, and see readiness as a percentage of required items done.
+- **Sharing and reminders**: send the pending list, grouped by person, over WhatsApp, and add the deadline and due dates to a calendar (`.ics` download or Google Calendar).
+- **Status tracking** from Preparing through Submitted to Awarded or Not funded, including calls found outside FundSphere.
 
-| Layer | Stack | Key Responsibilities |
+### Review proposals
+
+- **Instant check**: page count, word limits, fonts, paper size, line spacing, required sections and budget rules, measured from the PDF by code.
+- **Full AI review**: a quality score marked against the call's evaluation criteria, judgement-based rules, and contradictions between sections, with the top fixes to make.
+- **Versions**: every draft checked for an application is kept, so the score trend shows whether revisions help. A code-verified failure of a rule that would get the proposal returned caps the score at 49.
+- **One-off checks** of any draft against any guidelines, without an application.
+
+### Manage awarded grants
+
+- **Set up from the sanction order**: FundSphere reads the sanction order PDF to fill in dates, amounts and budget heads.
+- **Reporting deadlines** (utilisation certificates and statements of expenditure, progress reports, final reports, equipment lists) worked out from the project dates and the agency's rules, each editable when the sanction order says otherwise.
+- **Calendar feed**: subscribe once in Google Calendar and every grant's deadlines stay in sync.
+- **Outputs**: record papers (with ORCID import), students trained, equipment, patents and milestones.
+- **Progress report drafts** written from the recorded objectives and outputs, with every claim checked against them, then edited in the browser and exported to Word.
+- **Spend check**: compare each budget head's spending with its budget for the financial year and get warnings before money lapses.
+
+## Architecture
+
+FundSphere is three services: a React frontend, a Spring Boot backend that owns the data and authentication, and a Python AI service for search, document reading and AI review.
+
+<p align="center">
+  <img src="assets/fundsphere-architecture.svg" alt="FundSphere architecture: the React frontend calls CoreBackend with a user JWT; CoreBackend stores data in PostgreSQL and calls ai-service with RS256-signed tokens; ai-service calls back with an API key and uses Pinecone, Gemini and Groq; a daily grant scraper posts grants to CoreBackend." width="100%">
+</p>
+
+| Service | Stack | Responsibilities |
 |---|---|---|
-| **`frontend/`** | React 19, Vite 7 (SWC), TypeScript, Tailwind CSS v4, React Router v7, Framer Motion, Lucide Icons | Responsive UI, animated landing showcase, researcher onboarding wizard with ORCID auto-fill, AI match feed, proposal assistant workspace |
-| **`CoreBackend/`** | Java 21, Spring Boot 4.0.3, Spring Data JPA / Hibernate, PostgreSQL, JWT Authentication | User auth & token refresh, RS256 M2M asymmetric token service, researcher profiles, grant CRUD & keyword search, AI service bridge, background reindexing sweeper |
-| **`ai-service/`** | Python 3.11+, FastAPI, Pinecone, Google Gemini 2.5, Groq Llama 4, Firecrawl, Selenium | Vector embeddings, HyDE query expansion, hybrid search fusion (RRF), cross-encoder reranking, 5-signal dynamic scoring, proposal compliance auditing, delta scraping |
+| [`frontend/`](frontend) | React 19, TypeScript, Vite 7, Tailwind CSS 4, React Router 7, Framer Motion | All user interfaces: discovery, saved grants, applications, proposal review, grant management |
+| [`CoreBackend/`](CoreBackend) | Java 21, Spring Boot 4, Spring Data JPA, Spring Security, PostgreSQL | Accounts and JWT auth, researcher profiles, grants and keyword search, applications and checklists, awards, deadlines, calendar feeds, reports, and the bridge to the AI service |
+| [`ai-service/`](ai-service) | Python 3.11, FastAPI, Pinecone, Google Gemini, Groq, Firecrawl | Grant indexing and hybrid search, guideline and sanction-order extraction, proposal review, report drafting, and the grant scraper |
 
----
+The browser only talks to `CoreBackend`. `CoreBackend` calls `ai-service` with short-lived RS256-signed tokens. `ai-service` calls back into `CoreBackend` (for keyword search and grant data) with a shared integration API key.
 
-<a id="frontend-application-routes"></a>
-## 🖥️ Frontend Application Routes
+### How AI Match works
 
-The client interface offers a polished single-page experience tailored for high researcher productivity:
+1. `CoreBackend` loads the researcher's full profile and forwards it with the query to `ai-service`.
+2. The query is expanded with related terms. Optionally, HyDE writes a hypothetical call text to search with.
+3. Two channels search in parallel: Pinecone hybrid search (dense `llama-text-embed-v2` plus sparse `pinecone-sparse-english-v0`), and PostgreSQL full-text search in `CoreBackend`.
+4. The results are merged with Reciprocal Rank Fusion, then closed calls and hard eligibility conflicts are removed.
+5. The remaining candidates are reranked with `bge-reranker-v2-m3` and scored on five signals: semantic fit 50%, eligibility 20%, keywords 10%, funding fit 10%, deadline 10%. The weights are configurable.
+6. An LLM writes a short explanation for each top match. Results are cached per profile and query.
 
-| Route | View | Description |
-|---|---|---|
-| `/` & `/landing` | **Landing Page** | Flagship public showcase featuring dynamic hero metrics, interactive value propositions, platform stats, and feature highlights |
-| `/auth` | **Authentication** | Unified Login & Register forms with real-time password strength validation, animated transitions, and automatic JWT session recovery |
-| `/onboarding` | **Researcher Wizard** | Multi-step onboarding flow with **one-click ORCID integration** to auto-fill research bio, career stage, and keywords, plus a **"Skip for now"** starter profile generator |
-| `/discovery` | **Grant Discovery** | Dual-mode feed: **Browse Mode** with multi-faceted filtering & pagination, and **AI Match Mode** with 5-signal score breakdown, **keyboard shortcuts (`Ctrl+K` / `/`)**, and **interactive suggested topic chips** |
-| `/saved` | **Saved Grants** | Bookmarked funding opportunities with PostgreSQL persistence, optimistic UI updates, and instant rollback handling |
-| `/proposal` | **Proposal Assistant** | Dual-PDF compliance analyzer (proposal draft PDF + agency guidelines PDF) with Quick (~10s) and Deep (~30–90s) rubrics, section diff cards, and resilient **Groq failover** |
-| `/profile` | **Profile Management** | Edit research interests, institution type, citizenship, degree requirements, notification preferences, and grant funding ceilings |
+The weights and switches can be tuned against a labelled benchmark with the [offline evaluation](ai-service/eval/README.md).
 
----
+### How grants get in
 
-<a id="key-features"></a>
-## ✨ Key Features
+A scheduled scraper ([`scraper/smart_scheduler.py`](ai-service/scraper/smart_scheduler.py), run daily by a [GitHub Actions workflow](.github/workflows/scraper-cron.yml)) visits agency pages and hashes their content. Unchanged pages only refresh the grant's "verified" date. Changed pages are extracted into structured fields with Firecrawl and posted to `CoreBackend`, which saves them and has `ai-service` index them in Pinecone. A background sweeper retries any grant whose indexing failed.
 
-### 🎯 1. AI-Powered Grant Matching & Hybrid RAG
-- **Hybrid Retrieval (RRF)**: Merges lexical keyword search from PostgreSQL with high-dimensional vector search hits from Pinecone, balancing exact terminology recall with semantic understanding.
-- **Cross-Encoder Reranking**: Re-scores the top RRF candidate pool using Pinecone Inference with `bge-reranker-v2-m3`, drastically improving top-10 precision over single-vector retrieval.
-- **HyDE (Hypothetical Document Embeddings)**: Generates synthetic grant solicitations tailored to user queries to bridge the vocabulary gap between researcher terminology and formal agency RFPs.
-- **In-Memory Cache**: Deterministic SHA-256 hashing of researcher profiles and search criteria (`RecommendationCache`), caching top recommendations with TTL and LRU eviction for instantaneous sub-millisecond repeated lookups.
+### How proposal review works
 
-### ⚖️ 2. Transparent 5-Signal Dynamic Scoring & Guardrails
-FundSphere breaks down every match into five explainable signals, augmented with hard eligibility guardrails:
+The instant check measures the PDF with code. The full review reads the call's rules and evaluation criteria from the guidelines, then has the model judge each criterion and each judgement-based rule, with evidence. All AI calls go through one gateway ([`llm/gateway.py`](ai-service/llm/gateway.py)) that falls back across Gemini models and then Groq, respects rate limits, and records token usage per review. The design is described in [`docs/proposal-assistant-design.md`](docs/proposal-assistant-design.md).
 
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                      5-SIGNAL COMPOSITE SCORING                        │
-├────────────────────────────────┬─────────┬─────────────────────────────┤
-│ Signal                         │ Weight  │ Description                 │
-├────────────────────────────────┼─────────┼─────────────────────────────┤
-│ 1. Semantic Similarity         │   50%   │ Cross-encoder relevance     │
-│ 2. Eligibility Alignment       │   20%   │ Country, applicant, field   │
-│ 3. Keyword Match               │   10%   │ Whole-word term overlap     │
-│ 4. Funding Fit                 │   10%   │ Budget ceiling & grant size │
-│ 5. Deadline Freshness          │   10%   │ Submission window recency   │
-└────────────────────────────────┴─────────┴─────────────────────────────┘
-```
-
-> [!IMPORTANT]
-> **Hard Non-Negotiable Guardrails**: Grants that strictly conflict with known profile constraints (PhD status, country/geographic eligibility, citizenship restrictions, or minimum years of experience) are immediately disqualified. Expired grants are automatically filtered out.
-
-### 📝 3. AI Proposal Assistant with Multi-LLM Resilience
-- **Dual-PDF Analysis**: Upload your draft proposal PDF alongside the official grant guidelines PDF.
-- **Two Inspection Modes**:
-  - **Quick Mode (~10s)**: Rapid single-pass evaluation for fast feedback on structure and alignment.
-  - **Deep Mode (~30–90s)**: Granular per-section rubric evaluation, missing-section warnings, and actionable recommendations.
-- **Revision Diff Cards**: Compare iterations side-by-side (`Score 68 → 84 (+16)`) to track improvements.
-- **Automatic Multi-LLM Failover**: Primary auditing powered by **Google Gemini 2.5 Flash**; if quota or rate bounds are reached, requests automatically route to **Groq (`meta-llama/llama-4-scout-17b-16e-instruct`)** with zero downtime.
-
-### 🔄 4. Two-Pass Delta Web Scraper Pipeline
-- **Pass 1 (Zero-Token Monitor)**: `smart_scheduler.py` inspects agency seed pages and computes SHA-256 content hashes.
-- **Pass 2 (Structured AI Extraction)**: When changes are detected, Firecrawl / headless browser extracts structured fields into a validated `GrantSchema` (deadlines, funding amounts, eligibility, career stages).
-- **Lightweight Verification**: Unchanged pages trigger `/api/grants/verify` to update the verification timestamp without wasting embedding or LLM compute.
-
-### 🛡️ 5. Zero-Trust Machine-to-Machine Security (RS256)
-- Microservice communication between Spring Boot and FastAPI is secured with **asymmetric RSA-2048 cryptography**.
-- Spring Boot generates short-lived (5-minute) RS256-signed JWTs.
-- FastAPI validates the signature against the cached public key (`m2m_public_key.pem`) with replay protection and a fail-closed constant-time fallback (`X-API-KEY`).
-
----
-
-<a id="how-ai-match-works"></a>
-## 🔍 How AI Match Works
-
-```
- ┌──────────────────────┐
- │  Frontend Discovery  │  (Supports Ctrl+K / '/' focus, Enter to submit)
- └──────────┬───────────┘
-            │ 1. Search Query + Filters (User JWT)
-            ▼
- ┌──────────────────────┐
- │     CoreBackend      │
- └──────────┬───────────┘
-            │ 2. Hydrates full researcher profile from PostgreSQL
-            ▼
- ┌──────────────────────┐
- │      ai-service      │  (Secured via RS256 M2M Token)
- └──────────┬───────────┘
-            │ 3. Checks In-Memory Cache (returns immediately on hit)
-            │ 4. Generates query embeddings (+ HyDE if enabled)
-            │ 5. Pinecone Vector Search (open deadlines only) and
-            │    PostgreSQL full-text Keyword Search, run concurrently
-            │ 6. Merges candidates using Reciprocal Rank Fusion (RRF)
-            │ 7. Removes expired grants + hard disqualifications
-            │ 8. Cross-Encoder Reranking (bge-reranker-v2-m3)
-            │ 9. Evaluates 5 scoring signals; computes AI match explanation
-            ▼
- ┌──────────────────────┐
- │  Frontend Match Card │  Displays match percentage, eligibility badge,
- └──────────────────────┘  breakdown metrics, and detailed reasoning
-```
-
----
-
-<a id="scraping--indexing-pipeline"></a>
-## 🔄 Scraping & Indexing Pipeline
-
-FundSphere employs an automated, token-conservative ingestion engine to continuously curate opportunities from agency portals:
-
-1. **Scheduled Delta Monitor**: `smart_scheduler.py` runs on a recurring cron interval to fetch and inspect agency seed pages.
-2. **Checksum Verification**: Generates SHA-256 hashes of the raw page content. If unchanged, triggers `POST /api/grants/verify` on `CoreBackend` to refresh `lastVerifiedAt` without triggering vector work.
-3. **Structured AI Extraction**: When deltas are detected, Firecrawl / headless browser parses grant details into typed `GrantSchema` models (deadlines, funding amounts, eligibility, career stages).
-4. **Persistence & Vector Sync**: Clean JSON is POSTed to `CoreBackend` (`POST /api/grants`), saved to PostgreSQL, and dispatched to `ai-service` for vector embedding into Pinecone.
-5. **Reindex Sweeper**: In case of temporary network glitches, `ReindexSweeper` in `CoreBackend` automatically catches unsynced grants with exponential backoff and synchronizes them.
-
----
-
-<a id="project-structure"></a>
-## 📂 Project Structure
-
-```
-FundSphere/
-├── assets/                 # Brand assets (banner, SVG logo, color tokens)
-│   ├── fundsphere-banner.svg
-│   └── fundsphere-logo.svg
-├── frontend/               # React 19 + TypeScript + Tailwind CSS v4 SPA
-│   ├── src/
-│   │   ├── components/     # Landing, Auth, Onboarding, Discovery, Saved, Proposal, Profile
-│   │   ├── context/        # Global ResearcherContext
-│   │   ├── services/       # API clients, auth token management
-│   │   └── utils/          # Glossary, password strength, helpers
-│   ├── package.json
-│   └── vite.config.ts
-├── CoreBackend/            # Java 21 + Spring Boot API Gateway & Persistence
-│   ├── src/main/java/org/pramod/corebackend/
-│   │   ├── config/         # Security, CORS, WebClient configs
-│   │   ├── controller/     # REST Controllers (Auth, Grants, AI Bridge, Proposal, Researcher)
-│   │   ├── entity/         # JPA Entities (AppUser, Grant, Researcher, SavedGrant, RefreshToken)
-│   │   ├── repository/     # Spring Data JPA Repositories
-│   │   ├── security/       # JWT Filters, UserPrincipal, Auth Entry Point
-│   │   └── service/        # Business Logic, AiServiceClient, ReindexSweeper, OrcidEnrichment
-│   └── pom.xml
-├── ai-service/             # Python FastAPI: Hybrid Search, RAG, Proposal Analysis, Scrapers
-│   ├── rag/                # Recommender, Pinecone client, HyDE, query expander, scoring
-│   ├── proposal/           # Gemini client, PDF extractor, rubric analyzer, diff builder
-│   ├── eval/               # Recommender eval: test cases, ratings, run.py
-│   ├── scraper/            # Delta scheduler (smart_scheduler.py) & Firecrawl crawler
-│   ├── main.py             # FastAPI entry point & security middleware
-│   └── requirements.txt
-└── docs/                   # Architecture notes, accuracy reports, and specifications
-```
-
----
-
-<a id="quickstart"></a>
-## ⚡ Quickstart
+## Getting started
 
 ### Prerequisites
 
-| Requirement | Minimum Version | Note |
-|---|---|---|
-| **Node.js** | `v18.0+` | Node.js 20+ recommended |
-| **Java** | `JDK 21+` | Maven 3.9+ or included wrapper |
-| **Python** | `3.11+` | With `venv` or `conda` |
-| **PostgreSQL** | `14+` | Database named `FundSphere` |
-| **Pinecone** | Cloud Account | Serverless or standard index |
-| **API Keys** | Gemini, Groq, Firecrawl | For AI services |
+| Tool | Version |
+|---|---|
+| Node.js | 20.19 or later (required by Vite 7) |
+| Java | JDK 21 (the Maven wrapper is included) |
+| Python | 3.11 or later |
+| PostgreSQL | A recent release, with a database named `FundSphere` |
+| Accounts | Pinecone, Google Gemini and Groq API keys; a Firecrawl key to run the scraper |
 
----
+### 1. Create the database
 
-### Environment Setup
-
-#### 1. CoreBackend Configuration (`CoreBackend/.env` or root `.env`)
-```env
-DB_USERNAME=postgres
-DB_PASSWORD=your_postgres_password
-JWT_SECRET=your_base64_or_long_random_jwt_secret_key_min_256_bits
-INTEGRATION_API_KEY=your_shared_internal_api_key
+```bash
+createdb FundSphere
 ```
 
-#### 2. AI-Service Configuration (`ai-service/.env`)
-```env
-SPRING_BOOT_BASE_URL=http://localhost:8080
-# Same value as INTEGRATION_API_KEY in CoreBackend/.env
-INTEGRATION_API_KEY=your_shared_internal_api_key
-REQUIRE_INTERNAL_API_KEY=true
+Tables are created and updated by Hibernate on startup (`ddl-auto=update`). One-off data fixes run as startup migrations in [`CoreBackend/.../migration`](CoreBackend/src/main/java/org/pramod/corebackend/migration).
 
-PINECONE_API_KEY=your_pinecone_key
-PINECONE_INDEX_HOST=https://your-index-host.pinecone.io
-PINECONE_NAMESPACE=grants
-PINECONE_RERANK_MODEL=bge-reranker-v2-m3
+### 2. Generate the service-to-service keys
 
-# Performance & In-Memory Caching
-ENABLE_QUERY_CACHE=true
-QUERY_CACHE_TTL_SECONDS=1800
-QUERY_CACHE_MAX_SIZE=256
-ENABLE_BATCH_EMBEDDINGS=true
-
-# Guardrails & Accuracy Tuning
-ENABLE_HARD_ELIGIBILITY_FILTER=true
-ENABLE_PROFILE_QUERY_SPLIT=false
-ENABLE_STRUCTURED_RERANK_PROMPT=false
-
-# Groq (HyDE, Query Expansion, LLM Judge)
-GROQ_API_KEY_QUERY_EXPANSION=your_groq_key
-GROQ_API_KEY_LLM_JUDGE=your_groq_key
-GROQ_API_KEY_HYDE=your_groq_key
-ENABLE_HYDE=true
-
-# Proposal Assistant (Gemini with Groq Fallback)
-GEMINI_API_KEY=your_gemini_api_key
-PROPOSAL_GEMINI_MODEL=gemini-2.5-flash
-GROQ_API_KEY_PROPOSAL=your_groq_key
-PROPOSAL_GROQ_MODEL=meta-llama/llama-4-scout-17b-16e-instruct
-
-# Firecrawl (Web Scraper)
-FIRECRAWL_API_KEY=your_firecrawl_api_key
-```
-
----
-
-<a id="machine-to-machine-m2m-rsa-key-setup"></a>
-### Machine-to-Machine (M2M) RSA Key Setup
-
-CoreBackend and AI-Service communicate via asymmetric RS256 JWT tokens. Run this script once on a fresh installation to generate the paired keys:
+`CoreBackend` signs its calls to `ai-service` with an RSA key pair. Generate it once (requires the Python `cryptography` package, which is in `ai-service/requirements.txt`):
 
 ```bash
 python -c "
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
 import os
-
 key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 priv = key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption())
 pub = key.public_key().public_bytes(serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo)
-
 os.makedirs('CoreBackend/src/main/resources/keys', exist_ok=True)
 os.makedirs('ai-service/keys', exist_ok=True)
 open('CoreBackend/src/main/resources/keys/m2m_private_key.pem', 'wb').write(priv)
 open('CoreBackend/src/main/resources/keys/m2m_public_key.pem', 'wb').write(pub)
 open('ai-service/keys/m2m_public_key.pem', 'wb').write(pub)
-print('M2M RSA keys generated successfully!')
 "
 ```
 
----
+The `keys/` folders are git-ignored. Never commit the private key.
 
-### Running the Services
+### 3. Configure the services
 
-#### Step 1: Start CoreBackend (Spring Boot)
-Ensure PostgreSQL is running and database `FundSphere` exists.
+Create `CoreBackend/.env`:
+
+```env
+DB_USERNAME=postgres
+DB_PASSWORD=your-postgres-password
+JWT_SECRET=a-long-random-secret-of-at-least-256-bits
+INTEGRATION_API_KEY=a-shared-random-key
+```
+
+Create `ai-service/.env` with at least:
+
+```env
+SPRING_BOOT_BASE_URL=http://localhost:8080
+INTEGRATION_API_KEY=a-shared-random-key        # same value as in CoreBackend/.env
+
+PINECONE_API_KEY=your-pinecone-key
+PINECONE_INDEX_HOST=https://your-index-host.pinecone.io
+
+GEMINI_API_KEY=your-gemini-key                 # reviews, extraction and drafting
+GROQ_API_KEY=your-groq-key                     # fallback when Gemini is rate-limited
+GROQ_API_KEY_QUERY_EXPANSION=your-groq-key     # AI Match query expansion
+GROQ_API_KEY_LLM_JUDGE=your-groq-key           # AI Match explanations
+
+FIRECRAWL_API_KEY=your-firecrawl-key           # only needed for the scraper
+```
+
+Without the two AI Match Groq keys, matching still works, but without query expansion and explanations. The Pinecone index must use 1024 dimensions and the `dotproduct` metric (dense and sparse vectors together). See [Configuration](#configuration) for the optional settings.
+
+The frontend reads the backend URL from `frontend/.env.local`. Copy [`frontend/.env.example`](frontend/.env.example) and change it if your backend isn't at `http://localhost:8080`.
+
+### 4. Run
+
+Start the three services in separate terminals:
+
 ```bash
+# CoreBackend: http://localhost:8080
 cd CoreBackend
 ./mvnw spring-boot:run
 ```
-*API Gateway active on `http://localhost:8080`*
 
-#### Step 2: Start AI-Service (FastAPI)
 ```bash
+# ai-service: http://localhost:8000
 cd ai-service
 python -m venv .venv
-# Windows: .venv\Scripts\activate | Linux/macOS: source .venv/bin/activate
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
-*AI Recommender active on `http://localhost:8000`*
 
-#### Step 3: Start Frontend (React + Vite)
 ```bash
+# frontend: http://localhost:5173
 cd frontend
 npm install
 npm run dev
 ```
-*Frontend interface active on `http://localhost:5173`*
 
----
+### 5. Load grants
 
-<a id="evaluation-and-tuning"></a>
-## 📊 Offline Evaluation
+With the backend and AI service running, run the scraper once to fetch grants, then index everything already in the database:
 
-`ai-service/eval/` measures recommendation quality with one command:
-
-```powershell
-python -m eval.run                                # score the current settings
-python -m eval.run --compare ENABLE_HYDE=false    # current vs. any .env change (flags, weights)
-python -m eval.run --tune                         # suggest better WEIGHT_* values, checked on unseen cases
+```bash
+cd ai-service
+python -m scraper.smart_scheduler --max 8
+python index_all_grants.py
 ```
 
-It runs 26 test researchers (`cases.json`) through the recommender, has an LLM rate any grant not yet rated (saved in `labels.json`, the committed benchmark you can hand-correct), and reports **Recall@10**, **MRR** and **NDCG@10**. Both configs are scored against the same ratings, so a relevant grant one config found and the other missed counts against the one that missed it. See [`ai-service/eval/README.md`](ai-service/eval/README.md).
+## Configuration
 
----
+### CoreBackend
 
-<a id="documentation-links"></a>
-## 📚 Documentation Links
+Settings live in [`application.properties`](CoreBackend/src/main/resources/application.properties). Secrets come from the environment or `CoreBackend/.env`.
 
-- [`docs/ABOUT_FUNDSPHERE.md`](docs/ABOUT_FUNDSPHERE.md) — Comprehensive product overview and vision.
-- [`docs/architecture.md`](docs/architecture.md) — In-depth architectural blueprint and data flow models.
-- [`docs/accuracy.md`](docs/accuracy.md) — Accuracy improvements (profile-query split, HyDE, structured rerank prompt).
-- [`confidential/deploy.md`](confidential/deploy.md) — Cloud and container deployment guidelines.
+| Setting | Purpose |
+|---|---|
+| `DB_USERNAME`, `DB_PASSWORD` | PostgreSQL credentials |
+| `JWT_SECRET` | Signs user access tokens (15 minutes) and refresh tokens (7 days) |
+| `INTEGRATION_API_KEY` | Shared key the AI service and scraper use to call the backend |
+| `app.frontend.origin` | Allowed CORS origin (default `http://localhost:5173`) |
+| `app.public-base-url` | Optional public URL of the backend, used in calendar subscription links |
+| `orcid.api.token` | Optional ORCID API token for profile and publication import |
+
+Set `SPRING_PROFILES_ACTIVE=dev` to log SQL statements.
+
+### ai-service
+
+Every setting has a default in [`rag/config.py`](ai-service/rag/config.py) and [`llm/gateway.py`](ai-service/llm/gateway.py). The ones you are most likely to change:
+
+| Setting | Default | Purpose |
+|---|---|---|
+| `PROPOSAL_GEMINI_MODEL` | `gemini-2.5-flash` | Main model for reviews, extraction and drafting |
+| `PROPOSAL_GEMINI_FALLBACK_MODEL` | none | Comma-separated Gemini models to try when the main one is rate-limited |
+| `ENABLE_HYDE` | `false` | Search with a hypothetical call text as well as the query (needs `GROQ_API_KEY_HYDE`) |
+| `ENABLE_HARD_ELIGIBILITY_FILTER` | `true` | Drop calls that conflict with the profile |
+| `EXCLUDE_EXPIRED_GRANTS` | `true` | Leave closed calls out of matches |
+| `WEIGHT_SEMANTIC` … `WEIGHT_FRESHNESS` | `0.50`, `0.20`, `0.10`, `0.10`, `0.10` | Match score weights |
+| `ENABLE_QUERY_CACHE` | `true` | Cache match results (`QUERY_CACHE_TTL_SECONDS`, default 1800) |
+| `LLM_MAX_CONCURRENCY` | `3` | Parallel AI calls per process |
+
+## Testing
+
+```bash
+# CoreBackend unit tests
+cd CoreBackend && ./mvnw test
+
+# ai-service unit tests
+cd ai-service && python -m unittest discover -s tests
+
+# frontend lint and production build (includes type-checking)
+cd frontend && npm run lint && npm run build
+```
+
+Match quality is measured separately with the offline evaluation in [`ai-service/eval`](ai-service/eval/README.md). It reports Recall@10, MRR and NDCG@10 over a set of test researchers, and can compare two configurations or suggest better score weights:
+
+```bash
+cd ai-service
+python -m eval.run                              # score the current settings
+python -m eval.run --compare ENABLE_HYDE=true   # compare against a changed setting
+python -m eval.run --tune                       # suggest WEIGHT_* values
+```
+
+## Project structure
+
+```
+FundSphere/
+├── frontend/                 React + TypeScript app
+│   └── src/
+│       ├── components/       discovery, saved-grants, applications, proposal-review,
+│       │                     awards, profile, onboarding, auth, landing, common
+│       ├── services/         API clients
+│       ├── hooks/, context/  shared state
+│       └── utils/            dates, deadlines, filters, formatting
+├── CoreBackend/              Spring Boot API
+│   └── src/main/java/org/pramod/corebackend/
+│       ├── controller/       REST endpoints
+│       ├── service/          business logic and the AI service client
+│       ├── entity/, dto/, repository/, enums/
+│       ├── security/         user JWT and service-to-service auth
+│       └── migration/        one-off startup data migrations
+├── ai-service/               FastAPI service
+│   ├── rag/                  indexing, hybrid search, scoring, match explanations
+│   ├── proposal/             proposal review pipeline
+│   ├── workspace/            checklist extraction from call guidelines
+│   ├── award/                sanction-order reading and progress-report drafting
+│   ├── llm/                  gateway for every AI call
+│   ├── scraper/              scheduled grant scraper
+│   ├── eval/                 offline match-quality evaluation
+│   └── tests/
+├── docs/                     design and architecture notes
+└── assets/                   logo and banner
+```
+
+## Documentation
+
+- [`docs/architecture.md`](docs/architecture.md): diagrams of the matching engine and the proposal review flow
+- [`docs/proposal-assistant-design.md`](docs/proposal-assistant-design.md): design of the proposal review, its rules and scoring
+- [`ai-service/eval/README.md`](ai-service/eval/README.md): how match quality is measured and tuned
+
+## Security
+
+- Secrets are read from the environment or `.env` files, which are git-ignored, as are the RSA keys.
+- Users authenticate with short-lived JWT access tokens. Refresh tokens are single-use: each refresh revokes the old one and issues a new one.
+- Calls from `CoreBackend` to `ai-service` carry RS256 tokens signed with the backend's private key and verified with its public key. Calls the other way use the shared integration key.
+- Uploaded PDFs are limited to 30 MB per file.
 
 ---
 
 <p align="center">
-  <img src="assets/fundsphere-logo.svg" alt="FundSphere Logo" width="48" height="48"><br>
-  <strong>FundSphere</strong> • Empowering researchers worldwide with intelligent grant discovery.
+  <img src="assets/fundsphere-logo.svg" alt="FundSphere logo" width="40" height="40"><br>
+  <sub>FundSphere</sub>
 </p>
