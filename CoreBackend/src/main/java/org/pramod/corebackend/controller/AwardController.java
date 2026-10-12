@@ -6,6 +6,7 @@
  * GET    /api/awards/{id}  -> one grant
  * PUT    /api/awards/{id}  -> replace its details and budget heads (the edit form sends everything)
  * DELETE /api/awards/{id}  -> delete it
+ * PUT    /api/awards/{id}/objectives -> replace the project's objectives (4.4, for progress reports)
  * POST   /api/awards/read-sanction-order -> AI reading of a sanction order PDF to fill the form (4.5); not stored
  *
  * Reporting deadlines (4.2); each returns the whole grant:
@@ -20,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import org.pramod.corebackend.dto.award.AwardRequest;
 import org.pramod.corebackend.dto.award.AwardResponse;
 import org.pramod.corebackend.dto.award.ComplianceEventRequest;
+import org.pramod.corebackend.dto.award.ObjectivesRequest;
 import org.pramod.corebackend.security.UserPrincipal;
 import org.pramod.corebackend.service.AiServiceClient;
 import org.pramod.corebackend.service.AwardService;
@@ -86,6 +88,14 @@ public class AwardController {
                                        @PathVariable Long id) {
         awardService.delete(requireUserId(principal), id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id}/objectives")
+    public ResponseEntity<AwardResponse> updateObjectives(@AuthenticationPrincipal UserPrincipal principal,
+                                                          @PathVariable Long id,
+                                                          @RequestBody ObjectivesRequest body) {
+        return ResponseEntity.ok(awardService.updateObjectives(requireUserId(principal), id,
+                body == null ? null : body.getObjectives()));
     }
 
     @PostMapping("/{id}/events")

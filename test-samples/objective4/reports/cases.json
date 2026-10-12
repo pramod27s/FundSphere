@@ -1,0 +1,321 @@
+{
+  "about": "Test set for 4.4 progress-report drafts. Each case is what Spring Boot sends the ai-service (ReportInput): one of the five sample grants in ../make_samples.py, plus objectives, outputs and a note for one reporting period. Everything is fictional. Run: ai-service> .venv\\Scripts\\python.exe -m award.evaluate_reports",
+  "cases": [
+    {
+      "id": "R1",
+      "tests": "A full first-year report: papers (one dated only by year, as ORCID often gives), students, equipment with its cost, milestones, a patent, and a note explaining a delay.",
+      "report": {
+        "kind": "PROGRESS_REPORT",
+        "title": "Annual progress report, year 1",
+        "period_start": "2026-08-15",
+        "period_end": "2027-08-14",
+        "grant": {
+          "project_title": "Low-cost paper sensors for arsenic in groundwater",
+          "agency": "Anusandhan Research Board (sample)",
+          "scheme": "Core Research Grant",
+          "sanction_no": "ARB/CRG/2026/000457",
+          "sanction_date": "2026-07-30",
+          "start_date": "2026-08-15",
+          "end_date": "2029-08-14",
+          "total_sanctioned": 3927000
+        },
+        "objectives": [
+          "To develop paper-based colorimetric sensors that detect arsenic in groundwater below 10 ppb",
+          "To validate the sensors against ICP-MS on 200 well-water samples",
+          "To train field workers in two districts to use the sensors"
+        ],
+        "outputs": [
+          {"id": 103, "type": "STUDENT", "title": "Rohan Shetty", "details": "JRF, joined October 2026", "date": "2026-10-03"},
+          {"id": 105, "type": "EQUIPMENT", "title": "UV-visible spectrophotometer", "details": "Installed in the Analytical Chemistry Lab", "date": "2027-01-12", "amount": 650000},
+          {"id": 106, "type": "MILESTONE", "title": "Sensor prototype detects arsenic down to 5 ppb", "details": "Tested on 40 laboratory samples", "date": "2027-03"},
+          {"id": 101, "type": "PAPER", "title": "Paper-based colorimetric detection of arsenic(III) in groundwater", "details": "Analytical Methods", "date": "2027-05", "reference": "10.5555/am.2027.0457"},
+          {"id": 108, "type": "PATENT", "title": "Paper strip for colorimetric detection of arsenic", "details": "Filed", "date": "2027-06-20", "reference": "202741012345"},
+          {"id": 104, "type": "STUDENT", "title": "Divya Pai", "details": "M.Sc. project student, project completed", "date": "2027-06-30"},
+          {"id": 107, "type": "MILESTONE", "title": "120 of 200 well-water samples collected from Raichur district", "date": "2027-07"},
+          {"id": 102, "type": "PAPER", "title": "A smartphone reader for paper arsenic sensors", "details": "Conference paper, Sample Conference on Sensors 2027", "date": "2027"}
+        ],
+        "budget": [
+          {"head": "EQUIPMENT", "allocated": 1200000},
+          {"head": "MANPOWER", "allocated": 1440000},
+          {"head": "CONSUMABLES", "allocated": 600000},
+          {"head": "TRAVEL", "allocated": 150000},
+          {"head": "CONTINGENCY", "allocated": 180000},
+          {"head": "OVERHEAD", "allocated": 357000}
+        ],
+        "notes": "ICP-MS validation started late because the institute's ICP-MS was under repair from March to May 2027. Training of field workers will begin in year 2."
+      }
+    },
+    {
+      "id": "R2",
+      "tests": "A DST-style six-monthly report with few outputs, a dataset recorded as an 'other' output, and no note, so Deviations is left to the PI.",
+      "report": {
+        "kind": "PROGRESS_REPORT",
+        "title": "Six-monthly progress report 1",
+        "period_start": "2026-10-01",
+        "period_end": "2027-03-31",
+        "grant": {
+          "project_title": "Machine-learning models for early detection of crop stress from drone images",
+          "agency": "National Science Council (sample)",
+          "scheme": "Early Career Research Grant",
+          "sanction_no": "NSC/ECRG/2026-27/1182",
+          "sanction_date": "2026-09-18",
+          "start_date": "2026-10-01",
+          "end_date": "2029-09-30",
+          "total_sanctioned": 3066000
+        },
+        "objectives": [
+          "To build a dataset of drone images of maize and ragi fields under water stress",
+          "To train deep-learning models that detect crop stress two weeks before visible symptoms"
+        ],
+        "outputs": [
+          {"id": 201, "type": "STUDENT", "title": "Sneha Kulkarni", "details": "JRF, joined November 2026", "date": "2026-11-14"},
+          {"id": 202, "type": "EQUIPMENT", "title": "GPU workstation with two NVIDIA RTX 6000 cards", "details": "Set up in the AI Lab", "date": "2027-01-08", "amount": 820000},
+          {"id": 203, "type": "OTHER", "title": "Drone image dataset of 4,800 images from 12 fields", "details": "Collected in Mandya district and labelled for stress", "date": "2027-03"}
+        ],
+        "budget": [
+          {"head": "EQUIPMENT", "allocated": 850000},
+          {"head": "MANPOWER", "allocated": 1296000},
+          {"head": "CONSUMABLES", "allocated": 400000},
+          {"head": "TRAVEL", "allocated": 150000},
+          {"head": "CONTINGENCY", "allocated": 120000},
+          {"head": "OVERHEAD", "allocated": 250000}
+        ],
+        "notes": null
+      }
+    },
+    {
+      "id": "R3",
+      "tests": "A small state grant: amounts under Rs. 1 lakh, an 'Others' head, a poster, numbers with Indian grouping (1,240), and a note about postponed surveys.",
+      "report": {
+        "kind": "PROGRESS_REPORT",
+        "title": "Annual progress report, year 1",
+        "period_start": "2026-10-01",
+        "period_end": "2027-09-30",
+        "grant": {
+          "project_title": "Survey of native pollinators in the coffee estates of Kodagu",
+          "agency": "State Council for Science and Technology (sample)",
+          "scheme": "Seed Research Grant",
+          "sanction_no": "SCST/SRG/2026/045",
+          "sanction_date": "2026-09-10",
+          "start_date": "2026-10-01",
+          "end_date": "2028-09-30",
+          "total_sanctioned": 480000
+        },
+        "objectives": [
+          "To survey native bee and fly pollinators in 10 coffee estates of Kodagu",
+          "To relate pollinator visits to coffee fruit set"
+        ],
+        "outputs": [
+          {"id": 304, "type": "EQUIPMENT", "title": "Stereo zoom microscope", "details": "For identifying insect specimens", "date": "2026-12-05", "amount": 95000},
+          {"id": 302, "type": "PAPER", "title": "Native bees visiting coffee flowers in Kodagu: a first checklist", "details": "Poster, State Science Congress 2027", "date": "2027-02-18"},
+          {"id": 301, "type": "MILESTONE", "title": "Pollinator surveys completed in 8 of 10 estates", "details": "1,240 visits recorded across 14 species", "date": "2027-04"},
+          {"id": 303, "type": "STUDENT", "title": "Bopanna K. M.", "details": "M.Sc. dissertation student", "date": "2027-06"}
+        ],
+        "budget": [
+          {"head": "EQUIPMENT", "allocated": 150000},
+          {"head": "CONSUMABLES", "allocated": 200000},
+          {"head": "TRAVEL", "allocated": 40000},
+          {"head": "CONTINGENCY", "allocated": 25000},
+          {"head": "OTHERS", "allocated": 65000}
+        ],
+        "notes": "Surveys in the remaining 2 estates were postponed to the next flowering season because of unseasonal rain in March 2027."
+      }
+    },
+    {
+      "id": "R4",
+      "tests": "A grant whose objectives were never added: Work done has no objective headings. A paper dated only by year, an SRF upgrade, and costly equipment (Rs. 18.5 lakh).",
+      "report": {
+        "kind": "PROGRESS_REPORT",
+        "title": "Annual progress report, year 1",
+        "period_start": "2027-01-01",
+        "period_end": "2027-12-31",
+        "grant": {
+          "project_title": "Drought-tolerance genes in finger millet landraces of Karnataka",
+          "agency": "Biotechnology Research Council (sample)",
+          "scheme": "Extramural Research Project",
+          "sanction_no": "BRC/EMR/2026/BT-0391",
+          "sanction_date": "2026-12-03",
+          "start_date": "2027-01-01",
+          "end_date": "2029-12-31",
+          "total_sanctioned": 5885000
+        },
+        "objectives": [],
+        "outputs": [
+          {"id": 403, "type": "EQUIPMENT", "title": "Real-time PCR system", "details": "Installed in the Molecular Biology Lab", "date": "2027-04-22", "amount": 1850000},
+          {"id": 405, "type": "OTHER", "title": "Invited talk at the National Millet Conference, Hyderabad", "date": "2027-09-15"},
+          {"id": 404, "type": "MILESTONE", "title": "48 landraces screened for drought tolerance in rain-out shelters", "date": "2027-10"},
+          {"id": 402, "type": "STUDENT", "title": "Prakash Hosmani", "details": "SRF, upgraded from JRF in November 2027", "date": "2027-11-01"},
+          {"id": 401, "type": "PAPER", "title": "Root traits of finger millet landraces under terminal drought", "details": "Plant Physiology Reports", "date": "2027", "reference": "10.5555/ppr.2027.391"}
+        ],
+        "budget": [
+          {"head": "EQUIPMENT", "allocated": 1850000},
+          {"head": "MANPOWER", "allocated": 2160000},
+          {"head": "CONSUMABLES", "allocated": 900000},
+          {"head": "TRAVEL", "allocated": 200000},
+          {"head": "CONTINGENCY", "allocated": 240000},
+          {"head": "OVERHEAD", "allocated": 535000}
+        ],
+        "notes": null
+      }
+    },
+    {
+      "id": "R5",
+      "tests": "The final technical report over the whole project (ending on a leap day, 29 February 2028): ten outputs across three years, a percentage, a web link, and a note.",
+      "report": {
+        "kind": "FINAL_REPORT",
+        "title": "Final technical report (project completion report)",
+        "period_start": "2025-03-01",
+        "period_end": "2028-02-29",
+        "grant": {
+          "project_title": "Community screening for anaemia in adolescent girls using a smartphone colour test",
+          "agency": "Health Research Council (sample)",
+          "scheme": "Ad-hoc Research Project",
+          "sanction_no": "HRC/ADHOC/2024/IRIS-77812",
+          "sanction_date": "2025-02-14",
+          "start_date": "2025-03-01",
+          "end_date": "2028-02-29",
+          "total_sanctioned": 3124000
+        },
+        "objectives": [
+          "To develop a smartphone colour test for haemoglobin",
+          "To screen 3,000 adolescent girls in Dharwad district",
+          "To compare the test with laboratory haemoglobin measurement"
+        ],
+        "outputs": [
+          {"id": 504, "type": "STUDENT", "title": "Ayesha Mulla", "details": "Project associate, 2025 to 2028", "date": "2025-04-01"},
+          {"id": 506, "type": "MILESTONE", "title": "Smartphone app version 1.0 released", "date": "2025-11"},
+          {"id": 509, "type": "OTHER", "title": "Training workshop for 60 ASHA workers", "details": "Held at the district hospital, Dharwad", "date": "2026-02-10"},
+          {"id": 505, "type": "STUDENT", "title": "Kiran Patil", "details": "MPH dissertation completed", "date": "2026-05"},
+          {"id": 501, "type": "PAPER", "title": "A smartphone colour test for anaemia in adolescent girls", "details": "Indian Journal of Community Medicine", "date": "2026-08", "reference": "10.5555/ijcm.2026.0812"},
+          {"id": 507, "type": "MILESTONE", "title": "3,214 girls screened in 46 schools", "date": "2027-06"},
+          {"id": 508, "type": "MILESTONE", "title": "Agreement in 94% of cases with laboratory haemoglobin", "details": "On 600 paired samples", "date": "2027-09"},
+          {"id": 502, "type": "PAPER", "title": "Field accuracy of a smartphone haemoglobin test against HemoCue", "details": "BMJ Open (sample)", "date": "2027-11", "reference": "10.5555/bmjo.2027.1104"},
+          {"id": 503, "type": "PAPER", "title": "Anaemia prevalence among school-going girls in Dharwad", "details": "Sample Journal of Public Health", "date": "2027"},
+          {"id": 510, "type": "OTHER", "title": "Screening app source code released", "details": "Open source, MIT licence", "date": "2028-01", "reference": "https://example.org/hb-app"}
+        ],
+        "budget": [
+          {"head": "MANPOWER", "allocated": 1332000},
+          {"head": "CONSUMABLES", "allocated": 800000},
+          {"head": "TRAVEL", "allocated": 100000},
+          {"head": "CONTINGENCY", "allocated": 158000},
+          {"head": "OVERHEAD", "allocated": 284000},
+          {"head": "OTHERS", "allocated": 450000}
+        ],
+        "notes": "Screening was paused for 3 months in 2025 during the school board examinations. The project was completed within the sanctioned period."
+      }
+    },
+    {
+      "id": "R6",
+      "tests": "Nothing recorded for the period: no AI call, only the fixed parts and places for the PI to fill in.",
+      "report": {
+        "kind": "PROGRESS_REPORT",
+        "title": "Annual progress report, year 2",
+        "period_start": "2027-08-15",
+        "period_end": "2028-08-14",
+        "grant": {
+          "project_title": "Low-cost paper sensors for arsenic in groundwater",
+          "agency": "Anusandhan Research Board (sample)",
+          "scheme": "Core Research Grant",
+          "sanction_no": "ARB/CRG/2026/000457",
+          "sanction_date": "2026-07-30",
+          "start_date": "2026-08-15",
+          "end_date": "2029-08-14",
+          "total_sanctioned": 3927000
+        },
+        "objectives": [
+          "To develop paper-based colorimetric sensors that detect arsenic in groundwater below 10 ppb",
+          "To validate the sensors against ICP-MS on 200 well-water samples",
+          "To train field workers in two districts to use the sensors"
+        ],
+        "outputs": [],
+        "budget": [
+          {"head": "EQUIPMENT", "allocated": 1200000},
+          {"head": "MANPOWER", "allocated": 1440000}
+        ],
+        "notes": null
+      }
+    },
+    {
+      "id": "R7",
+      "tests": "No outputs, only the PI's note (with its own numbers): the narrative must come from the note alone.",
+      "report": {
+        "kind": "PROGRESS_REPORT",
+        "title": "Six-monthly progress report 2",
+        "period_start": "2027-04-01",
+        "period_end": "2027-09-30",
+        "grant": {
+          "project_title": "Machine-learning models for early detection of crop stress from drone images",
+          "agency": "National Science Council (sample)",
+          "scheme": "Early Career Research Grant",
+          "sanction_no": "NSC/ECRG/2026-27/1182",
+          "sanction_date": "2026-09-18",
+          "start_date": "2026-10-01",
+          "end_date": "2029-09-30",
+          "total_sanctioned": 3066000
+        },
+        "objectives": [
+          "To build a dataset of drone images of maize and ragi fields under water stress",
+          "To train deep-learning models that detect crop stress two weeks before visible symptoms"
+        ],
+        "outputs": [],
+        "budget": [
+          {"head": "EQUIPMENT", "allocated": 850000},
+          {"head": "MANPOWER", "allocated": 1296000}
+        ],
+        "notes": "Drone flights were stopped from June to August 2027 because of the monsoon. Image labelling continued, and 1,200 more images were labelled."
+      }
+    },
+    {
+      "id": "R8",
+      "tests": "A busy second year with 16 outputs and awkward text: chemical formulas (Fe₃O₄, As(III)), ranges (pH 6–8, 25 °C to 45 °C), ±5%, r = 0.96, quotes and an ampersand in titles, an amount inside the details, and an undated output.",
+      "report": {
+        "kind": "PROGRESS_REPORT",
+        "title": "Annual progress report, year 2",
+        "period_start": "2027-08-15",
+        "period_end": "2028-08-14",
+        "grant": {
+          "project_title": "Low-cost paper sensors for arsenic in groundwater",
+          "agency": "Anusandhan Research Board (sample)",
+          "scheme": "Core Research Grant",
+          "sanction_no": "ARB/CRG/2026/000457",
+          "sanction_date": "2026-07-30",
+          "start_date": "2026-08-15",
+          "end_date": "2029-08-14",
+          "total_sanctioned": 3927000
+        },
+        "objectives": [
+          "To develop paper-based colorimetric sensors that detect arsenic in groundwater below 10 ppb",
+          "To validate the sensors against ICP-MS on 200 well-water samples",
+          "To train field workers in two districts to use the sensors"
+        ],
+        "outputs": [
+          {"id": 809, "type": "EQUIPMENT", "title": "Mini centrifuge", "date": "2027-09-02", "amount": 38000},
+          {"id": 801, "type": "PAPER", "title": "Fe₃O₄@SiO₂ nanoparticles for As(III) removal at pH 6–8", "details": "Journal of Water Process Engineering", "date": "2027-10", "reference": "10.5555/jwpe.2027.1001"},
+          {"id": 808, "type": "EQUIPMENT", "title": "Portable ICP-OES (shared purchase)", "details": "Rs. 4.5 lakh paid from this grant, the rest from institute funds", "date": "2027-11-20", "amount": 450000},
+          {"id": 802, "type": "PAPER", "title": "Low-cost \"paper-in-a-bottle\" arsenic test kits", "details": "Sample Sensors Letters", "date": "2027-12-02", "reference": "10.5555/ssl.2027.1202"},
+          {"id": 813, "type": "PATENT", "title": "Paper strip for colorimetric detection of arsenic", "details": "Examination requested", "date": "2028-01-10", "reference": "202741012345"},
+          {"id": 806, "type": "STUDENT", "title": "Fathima Begum", "details": "JRF, joined January 2028", "date": "2028-01-15"},
+          {"id": 810, "type": "MILESTONE", "title": "Validation against ICP-MS completed for 200 samples", "details": "Correlation r = 0.96", "date": "2028-02"},
+          {"id": 814, "type": "OTHER", "title": "Talk at Sample Water Conclave 2028, Bengaluru", "date": "2028-02-21"},
+          {"id": 803, "type": "PAPER", "title": "Arsenic & fluoride co-occurrence in Raichur groundwater", "details": "Environmental Monitoring (sample)", "date": "2028-03", "reference": "10.5555/em.2028.0303"},
+          {"id": 805, "type": "STUDENT", "title": "Rohan Shetty", "details": "JRF upgraded to SRF", "date": "2028-04-01"},
+          {"id": 811, "type": "MILESTONE", "title": "Field kit tested at 25 °C to 45 °C", "details": "Readings stable within ±5%", "date": "2028-05"},
+          {"id": 807, "type": "STUDENT", "title": "Nikhil Rao", "details": "B.Tech intern for 8 weeks", "date": "2028-06"},
+          {"id": 812, "type": "MILESTONE", "title": "32 field workers trained in Raichur and Kalaburagi", "details": "Two 2-day workshops", "date": "2028-07"},
+          {"id": 815, "type": "OTHER", "title": "Kit protocol shared with the district water testing lab", "date": "2028-08"},
+          {"id": 804, "type": "PAPER", "title": "β-cyclodextrin modified paper for arsenite sensing", "details": "Conference paper, International Symposium on Sensing 2028", "date": "2028"},
+          {"id": 816, "type": "OTHER", "title": "Outreach session at a village school", "details": "The test kit was demonstrated to 40 students"}
+        ],
+        "budget": [
+          {"head": "EQUIPMENT", "allocated": 1200000},
+          {"head": "MANPOWER", "allocated": 1440000},
+          {"head": "CONSUMABLES", "allocated": 600000},
+          {"head": "TRAVEL", "allocated": 150000},
+          {"head": "CONTINGENCY", "allocated": 180000},
+          {"head": "OVERHEAD", "allocated": 357000}
+        ],
+        "notes": "The second field site moved from Yadgir to Kalaburagi in April 2028 after the Yadgir water testing lab closed."
+      }
+    }
+  ]
+}

@@ -167,22 +167,58 @@ public class AiServiceClient {
     }
 
     /**
-     * POSTs multipart/form-data to the ai-service and parses the JSON reply.
-     * Upstream errors keep their status and FastAPI detail message so the
-     * frontend can show the real cause.
+     * Drafts a progress report (Objective 4, 4.4) from the grant's records
+     * (snake_case keys, as the ai-service's ReportInput) and returns the draft
+     * with every sentence's sources and check result.
      */
+    public Map<String, Object> generateDraft(Map<String, Object> reportInput) {
+        return postJson("/award/generate-draft", reportInput, "progress report drafting",
+                "Writing the draft took longer than the configured timeout. Please try again.");
+    }
+
+    /** Re-checks an edited draft against the grant's current records. No AI call, so it's quick. */
+    public Map<String, Object> checkDraft(Map<String, Object> reportInput, String title, List<?> sections) {
+        Map<String, Object> body = new java.util.LinkedHashMap<>();
+        body.put("report", reportInput);
+        body.put("title", title);
+        body.put("sections", sections);
+        return postJson("/award/check-draft", body, "draft check",
+                "Checking the draft took longer than the configured timeout. Please try again.");
+    }
+
+    private Map<String, Object> postJson(String path, Object body, String what, String timeoutMessage) {
+        return postForMap(path, body, MediaType.APPLICATION_JSON, what, timeoutMessage);
+    }
+
     private Map<String, Object> postMultipart(String path,
                                               MultiValueMap<String, Object> body,
                                               String what,
                                               String timeoutMessage) {
+        // NOTE: do NOT set Content-Type manually for multipart — Spring's
+        // FormHttpMessageConverter must set it itself so it can include
+        // the auto-generated boundary parameter.
+        return postForMap(path, body, null, what, timeoutMessage);
+    }
+
+    /**
+     * POSTs to the ai-service and parses the JSON reply. Upstream errors keep
+     * their status and FastAPI detail message so the frontend can show the
+     * real cause. contentType null lets Spring choose it (multipart).
+     */
+    private Map<String, Object> postForMap(String path,
+                                           Object body,
+                                           MediaType contentType,
+                                           String what,
+                                           String timeoutMessage) {
         try {
-            // NOTE: do NOT set Content-Type manually for multipart — Spring's
-            // FormHttpMessageConverter must set it itself so it can include
-            // the auto-generated boundary parameter.
-            String raw = restClient.post()
+            RestClient.RequestBodySpec request = restClient.post()
                     .uri(path)
                     .headers(this::applyAuthHeaders)
-                    .accept(MediaType.APPLICATION_JSON)
+                    .accept(MediaType.APPLICATION_JSON);
+            if (contentType != null) {
+                request = request.contentType(contentType);
+            }
+            String raw = request
                     .body(body)
                     .retrieve()
                     .body(String.class);

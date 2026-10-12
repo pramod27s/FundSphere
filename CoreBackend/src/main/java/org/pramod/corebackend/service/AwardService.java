@@ -1,7 +1,8 @@
 /**
  * My grants (Objective 4, Grant Compliance Desk): the grants a user holds,
- * with their dates, portal and budget heads (4.1 "Add my grant"), and their
- * reporting deadlines (4.2 compliance calendar).
+ * with their dates, portal and budget heads (4.1 "Add my grant"), their
+ * reporting deadlines (4.2 compliance calendar), and the project's
+ * objectives for progress reports (4.4).
  *
  * Every method takes the caller's user id and only touches grants that
  * user owns; anything else is reported as not found.
@@ -33,11 +34,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
@@ -55,6 +58,11 @@ public class AwardService {
     /** Longer projects are almost always a mistyped year, and 4.2 makes events for every year. */
     private static final int MAX_PROJECT_YEARS = 15;
     private static final int MAX_EVENT_TITLE_LENGTH = 300;
+    private static final int MAX_OBJECTIVES = 15;
+    private static final int MAX_OBJECTIVE_LENGTH = 1000;
+    /** A list marker at the start of a pasted objective: "1.", "2)", "(a)", "iii.", "•", "-". */
+    private static final Pattern LIST_MARKER =
+            Pattern.compile("^(?:\\(?(?:\\d{1,2}|[a-zA-Z]|[ivxIVX]{1,5})[.)]|[-•*–])\\s+");
 
     /** Result of POST /api/awards: created is false when the application already had a grant. */
     public record CreateResult(AwardResponse award, boolean created) {
@@ -128,6 +136,43 @@ public class AwardService {
     @Transactional
     public void delete(Long userId, Long awardId) {
         awardRepository.delete(requireOwned(userId, awardId));
+    }
+
+    /**
+     * Replaces the project's objectives (4.4), one per entry. Pasted list
+     * markers ("1.", "(a)", "•") are dropped, so each objective reads as a
+     * sentence in the report; blank entries are skipped.
+     */
+    @Transactional
+    public AwardResponse updateObjectives(Long userId, Long awardId, List<String> objectives) {
+        Award award = requireOwned(userId, awardId);
+        List<String> cleaned = cleanObjectives(objectives);
+        award.setObjectives(cleaned.isEmpty() ? null : String.join("\n", cleaned));
+        return toResponse(awardRepository.save(award));
+    }
+
+    static List<String> cleanObjectives(List<String> objectives) {
+        List<String> cleaned = new ArrayList<>();
+        for (String entry : objectives == null ? List.<String>of() : objectives) {
+            if (entry == null) {
+                continue;
+            }
+            for (String line : entry.split("\\R")) {
+                String text = LIST_MARKER.matcher(line.strip()).replaceFirst("").replaceAll("\\s+", " ").strip();
+                if (text.isEmpty()) {
+                    continue;
+                }
+                if (text.length() > MAX_OBJECTIVE_LENGTH) {
+                    throw new ResponseStatusException(BAD_REQUEST, "Objective " + (cleaned.size() + 1)
+                            + " is longer than " + MAX_OBJECTIVE_LENGTH + " characters. Shorten it");
+                }
+                cleaned.add(text);
+            }
+        }
+        if (cleaned.size() > MAX_OBJECTIVES) {
+            throw new ResponseStatusException(BAD_REQUEST, "Add at most " + MAX_OBJECTIVES + " objectives");
+        }
+        return cleaned;
     }
 
     // ------------------------------------------------------------------
@@ -336,7 +381,7 @@ public class AwardService {
         });
     }
 
-    private static void checkAmount(Long amount, String what) {
+    static void checkAmount(Long amount, String what) {
         if (amount == null) {
             return;
         }
@@ -380,6 +425,7 @@ public class AwardService {
                 .unspentPolicy(award.getUnspentPolicy())
                 .reportingProfile(award.getReportingProfile())
                 .status(award.getStatus())
+                .objectives(award.getObjectives() == null ? List.of() : List.of(award.getObjectives().split("\n")))
                 .budgetLines(lines)
                 .events(events)
                 .nextEvent(pending.isEmpty() ? null : pending.get(0))

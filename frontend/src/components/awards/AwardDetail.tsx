@@ -7,9 +7,17 @@ import { formatDay } from '../../utils/applicationDates';
 import { formatInr } from '../../utils/formatFunding';
 import AwardFormModal from './AwardFormModal';
 import ComplianceCalendar from './ComplianceCalendar';
+import GenerateReportModal from './GenerateReportModal';
+import ProgressReports from './ProgressReports';
+import ProjectObjectives from './ProjectObjectives';
+import ProjectOutputs from './ProjectOutputs';
 import { AWARD_STATUS_META, HEAD_LABEL, PORTAL_LABEL, projectLength, UNSPENT_LABEL } from './awardMeta';
 
-/** One grant: its sanction details, reporting portal and budget heads (4.1). */
+/**
+ * One grant: its sanction details, reporting portal and budget heads (4.1),
+ * its deadlines (4.2), and the objectives, outputs and progress-report drafts
+ * of 4.4.
+ */
 export default function AwardDetail() {
   const { id } = useParams();
   const awardId = Number(id);
@@ -18,6 +26,8 @@ export default function AwardDetail() {
   const [award, setAward] = useState<Award | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  /** Open while choosing what a progress-report draft covers; eventId preselects a report deadline. */
+  const [drafting, setDrafting] = useState<{ eventId?: number } | null>(null);
 
   useEffect(() => {
     if (!validId) return;
@@ -129,9 +139,17 @@ export default function AwardDetail() {
         </dl>
       </section>
 
-      <ComplianceCalendar award={award} onAward={setAward} />
+      <ComplianceCalendar award={award} onAward={setAward} onDraftReport={(eventId) => setDrafting({ eventId })} />
+
+      <ProjectObjectives award={award} onAward={setAward} />
+
+      <ProjectOutputs award={award} />
+
+      <ProgressReports award={award} onDraft={() => setDrafting({})} />
 
       <BudgetCard award={award} onEdit={() => setEditing(true)} />
+
+      {drafting && <GenerateReportModal award={award} eventId={drafting.eventId} onClose={() => setDrafting(null)} />}
 
       {editing && (
         <AwardFormModal

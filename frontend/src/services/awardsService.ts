@@ -1,7 +1,7 @@
 /**
  * Frontend client for My grants (Objective 4, Grant Compliance Desk) on
  * Spring Boot: the grants a user holds, with their dates, portal and
- * budget heads. Amounts are whole rupees.
+ * budget heads, and what each project produced (4.4). Amounts are whole rupees.
  */
 import { apiFetch } from './apiClient';
 
@@ -83,6 +83,8 @@ export interface Award {
   unspentPolicy: UnspentPolicy;
   reportingProfile: ReportingProfile;
   status: AwardStatus;
+  /** The project's objectives in order, for progress reports (4.4); empty until added. */
+  objectives: string[];
   /** In the standard head order; heads with nothing allocated are left out. */
   budgetLines: BudgetLine[];
   /** Reporting deadlines in date order. */
@@ -234,6 +236,245 @@ export async function submitPastAwardEvents(awardId: number): Promise<Award> {
   await ensureOk(response, 'Could not update the earlier deadlines');
   grantsChanged();
   return (await response.json()) as Award;
+}
+
+/** Replaces the project's objectives (4.4); returns the whole grant. An empty list clears them. */
+export async function updateAwardObjectives(awardId: number, objectives: string[]): Promise<Award> {
+  const response = await apiFetch(`/api/awards/${awardId}/objectives`, {
+    method: 'PUT',
+    body: JSON.stringify({ objectives }),
+  });
+  await ensureOk(response, 'Could not save the objectives');
+  return (await response.json()) as Award;
+}
+
+// ---------------------------------------------------------------------------
+// Outputs (4.4): what the project produced, the material progress reports are drafted from
+// ---------------------------------------------------------------------------
+
+export type AwardOutputType = 'PAPER' | 'STUDENT' | 'EQUIPMENT' | 'PATENT' | 'MILESTONE' | 'OTHER';
+
+export interface AwardOutput {
+  id: number;
+  type: AwardOutputType;
+  /** The paper's title, the student's name, the equipment item, the milestone. */
+  title: string;
+  details: string | null;
+  /** "2027", "2027-03" or "2027-03-14": ORCID often has only the year or month. */
+  date: string | null;
+  /** Whole rupees, e.g. an equipment item's cost. */
+  amount: number | null;
+  /** A paper's DOI, a patent's application number. */
+  reference: string | null;
+  source: 'ORCID' | 'MANUAL';
+  /** The ORCID put-code of an imported work. */
+  externalId: string | null;
+}
+
+/** The quick-add form. On update every field is replaced. */
+export interface AwardOutputInput {
+  type: AwardOutputType;
+  title: string;
+  details: string | null;
+  date: string | null;
+  amount: number | null;
+  reference: string | null;
+}
+
+export interface OrcidWork {
+  putCode: string;
+  title: string;
+  journal: string | null;
+  date: string | null;
+  doi: string | null;
+  /** ORCID's own type, e.g. "journal-article", "data-set". */
+  workType: string | null;
+  /** What it becomes when added. */
+  outputType: AwardOutputType;
+  /** null when ORCID has no date for it. */
+  inPeriod: boolean | null;
+  alreadyAdded: boolean;
+}
+
+export interface OrcidWorks {
+  /** null when no iD was given and the profile has none; `message` then says so. */
+  orcidId: string | null;
+  /** Newest first. */
+  works: OrcidWork[];
+  message: string | null;
+}
+
+/** Outputs come back newest first, undated ones last. */
+export async function fetchAwardOutputs(awardId: number): Promise<AwardOutput[]> {
+  const response = await apiFetch(`/api/awards/${awardId}/outputs`);
+  await ensureOk(response, 'Could not load the outputs');
+  return (await response.json()) as AwardOutput[];
+}
+
+/** Adds an output; returns the whole list. */
+export async function addAwardOutput(awardId: number, input: AwardOutputInput): Promise<AwardOutput[]> {
+  const response = await apiFetch(`/api/awards/${awardId}/outputs`, { method: 'POST', body: JSON.stringify(input) });
+  await ensureOk(response, 'Could not add the output');
+  return (await response.json()) as AwardOutput[];
+}
+
+export async function updateAwardOutput(awardId: number, outputId: number, input: AwardOutputInput): Promise<AwardOutput[]> {
+  const response = await apiFetch(`/api/awards/${awardId}/outputs/${outputId}`, {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  });
+  await ensureOk(response, 'Could not save the output');
+  return (await response.json()) as AwardOutput[];
+}
+
+export async function deleteAwardOutput(awardId: number, outputId: number): Promise<AwardOutput[]> {
+  const response = await apiFetch(`/api/awards/${awardId}/outputs/${outputId}`, { method: 'DELETE' });
+  await ensureOk(response, 'Could not remove the output');
+  return (await response.json()) as AwardOutput[];
+}
+
+/** The works on the PI's ORCID record; pass orcidId to use another iD than the profile's. */
+export async function fetchOrcidWorks(awardId: number, orcidId?: string): Promise<OrcidWorks> {
+  const query = orcidId ? `?orcidId=${encodeURIComponent(orcidId)}` : '';
+  const response = await apiFetch(`/api/awards/${awardId}/outputs/orcid${query}`);
+  await ensureOk(response, 'Could not load your ORCID works');
+  return (await response.json()) as OrcidWorks;
+}
+
+/** Adds the ticked works (fetched again from ORCID on the server); returns the whole output list. */
+export async function importOrcidWorks(awardId: number, putCodes: string[], orcidId?: string): Promise<AwardOutput[]> {
+  const response = await apiFetch(`/api/awards/${awardId}/outputs/orcid`, {
+    method: 'POST',
+    body: JSON.stringify({ orcidId: orcidId ?? null, putCodes }),
+  });
+  await ensureOk(response, 'Could not add the works');
+  return (await response.json()) as AwardOutput[];
+}
+
+// ---------------------------------------------------------------------------
+// Progress-report drafts (4.4)
+// ---------------------------------------------------------------------------
+
+export type ReportKind = 'PROGRESS_REPORT' | 'FINAL_REPORT';
+
+/**
+ * One sentence of a draft. `sources` are entry ids ("out_12", "obj_1",
+ * "grant" …); `supported` is the claim check's verdict and `problems` say why
+ * not. A placeholder is an instruction in [brackets] for the PI to replace.
+ */
+export interface DraftSentence {
+  id: string;
+  text: string;
+  sources: string[];
+  origin: 'AI' | 'CODE';
+  edited: boolean;
+  placeholder: boolean;
+  supported: boolean;
+  problems: string[];
+  /** The PI checked an unsupported sentence and kept it. */
+  confirmed: boolean;
+}
+
+export interface DraftBlock {
+  heading: string | null;
+  style: 'paragraph' | 'list';
+  sentences: DraftSentence[];
+}
+
+export interface DraftSection {
+  key: string;
+  heading: string;
+  blocks: DraftBlock[];
+}
+
+export interface DraftContent {
+  title: string;
+  sections: DraftSection[];
+  /** What each entry id stands for, e.g. out_12 → 'Paper: Arsenic sensing…'. */
+  entries: { id: string; label: string }[];
+  warnings: string[];
+}
+
+export interface ReportDraft {
+  id: number;
+  awardId: number;
+  kind: ReportKind;
+  title: string;
+  /** YYYY-MM-DD */
+  periodStart: string;
+  periodEnd: string;
+  /** The deadline it was drafted for, if any. */
+  eventId: number | null;
+  outputIds: number[];
+  notes: string | null;
+  /** The model that wrote the narrative; empty when only code wrote the draft. */
+  model: string | null;
+  unsupportedCount: number;
+  placeholderCount: number;
+  confirmedCount: number;
+  /** Null in lists. */
+  content: DraftContent | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Either a deadline (eventId) or a kind with a period. outputIds omitted: those dated in the period plus undated ones. */
+export interface GenerateDraftInput {
+  eventId?: number;
+  kind?: ReportKind;
+  periodStart?: string;
+  periodEnd?: string;
+  outputIds?: number[];
+  notes?: string | null;
+}
+
+export async function fetchReportDrafts(awardId: number): Promise<ReportDraft[]> {
+  const response = await apiFetch(`/api/awards/${awardId}/reports`);
+  await ensureOk(response, 'Could not load the report drafts');
+  return (await response.json()) as ReportDraft[];
+}
+
+/** Writes a draft; takes up to a minute. */
+export async function generateReportDraft(awardId: number, input: GenerateDraftInput): Promise<ReportDraft> {
+  const response = await apiFetch(`/api/awards/${awardId}/reports`, { method: 'POST', body: JSON.stringify(input) });
+  await ensureOk(response, 'Could not write the draft');
+  return (await response.json()) as ReportDraft;
+}
+
+export async function fetchReportDraft(awardId: number, draftId: number): Promise<ReportDraft> {
+  const response = await apiFetch(`/api/awards/${awardId}/reports/${draftId}`);
+  await ensureOk(response, 'Could not load the draft');
+  return (await response.json()) as ReportDraft;
+}
+
+/** Saves edited sections; every sentence is checked again against the grant's current records. */
+export async function updateReportDraft(awardId: number, draftId: number, sections: DraftSection[]): Promise<ReportDraft> {
+  const response = await apiFetch(`/api/awards/${awardId}/reports/${draftId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ sections }),
+  });
+  await ensureOk(response, 'Could not save the draft');
+  return (await response.json()) as ReportDraft;
+}
+
+/** Downloads the draft as a Word document, marked "Draft", with the check's counts at the top. */
+export async function downloadReportDocx(awardId: number, draftId: number): Promise<void> {
+  const response = await apiFetch(`/api/awards/${awardId}/reports/${draftId}/export.docx`);
+  await ensureOk(response, 'Could not export the draft');
+  const name = /filename="?([^";]+)"?/i.exec(response.headers.get('Content-Disposition') ?? '')?.[1];
+  const url = URL.createObjectURL(await response.blob());
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name ?? 'progress-report-DRAFT.docx';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+export async function deleteReportDraft(awardId: number, draftId: number): Promise<void> {
+  const response = await apiFetch(`/api/awards/${awardId}/reports/${draftId}`, { method: 'DELETE' });
+  await ensureOk(response, 'Could not delete the draft');
 }
 
 async function ensureOk(response: Response, fallback: string): Promise<void> {

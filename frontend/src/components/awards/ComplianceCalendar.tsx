@@ -1,6 +1,6 @@
 import { useId, useState, type FormEvent, type ReactNode } from 'react';
 import { toast } from 'react-hot-toast';
-import { Check, ChevronDown, ExternalLink, Info, Loader2, Minus, Plus, RotateCcw } from 'lucide-react';
+import { Check, ChevronDown, ExternalLink, Info, Loader2, Minus, Plus, RotateCcw, Sparkles } from 'lucide-react';
 import {
   addAwardEvent,
   deleteAwardEvent,
@@ -16,6 +16,8 @@ import { DEADLINE_TONE_CLASS, deadlineStatus, PROFILE_RULES_NAME } from './award
 interface ComplianceCalendarProps {
   award: Award;
   onAward: (award: Award) => void;
+  /** Opens the progress-report draft dialog for a report deadline (4.4). */
+  onDraftReport?: (eventId: number) => void;
 }
 
 const INPUT =
@@ -27,7 +29,7 @@ const LINK = 'text-xs font-semibold text-primary-700 hover:text-primary-800 disa
  * agency's rules, with what to do about each. Overdue first, then the next
  * 30 days, then later; submitted and not-applicable ones fold away.
  */
-export default function ComplianceCalendar({ award, onAward }: ComplianceCalendarProps) {
+export default function ComplianceCalendar({ award, onAward, onDraftReport }: ComplianceCalendarProps) {
   const [busyId, setBusyId] = useState<number | 'past' | 'new' | null>(null);
   const [showDone, setShowDone] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -67,6 +69,11 @@ export default function ComplianceCalendar({ award, onAward }: ComplianceCalenda
       today={today}
       onChange={(changes, success) => change(event, changes, success)}
       onDelete={() => run(event.id, () => deleteAwardEvent(award.id, event.id), 'Deadline removed')}
+      onDraft={
+        onDraftReport && (event.type === 'PROGRESS_REPORT' || event.type === 'FINAL_REPORT')
+          ? () => onDraftReport(event.id)
+          : undefined
+      }
     />
   );
 
@@ -168,6 +175,7 @@ function EventRow({
   today,
   onChange,
   onDelete,
+  onDraft,
 }: {
   event: ComplianceEvent;
   portalUrl: string | null;
@@ -175,6 +183,8 @@ function EventRow({
   today: string;
   onChange: (changes: ComplianceEventChanges, success?: string) => Promise<boolean>;
   onDelete: () => void;
+  /** Set on report deadlines: open the draft dialog for this report. */
+  onDraft?: () => void;
 }) {
   const formId = useId();
   const [mode, setMode] = useState<'idle' | 'submit' | 'move' | 'why'>('idle');
@@ -234,6 +244,12 @@ function EventRow({
           )}
 
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
+            {pending && onDraft && (
+              <button type="button" className={`${LINK} inline-flex items-center gap-1`} onClick={onDraft}>
+                <Sparkles className="w-3 h-3" />
+                Draft this report
+              </button>
+            )}
             {pending ? (
               <>
                 <button type="button" className={LINK} disabled={busy} onClick={() => { setDate(today); setMode('submit'); }}>

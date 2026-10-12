@@ -401,4 +401,59 @@ class AwardServiceTest {
 
         assertEquals(404, status(assertThrows(ResponseStatusException.class, () -> service.update(USER_ID, 3L, form()))));
     }
+
+    // ------------------------------------------------------------------
+    // Objectives (4.4)
+    // ------------------------------------------------------------------
+
+    @Test
+    void objectivesDropPastedListMarkersAndBlankLines() {
+        Award award = savedGrant();
+
+        AwardResponse response = service.updateObjectives(USER_ID, 3L, List.of(
+                "1. To develop a paper-strip arsenic sensor",
+                "",
+                "(b)  To validate it in   20 villages\r\nii) To train two JRFs",
+                "• To publish the field data",
+                "A low-cost kit for schools"));
+
+        assertEquals(List.of(
+                "To develop a paper-strip arsenic sensor",
+                "To validate it in 20 villages",
+                "To train two JRFs",
+                "To publish the field data",
+                "A low-cost kit for schools"), response.getObjectives());
+        assertEquals(5, award.getObjectives().split("\n").length);
+    }
+
+    @Test
+    void emptyObjectivesClearThem() {
+        Award award = savedGrant();
+        award.setObjectives("To develop a sensor");
+
+        assertEquals(List.of(), service.updateObjectives(USER_ID, 3L, List.of("  ", "")).getObjectives());
+        assertNull(award.getObjectives());
+        assertEquals(List.of(), service.updateObjectives(USER_ID, 3L, null).getObjectives());
+    }
+
+    @Test
+    void objectivesAreCappedInNumberAndLength() {
+        savedGrant();
+        List<String> sixteen = java.util.stream.IntStream.rangeClosed(1, 16).mapToObj(i -> "Objective " + i).toList();
+
+        assertEquals(400, status(assertThrows(ResponseStatusException.class,
+                () -> service.updateObjectives(USER_ID, 3L, sixteen))));
+        assertEquals(400, status(assertThrows(ResponseStatusException.class,
+                () -> service.updateObjectives(USER_ID, 3L, List.of("x".repeat(1001))))));
+    }
+
+    @Test
+    void savingTheGrantFormKeepsTheObjectives() {
+        Award award = savedGrant();
+        award.setObjectives("To develop a sensor");
+
+        AwardResponse response = service.update(USER_ID, 3L, form());
+
+        assertEquals(List.of("To develop a sensor"), response.getObjectives());
+    }
 }

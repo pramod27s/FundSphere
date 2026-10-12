@@ -9,8 +9,9 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from proposal.pdf_extractor import extract_pages
 
+from .report_writer import recheck, write_draft
 from .sanction_reader import read_sanction_order, summarise
-from .schemas import SanctionOrderReading
+from .schemas import CheckDraftRequest, ReportDraft, ReportInput, SanctionOrderReading
 
 logger = logging.getLogger("award.routes")
 
@@ -66,3 +67,35 @@ async def read_sanction_order_route(
     logger.info("Sanction order read in %.1fs (%d pages): %s",
                 time.monotonic() - started, len(pages), summarise(reading))
     return reading
+
+
+@router.post("/generate-draft", response_model=ReportDraft)
+async def generate_draft_route(report: ReportInput):
+    """Draft a progress report from the grant's recorded entries (4.4).
+
+    Stateless: Spring Boot sends the records and stores the draft. Every
+    sentence comes back with the entries it cites and the result of the
+    unsupported-claim check.
+    """
+    started = time.monotonic()
+    try:
+        draft = await write_draft(report)
+    except Exception as exc:
+        logger.exception("Progress report drafting failed")
+        msg = str(exc).lower()
+        if "exhausted" in msg or "resource_exhausted" in msg or "429" in msg or "503" in msg or "quota" in msg:
+            raise HTTPException(
+                status_code=503,
+                detail="The AI service is busy right now (rate limit). Please try again in a minute.",
+            )
+        raise HTTPException(status_code=502, detail="The AI couldn't write the draft. Please try again.")
+
+    logger.info("Progress report drafted in %.1fs: %d outputs, %d unsupported, %d to fill in",
+                time.monotonic() - started, len(report.outputs), draft.unsupported_count, draft.placeholder_count)
+    return draft
+
+
+@router.post("/check-draft", response_model=ReportDraft)
+async def check_draft_route(request: CheckDraftRequest):
+    """Re-check a draft after the PI edited it, against the records as they are now. No AI call."""
+    return recheck(request)

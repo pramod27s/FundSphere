@@ -43,6 +43,8 @@ public class AwardResponse {
     private UnspentPolicy unspentPolicy;
     private ReportingProfile reportingProfile;
     private AwardStatus status;
+    /** The project's objectives in order, for progress reports (4.4); empty until the PI adds them. */
+    private List<String> objectives;
     private List<BudgetLineResponse> budgetLines;
     private List<EventResponse> events;
     /** The earliest pending deadline (overdue ones included), for the My grants list; null if none. */

@@ -100,6 +100,13 @@ public class Award {
     @Column(nullable = false, length = 20)
     private AwardStatus status = AwardStatus.ACTIVE;
 
+    /**
+     * The project's objectives as the proposal states them, one per line, so
+     * progress-report drafts (4.4) can report against them. Null until added.
+     */
+    @Column(columnDefinition = "TEXT")
+    private String objectives;
+
     @Builder.Default
     @OneToMany(mappedBy = "award", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("id ASC")
@@ -111,6 +118,17 @@ public class Award {
     @OrderBy("dueDate ASC, id ASC")
     @Fetch(FetchMode.SUBSELECT)
     private List<ComplianceEvent> events = new ArrayList<>();
+
+    /** What the project produced (4.4). Not loaded with the grant; read through AwardOutputService. */
+    @Builder.Default
+    @OneToMany(mappedBy = "award", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("id ASC")
+    private List<AwardOutput> outputs = new ArrayList<>();
+
+    /** Progress-report drafts (4.4). Mapped only so deleting the grant deletes them; read through GeneratedDraftRepository. */
+    @Builder.Default
+    @OneToMany(mappedBy = "award", cascade = CascadeType.REMOVE)
+    private List<GeneratedDraft> drafts = new ArrayList<>();
 
     @Column(name = "created_at", updatable = false, nullable = false)
     private LocalDateTime createdAt;

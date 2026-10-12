@@ -21,6 +21,7 @@ const Applications = lazy(() => import('./components/applications/Applications.t
 const ApplicationDetail = lazy(() => import('./components/applications/ApplicationDetail.tsx'));
 const Awards = lazy(() => import('./components/awards/Awards.tsx'));
 const AwardDetail = lazy(() => import('./components/awards/AwardDetail.tsx'));
+const ReportEditor = lazy(() => import('./components/awards/ReportEditor.tsx'));
 import { loadSession, clearSession } from './services/authService';
 import { ResearcherProvider, useResearcher } from './context/ResearcherContext';
 
@@ -304,6 +305,7 @@ export default function App() {
             <Route path="/applications/:id" element={<ApplicationDetail />} />
             <Route path="/my-grants" element={<Awards />} />
             <Route path="/my-grants/:id" element={<AwardDetail />} />
+            <Route path="/my-grants/:id/reports/:draftId" element={<ReportEditor />} />
             <Route path="/proposal" element={<ProposalAssistant />} />
             <Route path="/profile" element={<ProfileRoute />} />
           </Route>

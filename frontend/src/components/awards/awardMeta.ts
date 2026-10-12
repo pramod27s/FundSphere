@@ -1,5 +1,12 @@
-import type { AwardStatus, BudgetHead, ReportingProfile, SubmissionPortal, UnspentPolicy } from '../../services/awardsService';
-import { daysUntil, todayIso } from '../../utils/applicationDates';
+import type {
+  AwardOutputType,
+  AwardStatus,
+  BudgetHead,
+  ReportingProfile,
+  SubmissionPortal,
+  UnspentPolicy,
+} from '../../services/awardsService';
+import { daysUntil, formatDay, todayIso } from '../../utils/applicationDates';
 
 const LAKH = 100_000;
 
@@ -136,4 +143,119 @@ export function projectLength(startDate: string, endDate: string): string {
   const monthText = rest === 1 ? '1 month' : `${rest} months`;
   if (years === 0) return monthText;
   return rest === 0 ? yearText : `${yearText} ${monthText}`;
+}
+
+export const OUTPUT_ORDER: AwardOutputType[] = ['PAPER', 'STUDENT', 'EQUIPMENT', 'PATENT', 'MILESTONE', 'OTHER'];
+
+/** How the quick-add form and the grant page name each kind of output (4.4). */
+export const OUTPUT_META: Record<
+  AwardOutputType,
+  {
+    label: string;
+    group: string;
+    titleLabel: string;
+    titlePlaceholder: string;
+    detailsLabel: string;
+    detailsPlaceholder: string;
+    dateLabel: string;
+    /** null when the kind has no reference number. */
+    referenceLabel: string | null;
+    referencePlaceholder?: string;
+    /** Whether the form asks for an amount (the equipment's cost). */
+    amount: boolean;
+  }
+> = {
+  PAPER: {
+    label: 'Paper',
+    group: 'Papers',
+    titleLabel: 'Title',
+    titlePlaceholder: 'e.g. Paper-strip sensing of arsenic in groundwater',
+    detailsLabel: 'Journal or conference',
+    detailsPlaceholder: 'e.g. Journal of Hazardous Materials',
+    dateLabel: 'Published',
+    referenceLabel: 'DOI',
+    referencePlaceholder: 'e.g. 10.1016/j.jhazmat.2027.123456',
+    amount: false,
+  },
+  STUDENT: {
+    label: 'Student',
+    group: 'Students trained',
+    titleLabel: "Student's name",
+    titlePlaceholder: 'e.g. Ravi Kumar',
+    detailsLabel: 'Role and status',
+    detailsPlaceholder: 'e.g. JRF, joined Sep 2026, working on sensor calibration',
+    dateLabel: 'Joined or finished',
+    referenceLabel: null,
+    amount: false,
+  },
+  EQUIPMENT: {
+    label: 'Equipment',
+    group: 'Equipment bought',
+    titleLabel: 'Item',
+    titlePlaceholder: 'e.g. Portable XRF analyser',
+    detailsLabel: 'Details',
+    detailsPlaceholder: 'e.g. Installed and working in the Water Lab',
+    dateLabel: 'Bought or installed',
+    referenceLabel: null,
+    amount: true,
+  },
+  PATENT: {
+    label: 'Patent',
+    group: 'Patents',
+    titleLabel: 'Title',
+    titlePlaceholder: 'e.g. A paper-based arsenic test kit',
+    detailsLabel: 'Status',
+    detailsPlaceholder: 'e.g. Filed, examination requested',
+    dateLabel: 'Filed or granted',
+    referenceLabel: 'Application or patent number',
+    referencePlaceholder: 'e.g. 202641012345',
+    amount: false,
+  },
+  MILESTONE: {
+    label: 'Milestone',
+    group: 'Milestones reached',
+    titleLabel: 'What was achieved',
+    titlePlaceholder: 'e.g. Prototype tested in 5 villages',
+    detailsLabel: 'Details',
+    detailsPlaceholder: 'e.g. Arsenic above 10 ppb found in 23 of 60 wells',
+    dateLabel: 'Reached on',
+    referenceLabel: null,
+    amount: false,
+  },
+  OTHER: {
+    label: 'Other',
+    group: 'Other outputs',
+    titleLabel: 'What it is',
+    titlePlaceholder: 'e.g. Invited talk at IIT Bombay, a training workshop, a dataset',
+    detailsLabel: 'Details',
+    detailsPlaceholder: 'Anything worth reporting about it',
+    dateLabel: 'Date',
+    referenceLabel: 'Link or reference',
+    amount: false,
+  },
+};
+
+/** "2027" → "2027", "2027-03" → "Mar 2027", "2027-03-14" → "14 Mar 2027". */
+export function formatPartialDate(date: string): string {
+  if (/^\d{4}$/.test(date)) return date;
+  if (/^\d{4}-\d{2}$/.test(date)) return formatDay(`${date}-01`).replace(/^1 /, '');
+  return formatDay(date);
+}
+
+/**
+ * True when no day a (possibly partial) date could mean falls within the
+ * project. "2026-02-31" is a fine upper bound for February: it only takes
+ * part in string comparisons.
+ */
+export function outsidePeriod(date: string, startDate: string, endDate: string): boolean {
+  const first = date.length === 4 ? `${date}-01-01` : date.length === 7 ? `${date}-01` : date;
+  const last = date.length === 4 ? `${date}-12-31` : date.length === 7 ? `${date}-31` : date;
+  return last < startDate || first > endDate;
+}
+
+/** A DOI's link, or null when the reference isn't a DOI. */
+export function doiUrl(reference: string | null): string | null {
+  if (!reference) return null;
+  const doi = reference.trim().replace(/^(https?:\/\/)?(dx\.)?doi\.org\//i, '').replace(/^doi:\s*/i, '');
+  return doi.startsWith('10.') ? `https://doi.org/${doi}` : null;
 }
