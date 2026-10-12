@@ -11,6 +11,7 @@ import {
   type ComplianceEventChanges,
 } from '../../services/awardsService';
 import { formatDay, todayIso } from '../../utils/applicationDates';
+import { ROW_ACTION } from '../common/buttonStyles';
 import { DEADLINE_TONE_CLASS, deadlineStatus, PROFILE_RULES_NAME } from './awardMeta';
 
 interface ComplianceCalendarProps {
@@ -22,7 +23,6 @@ interface ComplianceCalendarProps {
 
 const INPUT =
   'bg-white border border-brand-200 rounded-lg px-2.5 py-1.5 text-sm text-brand-900 focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-200';
-const LINK = 'text-xs font-semibold text-primary-700 hover:text-primary-800 disabled:opacity-50';
 
 /**
  * 4.2: the grant's reporting deadlines, worked out from its dates and its
@@ -243,35 +243,36 @@ function EventRow({
             <p className="text-xs text-brand-500 mt-0.5">The next instalment usually waits on this.</p>
           )}
 
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
+          <div className="flex flex-wrap items-center gap-2 mt-2">
             {pending && onDraft && (
-              <button type="button" className={`${LINK} inline-flex items-center gap-1`} onClick={onDraft}>
-                <Sparkles className="w-3 h-3" />
+              <button type="button" className={ROW_ACTION.primary} onClick={onDraft}>
+                <Sparkles className="w-3.5 h-3.5" />
                 Draft this report
               </button>
             )}
             {pending ? (
               <>
-                <button type="button" className={LINK} disabled={busy} onClick={() => { setDate(today); setMode('submit'); }}>
+                <button type="button" className={ROW_ACTION.emphasis} disabled={busy} onClick={() => { setDate(today); setMode('submit'); }}>
+                  <Check className="w-3.5 h-3.5" />
                   Mark submitted
                 </button>
-                <button type="button" className={LINK} disabled={busy} onClick={() => { setDate(event.dueDate); setMode('move'); }}>
+                <button type="button" className={ROW_ACTION.secondary} disabled={busy} onClick={() => { setDate(event.dueDate); setMode('move'); }}>
                   Change date
                 </button>
                 {event.dueDateEdited && (
                   <button
                     type="button"
-                    className={`${LINK} inline-flex items-center gap-1`}
+                    className={ROW_ACTION.secondary}
                     disabled={busy}
                     onClick={() => onChange({ resetDueDate: true }, 'Date put back')}
                   >
-                    <RotateCcw className="w-3 h-3" />
+                    <RotateCcw className="w-3.5 h-3.5" />
                     Put date back
                   </button>
                 )}
                 <button
                   type="button"
-                  className={LINK}
+                  className={ROW_ACTION.secondary}
                   disabled={busy}
                   onClick={() => onChange({ status: 'NOT_APPLICABLE' }, 'Marked not applicable')}
                 >
@@ -279,25 +280,15 @@ function EventRow({
                 </button>
               </>
             ) : (
-              <button type="button" className={LINK} disabled={busy} onClick={() => onChange({ status: 'PENDING' }, 'Back to pending')}>
+              <button type="button" className={ROW_ACTION.secondary} disabled={busy} onClick={() => onChange({ status: 'PENDING' }, 'Back to pending')}>
+                <RotateCcw className="w-3.5 h-3.5" />
                 Undo
-              </button>
-            )}
-            {event.basis && (
-              <button
-                type="button"
-                className={`${LINK} inline-flex items-center gap-1`}
-                aria-expanded={mode === 'why'}
-                onClick={() => setMode(mode === 'why' ? 'idle' : 'why')}
-              >
-                <Info className="w-3 h-3" />
-                Why this date?
               </button>
             )}
             {event.origin === 'MANUAL' && (
               <button
                 type="button"
-                className="text-xs font-semibold text-red-600 hover:text-red-700 disabled:opacity-50"
+                className={ROW_ACTION.danger}
                 disabled={busy}
                 onClick={() => {
                   if (window.confirm(`Remove "${event.title}"?`)) onDelete();
@@ -306,13 +297,19 @@ function EventRow({
                 Remove
               </button>
             )}
-            {pending && portalUrl && (
-              <a
-                href={portalUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`${LINK} inline-flex items-center gap-1`}
+            {event.basis && (
+              <button
+                type="button"
+                className={`${ROW_ACTION.link} ml-1`}
+                aria-expanded={mode === 'why'}
+                onClick={() => setMode(mode === 'why' ? 'idle' : 'why')}
               >
+                <Info className="w-3 h-3" />
+                Why this date?
+              </button>
+            )}
+            {pending && portalUrl && (
+              <a href={portalUrl} target="_blank" rel="noopener noreferrer" className={`${ROW_ACTION.link} ml-1`}>
                 Open portal
                 <ExternalLink className="w-3 h-3" />
               </a>

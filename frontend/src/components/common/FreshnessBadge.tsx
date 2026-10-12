@@ -21,26 +21,25 @@ export default function FreshnessBadge({ timestamp, size = 'compact', className 
   const meta = describeFreshness(timestamp);
   const Icon = meta.tone === 'green' ? ShieldCheck : meta.tone === 'red' ? ShieldAlert : ShieldQuestion;
 
+  // A tint and no border: in this app a border means "you can click this", and the badge only informs.
   const tones = {
-    green: 'bg-white text-brand-600 border-brand-200',
-    amber: 'bg-amber-50 text-amber-700 border-amber-200',
-    red: 'bg-red-50 text-red-700 border-red-200',
-    grey: 'bg-brand-50 text-brand-600 border-brand-200',
+    green: 'bg-primary-50 text-primary-700',
+    amber: 'bg-amber-50 text-amber-800',
+    red: 'bg-red-50 text-red-700',
+    grey: 'bg-brand-100 text-brand-600',
   } as const;
 
   const sizing =
     size === 'full'
       ? 'text-xs px-2.5 py-1 gap-1.5'
-      : 'text-[11px] px-2 py-0.5 gap-1';
-
-  const iconSize = size === 'full' ? 'w-3.5 h-3.5' : 'w-3 h-3';
+      : 'text-xs px-2 py-0.5 gap-1';
 
   return (
     <span
-      className={`inline-flex items-center rounded-md font-medium border ${tones[meta.tone]} ${sizing} ${className}`}
+      className={`inline-flex items-center rounded-md font-semibold ${tones[meta.tone]} ${sizing} ${className}`}
       title={meta.title}
     >
-      <Icon className={iconSize} />
+      <Icon className="w-3.5 h-3.5" aria-hidden="true" />
       <span className="whitespace-nowrap">{meta.label}</span>
     </span>
   );

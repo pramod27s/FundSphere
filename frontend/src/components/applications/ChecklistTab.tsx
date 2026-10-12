@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
-import { Check, ChevronDown, FileSearch, Loader2, Pencil, Plus, RefreshCw, Trash2, TriangleAlert } from 'lucide-react';
+import { Check, ChevronDown, FileSearch, FileText, Loader2, Pencil, Plus, RefreshCw, RotateCcw, Trash2, TriangleAlert } from 'lucide-react';
+import { ROW_ACTION } from '../common/buttonStyles';
 import type {
   Application,
   ChecklistCategory,
@@ -49,12 +50,8 @@ export default function ChecklistTab({ application, items, onApplication, onPatc
             {' · '}
             {formatTimestampDay(application.checklistGeneratedAt)}
           </span>
-          <button
-            type="button"
-            onClick={() => setReextracting(true)}
-            className="inline-flex items-center gap-1 font-semibold text-primary-700 hover:text-primary-800"
-          >
-            <RefreshCw className="w-3 h-3" />
+          <button type="button" onClick={() => setReextracting(true)} className={ROW_ACTION.secondary}>
+            <RefreshCw className="w-3.5 h-3.5" />
             Read again
           </button>
         </div>
@@ -194,8 +191,11 @@ function ChecklistRow({
               type="button"
               onClick={() => setShowSource((v) => !v)}
               aria-expanded={showSource}
-              className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-primary-700 hover:text-primary-800"
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-xs font-semibold text-primary-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 ${
+                showSource ? 'bg-primary-100 border-primary-300' : 'bg-primary-50 border-primary-200 hover:bg-primary-100 hover:border-primary-300'
+              }`}
             >
+              <FileText className="w-3 h-3" aria-hidden="true" />
               Source{item.sourcePage ? `, p. ${item.sourcePage}` : ''}
               <ChevronDown className={`w-3 h-3 transition-transform ${showSource ? 'rotate-180' : ''}`} />
             </button>
@@ -209,23 +209,34 @@ function ChecklistRow({
         )}
       </div>
 
-      <div className="flex items-start gap-0.5 shrink-0">
+      <div className="flex items-start gap-1.5 shrink-0">
         <button
           type="button"
           onClick={() => onPatch(item.id, { status: na ? 'TODO' : 'NA' })}
-          className="px-2 py-1 rounded-md text-[11px] font-semibold text-brand-500 hover:bg-brand-100 hover:text-brand-800"
+          className={ROW_ACTION.secondary}
           title={na ? 'This applies to us after all' : "Doesn't apply to this application"}
         >
-          {na ? 'Applies' : 'N/A'}
+          {na ? (
+            <>
+              <RotateCcw className="w-3.5 h-3.5" />
+              It applies
+            </>
+          ) : (
+            <>
+              <span className="hidden sm:inline">Not applicable</span>
+              <span className="sm:hidden">N/A</span>
+            </>
+          )}
         </button>
-        <button type="button" onClick={startEditing} className="p-1.5 rounded-md text-brand-500 hover:bg-brand-100 hover:text-brand-800" aria-label={`Edit "${item.text}"`}>
+        <button type="button" onClick={startEditing} className={ROW_ACTION.icon} aria-label={`Edit "${item.text}"`} title="Edit">
           <Pencil className="w-3.5 h-3.5" />
         </button>
         <button
           type="button"
           onClick={() => window.confirm(`Delete "${item.text}"?`) && onDelete(item.id)}
-          className="p-1.5 rounded-md text-brand-500 hover:bg-red-50 hover:text-red-600"
+          className={ROW_ACTION.iconDanger}
           aria-label={`Delete "${item.text}"`}
+          title="Delete"
         >
           <Trash2 className="w-3.5 h-3.5" />
         </button>

@@ -28,6 +28,7 @@ import {
 } from '../../services/applicationsService';
 import { deadlineCountdown, formatDay, formatTimestampDay, todayIso, TONE_TEXT } from '../../utils/applicationDates';
 import { googleCalendarDeadlineUrl, sendPendingListToWhatsApp } from '../../utils/shareApplication';
+import { ROW_ACTION } from '../common/buttonStyles';
 import { WhatsAppGlyph } from '../common/WhatsAppShareButton';
 import ApplicationFormModal from './ApplicationFormModal';
 import ChecklistTab from './ChecklistTab';
@@ -361,8 +362,8 @@ function Summary({ application, onEdit }: { application: Application; onEdit: ()
             ) : (
               <span className="text-brand-600">No deadline set</span>
             )}
-            <button type="button" onClick={onEdit} className="inline-flex items-center gap-1 text-xs font-semibold text-primary-700 hover:text-primary-800">
-              <Pencil className="w-3 h-3" />
+            <button type="button" onClick={onEdit} className={ROW_ACTION.secondary}>
+              <Pencil className="w-3.5 h-3.5" />
               {application.deadline ? 'Edit details' : 'Add deadline'}
             </button>
           </div>

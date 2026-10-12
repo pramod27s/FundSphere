@@ -94,9 +94,7 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
         className="bg-white rounded-xl shadow-modal w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col relative z-10 ring-1 ring-brand-200/50">
-        {/* Header with gradient + decorative accent */}
         <div className="relative flex items-start justify-between p-6 border-b border-brand-100 bg-white">
-          <div className="absolute top-0 left-0 w-full h-1 bg-primary-600" />
           <div className="pr-10 relative">
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <span className="text-[11px] font-semibold px-2.5 py-1 rounded-md bg-white text-brand-700 inline-block border border-brand-200 shadow-sm">
