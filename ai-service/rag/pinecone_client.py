@@ -10,6 +10,11 @@ logger = logging.getLogger("rag.pinecone_client")
 # Fallback tail of chunk ids deleted when a grant's existing chunks can't be listed.
 _STALE_CHUNK_SWEEP = 64
 
+DENSE_MODEL = "llama-text-embed-v2"
+SPARSE_MODEL = "pinecone-sparse-english-v0"
+# Most inputs Pinecone Inference embeds in one request, for both models.
+_EMBED_BATCH = 96
+
 SEARCH_FIELDS = [
     "grant_id",
     "grant_title",
@@ -64,31 +69,12 @@ class PineconeService:
 
     def upsert_grant(self, grant: GrantData) -> list[dict]:
         records = build_pinecone_records(grant)
+        embeddings = self._embed([record["chunk_text"] for record in records], input_type="passage")
+
         vectors = []
-
-        for record in records:
-            chunk_text = record.get("chunk_text", "")
-
-            dense_result = self.pc.inference.embed(
-                model="llama-text-embed-v2",
-                inputs=[chunk_text],
-                parameters={"dimension": 1024, "input_type": "passage"}
-            )
-            dense_embedding = dense_result[0].values
-
-            sparse_result = self.pc.inference.embed(
-                model="pinecone-sparse-english-v0",
-                inputs=[chunk_text],
-                parameters={"input_type": "passage"}
-            )
-            sparse_vector = {
-                "indices": sparse_result[0].sparse_indices,
-                "values":  sparse_result[0].sparse_values,
-            }
-
+        for record, (dense_embedding, sparse_vector) in zip(records, embeddings):
             metadata = record.copy()
             metadata.pop("id", None)
-
             vectors.append({
                 "id": record["id"],
                 "values": dense_embedding,
@@ -146,28 +132,33 @@ class PineconeService:
         except Exception:
             pass
 
+    def _embed(self, texts: List[str], input_type: str) -> list[tuple[list[float], dict]]:
+        """(dense, sparse) vectors for each text, one request per model per
+        _EMBED_BATCH texts. input_type is "passage" for indexed chunks and
+        "query" for searches: the models embed the two differently."""
+        pairs = []
+        for start in range(0, len(texts), _EMBED_BATCH):
+            batch = texts[start:start + _EMBED_BATCH]
+            dense_results = self.pc.inference.embed(
+                model=DENSE_MODEL,
+                inputs=batch,
+                parameters={"dimension": 1024, "input_type": input_type}
+            )
+            sparse_results = self.pc.inference.embed(
+                model=SPARSE_MODEL,
+                inputs=batch,
+                parameters={"input_type": input_type}
+            )
+            for d, s in zip(dense_results, sparse_results):
+                pairs.append((d.values, {"indices": s.sparse_indices, "values": s.sparse_values}))
+        return pairs
+
     def batch_embed_queries(self, queries: List[str]):
-        """Batch embed query texts in two calls (one dense, one sparse) instead of looping."""
+        """Embed query texts in one dense and one sparse call instead of looping."""
         if not queries:
             return []
         try:
-            dense_results = self.pc.inference.embed(
-                model="llama-text-embed-v2",
-                inputs=queries,
-                parameters={"dimension": 1024, "input_type": "query"}
-            )
-            sparse_results = self.pc.inference.embed(
-                model="pinecone-sparse-english-v0",
-                inputs=queries,
-                parameters={"input_type": "query"}
-            )
-            pairs = []
-            for d, s in zip(dense_results, sparse_results):
-                pairs.append((
-                    d.values,
-                    {"indices": s.sparse_indices, "values": s.sparse_values}
-                ))
-            return pairs
+            return self._embed(queries, input_type="query")
         except Exception as e:
             logger.error(f"Pinecone batch embed failed: {e}")
             raise RuntimeError(f"Pinecone batch embed failed: {e}") from e

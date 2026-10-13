@@ -1,0 +1,52 @@
+{
+  "about": "Country names as grants and profiles write them, mapped to one canonical name. Read by CoreBackend (KeywordQuery) and ai-service (rag/countries.py) so both agree on which grants a country can apply to. Values are compared lowercased, with whitespace collapsed and a leading 'the' dropped. openToAll phrases mean the grant is open to every country. regions are groups whose members are known: a grant for the EU is open to Spain. unresolvedGroups, and any value containing a groupWord that isn't a known name, are groups we can't resolve ('associated countries', 'developing countries'): they never rule a country out.",
+  "openToAll": [
+    "any",
+    "all",
+    "all countries",
+    "any country",
+    "all nationalities",
+    "any nationality",
+    "open",
+    "open to all",
+    "open to all countries",
+    "open to all nationalities",
+    "global",
+    "international",
+    "worldwide",
+    "no restriction",
+    "no restrictions",
+    "unrestricted"
+  ],
+  "countries": {
+    "united states": ["us", "usa", "u.s.", "u.s.a.", "united states of america", "america"],
+    "united kingdom": ["uk", "u.k.", "great britain", "britain", "england", "northern ireland"],
+    "india": ["in", "republic of india", "bharat"],
+    "united arab emirates": ["uae"],
+    "saudi arabia": ["ksa", "kingdom of saudi arabia"],
+    "china": ["prc", "people's republic of china"],
+    "south korea": ["korea", "republic of korea"],
+    "ireland": ["republic of ireland", "eire"],
+    "czech republic": ["czechia"]
+  },
+  "regions": {
+    "european union": {
+      "aliases": ["eu", "eu member states", "eu member state", "eu countries", "european union member states", "european union member state", "any european union member state", "member states of the european union"],
+      "members": ["austria", "belgium", "bulgaria", "croatia", "cyprus", "czech republic", "denmark", "estonia", "finland", "france", "germany", "greece", "hungary", "ireland", "italy", "latvia", "lithuania", "luxembourg", "malta", "netherlands", "poland", "portugal", "romania", "slovakia", "slovenia", "spain", "sweden"]
+    },
+    "european economic area": {
+      "aliases": ["eea", "eea countries", "eea members", "eea member states", "listed eea countries"],
+      "members": ["austria", "belgium", "bulgaria", "croatia", "cyprus", "czech republic", "denmark", "estonia", "finland", "france", "germany", "greece", "hungary", "ireland", "italy", "latvia", "lithuania", "luxembourg", "malta", "netherlands", "poland", "portugal", "romania", "slovakia", "slovenia", "spain", "sweden", "iceland", "liechtenstein", "norway"]
+    },
+    "nordics": {
+      "aliases": ["nordic countries", "nordic region"],
+      "members": ["denmark", "finland", "iceland", "norway", "sweden"]
+    },
+    "baltics": {
+      "aliases": ["baltic states", "baltic countries"],
+      "members": ["estonia", "latvia", "lithuania"]
+    }
+  },
+  "unresolvedGroups": ["africa", "asia", "europe", "latin america", "caribbean", "middle east", "global south", "oceania"],
+  "groupWords": ["countries", "states", "member", "members", "associated", "third", "territories", "territory", "region", "regions", "other", "others", "entity", "entities", "markets", "programme", "program", "nations", "developing", "income", "economies"]
+}

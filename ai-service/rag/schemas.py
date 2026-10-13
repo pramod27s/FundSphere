@@ -111,6 +111,11 @@ class RecommendationItem(BaseModel):
     fields: Dict[str, Any] = Field(default_factory=dict)
     llmApproved: bool = True
     llmReason: Optional[str] = None
+    # The explanation LLM's honest rating: "strong", "partial" or "weak".
+    llmFit: Optional[str] = None
+    # "topic": the reranker found the grant about the user's research;
+    # "broad": an eligible scheme that isn't about it. None without rerank scores.
+    matchType: Optional[str] = None
 
 
 class RecommendationResponse(BaseModel):

@@ -1,3 +1,4 @@
+from .config import settings
 from .schemas import UserProfile
 
 
@@ -6,37 +7,51 @@ def _humanize(value: str) -> str:
     return value.replace("_", " ").strip().title()
 
 
-def build_user_query_text(profile: UserProfile, user_query: str | None = None) -> str:
-    """Build a single retrieval query string from profile attributes and optional user intent."""
-    parts: list[str] = []
-
+def topic_lines(profile: UserProfile) -> list[str]:
+    """What the researcher works on: the part of the profile the search embeds."""
+    lines: list[str] = []
     if profile.researchBio:
-        parts.append(f"Research bio: {profile.researchBio}.")
+        lines.append(f"Research bio: {profile.researchBio.strip().rstrip('.')}.")
     if profile.researchInterests:
-        cleaned = [_humanize(i) for i in profile.researchInterests]
-        parts.append(f"Research interests: {', '.join(cleaned)}.")
+        lines.append(f"Research interests: {', '.join(_humanize(i) for i in profile.researchInterests)}.")
     if profile.keywords:
-        parts.append(f"Keywords: {', '.join(profile.keywords)}.")
+        lines.append(f"Keywords: {', '.join(profile.keywords)}.")
     if profile.department:
-        parts.append(f"Department: {profile.department}.")
+        lines.append(f"Department: {profile.department}.")
+    return lines
+
+
+def eligibility_lines(profile: UserProfile) -> list[str]:
+    """Who the researcher is, as far as eligibility goes. The filters and scores
+    use these fields exactly, so they stay out of the search text: embedded,
+    they pull the search toward every grant open to the same country or
+    applicant type, whatever its topic. SEARCH_WITH_ELIGIBILITY_TEXT puts them
+    back, for comparing on the eval."""
+    if not settings.search_with_eligibility_text:
+        return []
+    lines: list[str] = []
     if profile.country:
-        parts.append(f"Researcher country: {profile.country}.")
+        lines.append(f"Researcher country: {profile.country}.")
     if profile.institutionType:
-        parts.append(f"Institution type: {profile.institutionType}.")
+        lines.append(f"Institution type: {profile.institutionType}.")
     if profile.applicantType:
-        parts.append(f"Applicant type: {_humanize(profile.applicantType)}.")
+        lines.append(f"Applicant type: {_humanize(profile.applicantType)}.")
     if profile.careerStage:
-        parts.append(f"Career stage: {_humanize(profile.careerStage)}.")
+        lines.append(f"Career stage: {_humanize(profile.careerStage)}.")
     if profile.preferredMinAmount is not None or profile.preferredMaxAmount is not None:
-        parts.append(
+        lines.append(
             f"Preferred funding amount: {profile.preferredMinAmount or 0} to {profile.preferredMaxAmount or 'any'} {profile.preferredCurrency or ''}."
         )
     if getattr(profile, "preferredGrantType", None):
-        parts.append(f"Preferred grant type: {_humanize(profile.preferredGrantType)}.")
+        lines.append(f"Preferred grant type: {_humanize(profile.preferredGrantType)}.")
+    return lines
+
+
+def build_user_query_text(profile: UserProfile, user_query: str | None = None) -> str:
+    """Build a single retrieval query string from the profile's topic and optional user intent."""
+    parts = topic_lines(profile) + eligibility_lines(profile)
     if user_query:
         parts.append(f"Current user need: {user_query}")
-
-    # Join all profile signals into one prompt-like retrieval query.
     return " ".join(parts).strip()
 
 

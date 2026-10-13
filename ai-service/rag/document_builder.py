@@ -1,6 +1,8 @@
+import math
 import re
 from .schemas import GrantData
 from .config import settings
+from .countries import country_keys
 from .filters import deadline_moment
 
 
@@ -8,6 +10,16 @@ def _clean_str(value: str | None) -> str:
     if value is None:
         return ""
     return " ".join(str(value).strip().split())
+
+
+def _clean_text(value: str | None) -> str:
+    """Long free text with its line breaks kept (repeated spaces and blank
+    lines dropped), so the chunker can split a bulleted description at its
+    lines instead of facing one unsplittable run."""
+    if value is None:
+        return ""
+    lines = (" ".join(line.split()) for line in str(value).splitlines())
+    return "\n".join(line for line in lines if line)
 
 
 def _clean_list(values: list[str] | None) -> list[str]:
@@ -27,120 +39,149 @@ def _to_epoch(date_value: str | None) -> int | None:
     return int(dt.timestamp()) if dt else None
 
 
-def build_grant_document(grant: GrantData) -> str:
-    """
-    Builds a rich semantic text representation of a grant for vector embeddings.
-    This function feeds directly into Pinecone upsert, ensuring the RAG model
-    can semantically match user queries against detailed, labeled fields.
-    """
+def build_grant_header(grant: GrantData) -> str:
+    """Title, agency and program. Starts every chunk, so a chunk from deep in
+    the text is still embedded as part of its grant."""
     parts = []
+    for label, value in (("Title", grant.grantTitle), ("Agency", grant.fundingAgency), ("Program", grant.programName)):
+        if value:
+            parts.append(f"{label}: {_clean_str(value)}")
+    return "\n".join(parts)
 
-    if getattr(grant, "grantTitle", None):
-        parts.append(f"Title: {_clean_str(grant.grantTitle)}")
-    if getattr(grant, "fundingAgency", None):
-        parts.append(f"Agency: {_clean_str(grant.fundingAgency)}")
-    if getattr(grant, "programName", None):
-        parts.append(f"Program: {_clean_str(grant.programName)}")
-    if getattr(grant, "objectives", None):
-        parts.append(f"Objectives: {_clean_str(grant.objectives)}")
-    if getattr(grant, "description", None):
-        parts.append(f"Description: {_clean_str(grant.description)}")
-    if getattr(grant, "fundingScope", None):
-        parts.append(f"Funding Scope: {_clean_str(grant.fundingScope)}")
-    if getattr(grant, "eligibilityCriteria", None):
-        parts.append(f"Eligibility: {_clean_str(grant.eligibilityCriteria)}")
-    if getattr(grant, "selectionCriteria", None):
-        parts.append(f"Selection Criteria: {_clean_str(grant.selectionCriteria)}")
 
-    if getattr(grant, "grantType", None):
+def build_grant_body(grant: GrantData) -> str:
+    """The rest of the grant as labelled lines; long fields keep their own
+    line breaks."""
+    parts = []
+    for label, value in (
+        ("Objectives", grant.objectives),
+        ("Description", grant.description),
+        ("Funding Scope", grant.fundingScope),
+        ("Eligibility", grant.eligibilityCriteria),
+        ("Selection Criteria", grant.selectionCriteria),
+    ):
+        text = _clean_text(value)
+        if text:
+            parts.append(f"{label}: {text}")
+
+    if grant.grantType:
         parts.append(f"Grant Type: {_clean_str(grant.grantType)}")
 
-    stages = _clean_list(getattr(grant, "targetCareerStages", []))
-    if stages:
-        parts.append(f"Target Career Stages: {', '.join(stages)}")
-
-    themes = _clean_list(getattr(grant, "researchThemes", []))
-    if themes:
-        parts.append(f"Themes: {', '.join(themes)}")
-
-    fields = _clean_list(getattr(grant, "field", []))
-    if fields:
-        parts.append(f"Field: {', '.join(fields)}")
-
-    applicants = _clean_list(getattr(grant, "eligibleApplicants", []))
-    if applicants:
-        parts.append(f"Applicants: {', '.join(applicants)}")
-
-    countries = _clean_list(getattr(grant, "eligibleCountries", []))
-    if countries:
-        parts.append(f"Countries: {', '.join(countries)}")
-
-    tags = _clean_list(getattr(grant, "tags", []))
-    if tags:
-        parts.append(f"Tags: {', '.join(tags)}")
-
+    for label, values in (
+        ("Target Career Stages", grant.targetCareerStages),
+        ("Themes", grant.researchThemes),
+        ("Field", grant.field),
+        ("Applicants", grant.eligibleApplicants),
+        ("Countries", grant.eligibleCountries),
+        ("Tags", grant.tags),
+    ):
+        cleaned = _clean_list(values)
+        if cleaned:
+            parts.append(f"{label}: {', '.join(cleaned)}")
 
     return "\n".join(parts)
 
 
-def chunk_grant_document(full_text: str, max_tokens: int = 400, overlap_tokens: int = 80) -> list[str]:
-    if not full_text:
-        return []
-        
-    words = full_text.split()
-    if len(words) <= max_tokens:
-        return [full_text]
+def estimate_tokens(text: str) -> int:
+    """A token count that errs high, without the models' tokenizers: the larger
+    of 4/3 tokens per word and one token per 4 characters. The chunk limit
+    exists to stay inside model input caps (pinecone-sparse-english-v0 reads
+    512 tokens), so overestimating is the safe side."""
+    if not text:
+        return 0
+    return max(math.ceil(len(text.split()) * 4 / 3), math.ceil(len(text) / 4))
 
-    # Split into sentences or lines
-    sentences = re.split(r'(?<=\. )|(?<=\n)', full_text)
-    
-    chunks = []
-    current_chunk = []
-    current_len = 0
-    
-    for sentence in sentences:
-        sentence = sentence.strip()
-        if not sentence:
-            continue
-            
-        sentence_words = sentence.split()
-        sentence_len = len(sentence_words)
-        
-        if current_len + sentence_len > max_tokens and current_chunk:
-            chunks.append(" ".join(current_chunk))
-            
-            # Keep overlap
-            overlap_words = []
-            overlap_len = 0
-            for s in reversed(current_chunk):
-                s_words = s.split()
-                if overlap_len + len(s_words) <= overlap_tokens:
-                    overlap_words.insert(0, s)
-                    overlap_len += len(s_words)
-                else:
+
+_SENTENCE_END = re.compile(r"(?<=[.!?;])\s+")
+
+
+def _word_windows(text: str, max_tokens: int) -> list[str]:
+    """A sentence too long to be one unit, cut into runs of words that fit."""
+    windows, current = [], []
+    for word in text.split():
+        if current and estimate_tokens(" ".join([*current, word])) > max_tokens:
+            windows.append(" ".join(current))
+            current = []
+        current.append(word)
+    if current:
+        windows.append(" ".join(current))
+    return windows
+
+
+def _units(text: str, max_tokens: int) -> list[tuple[str, bool]]:
+    """(text, starts_a_line) units no longer than max_tokens: the text's
+    lines, split into sentences, any oversized sentence cut into word runs."""
+    units = []
+    for line in text.splitlines():
+        first = True
+        for sentence in _SENTENCE_END.split(line.strip()):
+            if not sentence:
+                continue
+            pieces = [sentence] if estimate_tokens(sentence) <= max_tokens else _word_windows(sentence, max_tokens)
+            for piece in pieces:
+                units.append((piece, first))
+                first = False
+    return units
+
+
+def _join(units: list[tuple[str, bool]]) -> str:
+    return "".join(
+        (("\n" if starts_line else " ") + text) if i else text
+        for i, (text, starts_line) in enumerate(units)
+    )
+
+
+def chunk_text(text: str, max_tokens: int = 400, overlap_tokens: int = 80) -> list[str]:
+    """Pieces of at most max_tokens (estimated), split at line and sentence
+    ends. Each piece starts with up to overlap_tokens of the previous piece's
+    last sentences, so a passage cut at a boundary is whole in one of them."""
+    if not text.strip():
+        return []
+    if estimate_tokens(text) <= max_tokens:
+        return [text]
+
+    chunks: list[str] = []
+    current: list[tuple[str, bool]] = []
+    size = 0
+    for unit in _units(text, max_tokens):
+        unit_size = estimate_tokens(unit[0])
+        if current and size + unit_size > max_tokens:
+            chunks.append(_join(current))
+            overlap: list[tuple[str, bool]] = []
+            overlap_size = 0
+            for prev in reversed(current):
+                prev_size = estimate_tokens(prev[0])
+                if overlap_size + prev_size > overlap_tokens:
                     break
-            
-            current_chunk = overlap_words
-            current_len = overlap_len
-            
-        current_chunk.append(sentence)
-        current_len += sentence_len
-        
-    if current_chunk:
-        chunks.append(" ".join(current_chunk))
-        
+                overlap.insert(0, prev)
+                overlap_size += prev_size
+            # The overlap gives way when it and the next unit don't both fit.
+            while overlap and overlap_size + unit_size > max_tokens:
+                overlap_size -= estimate_tokens(overlap.pop(0)[0])
+            current, size = overlap, overlap_size
+        current.append(unit)
+        size += unit_size
+    if current:
+        chunks.append(_join(current))
     return chunks
 
 
-def build_pinecone_records(grant: GrantData) -> list[dict]:
-    full_text = build_grant_document(grant)
-    
-    if getattr(settings, "enable_chunking", False):
-        max_t = getattr(settings, "chunk_max_tokens", 400)
-        overlap_t = getattr(settings, "chunk_overlap_tokens", 80)
-        chunks = chunk_grant_document(full_text, max_tokens=max_t, overlap_tokens=overlap_t)
+def build_chunks(grant: GrantData) -> list[str]:
+    """The texts embedded for a grant: its header, then one piece of the body.
+    The header's share comes out of the chunk budget, so header and piece
+    together stay within CHUNK_MAX_TOKENS."""
+    header = build_grant_header(grant)
+    body = build_grant_body(grant)
+    if settings.enable_chunking:
+        budget = max(settings.chunk_max_tokens - estimate_tokens(header), settings.chunk_max_tokens // 2)
+        pieces = chunk_text(body, budget, settings.chunk_overlap_tokens) or [""]
     else:
-        chunks = [full_text]
+        pieces = [body]
+    return ["\n".join(part for part in (header, piece) if part) for piece in pieces]
+
+
+def build_pinecone_records(grant: GrantData) -> list[dict]:
+    chunks = build_chunks(grant)
 
     base_record = {
         "grant_id": grant.id,
@@ -156,6 +197,9 @@ def build_pinecone_records(grant: GrantData) -> list[dict]:
         "funding_amount_max": grant.fundingAmountMax,
         "funding_currency": _clean_str(grant.fundingCurrency),
         "eligible_countries": _clean_list(grant.eligibleCountries),
+        # Canonical names ("USA" -> "united states", "All countries" -> "any"):
+        # what the Pinecone country filter matches on.
+        "country_keys": country_keys(grant.eligibleCountries),
         "eligible_applicants": _clean_list(grant.eligibleApplicants),
         "institution_type": _clean_list(grant.institutionType),
         "field": _clean_list(grant.field),

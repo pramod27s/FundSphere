@@ -6,6 +6,8 @@ from .schemas import UserProfile, RecommendationItem
 
 logger = logging.getLogger("rag.llm_judge")
 
+FIT_LABELS = ("strong", "partial", "weak")
+
 
 def explain_candidates(
     profile: UserProfile,
@@ -13,9 +15,11 @@ def explain_candidates(
     candidates: list[RecommendationItem],
 ) -> list[RecommendationItem]:
     """
-    Annotate each candidate with an LLM-written explanation. Never removes or
-    reorders candidates — the deterministic pipeline already chose them. If the
-    LLM fails, candidates are returned unchanged.
+    Annotate each candidate with an LLM-written fit rating (strong / partial /
+    weak, in llmFit) and an explanation. Never removes or reorders candidates —
+    the deterministic pipeline already chose them. The rating is there so a
+    poor match is described as one instead of being talked up. If the LLM
+    fails, candidates are returned unchanged.
     """
     if not settings.enable_llm_judge or not settings.groq_api_key_llm_judge or not candidates:
         return candidates
@@ -63,7 +67,14 @@ def explain_candidates(
                 candidates_str += f"Overview: {str(chunk)[:300]}\n"
             candidates_str += "\n"
 
-        prompt = f"""You are a grant-matching assistant. For each candidate grant, write a concise 1-2 sentence explanation of why it could be a fit for this user. Focus on the strongest concrete signals (research overlap, eligibility, funding range, deadline). Never reject candidates — explanation only.
+        prompt = f"""You are a grant-matching assistant. For each candidate grant, rate how well it fits this researcher and explain the rating in 1-2 concrete sentences (research overlap, eligibility, funding range, deadline).
+
+Ratings:
+- "strong": the grant's topic matches the researcher's work and nothing in it rules them out.
+- "partial": a broad or neighbouring scheme that could fund this work but isn't about it.
+- "weak": the grant's topic doesn't match the researcher's work.
+
+Be honest. Never invent a link the grant text doesn't support; if the fit is weak, say plainly why. Every candidate gets a rating; none is removed.
 
 User Profile:
 {profile_str}
@@ -75,15 +86,16 @@ Candidate Grants:
 
 Return ONLY a JSON object with key "explanations" — an array of objects with:
 - grantId (integer, must match input)
+- fit ("strong", "partial" or "weak")
 - reason (string, 1-2 sentences)
 
-Example: {{"explanations": [{{"grantId": 123, "reason": "Your AI research aligns with the program's focus areas, and your country is eligible."}}]}}
+Example: {{"explanations": [{{"grantId": 123, "fit": "strong", "reason": "Your AI research aligns with the program's focus areas, and your country is eligible."}}, {{"grantId": 456, "fit": "weak", "reason": "This scheme funds marine biology, which is unrelated to your AI work."}}]}}
 """
 
         response = client.chat.completions.create(
             model=settings.llm_judge_model,
             messages=[
-                {"role": "system", "content": "You explain grant matches. Output ONLY JSON."},
+                {"role": "system", "content": "You rate and explain grant matches honestly. Output ONLY JSON."},
                 {"role": "user", "content": prompt},
             ],
             response_format={"type": "json_object"},
@@ -103,16 +115,21 @@ Example: {{"explanations": [{{"grantId": 123, "reason": "Your AI research aligns
         explanations = parsed.get("explanations", []) if isinstance(parsed, dict) else parsed
 
         reason_by_id = {}
+        fit_by_id = {}
         for item in explanations:
             gid = item.get("grantId")
             reason = (item.get("reason") or "").strip()
             if gid is not None and reason:
                 reason_by_id[int(gid)] = reason
+                fit = str(item.get("fit") or "").strip().lower()
+                if fit in FIT_LABELS:
+                    fit_by_id[int(gid)] = fit
 
         for c in candidates:
             if c.grantId in reason_by_id:
                 c.llmReason = reason_by_id[c.grantId]
                 c.reason = reason_by_id[c.grantId]
+                c.llmFit = fit_by_id.get(c.grantId)
                 c.llmApproved = True
 
         return candidates

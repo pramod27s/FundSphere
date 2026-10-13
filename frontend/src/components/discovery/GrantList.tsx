@@ -3,7 +3,7 @@ import { ShieldAlert, ShieldCheck, Calendar, Sparkles, Bookmark, BookmarkCheck }
 import GrantDetailsModal from './GrantDetailsModal.tsx';
 import FreshnessBadge from '../common/FreshnessBadge';
 import MatchScoreDial from '../common/MatchScoreDial';
-import type { DiscoveryGrant } from '../../services/discoveryService';
+import { FIT_LABELS, type DiscoveryGrant } from '../../services/discoveryService';
 import type { ResearcherResponse } from '../../services/researcherService';
 import { useSavedGrants } from '../../hooks/useSavedGrants';
 import { DEADLINE_TEXT_CLASSES, formatRelativeDeadline } from '../../utils/formatDeadline';
@@ -53,21 +53,56 @@ export default function GrantList({ grants, isLoading, source, profile }: GrantL
     );
   }
 
+  const renderCards = (items: DiscoveryGrant[]) => (
+    <ul className="flex flex-col gap-3">
+      {items.map((grant) => (
+        <li key={grant.id}>
+          <GrantCard
+            grant={grant}
+            isAi={isAi}
+            saved={isSaved(grant.id)}
+            onToggleSave={toggleSave}
+            onOpen={setSelectedGrant}
+          />
+        </li>
+      ))}
+    </ul>
+  );
+
+  // AI results come in two groups: grants about the researcher's topic, then
+  // broader schemes that don't rule them out. Each keeps the chosen sort order.
+  const topicGrants = isAi ? grants.filter((g) => g.matchType !== 'broad') : grants;
+  const broadGrants = isAi ? grants.filter((g) => g.matchType === 'broad') : [];
+
   return (
     <>
-      <ul className="flex flex-col gap-3" aria-live="polite">
-        {grants.map((grant) => (
-          <li key={grant.id}>
-            <GrantCard
-              grant={grant}
-              isAi={isAi}
-              saved={isSaved(grant.id)}
-              onToggleSave={toggleSave}
-              onOpen={setSelectedGrant}
-            />
-          </li>
-        ))}
-      </ul>
+      <div aria-live="polite">
+        {broadGrants.length === 0 ? (
+          renderCards(grants)
+        ) : (
+          <div className="flex flex-col gap-6">
+            {topicGrants.length > 0 && (
+              <section aria-labelledby="topic-matches-heading">
+                <h2 id="topic-matches-heading" className="mb-3 text-sm font-semibold text-brand-900">
+                  Matches your research topic
+                </h2>
+                {renderCards(topicGrants)}
+              </section>
+            )}
+            <section aria-labelledby="broad-matches-heading">
+              <h2 id="broad-matches-heading" className="text-sm font-semibold text-brand-900">
+                Broader schemes you may qualify for
+              </h2>
+              <p className="mt-1 mb-3 text-sm text-brand-600 text-pretty">
+                {topicGrants.length > 0
+                  ? 'Not about your topic specifically. Check that your work fits their scope.'
+                  : 'Nothing we have is about your topic specifically yet. These wider schemes don’t rule you out; check that your work fits their scope.'}
+              </p>
+              {renderCards(broadGrants)}
+            </section>
+          </div>
+        )}
+      </div>
 
       {selectedGrant && (
         <GrantDetailsModal
@@ -191,7 +226,8 @@ function GrantCard({
         </div>
 
         <div className="relative z-10 flex items-start gap-1 shrink-0">
-          {isAi && <MatchScoreDial score={grant.matchScore} />}
+          {/* A broad scheme isn't a topic match, so it shows no match percentage. */}
+          {isAi && grant.matchType !== 'broad' && <MatchScoreDial score={grant.matchScore} />}
           <div className="flex flex-col sm:flex-row items-center">
             <BookmarkButton grant={grant} saved={saved} onToggleSave={onToggleSave} />
             <WhatsAppShareButton grant={grant} size="md" />
@@ -227,8 +263,10 @@ function GrantCard({
         <p className="mt-3 flex gap-2.5 rounded-lg bg-primary-50 px-3.5 py-2.5 text-sm text-brand-700 leading-relaxed">
           <Sparkles className="w-4 h-4 text-primary-600 shrink-0 mt-0.5" aria-hidden="true" />
           <span className="line-clamp-2">
-            <span className="font-semibold text-primary-900">
-              {grant.eligibility === 'Eligible' ? 'Why it fits: ' : 'Heads up: '}
+            <span className={`font-semibold ${grant.fit === 'weak' ? 'text-amber-800' : 'text-primary-900'}`}>
+              {grant.fit
+                ? `${FIT_LABELS[grant.fit]}: `
+                : grant.eligibility === 'Eligible' ? 'Why it fits: ' : 'Heads up: '}
             </span>
             {grant.rationale}
           </span>

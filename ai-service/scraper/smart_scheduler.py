@@ -671,15 +671,19 @@ def get_page_hash(url):
 
     return hashlib.sha256(page_text.encode('utf-8')).hexdigest()
 
-def run_smart_scraper(seed_urls, max_per_seed=8, dry_run=False):
+def run_smart_scraper(seed_urls, max_per_seed=8, dry_run=False, grant_pages=()):
     """Two-pass scrape. With dry_run=True it does the free discovery and hash
-    checks only: no Firecrawl calls, no state/failure files, no backend writes."""
+    checks only: no Firecrawl calls, no state/failure files, no backend writes.
+
+    grant_pages are pages that each describe one grant: always scraped as
+    grants, never crawled as listings, whatever their URL looks like."""
     started_at = time.time()
     logger.info("[*] Starting Smart Scheduler Two-Pass Scraping...")
 
     summary = {
         "started_at": started_at,
         "seeds": list(seed_urls),
+        "grant_pages": list(grant_pages),
         "candidates_total": 0,
         "candidates_from_seeds": 0,
         "candidates_from_db_sweep": 0,
@@ -788,6 +792,8 @@ def run_smart_scraper(seed_urls, max_per_seed=8, dry_run=False):
         else:
             listing_seeds.discard(seed.rstrip("/"))  # a direct grant page, not a listing
             candidates.append(seed)
+
+    candidates.extend(grant_pages)
 
     # Track seed-derived candidates separately for the summary
     summary["candidates_from_seeds"] = len(set(candidates))
@@ -1063,6 +1069,22 @@ if __name__ == "__main__":
         # Dropped Oct 2026: startupgrantsindia.com (startup accelerators, junk pages) and
         # fundsforngos AI area (mostly non-India, mostly closed calls, half the credit spend).
     ], help="Seed URLs to crawl and monitor")
+    parser.add_argument("--grant-pages", nargs="*", default=[
+        # Single-grant pages outside India, scraped as they are (no crawl). Added
+        # Oct 2026: the eval found no relevant grant at all for its US, Canada,
+        # Kenya, Philippines and Colombia researchers. Each was checked to load
+        # (HTTP 200, real content); big funder sites crawl badly as listings
+        # (navigation links) or block bots (HUD, NRC IRAP, Leverhulme, HFSP 403).
+        "https://www.acf.hhs.gov/ocs/programs/csbg",       # US Community Services Block Grant
+        "https://www.sbir.gov/about",                      # US SBIR/STTR small-business R&D funding
+        "https://www.globalinnovation.fund/apply-for-funding",  # innovations for developing countries
+        "https://www.cartierwomensinitiative.com/awards",  # women-led impact businesses, worldwide
+        "https://www.echoinggreen.org/fellowship/",        # social entrepreneurs, worldwide
+        "https://www.embo.org/funding/fellowships-grants-and-career-support/postdoctoral-fellowships/",
+        "https://royalsociety.org/grants/university-research/",
+        "https://www.humboldt-foundation.de/en/apply/sponsorship-programmes/humboldt-research-fellowship",
+        "https://erc.europa.eu/apply-grant/starting-grant",
+    ], help="Pages that each describe one grant, scraped directly")
     parser.add_argument("--max", "-m", type=int, default=8, help="Max items per seed URL")
     parser.add_argument("--remove", nargs="+", metavar="URL",
                         help="Delete the grants stored for these URLs (e.g. listing pages saved as grants) and exit")
@@ -1082,4 +1104,4 @@ if __name__ == "__main__":
                 logger.info(f"No stored grant for {target}")
         raise SystemExit(0)
 
-    run_smart_scraper(args.urls, max_per_seed=args.max, dry_run=args.dry_run)
+    run_smart_scraper(args.urls, max_per_seed=args.max, dry_run=args.dry_run, grant_pages=args.grant_pages)

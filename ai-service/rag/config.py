@@ -73,7 +73,9 @@ class Settings:
     query_expansion_model: str = os.getenv("QUERY_EXPANSION_MODEL", "openai/gpt-oss-120b")
     enable_query_expansion: bool = _as_bool(os.getenv("ENABLE_QUERY_EXPANSION"), True)
 
-    # Chunking Settings
+    # Chunking Settings. Sizes are estimated tokens (document_builder.estimate_tokens),
+    # each chunk's title/agency header included. Keep the max under 512, what
+    # the sparse model reads; anything past it would go unindexed.
     chunk_max_tokens: int = int(os.getenv("CHUNK_MAX_TOKENS", "400"))
     chunk_overlap_tokens: int = int(os.getenv("CHUNK_OVERLAP_TOKENS", "80"))
     enable_chunking: bool = _as_bool(os.getenv("ENABLE_CHUNKING"), True)
@@ -84,8 +86,9 @@ class Settings:
     llm_judge_model: str = os.getenv("LLM_JUDGE_MODEL", "openai/gpt-oss-120b")
     llm_judge_candidate_count: int = int(os.getenv("LLM_JUDGE_CANDIDATE_COUNT", "10"))
 
-    # 5-signal Scoring Weights (sum = 1.00). Semantic is the reranker's raw
-    # relevance score, so it carries half the weight: the other four signals
+    # 5-signal Scoring Weights (sum = 1.00). Semantic is the reranker's
+    # relevance score on its logit scale (recommender.relevance_from_rerank),
+    # so it carries half the weight: the other four signals
     # adjust the order among relevant grants but can't lift an off-topic grant
     # above an on-topic one. A starting point: `python -m eval.run --tune`
     # suggests better values when the eval data supports them.
@@ -95,6 +98,13 @@ class Settings:
     weight_funding: float = float(os.getenv("WEIGHT_FUNDING", "0.10"))
     weight_freshness: float = float(os.getenv("WEIGHT_FRESHNESS", "0.10"))
     expired_penalty: float = float(os.getenv("EXPIRED_PENALTY", "0.30"))
+
+    # A result whose reranker score reaches this is a "topic" match, about the
+    # user's research; below it, a "broad" scheme they're eligible for. On the
+    # eval's 439 rated pairs, grants rated a strong fit score a median 0.89
+    # while broad-but-relevant schemes score ~0.02, close to irrelevant ones
+    # (0.004) — so this labels results rather than dropping any.
+    topic_match_min_score: float = float(os.getenv("TOPIC_MATCH_MIN_SCORE", "0.10"))
 
     # Drop grants whose application deadline has already passed — they aren't
     # actionable, so showing them wastes a result slot. Grants with no/unknown
@@ -117,21 +127,28 @@ class Settings:
     # segments fall back to the global weights above. Reversible via this flag.
     enable_segment_weights: bool = _as_bool(os.getenv("ENABLE_SEGMENT_WEIGHTS"), False)
 
-    # --- Accuracy improvements (opt-in, default OFF for safe rollout) ---
+    # --- Accuracy improvements ---
     # Split profile vs. user-query into two embedded retrievals, then RRF-fuse.
-    # When ON, the user's intent is no longer drowned out by long bios.
+    # OFF: on the eval it lost to one combined search on every metric
+    # (Recall@10 75.1% vs 80.8%) and took 2 s longer; the query-only search
+    # drops the bio's context and the profile-only one adds generic matches.
     enable_profile_query_split: bool = _as_bool(os.getenv("ENABLE_PROFILE_QUERY_SPLIT"), False)
     # RRF weight multiplier for the user-query channel relative to the profile channel.
     # 1.0 = balanced; >1.0 = let the live query dominate.
     profile_query_split_intent_weight: float = float(os.getenv("PROFILE_QUERY_SPLIT_INTENT_WEIGHT", "2.0"))
+    # Put the profile's eligibility fields (country, institution and applicant
+    # type, career stage, funding range, grant type) into the search text and the
+    # expansion/HyDE prompts. OFF: filters and scoring already use them exactly,
+    # and as search text they pull in generic grants. Kept to compare on the eval.
+    search_with_eligibility_text: bool = _as_bool(os.getenv("SEARCH_WITH_ELIGIBILITY_TEXT"), False)
     # Use the structured / natural-language reranker prompt instead of the raw concat dump.
-    enable_structured_rerank_prompt: bool = _as_bool(os.getenv("ENABLE_STRUCTURED_RERANK_PROMPT"), False)
+    enable_structured_rerank_prompt: bool = _as_bool(os.getenv("ENABLE_STRUCTURED_RERANK_PROMPT"), True)
 
     # --- HyDE (Hypothetical Document Embedding) ---
     # When ON, an LLM writes a fake-but-realistic grant announcement matching
     # the user's need. We embed THAT instead of (or in addition to) the raw
     # query, closing the vocabulary gap between user phrasing and grant text.
-    enable_hyde: bool = _as_bool(os.getenv("ENABLE_HYDE"), False)
+    enable_hyde: bool = _as_bool(os.getenv("ENABLE_HYDE"), True)
     # Dedicated key so HyDE token usage can be tracked separately.
     # Falls back to query-expansion key, then judge key, in hyde.py.
     groq_api_key_hyde: str = os.getenv("GROQ_API_KEY_HYDE", "")

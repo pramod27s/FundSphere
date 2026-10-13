@@ -8,6 +8,8 @@ ASCII-art reference for the two AI-powered subsystems: the **RAG-based grant mat
 
 ## 1 · RAG — AI Grant Matching
 
+<img src="rag-pipeline.svg" alt="RAG pipeline. Storing: the scraper extracts grants, CoreBackend saves them in PostgreSQL with a keyword-search index, and ai-service chunks, embeds (dense + sparse) and stores them in Pinecone. Searching: a topic-only search text drives a PostgreSQL keyword search, optional LLM rewrites and HyDE, and a Pinecone hybrid search; results are merged by rank, filtered for eligibility, reranked, scored, optionally explained by an LLM, cached, and shown as topic matches and broader schemes." width="100%">
+
 ### 1.1 End-to-end flow
 
 ```
@@ -115,7 +117,7 @@ The final per-grant score is a weighted blend of **five** signals plus small pre
             │   (per applicant-type preset    │
             │    when ENABLE_SEGMENT_WEIGHTS)  │
             ├─────────────────────────────────┤
-            │   50%   Semantic (raw rerank)   │
+            │   50%   Semantic (rerank, logit)│
             │   20%   Eligibility fit  (*)    │
             │   10%   Keyword match           │
             │   10%   Funding fit             │

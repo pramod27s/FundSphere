@@ -72,4 +72,37 @@ class KeywordQueryTest {
         assertTrue(KeywordQuery.countryAllows("United Kingdom", "UK"));
         assertFalse(KeywordQuery.countryAllows("Kenya, Nigeria", "India"));
     }
+
+    @Test
+    void countryCheckKnowsEveryOpenToAllPhraseInTheSharedTable() {
+        assertTrue(KeywordQuery.countryAllows("All countries", "India"));
+        assertTrue(KeywordQuery.countryAllows("Open to all nationalities", "India"));
+        assertTrue(KeywordQuery.countryAllows("Kenya; Worldwide", "India"));
+    }
+
+    @Test
+    void aRegionAdmitsItsMemberCountries() {
+        assertTrue(KeywordQuery.countryAllows("EU Member States", "Spain"));
+        assertTrue(KeywordQuery.countryAllows("EEA countries", "Norway"));
+        assertFalse(KeywordQuery.countryAllows("EU Member States", "India"));
+        assertFalse(KeywordQuery.countryAllows("Nordics", "Spain"));
+    }
+
+    @Test
+    void aGroupWeCannotResolveRulesNobodyOut() {
+        // As the ERC Starting Grant was extracted; the UK is an associated country.
+        assertTrue(KeywordQuery.countryAllows("EU Member States, associated countries", "United Kingdom"));
+        assertTrue(KeywordQuery.countryAllows("Low- and middle-income countries", "Kenya"));
+        assertEquals(KeywordQuery.UNRESOLVED_GROUP, KeywordQuery.canonicalCountry("Countries associated with the LIFE Programme"));
+        assertEquals("south africa", KeywordQuery.canonicalCountry("South Africa"));
+    }
+
+    @Test
+    void canonicalNamesMatchTheAiService() {
+        // The same cases as CountryTests in ai-service/tests/test_rag.py.
+        assertEquals("united states", KeywordQuery.canonicalCountry("USA"));
+        assertEquals("united kingdom", KeywordQuery.canonicalCountry("  The United  Kingdom "));
+        assertEquals("kenya", KeywordQuery.canonicalCountry("Kenya"));
+        assertEquals("any", KeywordQuery.canonicalCountry("All countries"));
+    }
 }

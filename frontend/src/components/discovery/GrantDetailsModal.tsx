@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { X, ShieldCheck, ShieldAlert, Calendar, CalendarPlus, FileText, Gavel, Rocket, TrendingUp, ExternalLink, BookmarkPlus, BookmarkCheck } from 'lucide-react';
 import { useId, useRef, type ComponentType } from 'react';
-import type { DiscoveryGrant } from '../../services/discoveryService';
+import { FIT_LABELS, type DiscoveryGrant } from '../../services/discoveryService';
 import type { ResearcherResponse } from '../../services/researcherService';
 import FreshnessBadge from '../common/FreshnessBadge';
 import ProviderUpdatedInfo from '../common/ProviderUpdatedInfo';
@@ -135,9 +135,16 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
                       <TrendingUp className="w-3.5 h-3.5" />
                       <span className="text-xs font-medium">Match score</span>
                   </div>
-                  <div className={`text-2xl font-bold tabular-nums text-primary-700`}>
-                      {grant.matchScore}%
-                  </div>
+                  {grant.matchType === 'broad' ? (
+                    <>
+                      <div className="text-xl font-bold text-brand-900">Broad scheme</div>
+                      <div className="text-[11px] text-brand-500 mt-0.5">Not about your topic specifically</div>
+                    </>
+                  ) : (
+                    <div className={`text-2xl font-bold tabular-nums text-primary-700`}>
+                        {grant.matchScore}%
+                    </div>
+                  )}
               </div>
               )}
 
@@ -209,7 +216,16 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
             {/* AI Match Rationale — only shown in AI mode */}
             {isAi && (
               <div className="mb-8">
-                  <h3 className="text-sm font-semibold text-brand-900 mb-3">AI match rationale</h3>
+                  <h3 className="text-sm font-semibold text-brand-900 mb-3">
+                    AI match rationale
+                    {grant.fit && (
+                      <span className={`ml-2 rounded-md px-2 py-0.5 text-xs font-medium ${
+                        grant.fit === 'weak' ? 'bg-amber-50 text-amber-800' : 'bg-primary-50 text-primary-800'
+                      }`}>
+                        {FIT_LABELS[grant.fit]}
+                      </span>
+                    )}
+                  </h3>
                   <div className="relative bg-primary-50 border border-primary-200 rounded-lg p-5 text-primary-900 overflow-hidden">
                       <div className="absolute top-0 left-0 w-1 h-full bg-primary-600" />
                       <GlossaryText as="p" className="pl-2">{grant.rationale}</GlossaryText>

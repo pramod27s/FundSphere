@@ -1,4 +1,5 @@
 import logging
+import math
 import time
 from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Optional, Tuple
@@ -14,14 +15,13 @@ from .filters import (
     grant_type_fit,
     career_stage_fit,
     is_strictly_disqualified,
-    _expand_aliases,
     _match_strength,
     _norm,
     _norm_set,
     APPLICANT_ALIASES,
     INSTITUTION_ALIASES,
-    COUNTRY_ALIASES,
 )
+from .countries import keys_for_user, names_country
 from .hyde import generate_hypothetical_grant
 from .llm_judge import explain_candidates
 from .pinecone_client import PineconeService
@@ -91,6 +91,25 @@ def candidate_signals(profile: UserProfile, user_query: Optional[str], fields: d
     }
 
 
+# The reranker's logit range mapped onto [0, 1]: a score of 0.001 is about 0,
+# 0.1 about 0.48, 0.95 about 0.99.
+_LOGIT_FLOOR, _LOGIT_SPAN = -7.0, 10.0
+
+
+def relevance_from_rerank(score: float) -> float:
+    """The reranker's score as the semantic signal, on its logit scale.
+
+    bge-reranker-v2-m3 returns sigmoid(logit), which squashes the low end: a
+    broad scheme that suits the user scores ~0.016 and an off-topic grant
+    ~0.004, a gap too small to outweigh eligibility and freshness, so broadly
+    eligible off-topic grants ranked above relevant ones. On the logit scale
+    that gap counts (0.29 vs 0.15). On the eval it raised NDCG@10 from 0.707
+    to 0.744 and MRR from 0.833 to 0.858, on both halves of the cases."""
+    p = min(max(score, 1e-4), 1 - 1e-4)
+    logit = math.log(p / (1 - p))
+    return max(0.0, min(1.0, (logit - _LOGIT_FLOOR) / _LOGIT_SPAN))
+
+
 def blend(weights: Dict[str, float], semantic: float, signals: Dict[str, float]) -> float:
     """The final match score: weighted signals plus the adjustment, clamped so
     the displayed match percentage stays within 0–100%."""
@@ -147,10 +166,12 @@ class RecommenderService:
                 else None
             )
 
-            query_strings = future_expansion.result() if future_expansion else [query_text]
+            expansions = future_expansion.result() if future_expansion else []
             hyde_doc = future_hyde.result() if future_hyde else None
             prepared = time.perf_counter()
 
+            # The original query always runs alongside the LLM rewrites.
+            query_strings = list(dict.fromkeys([query_text, *expansions]))
             if hyde_doc:
                 query_strings = self._inject_hyde(query_strings, hyde_doc)
 
@@ -158,7 +179,7 @@ class RecommenderService:
 
             if settings.enable_profile_query_split:
                 semantic_hits = self._semantic_channel_split(
-                    profile, request.userQuery, query_strings, alpha, hyde_doc=hyde_doc
+                    profile, request.userQuery, query_strings, expansions, alpha, hyde_doc=hyde_doc
                 )
             else:
                 semantic_hits = self._semantic_channel(profile, query_strings, alpha)
@@ -246,6 +267,7 @@ class RecommenderService:
         profile: UserProfile,
         user_query: Optional[str],
         query_strings: List[str],
+        expansions: List[str],
         alpha: float,
         hyde_doc: Optional[str] = None,
     ) -> List[SemanticHit]:
@@ -257,8 +279,9 @@ class RecommenderService:
         fuses them. The intent channel is up-weighted (default 2x) so the live
         query dominates without losing the profile context entirely.
 
-        Falls back to the standard single-channel retrieval whenever the user
-        query is empty (then there is no intent to separate out).
+        Falls back to the standard single-channel retrieval (`query_strings`:
+        the full profile text plus its expansions) whenever the user query is
+        empty — then there is no intent to separate out.
         """
         live_query = (user_query or "").strip()
         if not live_query:
@@ -274,8 +297,7 @@ class RecommenderService:
         intent_queries: List[str] = []
         if hyde_doc:
             intent_queries.append(hyde_doc)
-        if query_strings and settings.enable_query_expansion:
-            intent_queries.extend(query_strings)
+        intent_queries.extend(expansions)
         intent_queries.append(build_query_only_text(profile, live_query))
         # Dedupe, preserve order
         seen: set[str] = set()
@@ -316,11 +338,10 @@ class RecommenderService:
             return []
 
         retry_relaxed = metadata_filter != relaxed_filter
-        merged: Dict[int, SemanticHit] = {}
 
         if settings.enable_batch_embeddings:
             try:
-                batch_hits = self.pinecone_service.batch_search(
+                per_query = self.pinecone_service.batch_search(
                     queries=clean_queries,
                     top_k=settings.semantic_top_k,
                     metadata_filter=metadata_filter,
@@ -328,68 +349,60 @@ class RecommenderService:
                 )
             except Exception as exc:
                 logger.error(f"Batch semantic search failed: {exc}")
-                batch_hits = [[] for _ in clean_queries]
-
-            for q, hits in zip(clean_queries, batch_hits):
-                # Fallback if filtered hits were thin
-                if len(hits) < 5 and retry_relaxed:
-                    try:
-                        extra = self.pinecone_service.search(
-                            query_text=q,
-                            top_k=settings.semantic_top_k,
-                            metadata_filter=relaxed_filter,
-                            alpha=alpha,
-                        )
-                        hits = self._merge_hits(hits, extra)
-                    except Exception as exc:
-                        logger.warning(f"Semantic fallback failed for q='{q[:60]}': {exc}")
-
-                for hit in hits:
-                    existing = merged.get(hit.grantId)
-                    if existing is None or hit.semanticScore > existing.semanticScore:
-                        merged[hit.grantId] = hit
+                per_query = [[] for _ in clean_queries]
         else:
+            per_query = []
             for q in clean_queries:
                 try:
-                    hits = self.pinecone_service.search(
+                    per_query.append(self.pinecone_service.search(
                         query_text=q,
                         top_k=settings.semantic_top_k,
                         metadata_filter=metadata_filter,
                         alpha=alpha,
-                    )
+                    ))
                 except Exception as exc:
                     logger.error(f"Semantic search failed for q='{q[:60]}': {exc}")
-                    hits = []
+                    per_query.append([])
 
-                if len(hits) < 5 and retry_relaxed:
-                    try:
-                        extra = self.pinecone_service.search(
-                            query_text=q,
-                            top_k=settings.semantic_top_k,
-                            metadata_filter=relaxed_filter,
-                            alpha=alpha,
-                        )
-                        hits = self._merge_hits(hits, extra)
-                    except Exception as exc:
-                        logger.warning(f"Semantic fallback failed: {exc}")
+        rankings: List[List[SemanticHit]] = []
+        for q, hits in zip(clean_queries, per_query):
+            # Fallback if filtered hits were thin
+            if len(hits) < 5 and retry_relaxed:
+                try:
+                    extra = self.pinecone_service.search(
+                        query_text=q,
+                        top_k=settings.semantic_top_k,
+                        metadata_filter=relaxed_filter,
+                        alpha=alpha,
+                    )
+                    hits = self._merge_hits(hits, extra)
+                except Exception as exc:
+                    logger.warning(f"Semantic fallback failed for q='{q[:60]}': {exc}")
+            rankings.append(hits)
 
-                for hit in hits:
-                    existing = merged.get(hit.grantId)
-                    if existing is None or hit.semanticScore > existing.semanticScore:
-                        merged[hit.grantId] = hit
-
-        return sorted(merged.values(), key=lambda h: h.semanticScore, reverse=True)
+        # Fused by rank, not raw score: hybrid scores from different queries
+        # aren't on one scale (the sparse part grows with query length), so
+        # the longest query would otherwise decide the order.
+        return self._weighted_rrf_semantic(
+            channels=[(hits, 1.0) for hits in rankings],
+            k=settings.rrf_k,
+        )
 
     @staticmethod
     def _weighted_rrf_semantic(
         channels: List[Tuple[List[SemanticHit], float]],
         k: int,
-        pool_size: int,
+        pool_size: Optional[int] = None,
     ) -> List[SemanticHit]:
         """RRF where each channel can contribute with a weight multiplier.
-        Used to fuse intent (heavy) and fit (light) inside the semantic stage."""
+        Fuses the query variants of one retrieval, and intent (heavy) with fit
+        (light) in the profile/query split. Each grant keeps the hit from the
+        channel that ranked it highest, earlier channels winning ties, so its
+        chunk is the one that matched best rather than the one with the
+        largest (incomparable) raw score."""
         scores: Dict[int, float] = {}
         best_hit: Dict[int, SemanticHit] = {}
+        best_rank: Dict[int, int] = {}
 
         for channel, weight in channels:
             if weight <= 0 or not channel:
@@ -397,15 +410,12 @@ class RecommenderService:
             for rank, hit in enumerate(channel, start=1):
                 gid = hit.grantId
                 scores[gid] = scores.get(gid, 0.0) + weight * (1.0 / (k + rank))
-                prev = best_hit.get(gid)
-                if prev is None or hit.semanticScore > prev.semanticScore:
+                if rank < best_rank.get(gid, rank + 1):
+                    best_rank[gid] = rank
                     best_hit[gid] = hit
 
         ordered = sorted(scores.items(), key=lambda kv: kv[1], reverse=True)
-        out: List[SemanticHit] = []
-        for gid, _ in ordered[:pool_size]:
-            out.append(best_hit[gid])
-        return out
+        return [best_hit[gid] for gid, _ in ordered[:pool_size]]
 
     def _keyword_channel(
         self,
@@ -705,15 +715,17 @@ class RecommenderService:
         for hit in candidates:
             fields = hit.fields or {}
 
-            # Semantic signal: the reranker's relevance score, used as-is.
-            # bge-reranker-v2-m3 scores already come back in [0, 1], so a pool
-            # of weak candidates scores low instead of being stretched to fill
-            # the range — the match % means the same thing across queries.
+            # Semantic signal: the reranker's relevance score on its logit
+            # scale (relevance_from_rerank), not stretched per query, so a pool
+            # of weak candidates scores low and the match % means the same
+            # thing across queries. The topic/broad label reads the raw score.
             rr = fields.get("_rerank_score")
             if rr is not None:
-                semantic = float(rr)
+                semantic = relevance_from_rerank(float(rr))
+                match_type = "topic" if float(rr) >= settings.topic_match_min_score else "broad"
             else:
                 semantic = (fields.get("_rrf_score", 0.0) - f_min) / f_span
+                match_type = None  # an RRF rank isn't a relevance score to judge by
             semantic = max(0.0, min(1.0, semantic))
 
             signals = candidate_signals(profile, user_query, fields)
@@ -739,6 +751,7 @@ class RecommenderService:
                         profile, fields, semantic, signals["eligibility"], signals["keyword"], signals["funding"]
                     ),
                     fields=fields,
+                    matchType=match_type,
                 )
             )
 
@@ -837,22 +850,20 @@ class RecommenderService:
         Soft country filter: include grants that explicitly match the user's
         country OR are open to all OR have no country listed at all. Never AND
         across multiple eligibility fields — that silently kills recall.
+
+        Matches the canonical names stored at indexing (country_keys), so
+        "USA" and "All countries" match like "United States" and "any", a
+        Spanish user matches "European Union", and groups we can't resolve
+        ("associated countries") match everyone.
+        Vectors indexed before country_keys existed pass the $exists clause;
+        _drop_ineligible still checks them.
         """
         if not profile.country:
             return None
-        country_aliases = list(_expand_aliases(profile.country, COUNTRY_ALIASES))
-        # Pinecone metadata filters are case-sensitive against the stored values.
-        # Stored values aren't normalised, so include common casings.
-        casings = set()
-        for c in country_aliases:
-            casings.add(c)
-            casings.add(c.title())
-            casings.add(c.upper())
-        casings.update({"All", "Any", "Global", "International", "Worldwide"})
         return {
             "$or": [
-                {"eligible_countries": {"$in": sorted(casings)}},
-                {"eligible_countries": {"$exists": False}},
+                {"country_keys": {"$in": keys_for_user(profile.country)}},
+                {"country_keys": {"$exists": False}},
             ]
         }
 
@@ -867,10 +878,7 @@ class RecommenderService:
     ) -> str:
         bits: List[str] = []
 
-        country_aliases = _expand_aliases(profile.country, COUNTRY_ALIASES)
-        grant_countries = _norm_set(fields.get("eligible_countries", []))
-
-        if profile.country and (country_aliases & grant_countries):
+        if profile.country and names_country(fields.get("eligible_countries"), profile.country):
             bits.append(f"country match: {profile.country}")
         # 0.7+ = exact or alias match; UNKNOWN_FIT (0.5) is not a fit to report.
         if _match_strength(profile.applicantType, fields.get("eligible_applicants"), APPLICANT_ALIASES) >= 0.7:

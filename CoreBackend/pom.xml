@@ -85,6 +85,15 @@
     </dependencies>
 
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+            <!-- Tables shared with the ai-service (countries.json), read from the classpath. -->
+            <resource>
+                <directory>../shared</directory>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

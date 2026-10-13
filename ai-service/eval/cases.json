@@ -546,6 +546,258 @@
         "preferredGrantType": "Travel Grant"
       },
       "query": "travel grant for a PhD student to present a paper at an international conference"
+    },
+    {
+      "id": "water-purification-research-in",
+      "profile": {
+        "country": "India",
+        "institutionType": "University",
+        "applicantType": "Professor Faculty",
+        "careerStage": "Professor",
+        "department": "environmental engineering",
+        "researchBio": "Environmental engineer developing low-cost filters to remove arsenic and fluoride from groundwater.",
+        "researchInterests": ["Environment", "Water Resources", "Environmental Engineering"],
+        "keywords": ["groundwater", "water purification", "arsenic removal"],
+        "preferredMinAmount": 1000000,
+        "preferredMaxAmount": 5000000,
+        "preferredCurrency": "INR",
+        "hasPhd": true,
+        "yearsOfExperience": 12,
+        "citizenship": "India",
+        "preferredGrantType": "Research Grant"
+      },
+      "query": "research funding for low-cost technologies to clean contaminated groundwater"
+    },
+    {
+      "id": "neuroscience-independent-group-uk",
+      "profile": {
+        "country": "United Kingdom",
+        "institutionType": "University",
+        "applicantType": "Researcher",
+        "careerStage": "Research Assistant",
+        "department": "neuroscience",
+        "researchBio": "Postdoctoral neuroscientist studying synaptic plasticity, ready to start my own research group.",
+        "researchInterests": ["Healthcare", "Neuroscience"],
+        "keywords": ["synaptic plasticity", "independent fellowship"],
+        "preferredMinAmount": 200000,
+        "preferredMaxAmount": 1500000,
+        "preferredCurrency": "GBP",
+        "hasPhd": true,
+        "yearsOfExperience": 6,
+        "citizenship": "United Kingdom",
+        "preferredGrantType": "Fellowship"
+      },
+      "query": "fellowship to start an independent neuroscience research group"
+    },
+    {
+      "id": "cell-biology-postdoc-es",
+      "profile": {
+        "country": "Spain",
+        "institutionType": "Research Institute",
+        "applicantType": "Researcher",
+        "careerStage": "Research Assistant",
+        "department": "cell biology",
+        "researchBio": "Recently finished a PhD in cell biology on mitochondrial dynamics; looking for a postdoc in another European lab.",
+        "researchInterests": ["Biotechnology", "Cell Biology", "Molecular Biology"],
+        "keywords": ["mitochondria", "postdoc mobility"],
+        "preferredMinAmount": 30000,
+        "preferredMaxAmount": 80000,
+        "preferredCurrency": "EUR",
+        "hasPhd": true,
+        "yearsOfExperience": 1,
+        "citizenship": "Spain",
+        "preferredGrantType": "Fellowship"
+      },
+      "query": "postdoctoral fellowship to move to a molecular biology lab in another European country"
+    },
+    {
+      "id": "tb-drug-discovery-in",
+      "profile": {
+        "country": "India",
+        "institutionType": "Research Institute",
+        "applicantType": "Researcher",
+        "careerStage": "Research Assistant",
+        "department": "microbiology",
+        "researchBio": "Microbiologist screening new compounds against drug-resistant tuberculosis.",
+        "researchInterests": ["Healthcare", "Microbiology", "Drug Discovery"],
+        "keywords": ["tuberculosis", "antimicrobial resistance", "drug discovery"],
+        "preferredMinAmount": 1000000,
+        "preferredMaxAmount": 6000000,
+        "preferredCurrency": "INR",
+        "hasPhd": true,
+        "yearsOfExperience": 8,
+        "citizenship": "India",
+        "preferredGrantType": "Research Grant"
+      },
+      "query": "research grant for tuberculosis drug discovery and antimicrobial resistance"
+    },
+    {
+      "id": "quantum-technology-faculty-in",
+      "profile": {
+        "country": "India",
+        "institutionType": "University",
+        "applicantType": "Professor Faculty",
+        "careerStage": "Professor",
+        "department": "physics",
+        "researchBio": "Physicist building superconducting qubit devices for quantum computing.",
+        "researchInterests": ["Quantum Technology", "Physics", "Quantum Computing"],
+        "keywords": ["qubits", "quantum computing", "superconducting devices"],
+        "preferredMinAmount": 2000000,
+        "preferredMaxAmount": 20000000,
+        "preferredCurrency": "INR",
+        "hasPhd": true,
+        "yearsOfExperience": 10,
+        "citizenship": "India",
+        "preferredGrantType": "Research Grant"
+      },
+      "query": "funding for quantum computing and quantum technology research"
+    },
+    {
+      "id": "women-engineer-us-research-in",
+      "profile": {
+        "country": "India",
+        "institutionType": "University",
+        "applicantType": "Researcher",
+        "careerStage": "Research Assistant",
+        "department": "civil engineering",
+        "researchBio": "Woman civil engineer with a PhD researching earthquake-resistant structures; want research experience in the US.",
+        "researchInterests": ["Engineering", "Civil Engineering", "Structural Engineering"],
+        "keywords": ["earthquake engineering", "women in STEM"],
+        "preferredMinAmount": 500000,
+        "preferredMaxAmount": 3000000,
+        "preferredCurrency": "INR",
+        "hasPhd": true,
+        "yearsOfExperience": 5,
+        "citizenship": "India",
+        "preferredGrantType": "Fellowship"
+      },
+      "query": "fellowship for Indian women engineers to do research at a US institution"
+    },
+    {
+      "id": "college-teacher-summer-research-in",
+      "profile": {
+        "country": "India",
+        "institutionType": "College",
+        "applicantType": "Professor Faculty",
+        "careerStage": "Professor",
+        "department": "chemistry",
+        "researchBio": "Chemistry lecturer at an undergraduate college who wants to do research during the summer break.",
+        "researchInterests": ["Education", "Chemistry"],
+        "keywords": ["summer research", "college teachers"],
+        "preferredMinAmount": 20000,
+        "preferredMaxAmount": 100000,
+        "preferredCurrency": "INR",
+        "hasPhd": false,
+        "yearsOfExperience": 9,
+        "citizenship": "India",
+        "preferredGrantType": "Fellowship"
+      },
+      "query": "summer research fellowship for college teachers to work at a research lab"
+    },
+    {
+      "id": "undergrad-summer-research-in",
+      "profile": {
+        "country": "India",
+        "institutionType": "University",
+        "applicantType": "Student",
+        "careerStage": "Student",
+        "department": "physics",
+        "researchBio": "Third-year BSc physics student keen to gain research experience in a lab.",
+        "researchInterests": ["Physics", "Education"],
+        "keywords": ["summer internship", "undergraduate research"],
+        "preferredMinAmount": 10000,
+        "preferredMaxAmount": 50000,
+        "preferredCurrency": "INR",
+        "hasPhd": false,
+        "yearsOfExperience": 0,
+        "citizenship": "India",
+        "preferredGrantType": "Fellowship"
+      },
+      "query": "summer research internship for an undergraduate science student"
+    },
+    {
+      "id": "edtech-startup-in",
+      "profile": {
+        "country": "India",
+        "institutionType": "Startup",
+        "applicantType": "Startup Company",
+        "careerStage": "Founder",
+        "department": "education technology",
+        "researchBio": "Startup building low-bandwidth learning apps for rural government schools.",
+        "researchInterests": ["Education", "EdTech", "Social Impact"],
+        "keywords": ["edtech", "rural education", "digital learning"],
+        "preferredMinAmount": 500000,
+        "preferredMaxAmount": 5000000,
+        "preferredCurrency": "INR",
+        "hasPhd": false,
+        "yearsOfExperience": 3,
+        "citizenship": "India",
+        "preferredGrantType": "Startup Funding"
+      },
+      "query": "seed grant for an edtech startup improving learning in rural schools"
+    },
+    {
+      "id": "biofuels-us-exchange-in",
+      "profile": {
+        "country": "India",
+        "institutionType": "Research Institute",
+        "applicantType": "Researcher",
+        "careerStage": "Research Assistant",
+        "department": "bioenergy",
+        "researchBio": "PhD student engineering microbes to produce advanced biofuels from biomass.",
+        "researchInterests": ["Renewable Energy", "Biotechnology", "Bioenergy"],
+        "keywords": ["biofuels", "metabolic engineering", "biomass"],
+        "preferredMinAmount": 300000,
+        "preferredMaxAmount": 2000000,
+        "preferredCurrency": "INR",
+        "hasPhd": false,
+        "yearsOfExperience": 3,
+        "citizenship": "India",
+        "preferredGrantType": "Fellowship"
+      },
+      "query": "fellowship to do bioenergy and biofuels research at a US lab"
+    },
+    {
+      "id": "new-assistant-professor-chemistry-in",
+      "profile": {
+        "country": "India",
+        "institutionType": "University",
+        "applicantType": "Professor Faculty",
+        "careerStage": "Professor",
+        "department": "chemistry",
+        "researchBio": "Recently joined as an assistant professor in organic chemistry; need funds to set up my first lab.",
+        "researchInterests": ["Chemistry", "Organic Synthesis"],
+        "keywords": ["new faculty", "start-up grant", "organic chemistry"],
+        "preferredMinAmount": 1000000,
+        "preferredMaxAmount": 3000000,
+        "preferredCurrency": "INR",
+        "hasPhd": true,
+        "yearsOfExperience": 1,
+        "citizenship": "India",
+        "preferredGrantType": "Research Grant"
+      },
+      "query": "start-up research grant for a newly joined assistant professor"
+    },
+    {
+      "id": "biomedical-device-academic-in",
+      "profile": {
+        "country": "India",
+        "institutionType": "Research Institute",
+        "applicantType": "Researcher",
+        "careerStage": "Research Assistant",
+        "department": "biomedical engineering",
+        "researchBio": "Academic engineer developing a wearable device for continuous cardiac monitoring.",
+        "researchInterests": ["Healthcare", "Biomedical Engineering", "Medical Devices"],
+        "keywords": ["wearable devices", "cardiac monitoring"],
+        "preferredMinAmount": 1000000,
+        "preferredMaxAmount": 8000000,
+        "preferredCurrency": "INR",
+        "hasPhd": true,
+        "yearsOfExperience": 7,
+        "citizenship": "India",
+        "preferredGrantType": "Research Grant"
+      },
+      "query": "research funding to develop a medical device in an academic lab"
     }
   ]
 }

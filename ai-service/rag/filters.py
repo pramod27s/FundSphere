@@ -2,6 +2,7 @@ import re
 from datetime import datetime, time as day_time, timezone
 from dateutil import parser as date_parser
 from .config import settings
+from .countries import COUNTRY_ALIASES, OPEN_TO_ALL, UNRESOLVED_GROUP, country_allows, country_keys, names_country
 from .schemas import UserProfile
 
 
@@ -26,34 +27,6 @@ _STOP_WORDS = frozenset({
     "opportunities", "support", "program", "programme", "programs",
     "programmes", "scheme", "schemes", "apply", "application", "applications",
 })
-
-
-COUNTRY_ALIASES = {
-    "usa": "united states",
-    "us": "united states",
-    "u.s.": "united states",
-    "u.s.a.": "united states",
-    "united states of america": "united states",
-    "america": "united states",
-    "uk": "united kingdom",
-    "u.k.": "united kingdom",
-    "great britain": "united kingdom",
-    "britain": "united kingdom",
-    "england": "united kingdom",
-    "in": "india",
-    "republic of india": "india",
-    "uae": "united arab emirates",
-    "ksa": "saudi arabia",
-    "prc": "china",
-    "people's republic of china": "china",
-    "south korea": "korea",
-    "republic of korea": "korea",
-    "all": "any",
-    "any country": "any",
-    "global": "any",
-    "international": "any",
-    "worldwide": "any",
-}
 
 
 # Keys include the values CoreBackend actually sends (humanized enums such as
@@ -292,22 +265,20 @@ def _match_strength(profile_value: str | None, grant_values, alias_map: dict) ->
 
 
 def _country_match(profile_country: str | None, grant_countries) -> float:
-    """Country-specific: exact 1.0, alias 0.7, 'any/global' 0.6, mismatch 0.0;
-    UNKNOWN_FIT when the grant lists no countries or the profile has none."""
-    grant_set = _norm_set(grant_countries)
-    if not grant_set:
+    """Compared by canonical name ("USA" is "United States"; Spain is in the
+    "European Union"): match 1.0, open to all 0.6, mismatch 0.0; UNKNOWN_FIT
+    when the grant lists no countries, only groups we can't resolve, or the
+    profile has none."""
+    keys = set(country_keys(grant_countries))
+    if not keys:
         return UNKNOWN_FIT
-    # Open-to-all signals
-    if grant_set & {"any", "global", "international", "worldwide", "all"}:
+    if OPEN_TO_ALL in keys:
         return 0.6
     if not profile_country:
         return UNKNOWN_FIT
-    aliases = _expand_aliases(profile_country, COUNTRY_ALIASES)
-    if _norm(profile_country) in grant_set:
+    if names_country(grant_countries, profile_country):
         return 1.0
-    if aliases & grant_set:
-        return 0.7
-    return 0.0
+    return UNKNOWN_FIT if UNRESOLVED_GROUP in keys else 0.0
 
 
 def overlap_score(left, right) -> float:
@@ -318,6 +289,31 @@ def overlap_score(left, right) -> float:
     inter = len(a & b)
     union = len(a | b)
     return inter / union if union else 0.0
+
+
+# An applicant label that admits people still working towards a PhD:
+# "PhD students", "doctoral scholars", "Indian citizens pursuing a Ph.D.".
+_PHD_STUDENT_RE = re.compile(
+    r"(ph\.?\s?d|doctoral|doctorate)[^,;]*(student|scholar|candidate)"
+    r"|pursuing[^,;]*(ph\.?\s?d|doctor)"
+    r"|(student|scholar|candidate)[^,;]*(ph\.?\s?d|doctoral)",
+    re.IGNORECASE,
+)
+
+
+def requires_completed_phd(grant_fields: dict) -> bool:
+    """requires_phd, unless the grant's own applicant list admits PhD students.
+
+    The extractor sometimes sets requires_phd on calls open to "PhD students"
+    (5 of the 30 flagged grants in Oct 2026, among them two doctoral
+    fellowships), and the hard filter then hid those grants from exactly the
+    students they're for. The applicant list is the more specific evidence."""
+    if grant_fields.get("requires_phd") is not True:
+        return False
+    applicants = grant_fields.get("eligible_applicants") or []
+    if isinstance(applicants, str):
+        applicants = [applicants]
+    return not any(_PHD_STUDENT_RE.search(str(a)) for a in applicants)
 
 
 def eligibility_score(profile: UserProfile, grant_fields: dict) -> float:
@@ -347,7 +343,7 @@ def eligibility_score(profile: UserProfile, grant_fields: dict) -> float:
     )
 
     # Hard-constraint guards: PhD requirement / experience / citizenship.
-    if grant_fields.get("requires_phd") is True and getattr(profile, "hasPhd", None) is False:
+    if requires_completed_phd(grant_fields) and getattr(profile, "hasPhd", None) is False:
         score *= 0.3
 
     min_exp = grant_fields.get("min_experience_years")
@@ -355,11 +351,8 @@ def eligibility_score(profile: UserProfile, grant_fields: dict) -> float:
     if min_exp is not None and yrs is not None and yrs < min_exp:
         score *= 0.5
 
-    cit_required = _norm_set(grant_fields.get("citizenship_required", []))
-    if cit_required:
-        cit = getattr(profile, "citizenship", None)
-        if cit and _norm(cit) not in cit_required:
-            score *= 0.5
+    if not country_allows(grant_fields.get("citizenship_required"), getattr(profile, "citizenship", None)):
+        score *= 0.5
 
     return min(score, 1.0)
 
@@ -373,28 +366,20 @@ def is_strictly_disqualified(profile: UserProfile, grant_fields: dict) -> tuple[
     Never disqualifies on missing or null profile fields.
     """
     # 1. PhD requirement guard
-    if grant_fields.get("requires_phd") is True:
+    if requires_completed_phd(grant_fields):
         has_phd = getattr(profile, "hasPhd", None)
         if has_phd is False:
             return True, "Grant requires PhD, but applicant does not have PhD"
 
-    # 2. Strict citizenship guard
-    cit_required = _norm_set(grant_fields.get("citizenship_required", []))
-    if cit_required and not (cit_required & {"any", "all", "global", "open"}):
-        user_cit = getattr(profile, "citizenship", None)
-        if user_cit:
-            user_cit_aliases = _expand_aliases(user_cit, COUNTRY_ALIASES)
-            if not (user_cit_aliases & cit_required):
-                return True, f"Citizenship restriction: requires {', '.join(cit_required)}"
+    # 2. Strict citizenship guard (same canonical names as the country guard)
+    citizenship_required = grant_fields.get("citizenship_required")
+    if not country_allows(citizenship_required, getattr(profile, "citizenship", None)):
+        return True, f"Citizenship restriction: requires {', '.join(country_keys(citizenship_required))}"
 
     # 3. Strict country eligibility guard
-    grant_countries = _norm_set(grant_fields.get("eligible_countries", []))
-    if grant_countries and not (grant_countries & {"any", "all", "global", "international", "worldwide"}):
-        user_country = getattr(profile, "country", None)
-        if user_country:
-            user_country_aliases = _expand_aliases(user_country, COUNTRY_ALIASES)
-            if not (user_country_aliases & grant_countries):
-                return True, f"Geographic restriction: grant limited to {', '.join(grant_countries)}"
+    grant_countries = grant_fields.get("eligible_countries")
+    if not country_allows(grant_countries, getattr(profile, "country", None)):
+        return True, f"Geographic restriction: grant limited to {', '.join(country_keys(grant_countries))}"
 
     # 4. Mandatory minimum experience guard
     min_exp = grant_fields.get("min_experience_years")

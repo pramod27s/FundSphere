@@ -2,17 +2,18 @@ import json
 import logging
 from openai import OpenAI
 from .config import settings
+from .profile_builder import eligibility_lines, topic_lines
 from .schemas import UserProfile
-from .profile_builder import build_user_query_text
 
 logger = logging.getLogger("rag.query_expander")
 
 def expand_queries(profile: UserProfile, user_query: str | None) -> list[str]:
-    fallback = [build_user_query_text(profile, user_query)]
-    
+    """Up to 3 LLM rewrites of the profile and query, or [] when expansion
+    can't run. Only the rewrites: the recommender searches the original
+    query alongside them, since a rewrite can drift from what was asked."""
     if not settings.groq_api_key_query_expansion:
-        logger.warning("GROQ_API_KEY_QUERY_EXPANSION is missing, falling back to basic query.")
-        return fallback
+        logger.warning("GROQ_API_KEY_QUERY_EXPANSION is missing, searching without expansion.")
+        return []
 
     try:
         client = OpenAI(
@@ -21,7 +22,8 @@ def expand_queries(profile: UserProfile, user_query: str | None) -> list[str]:
         )
 
         # Build prompt
-        profile_str = f"Country: {profile.country}\nInstitution: {profile.institutionType}\nApplicant: {profile.applicantType}\nBio: {profile.researchBio}\nInterests: {', '.join(profile.researchInterests)}\nKeywords: {', '.join(profile.keywords)}"
+        # Topic only, like the search text (see profile_builder.eligibility_lines).
+        profile_str = "\n".join(topic_lines(profile) + eligibility_lines(profile)) or "(no profile detail provided)"
         
         prompt = f"""
 You are an expert grant researcher. Given the following user profile and an optional user query, generate exactly 3 distinct search queries to find relevant grants.
@@ -59,13 +61,14 @@ Example: {{"queries": ["query A", "query B", "query C"]}}
         parsed_json = json.loads(text)
         queries = parsed_json.get("queries", []) if isinstance(parsed_json, dict) else parsed_json
 
-        if isinstance(queries, list) and len(queries) >= 1:
+        if isinstance(queries, list):
+            queries = [q.strip() for q in queries if isinstance(q, str) and q.strip()]
+        if queries:
             logger.info(f"Successfully expanded into {len(queries)} queries.")
             return queries
-        else:
-            logger.warning(f"Unexpected response format from query expander, returning fallback. Response: {text}")
-            return fallback
+        logger.warning(f"Unexpected response format from query expander, searching without expansion. Response: {text}")
+        return []
 
     except Exception as e:
         logger.error(f"Error during query expansion: {e}")
-        return fallback
+        return []

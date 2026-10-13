@@ -12,7 +12,7 @@ user's need. Embed THAT instead of (or alongside) the raw query. The
 hypothetical doc lives in the same semantic space as real grants → much
 better retrieval.
 
-This module is opt-in via `ENABLE_HYDE`. It uses its own Groq API key
+This module is on unless `ENABLE_HYDE=false`. It uses its own Groq API key
 (`GROQ_API_KEY_HYDE`) so you can isolate token usage. Falls back to the
 query-expansion key, then to the judge key if not set, so existing setups
 don't break.
@@ -24,6 +24,7 @@ from functools import lru_cache
 from typing import Optional
 from openai import OpenAI
 from .config import settings
+from .profile_builder import eligibility_lines, topic_lines
 from .schemas import UserProfile
 
 logger = logging.getLogger("rag.hyde")
@@ -49,19 +50,8 @@ def _resolve_api_key() -> str:
 
 
 def _build_user_prompt(profile: UserProfile, user_query: str) -> str:
-    bits = []
-    if profile.researchInterests:
-        bits.append("Research focus: " + ", ".join(profile.researchInterests))
-    if profile.keywords:
-        bits.append("Keywords: " + ", ".join(profile.keywords))
-    if profile.country:
-        bits.append(f"Country: {profile.country}")
-    if profile.applicantType:
-        bits.append(f"Applicant type: {profile.applicantType}")
-    if profile.institutionType:
-        bits.append(f"Institution: {profile.institutionType}")
-    if profile.careerStage:
-        bits.append(f"Career stage: {profile.careerStage}")
+    # Topic only, like the search text (see profile_builder.eligibility_lines).
+    bits = topic_lines(profile) + eligibility_lines(profile)
 
     profile_block = "\n".join(f"- {b}" for b in bits) if bits else "- (no profile detail provided)"
 

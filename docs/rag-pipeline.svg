@@ -1,0 +1,277 @@
+<svg viewBox="0 0 1200 1050" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="fs-rag-title fs-rag-desc">
+  <title id="fs-rag-title">FundSphere AI Match: RAG pipeline</title>
+  <desc id="fs-rag-desc">Storing grants: a daily scraper extracts grant pages with Firecrawl and posts them to CoreBackend, which saves them in PostgreSQL, where a trigger builds the keyword-search text. The ai-service splits each grant into chunks of at most 400 tokens that start with its title, agency and program, embeds them with a dense and a sparse model, and stores them in Pinecone with deadline and country metadata. Searching: CoreBackend sends the profile and query to the ai-service, which builds a topic-only search text, then runs a PostgreSQL keyword search, optional LLM query rewrites and HyDE, and a Pinecone hybrid search filtered by deadline and country. The results are merged by rank, filtered for eligibility, reranked by bge-reranker-v2-m3 and scored (50 percent topic relevance, 20 percent eligibility, 10 percent each for keywords, funding fit and deadline). An optional LLM explains each match and rates it strong, partial or weak; results are cached for 30 minutes and shown in two groups: matches for the research topic, and broader schemes.</desc>
+  <defs>
+    <linearGradient id="rag-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#050a14" />
+      <stop offset="50%" stop-color="#0b1528" />
+      <stop offset="100%" stop-color="#041e24" />
+    </linearGradient>
+    <radialGradient id="rag-glow" cx="50%" cy="30%" r="60%">
+      <stop offset="0%" stop-color="#0d9488" stop-opacity="0.12" />
+      <stop offset="100%" stop-color="#0d9488" stop-opacity="0" />
+    </radialGradient>
+    <pattern id="rag-grid" width="30" height="30" patternUnits="userSpaceOnUse">
+      <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#1e293b" stroke-width="0.75" stroke-opacity="0.45" />
+    </pattern>
+    <marker id="rag-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 Z" fill="#2dd4bf" />
+    </marker>
+  </defs>
+
+  <!-- Card -->
+  <rect width="1200" height="1050" rx="20" fill="url(#rag-bg)" />
+  <rect width="1200" height="1050" rx="20" fill="url(#rag-grid)" />
+  <rect width="1200" height="1050" rx="20" fill="url(#rag-glow)" />
+  <rect x="0.75" y="0.75" width="1198.5" height="1048.5" rx="19.25" fill="none" stroke="#134e4a" stroke-opacity="0.55" stroke-width="1.5" />
+
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Inter, 'Helvetica Neue', Arial, sans-serif">
+
+    <!-- Heading -->
+    <text x="30" y="52" font-size="24" font-weight="800" fill="#ffffff">AI Match: RAG pipeline</text>
+    <text x="30" y="78" font-size="14" fill="#94a3b8">How grants are stored, and how a researcher's profile and query become ranked matches</text>
+
+    <!-- ============ Connections (drawn first, under the boxes) ============ -->
+    <g stroke="#2dd4bf" stroke-opacity="0.8" stroke-width="1.75" fill="none">
+      <!-- storing: left to right -->
+      <path d="M 226 191 H 264" marker-end="url(#rag-arrow)" />
+      <path d="M 462 191 H 500" marker-end="url(#rag-arrow)" />
+      <path d="M 698 191 H 736" marker-end="url(#rag-arrow)" />
+      <path d="M 934 191 H 972" marker-end="url(#rag-arrow)" />
+      <!-- searching row 1 -->
+      <path d="M 250 372 H 298" marker-end="url(#rag-arrow)" />
+      <path d="M 560 372 H 608" marker-end="url(#rag-arrow)" />
+      <!-- search text fans out to the three searches -->
+      <path d="M 890 418 V 448" />
+      <path d="M 195 448 H 990" />
+      <path d="M 195 448 V 478" marker-end="url(#rag-arrow)" />
+      <path d="M 585 448 V 478" marker-end="url(#rag-arrow)" />
+      <path d="M 990 448 V 478" marker-end="url(#rag-arrow)" />
+      <!-- LLM helpers feed the Pinecone search -->
+      <path d="M 750 543 H 808" marker-end="url(#rag-arrow)" />
+      <!-- both result lists into the merge -->
+      <path d="M 159 606 V 660" marker-end="url(#rag-arrow)" />
+      <path d="M 990 606 V 634 H 230 V 660" marker-end="url(#rag-arrow)" />
+      <!-- searching row 3 -->
+      <path d="M 288 732 H 322" marker-end="url(#rag-arrow)" />
+      <path d="M 582 732 H 616" marker-end="url(#rag-arrow)" />
+      <path d="M 876 732 H 910" marker-end="url(#rag-arrow)" />
+      <!-- final score down to the explanation -->
+      <path d="M 1041 802 V 836 H 180 V 866" marker-end="url(#rag-arrow)" />
+      <!-- searching row 4 -->
+      <path d="M 330 930 H 374" marker-end="url(#rag-arrow)" />
+      <path d="M 576 930 H 620" marker-end="url(#rag-arrow)" />
+    </g>
+
+    <!-- Connection labels -->
+    <g font-size="11.5" font-weight="600" fill="#5eead4">
+      <text x="300" y="441">in parallel</text>
+      <text x="560" y="627">semantic results</text>
+      <text x="560" y="829">top K results</text>
+    </g>
+
+    <!-- ============ 1. Storing grants ============ -->
+    <text x="30" y="114" font-size="12" font-weight="800" fill="#2dd4bf" letter-spacing="1.5">1 · STORING GRANTS</text>
+
+    <g transform="translate(30 126)">
+      <rect width="196" height="130" rx="14" fill="#0f172a" fill-opacity="0.9" stroke="#0d9488" stroke-opacity="0.7" stroke-width="1.25" />
+      <text x="16" y="30" font-size="16" font-weight="800" fill="#ffffff">Scraper</text>
+      <text x="16" y="50" font-size="12" font-weight="600" fill="#5eead4">daily · Firecrawl</text>
+      <g font-size="12" fill="#cbd5e1">
+        <text x="16" y="78">Visits agency pages</text>
+        <text x="16" y="98">Extracts grant fields</text>
+        <text x="16" y="118">Skips listing pages</text>
+      </g>
+    </g>
+
+    <g transform="translate(266 126)">
+      <rect width="196" height="130" rx="14" fill="#0f172a" fill-opacity="0.9" stroke="#0d9488" stroke-opacity="0.7" stroke-width="1.25" />
+      <text x="16" y="30" font-size="16" font-weight="800" fill="#ffffff">CoreBackend</text>
+      <text x="16" y="50" font-size="12" font-weight="600" fill="#5eead4">PostgreSQL</text>
+      <g font-size="12" fill="#cbd5e1">
+        <text x="16" y="78">Saves the grant</text>
+        <text x="16" y="98">Trigger builds keyword</text>
+        <text x="16" y="118">search text (GIN index)</text>
+      </g>
+    </g>
+
+    <g transform="translate(502 126)">
+      <rect width="196" height="130" rx="14" fill="#0f172a" fill-opacity="0.9" stroke="#0d9488" stroke-opacity="0.7" stroke-width="1.25" />
+      <text x="16" y="30" font-size="16" font-weight="800" fill="#ffffff">Chunk</text>
+      <text x="16" y="50" font-size="12" font-weight="600" fill="#5eead4">ai-service</text>
+      <g font-size="12" fill="#cbd5e1">
+        <text x="16" y="78">≤ 400 tokens each</text>
+        <text x="16" y="98">Every chunk starts with</text>
+        <text x="16" y="118">Title · Agency · Program</text>
+      </g>
+    </g>
+
+    <g transform="translate(738 126)">
+      <rect width="196" height="130" rx="14" fill="#0f172a" fill-opacity="0.9" stroke="#0d9488" stroke-opacity="0.7" stroke-width="1.25" />
+      <text x="16" y="30" font-size="16" font-weight="800" fill="#ffffff">Embed</text>
+      <text x="16" y="50" font-size="12" font-weight="600" fill="#5eead4">Pinecone Inference</text>
+      <g font-size="12" fill="#cbd5e1">
+        <text x="16" y="78">dense: llama-text-embed-v2</text>
+        <text x="16" y="98">sparse: pinecone-sparse</text>
+        <text x="16" y="118">one call per model</text>
+      </g>
+    </g>
+
+    <g transform="translate(974 126)">
+      <rect width="196" height="130" rx="14" fill="#0f172a" fill-opacity="0.9" stroke="#0d9488" stroke-opacity="0.7" stroke-width="1.25" />
+      <text x="16" y="30" font-size="16" font-weight="800" fill="#ffffff">Pinecone</text>
+      <text x="16" y="50" font-size="12" font-weight="600" fill="#5eead4">hybrid index</text>
+      <g font-size="12" fill="#cbd5e1">
+        <text x="16" y="78">Vectors + metadata</text>
+        <text x="16" y="98">deadline · country_keys</text>
+        <text x="16" y="118">Failed indexing retried</text>
+      </g>
+    </g>
+
+    <!-- Divider -->
+    <path d="M 30 282 H 1170" stroke="#1e3a4a" stroke-width="1" />
+
+    <!-- ============ 2. Searching ============ -->
+    <text x="30" y="312" font-size="12" font-weight="800" fill="#2dd4bf" letter-spacing="1.5">2 · SEARCHING (AI MATCH)</text>
+
+    <g transform="translate(30 326)">
+      <rect width="220" height="92" rx="14" fill="#0f172a" fill-opacity="0.9" stroke="#0d9488" stroke-opacity="0.7" stroke-width="1.25" />
+      <text x="16" y="30" font-size="16" font-weight="800" fill="#ffffff">User</text>
+      <text x="16" y="50" font-size="12" font-weight="600" fill="#5eead4">frontend · AI Match</text>
+      <text x="16" y="74" font-size="12" fill="#cbd5e1">Profile + optional query</text>
+    </g>
+
+    <g transform="translate(300 326)">
+      <rect width="260" height="92" rx="14" fill="#0f172a" fill-opacity="0.9" stroke="#0d9488" stroke-opacity="0.7" stroke-width="1.25" />
+      <text x="16" y="30" font-size="16" font-weight="800" fill="#ffffff">CoreBackend</text>
+      <text x="16" y="50" font-size="12" font-weight="600" fill="#5eead4">sends profile + query</text>
+      <text x="16" y="74" font-size="12" fill="#cbd5e1">Bio describes the topic only</text>
+    </g>
+
+    <g transform="translate(610 326)">
+      <rect width="560" height="92" rx="14" fill="#0f172a" fill-opacity="0.9" stroke="#0d9488" stroke-opacity="0.7" stroke-width="1.25" />
+      <text x="16" y="30" font-size="16" font-weight="800" fill="#ffffff">① Search text: topic only</text>
+      <text x="16" y="50" font-size="12" font-weight="600" fill="#5eead4">bio · interests · keywords · department + the query</text>
+      <text x="16" y="74" font-size="12" fill="#cbd5e1">Country, funding range, career stage: kept aside for the filter and the score</text>
+    </g>
+
+    <g transform="translate(30 480)">
+      <rect width="330" height="126" rx="14" fill="#0f172a" fill-opacity="0.9" stroke="#0d9488" stroke-opacity="0.7" stroke-width="1.25" />
+      <text x="16" y="30" font-size="16" font-weight="800" fill="#ffffff">② Keyword search</text>
+      <text x="16" y="50" font-size="12" font-weight="600" fill="#5eead4">PostgreSQL full-text</text>
+      <g font-size="12" fill="#cbd5e1">
+        <text x="16" y="76">Query, keywords and interests,</text>
+        <text x="16" y="96">each searched on its own</text>
+      </g>
+    </g>
+
+    <g transform="translate(420 480)">
+      <rect width="330" height="126" rx="14" fill="#0f172a" fill-opacity="0.9" stroke="#0d9488" stroke-opacity="0.7" stroke-width="1.25" stroke-dasharray="6 5" />
+      <text x="16" y="30" font-size="16" font-weight="800" fill="#ffffff">③ LLM helpers</text>
+      <text x="16" y="50" font-size="12" font-weight="600" fill="#5eead4">Groq · optional</text>
+      <g font-size="12" fill="#cbd5e1">
+        <text x="16" y="76">3 reworded versions of the query</text>
+        <text x="16" y="96">HyDE: writes a sample grant</text>
+        <text x="16" y="116">to search with (short queries)</text>
+      </g>
+    </g>
+
+    <g transform="translate(810 480)">
+      <rect width="360" height="126" rx="14" fill="#0f172a" fill-opacity="0.9" stroke="#0d9488" stroke-opacity="0.7" stroke-width="1.25" />
+      <text x="16" y="30" font-size="16" font-weight="800" fill="#ffffff">④ Pinecone hybrid search</text>
+      <text x="16" y="50" font-size="12" font-weight="600" fill="#5eead4">dense + sparse · the index from part 1</text>
+      <g font-size="12" fill="#cbd5e1">
+        <text x="16" y="76">Original text + rewrites + HyDE</text>
+        <text x="16" y="96">Filter: deadline open, country allowed</text>
+        <text x="16" y="116">Lists merged by rank</text>
+      </g>
+    </g>
+
+    <g transform="translate(30 662)">
+      <rect width="258" height="140" rx="14" fill="#0f172a" fill-opacity="0.9" stroke="#0d9488" stroke-opacity="0.7" stroke-width="1.25" />
+      <text x="16" y="30" font-size="16" font-weight="800" fill="#ffffff">⑤ Merge</text>
+      <text x="16" y="50" font-size="12" font-weight="600" fill="#5eead4">rank fusion (RRF)</text>
+      <g font-size="12" fill="#cbd5e1">
+        <text x="16" y="76">Keyword + semantic lists</text>
+        <text x="16" y="96">→ top 60 candidates</text>
+      </g>
+    </g>
+
+    <g transform="translate(324 662)">
+      <rect width="258" height="140" rx="14" fill="#0f172a" fill-opacity="0.9" stroke="#0d9488" stroke-opacity="0.7" stroke-width="1.25" />
+      <text x="16" y="30" font-size="16" font-weight="800" fill="#ffffff">⑥ Eligibility filter</text>
+      <text x="16" y="50" font-size="12" font-weight="600" fill="#5eead4">hard rules</text>
+      <g font-size="12" fill="#cbd5e1">
+        <text x="16" y="74">Deadline passed</text>
+        <text x="16" y="92">Wrong country or citizenship</text>
+        <text x="16" y="110">PhD or experience required</text>
+        <text x="16" y="128" fill="#94a3b8">→ top 30</text>
+      </g>
+    </g>
+
+    <g transform="translate(618 662)">
+      <rect width="258" height="140" rx="14" fill="#0f172a" fill-opacity="0.9" stroke="#0d9488" stroke-opacity="0.7" stroke-width="1.25" />
+      <text x="16" y="30" font-size="16" font-weight="800" fill="#ffffff">⑦ Reranker</text>
+      <text x="16" y="50" font-size="12" font-weight="600" fill="#5eead4">bge-reranker-v2-m3</text>
+      <g font-size="12" fill="#cbd5e1">
+        <text x="16" y="76">Reads the query and</text>
+        <text x="16" y="96">each grant's text together</text>
+        <text x="16" y="116">→ top 16</text>
+      </g>
+    </g>
+
+    <g transform="translate(912 662)">
+      <rect width="258" height="140" rx="14" fill="#0f172a" fill-opacity="0.9" stroke="#0d9488" stroke-opacity="0.7" stroke-width="1.25" />
+      <text x="16" y="30" font-size="16" font-weight="800" fill="#ffffff">⑧ Final score</text>
+      <text x="16" y="50" font-size="12" font-weight="600" fill="#5eead4">topic if reranker ≥ 0.1, else broad</text>
+      <g font-size="12" fill="#cbd5e1">
+        <text x="16" y="76">50% topic relevance (logit)</text>
+        <text x="16" y="96">20% eligibility</text>
+        <text x="16" y="116">10% keywords · funding · deadline</text>
+      </g>
+    </g>
+
+    <g transform="translate(30 868)">
+      <rect width="300" height="124" rx="14" fill="#0f172a" fill-opacity="0.9" stroke="#0d9488" stroke-opacity="0.7" stroke-width="1.25" stroke-dasharray="6 5" />
+      <text x="16" y="30" font-size="16" font-weight="800" fill="#ffffff">⑨ Explanation</text>
+      <text x="16" y="50" font-size="12" font-weight="600" fill="#5eead4">Groq · optional</text>
+      <g font-size="12" fill="#cbd5e1">
+        <text x="16" y="76">Rates each match strong,</text>
+        <text x="16" y="96">partial or weak, and never</text>
+        <text x="16" y="116">invents a link</text>
+      </g>
+    </g>
+
+    <g transform="translate(376 868)">
+      <rect width="200" height="124" rx="14" fill="#0f172a" fill-opacity="0.9" stroke="#0d9488" stroke-opacity="0.7" stroke-width="1.25" />
+      <text x="16" y="30" font-size="16" font-weight="800" fill="#ffffff">⑩ Cache</text>
+      <text x="16" y="50" font-size="12" font-weight="600" fill="#5eead4">30 minutes</text>
+      <g font-size="12" fill="#cbd5e1">
+        <text x="16" y="76">Same profile + query</text>
+        <text x="16" y="96">→ instant answer</text>
+      </g>
+    </g>
+
+    <g transform="translate(622 868)">
+      <rect width="548" height="124" rx="14" fill="#0f172a" fill-opacity="0.9" stroke="#0d9488" stroke-opacity="0.7" stroke-width="1.25" />
+      <text x="16" y="30" font-size="16" font-weight="800" fill="#ffffff">Results</text>
+      <text x="16" y="50" font-size="12" font-weight="600" fill="#5eead4">shown in two groups</text>
+      <g transform="translate(16 62)">
+        <rect width="250" height="48" rx="10" fill="#0f766e" fill-opacity="0.25" stroke="#14b8a6" stroke-opacity="0.6" />
+        <text x="12" y="20" font-size="12" font-weight="700" fill="#ffffff">Matches your research topic</text>
+        <text x="12" y="38" font-size="11.5" fill="#99f6e4">with a match %</text>
+      </g>
+      <g transform="translate(280 62)">
+        <rect width="252" height="48" rx="10" fill="#0b1324" stroke="#1e3a4a" />
+        <text x="12" y="20" font-size="12" font-weight="700" fill="#ffffff">Broader schemes you may qualify for</text>
+        <text x="12" y="38" font-size="11.5" fill="#94a3b8">no match %</text>
+      </g>
+    </g>
+
+    <!-- Legend -->
+    <g transform="translate(30 1018)">
+      <rect width="22" height="12" rx="3" stroke="#0d9488" stroke-opacity="0.7" stroke-width="1.25" stroke-dasharray="4 3" />
+      <text x="32" y="11" font-size="12" fill="#94a3b8">Dashed: uses an LLM and is skipped if it's unavailable; search still works. The profile/query split is off (it measured worse).</text>
+    </g>
+  </g>
+</svg>

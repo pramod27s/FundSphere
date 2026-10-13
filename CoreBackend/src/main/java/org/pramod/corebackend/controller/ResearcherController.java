@@ -12,12 +12,10 @@ import org.pramod.corebackend.enums.PrimaryField;
 import org.pramod.corebackend.enums.UserType;
 import org.pramod.corebackend.security.UserPrincipal;
 import org.pramod.corebackend.service.AiServiceClient;
-import org.pramod.corebackend.service.GrantService;
 import org.pramod.corebackend.service.ResearcherService;
 import org.pramod.corebackend.service.OrcidEnrichmentService;
 import org.pramod.corebackend.service.AiProfileMapper;
 import org.pramod.corebackend.dto.ai.AiUserProfileResponse;
-import org.pramod.corebackend.dto.ai.AiKeywordCandidateResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -34,7 +32,6 @@ public class ResearcherController {
 
     private final ResearcherService researcherService;
     private final AiServiceClient aiServiceClient;
-    private final GrantService grantService;
     private final AiProfileMapper aiProfileMapper;
     private final OrcidEnrichmentService orcidEnrichmentService;
 
@@ -105,29 +102,12 @@ public class ResearcherController {
         int topK = parseTopK(request);
         String userQuery = parseUserQuery(request);
 
-        // Always include profile context in keyword search; append user query if present.
-        String profileQuery = aiProfileMapper.buildQueryText(userProfile);
-        String queryText = userQuery != null
-                ? profileQuery + " " + userQuery
-                : profileQuery;
-
-        // Closed grants are left out, as the recommender does by default (EXCLUDE_EXPIRED_GRANTS).
-        List<AiKeywordCandidateResponse> keywordCandidates = grantService.keywordSearch(
-                        queryText,
-                        userProfile.getCountry(),
-                        false,
-                        Math.max(topK * 3, 20))
-                .stream()
-                .map(hit -> AiKeywordCandidateResponse.builder()
-                        .grantId(hit.grantId())
-                        .keywordScore(hit.keywordScore())
-                        .build())
-                .toList();
-
+        // No keyword candidates: the ai-service runs its own keyword search
+        // (query, keywords and interests, each on its own, calling back into
+        // GrantService.keywordSearch), the same one the recommender eval measures.
         Map<String, Object> requestToAi = new HashMap<>();
         requestToAi.put("userId", researcher.getId());
         requestToAi.put("userProfile", userProfile);
-        requestToAi.put("keywordCandidates", keywordCandidates);
         requestToAi.put("topK", topK);
         requestToAi.put("useRerank", parseUseRerank(request));
         requestToAi.put("userQuery", userQuery);

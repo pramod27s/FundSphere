@@ -3,11 +3,27 @@ import { formatFundingRange } from '../utils/formatFunding';
 import { parseDeadline } from '../utils/formatDeadline';
 import { EMPTY_FILTERS, filterParams, type FilterState } from '../utils/grantFilters';
 
+/** How well the AI judged a grant to fit the researcher. */
+export type GrantFit = 'strong' | 'partial' | 'weak';
+
+export const FIT_LABELS: Record<GrantFit, string> = {
+  strong: 'Strong fit',
+  partial: 'Partial fit',
+  weak: 'Weak fit',
+};
+
 export interface DiscoveryGrant {
   id: number;
   title: string;
   funder: string;
   matchScore: number;
+  /** AI results: the explanation's honest rating of the fit. */
+  fit?: GrantFit;
+  /**
+   * AI results: "topic" when the grant is about the researcher's work,
+   * "broad" for a wider scheme that doesn't rule them out.
+   */
+  matchType?: 'topic' | 'broad';
   amount: string;
   deadline: string;
   /** Up to 6 tags and fields, for display. */
@@ -86,6 +102,8 @@ interface RecommendationItem {
   title?: string;
   fundingAgency?: string;
   reason?: string;
+  llmFit?: GrantFit | null;
+  matchType?: 'topic' | 'broad' | null;
   fields?: Record<string, unknown>;
 }
 
@@ -243,6 +261,8 @@ function mapRecommendationToGrant(item: RecommendationItem): DiscoveryGrant {
     title,
     funder,
     matchScore: clampToPercentage(item.finalScore),
+    fit: item.llmFit ?? undefined,
+    matchType: item.matchType ?? undefined,
     amount,
     deadline: formatDate(deadlineRaw),
     tags: mergeTags(asStringArray(fields.tags), asStringArray(fields.field)).slice(0, 6),

@@ -1,0 +1,5246 @@
+{
+  "agro-meteorology-research-in": {
+    "29": {
+      "rating": 0,
+      "title": "C-CAMP Wadhwani Innovation Network (WIN) CoE Non-Dilutive Funding Program",
+      "deadline": null,
+      "reason": "Only for startups, not applicable to researcher"
+    },
+    "39": {
+      "rating": 2,
+      "title": "Core Research Grant (CRG)",
+      "deadline": null,
+      "reason": "Broad science grant, eligible Indian researcher, can fund climate‑crop work"
+    },
+    "200": {
+      "rating": 1,
+      "title": "Agro Meteorology",
+      "deadline": null,
+      "reason": "Matches agro‑meteorology field but limited to Agricultural Universities"
+    },
+    "219": {
+      "rating": 0,
+      "title": "S&T Awards - Others",
+      "deadline": null,
+      "reason": "Award program, not research funding for crop advisories"
+    },
+    "224": {
+      "rating": 0,
+      "title": "Biotechnology Career Advancement & Re-orientation Programme (BioCARe)",
+      "deadline": null,
+      "reason": "Biotech‑only and women‑only scheme, unrelated to weather‑crop advisories"
+    },
+    "230": {
+      "rating": 1,
+      "title": "BIRAC Nesta Discovery Awards",
+      "deadline": null,
+      "reason": "Biotech focus, tangential to agro‑climate modelling"
+    },
+    "231": {
+      "rating": 0,
+      "title": "Building Energy Efficiency Higher and Advanced Network (BHAVAN) Fellowships",
+      "deadline": null,
+      "reason": "Building energy focus, applicant ineligible"
+    },
+    "238": {
+      "rating": 0,
+      "title": "TDB-ICCO Partnership",
+      "deadline": null,
+      "reason": "Eligibility limited to entrepreneurs/farmers, not researcher"
+    },
+    "241": {
+      "rating": 1,
+      "title": "Women Scientist Scheme-A (WOS-A)",
+      "deadline": null,
+      "reason": "Women-only fellowship covering atmospheric sciences; eligibility unclear",
+      "rater": "claude"
+    },
+    "248": {
+      "rating": 1,
+      "title": "Climate Change Programme",
+      "deadline": null,
+      "reason": "Climate change program, but not directly agriculture or advisory oriented"
+    },
+    "252": {
+      "rating": 0,
+      "title": "SERB Women Excellence Award",
+      "deadline": null,
+      "reason": "Women award, not a research grant and gender unclear"
+    },
+    "258": {
+      "rating": 1,
+      "title": "Collaborative Scientific Research Programme",
+      "deadline": null,
+      "reason": "Indo-French collaborative research; needs a French partner",
+      "rater": "claude"
+    },
+    "261": {
+      "rating": 2,
+      "title": "Contract Research/Service Scheme (CRS)",
+      "deadline": null,
+      "reason": "Broad agricultural/earth sciences scope, open to researchers for contract work"
+    },
+    "268": {
+      "rating": 0,
+      "title": "Common Research and Technology Development Hubs (CRTDHs)",
+      "deadline": null,
+      "reason": "R&D hubs for micro and small enterprises",
+      "rater": "claude"
+    },
+    "293": {
+      "rating": 1,
+      "title": "Research Grants - Individual",
+      "deadline": null,
+      "reason": "General individual research grants, loosely related but not specific"
+    },
+    "303": {
+      "rating": 2,
+      "title": "CSIR Research Grants",
+      "deadline": null,
+      "reason": "CSIR research grant includes agriculture, open to scientists"
+    },
+    "305": {
+      "rating": 2,
+      "title": "Core Research Grant (CRG)",
+      "deadline": null,
+      "reason": "Broad SERB research grant; eligible, can fund crop-climate modelling",
+      "rater": "claude"
+    },
+    "313": {
+      "rating": 1,
+      "title": "Research Grants - International",
+      "deadline": null,
+      "reason": "Biotech‑oriented international grant, only loosely related"
+    },
+    "316": {
+      "rating": 0,
+      "title": "Patent Acquisition and Collaborative Research & Technology Development (PACE)",
+      "deadline": null,
+      "reason": "Industry technology development and patent acquisition",
+      "rater": "claude"
+    },
+    "322": {
+      "rating": 0,
+      "title": "Prime Minister Early Career Research Grant",
+      "deadline": null,
+      "reason": "Early‑career grant requiring PhD, not aligned with agro‑meteorology"
+    },
+    "325": {
+      "rating": 2,
+      "title": "Core Research Grant (Individual Centric)",
+      "deadline": null,
+      "reason": "SERB core grant; eligible scientist, can fund crop-climate modelling",
+      "rater": "claude"
+    },
+    "326": {
+      "rating": 1,
+      "title": "Start-up Research Grant (SRG)",
+      "deadline": null,
+      "reason": "General start‑up research grant, marginal relevance to agro‑climate"
+    },
+    "332": {
+      "rating": 2,
+      "title": "E-YUVA Scheme Call For Proposal",
+      "deadline": "2026-10-31T17:30:00",
+      "reason": "Includes agriculture, AI/IoT; eligible young researcher"
+    },
+    "341": {
+      "rating": 0,
+      "title": "Indo-German Funding Opportunity for Joint Research Projects in Social Science Research",
+      "deadline": null,
+      "reason": "Social science focus, irrelevant to climate‑agriculture work"
+    },
+    "345": {
+      "rating": 0,
+      "title": "TDP Call for Proposal 2026",
+      "deadline": "2026-10-20T23:59:59",
+      "reason": "Focus on IoT/tribal faculty, not climate‑crop advisories"
+    },
+    "367": {
+      "rating": 0,
+      "title": "Echoing Green Fellowship",
+      "deadline": null,
+      "reason": "Social entrepreneurship fellowship",
+      "rater": "claude"
+    }
+  },
+  "ai-data-solutions-startup-in": {
+    "29": {
+      "rating": 0,
+      "title": "C-CAMP Wadhwani Innovation Network (WIN) CoE Non-Dilutive Funding Program",
+      "deadline": null,
+      "reason": "Biotech/deep‑tech focus, not AI/data solutions"
+    },
+    "30": {
+      "rating": 2,
+      "title": "Idea Grant",
+      "deadline": null,
+      "reason": "Tech startup grant in India, fits early-stage AI venture"
+    },
+    "31": {
+      "rating": 0,
+      "title": "BCDD Grant by KSUM & BCDD Kerala",
+      "deadline": null,
+      "reason": "Restricted to OBC graduates only"
+    },
+    "32": {
+      "rating": 2,
+      "title": "Startup India Seed Fund Scheme (SISFS) For Startups",
+      "deadline": null,
+      "reason": "Indian seed fund for tech startups, applicable to AI startup"
+    },
+    "34": {
+      "rating": 0,
+      "title": "TN Space Tech Fund",
+      "deadline": null,
+      "reason": "Space‑tech specific, not AI/data‑driven GovTech"
+    },
+    "36": {
+      "rating": 0,
+      "title": "a16z Speedrun",
+      "deadline": null,
+      "reason": "Venture‑capital program, not a grant"
+    },
+    "37": {
+      "rating": 3,
+      "title": "AI2 Incubator",
+      "deadline": null,
+      "reason": "AI-focused incubator for early-stage startups, open internationally"
+    },
+    "38": {
+      "rating": 2,
+      "title": "Atoms X",
+      "deadline": null,
+      "reason": "Pre‑seed program for founders, suitable for AI startup"
+    },
+    "102": {
+      "rating": 1,
+      "title": "Alliance Crypto & AI Accelerator",
+      "deadline": null,
+      "reason": "Includes AI but centered on crypto, unlikely fit"
+    },
+    "212": {
+      "rating": 2,
+      "title": "TDB Seed Fund",
+      "deadline": null,
+      "reason": "Seed funding for Indian tech startups",
+      "rater": "claude"
+    },
+    "219": {
+      "rating": 0,
+      "title": "S&T Awards - Others",
+      "deadline": null,
+      "reason": "Award program, not a startup funding grant"
+    },
+    "250": {
+      "rating": 0,
+      "title": "Cross-Cutting and Futuristic initiatives (CCFI)",
+      "deadline": null,
+      "reason": "Rural sustainable-technology hubs for research institutes",
+      "rater": "claude"
+    },
+    "251": {
+      "rating": 0,
+      "title": "Animal Health",
+      "deadline": null,
+      "reason": "Animal vaccines and diagnostics research",
+      "rater": "claude"
+    },
+    "261": {
+      "rating": 0,
+      "title": "Contract Research/Service Scheme (CRS)",
+      "deadline": null,
+      "reason": "Contract research for institutions, not startups",
+      "rater": "claude"
+    },
+    "268": {
+      "rating": 1,
+      "title": "Common Research and Technology Development Hubs (CRTDHs)",
+      "deadline": null,
+      "reason": "Supports MSEs but focuses on other science domains"
+    },
+    "273": {
+      "rating": 0,
+      "title": "Gujar Mal Modi Award for Science & Technology",
+      "deadline": null,
+      "reason": "Only for faculty/scientists, not startups"
+    },
+    "290": {
+      "rating": 0,
+      "title": "Bioinformatics, AI & Big Data",
+      "deadline": null,
+      "reason": "Targeted at scientists/researchers, not startups"
+    },
+    "295": {
+      "rating": 2,
+      "title": "Start Up Schemes - Department of Science & Technology",
+      "deadline": null,
+      "reason": "Broad Indian startup scheme, eligible for AI venture"
+    },
+    "311": {
+      "rating": 2,
+      "title": "NIDHI- Seed Support System (NIDHI-SSS)",
+      "deadline": null,
+      "reason": "General Indian startup seed fund, eligible and can support AI"
+    },
+    "312": {
+      "rating": 2,
+      "title": "Promoting Innovations in Individuals, Startups And MSMEs (PRISM)",
+      "deadline": null,
+      "reason": "Innovation grant for startups/MSMEs, applicable to AI solutions"
+    },
+    "329": {
+      "rating": 0,
+      "title": "SERB Science and Technology Award for Research (SERB-STAR)",
+      "deadline": null,
+      "reason": "Award for SERB project investigators, not startup funding",
+      "rater": "claude"
+    },
+    "332": {
+      "rating": 0,
+      "title": "E-YUVA Scheme Call For Proposal",
+      "deadline": "2026-10-31T17:30:00",
+      "reason": "Targeted at students/academics, not startup companies"
+    },
+    "345": {
+      "rating": 0,
+      "title": "TDP Call for Proposal 2026",
+      "deadline": "2026-10-20T23:59:59",
+      "reason": "IoT/Agri/Health focus, no AI/data‑driven relevance"
+    },
+    "363": {
+      "rating": 0,
+      "title": "Focus Area Science Technology-Summer Fellowship [FAST-SF] Program — 2027",
+      "deadline": "2026-11-30T23:59:59",
+      "reason": "Summer fellowship for students and teachers",
+      "rater": "claude"
+    }
+  },
+  "biofuels-us-exchange-in": {
+    "213": {
+      "rating": 1,
+      "title": "Clean Fuel Research Initiative (CFRI)",
+      "deadline": null,
+      "reason": "Clean fuel research in India, not a US fellowship",
+      "rater": "claude"
+    },
+    "224": {
+      "rating": 0,
+      "title": "Biotechnology Career Advancement & Re-orientation Programme (BioCARe)",
+      "deadline": null,
+      "reason": "Women biotech scheme",
+      "rater": "claude"
+    },
+    "225": {
+      "rating": 0,
+      "title": "Arturo Falaschi Short-Term Postdoc Fellowships",
+      "deadline": null,
+      "reason": "ICGEB postdoc",
+      "rater": "claude"
+    },
+    "228": {
+      "rating": 0,
+      "title": "DAE- Raja Rammana Fellowship (RRF)",
+      "deadline": null,
+      "reason": "For retired scientists",
+      "rater": "claude"
+    },
+    "231": {
+      "rating": 1,
+      "title": "Building Energy Efficiency Higher and Advanced Network (BHAVAN) Fellowships",
+      "deadline": null,
+      "reason": "India-US fellowship, but building energy",
+      "rater": "claude"
+    },
+    "232": {
+      "rating": 0,
+      "title": "DAE Graduate Fellowship Scheme for Engineering Graduates and Physics Postgraduates",
+      "deadline": null,
+      "reason": "Graduate fellowship",
+      "rater": "claude"
+    },
+    "245": {
+      "rating": 1,
+      "title": "Bhaskara Advanced Solar Energy (BASE) Fellowship Program",
+      "deadline": null,
+      "reason": "India-US clean energy fellowship, but solar",
+      "rater": "claude"
+    },
+    "266": {
+      "rating": 0,
+      "title": "Biogas Power Generation (Off-Grid) and Thermal energy application Programme (BPGTP)",
+      "deadline": null,
+      "reason": "Biogas plant support",
+      "rater": "claude"
+    },
+    "313": {
+      "rating": 1,
+      "title": "Research Grants - International",
+      "deadline": null,
+      "reason": "International biotech collaboration",
+      "rater": "claude"
+    },
+    "314": {
+      "rating": 0,
+      "title": "AICTE-INAE Teachers Research Fellowship Scheme for Engineering Teachers for Doctoral Research in Central Laboratories",
+      "deadline": null,
+      "reason": "For engineering teachers",
+      "rater": "claude"
+    },
+    "318": {
+      "rating": 1,
+      "title": "National Renewable Energy Internship (NREI) Scheme",
+      "deadline": null,
+      "reason": "Renewable energy internship",
+      "rater": "claude"
+    },
+    "332": {
+      "rating": 0,
+      "title": "E-YUVA Scheme Call For Proposal",
+      "deadline": "2026-10-31T17:30:00",
+      "reason": "Translational research for students",
+      "rater": "claude"
+    },
+    "356": {
+      "rating": 1,
+      "title": "Bhaskara Advanced Solar Energy Fellowship",
+      "deadline": null,
+      "reason": "India-US clean energy fellowship, but solar",
+      "rater": "claude"
+    },
+    "357": {
+      "rating": 3,
+      "title": "Bioenergy-Awards for Cutting Edge Research",
+      "deadline": null,
+      "reason": "India-US bioenergy fellowship for PhD students: exactly the ask",
+      "rater": "claude"
+    },
+    "359": {
+      "rating": 0,
+      "title": "IUSSTF-American Physical Society Fellowship",
+      "deadline": null,
+      "reason": "Physics exchange",
+      "rater": "claude"
+    },
+    "360": {
+      "rating": 1,
+      "title": "Indo-U.S. Fellowship for Women in STEMM (WISTEMM)",
+      "deadline": null,
+      "reason": "India-US fellowship, but only for women",
+      "rater": "claude"
+    },
+    "363": {
+      "rating": 0,
+      "title": "Focus Area Science Technology-Summer Fellowship [FAST-SF] Program — 2027",
+      "deadline": "2026-11-30T23:59:59",
+      "reason": "Summer fellowship",
+      "rater": "claude"
+    }
+  },
+  "biogas-power-ngo-in": {
+    "32": {
+      "rating": 0,
+      "title": "Startup India Seed Fund Scheme (SISFS) For Startups",
+      "deadline": null,
+      "reason": "For tech startups, applicant type mismatch"
+    },
+    "213": {
+      "rating": 1,
+      "title": "Clean Fuel Research Initiative (CFRI)",
+      "deadline": null,
+      "reason": "Clean fuel research, not implementation of biogas plants"
+    },
+    "219": {
+      "rating": 0,
+      "title": "S&T Awards - Others",
+      "deadline": null,
+      "reason": "Award program, not financial support for biogas plants"
+    },
+    "221": {
+      "rating": 0,
+      "title": "NewGen Innovation and Entrepreneurship Development Centre (NewGen IEDC)",
+      "deadline": null,
+      "reason": "Entrepreneurship centres at educational institutions",
+      "rater": "claude"
+    },
+    "224": {
+      "rating": 0,
+      "title": "Biotechnology Career Advancement & Re-orientation Programme (BioCARe)",
+      "deadline": null,
+      "reason": "Biotech career program for women scientists, unrelated"
+    },
+    "231": {
+      "rating": 0,
+      "title": "Building Energy Efficiency Higher and Advanced Network (BHAVAN) Fellowships",
+      "deadline": null,
+      "reason": "Fellowships for students, not applicable"
+    },
+    "232": {
+      "rating": 0,
+      "title": "DAE Graduate Fellowship Scheme for Engineering Graduates and Physics Postgraduates",
+      "deadline": null,
+      "reason": "Graduate fellowship in atomic energy",
+      "rater": "claude"
+    },
+    "238": {
+      "rating": 1,
+      "title": "TDB-ICCO Partnership",
+      "deadline": null,
+      "reason": "Agri-tech commercialisation for social entrepreneurs; not biogas plants",
+      "rater": "claude"
+    },
+    "245": {
+      "rating": 0,
+      "title": "Bhaskara Advanced Solar Energy (BASE) Fellowship Program",
+      "deadline": null,
+      "reason": "Solar research fellowship",
+      "rater": "claude"
+    },
+    "248": {
+      "rating": 1,
+      "title": "Climate Change Programme",
+      "deadline": null,
+      "reason": "Climate change research focus, no direct plant funding"
+    },
+    "250": {
+      "rating": 1,
+      "title": "Cross-Cutting and Futuristic initiatives (CCFI)",
+      "deadline": null,
+      "reason": "Broad energy/environment scope, no specific biogas plant support"
+    },
+    "254": {
+      "rating": 0,
+      "title": "DBT-BMGF (Bill & Melinda Gates Foundation)",
+      "deadline": null,
+      "reason": "Global health partnership for scientists",
+      "rater": "claude"
+    },
+    "266": {
+      "rating": 3,
+      "title": "Biogas Power Generation (Off-Grid) and Thermal energy application Programme (BPGTP)",
+      "deadline": null,
+      "reason": "Directly funds off‑grid biogas power and thermal projects; matches query"
+    },
+    "267": {
+      "rating": 0,
+      "title": "Biomedical Device and Technology Development (BDTD)",
+      "deadline": null,
+      "reason": "Biomedical device R&D",
+      "rater": "claude"
+    },
+    "268": {
+      "rating": 0,
+      "title": "Common Research and Technology Development Hubs (CRTDHs)",
+      "deadline": null,
+      "reason": "For MSEs research hubs, not NGO plant implementation"
+    },
+    "277": {
+      "rating": 1,
+      "title": "Biotechnology Programme for Societal Development",
+      "deadline": null,
+      "reason": "Societal biotech program, NGOs eligible but not biogas‑plant specific"
+    },
+    "283": {
+      "rating": 1,
+      "title": "Technology Acquisition Fund Programme (TAFP)",
+      "deadline": null,
+      "reason": "Energy tech focus but targets industry/PSUs, not NGOs"
+    },
+    "287": {
+      "rating": 0,
+      "title": "Basic and Fundamental Research",
+      "deadline": null,
+      "reason": "Basic biotech research, irrelevant to biogas plants"
+    },
+    "293": {
+      "rating": 0,
+      "title": "Research Grants - Individual",
+      "deadline": null,
+      "reason": "Individual research grants for academics, not NGOs or plant projects"
+    },
+    "307": {
+      "rating": 0,
+      "title": "TDB-PHDCCI Partnership",
+      "deadline": null,
+      "reason": "Targets industrial tech projects, not biogas plant setup"
+    },
+    "311": {
+      "rating": 0,
+      "title": "NIDHI- Seed Support System (NIDHI-SSS)",
+      "deadline": null,
+      "reason": "Startup seed funding; not for NGO biogas plants",
+      "rater": "claude"
+    },
+    "313": {
+      "rating": 0,
+      "title": "Research Grants - International",
+      "deadline": null,
+      "reason": "International biotech research collaboration",
+      "rater": "claude"
+    },
+    "316": {
+      "rating": 0,
+      "title": "Patent Acquisition and Collaborative Research & Technology Development (PACE)",
+      "deadline": null,
+      "reason": "Only for industries/R&D orgs, not NGOs or plant funding"
+    },
+    "318": {
+      "rating": 0,
+      "title": "National Renewable Energy Internship (NREI) Scheme",
+      "deadline": null,
+      "reason": "Internship scheme for students, no project funding"
+    },
+    "319": {
+      "rating": 0,
+      "title": "DAE Young Scientist Research Award (DAE-YSRA)",
+      "deadline": null,
+      "reason": "Award for young scientists, not applicable to NGO projects"
+    },
+    "320": {
+      "rating": 0,
+      "title": "Postgraduate Teaching Programme",
+      "deadline": null,
+      "reason": "Postgraduate teaching programme",
+      "rater": "claude"
+    },
+    "332": {
+      "rating": 0,
+      "title": "E-YUVA Scheme Call For Proposal",
+      "deadline": "2026-10-31T17:30:00",
+      "reason": "Translational biotech research for young researchers",
+      "rater": "claude"
+    },
+    "357": {
+      "rating": 1,
+      "title": "Bioenergy-Awards for Cutting Edge Research",
+      "deadline": null,
+      "reason": "Bioenergy, but a research fellowship for PhD researchers, not plant support for an NGO",
+      "rater": "claude"
+    }
+  },
+  "bioinformatics-big-data-in": {
+    "29": {
+      "rating": 0,
+      "title": "C-CAMP Wadhwani Innovation Network (WIN) CoE Non-Dilutive Funding Program",
+      "deadline": null,
+      "reason": "Startup‑only biotech program, not individual researcher"
+    },
+    "34": {
+      "rating": 0,
+      "title": "TN Space Tech Fund",
+      "deadline": null,
+      "reason": "Space-tech equity fund for Tamil Nadu startups",
+      "rater": "claude"
+    },
+    "37": {
+      "rating": 0,
+      "title": "AI2 Incubator",
+      "deadline": null,
+      "reason": "Only for early-stage AI startups, not a researcher"
+    },
+    "39": {
+      "rating": 2,
+      "title": "Core Research Grant (CRG)",
+      "deadline": null,
+      "reason": "General SERB research grant, eligible Indian researcher"
+    },
+    "102": {
+      "rating": 0,
+      "title": "Alliance Crypto & AI Accelerator",
+      "deadline": null,
+      "reason": "Crypto/AI startup program, not for academic bioinformatics research"
+    },
+    "224": {
+      "rating": 0,
+      "title": "Biotechnology Career Advancement & Re-orientation Programme (BioCARe)",
+      "deadline": null,
+      "reason": "Women‑only scheme, applicant gender unknown"
+    },
+    "230": {
+      "rating": 2,
+      "title": "BIRAC Nesta Discovery Awards",
+      "deadline": null,
+      "reason": "Life sciences biotech award open to individuals; aligns with AI genomics work"
+    },
+    "237": {
+      "rating": 0,
+      "title": "Grant for holding Symposium/Seminar",
+      "deadline": null,
+      "reason": "Funding for seminars, not research projects"
+    },
+    "241": {
+      "rating": 1,
+      "title": "Women Scientist Scheme-A (WOS-A)",
+      "deadline": null,
+      "reason": "Life sciences focus, but gender/qualification eligibility unclear for AI genomics"
+    },
+    "261": {
+      "rating": 1,
+      "title": "Contract Research/Service Scheme (CRS)",
+      "deadline": null,
+      "reason": "Wide scientific scope, contract research not targeted"
+    },
+    "262": {
+      "rating": 0,
+      "title": "Senior Research Fellowship (SRF)",
+      "deadline": null,
+      "reason": "PhD fellowship for postgraduates, not project funding",
+      "rater": "claude"
+    },
+    "268": {
+      "rating": 0,
+      "title": "Common Research and Technology Development Hubs (CRTDHs)",
+      "deadline": null,
+      "reason": "Energy/Material focus, MSE eligibility only"
+    },
+    "273": {
+      "rating": 0,
+      "title": "Gujar Mal Modi Award for Science & Technology",
+      "deadline": null,
+      "reason": "Award program, not research funding"
+    },
+    "287": {
+      "rating": 1,
+      "title": "Basic and Fundamental Research",
+      "deadline": null,
+      "reason": "Life‑science grant, no explicit AI/big data component"
+    },
+    "290": {
+      "rating": 3,
+      "title": "Bioinformatics, AI & Big Data",
+      "deadline": null,
+      "reason": "Directly funds AI, big data, bioinformatics in India"
+    },
+    "293": {
+      "rating": 1,
+      "title": "Research Grants - Individual",
+      "deadline": null,
+      "reason": "General individual research grants, not AI‑focused"
+    },
+    "303": {
+      "rating": 2,
+      "title": "CSIR Research Grants",
+      "deadline": null,
+      "reason": "CSIR research grant for scientists; can fund genomics data research",
+      "rater": "claude"
+    },
+    "305": {
+      "rating": 2,
+      "title": "Core Research Grant (CRG)",
+      "deadline": null,
+      "reason": "General Indian research grant, eligible researcher"
+    },
+    "311": {
+      "rating": 0,
+      "title": "NIDHI- Seed Support System (NIDHI-SSS)",
+      "deadline": null,
+      "reason": "Entrepreneurship seed fund for startups, not academic research"
+    },
+    "313": {
+      "rating": 1,
+      "title": "Research Grants - International",
+      "deadline": null,
+      "reason": "Broad biotech focus, not specific to AI/big data"
+    },
+    "321": {
+      "rating": 1,
+      "title": "Advanced Research Grant (ARG)",
+      "deadline": null,
+      "reason": "Broad natural sciences grant but requires PI status"
+    },
+    "322": {
+      "rating": 1,
+      "title": "Prime Minister Early Career Research Grant",
+      "deadline": null,
+      "reason": "Early‑career grant, generic science/engineering scope"
+    },
+    "326": {
+      "rating": 1,
+      "title": "Start-up Research Grant (SRG)",
+      "deadline": null,
+      "reason": "Start-up grant for new faculty; fits only if starting a new position",
+      "rater": "claude"
+    },
+    "327": {
+      "rating": 0,
+      "title": "J.C. Bose Fellowship",
+      "deadline": null,
+      "reason": "Recognition fellowship for highly decorated scientists",
+      "rater": "claude"
+    },
+    "329": {
+      "rating": 1,
+      "title": "SERB Science and Technology Award for Research (SERB-STAR)",
+      "deadline": null,
+      "reason": "Science award for PIs; researcher likely not eligible"
+    },
+    "332": {
+      "rating": 1,
+      "title": "E-YUVA Scheme Call For Proposal",
+      "deadline": "2026-10-31T17:30:00",
+      "reason": "Translational biotech for young researchers; not AI or genomics specific",
+      "rater": "claude"
+    },
+    "343": {
+      "rating": 0,
+      "title": "Senior Fellowship",
+      "deadline": null,
+      "reason": "Social sciences focus and senior‑researcher eligibility, unrelated"
+    },
+    "344": {
+      "rating": 0,
+      "title": "Doctoral Fellowship",
+      "deadline": null,
+      "reason": "Social sciences field, unrelated to bioinformatics"
+    }
+  },
+  "biomedical-device-academic-in": {
+    "39": {
+      "rating": 2,
+      "title": "Core Research Grant (CRG)",
+      "deadline": null,
+      "reason": "SERB core grant; can fund device research",
+      "rater": "claude"
+    },
+    "198": {
+      "rating": 0,
+      "title": "COVID 2.0 FUNDING",
+      "deadline": null,
+      "reason": "COVID-19 research",
+      "rater": "claude"
+    },
+    "217": {
+      "rating": 1,
+      "title": "TDB-BIRAC Partnership",
+      "deadline": null,
+      "reason": "Biomedical commercialisation for innovators",
+      "rater": "claude"
+    },
+    "219": {
+      "rating": 0,
+      "title": "S&T Awards - Others",
+      "deadline": null,
+      "reason": "Awards",
+      "rater": "claude"
+    },
+    "224": {
+      "rating": 0,
+      "title": "Biotechnology Career Advancement & Re-orientation Programme (BioCARe)",
+      "deadline": null,
+      "reason": "Women biotech scheme",
+      "rater": "claude"
+    },
+    "234": {
+      "rating": 0,
+      "title": "CSIR'S Junior Research Fellowship (JRF) - GATE",
+      "deadline": null,
+      "reason": "Junior research fellowship",
+      "rater": "claude"
+    },
+    "242": {
+      "rating": 0,
+      "title": "CEFIPRA - BPI FRANCE",
+      "deadline": null,
+      "reason": "Indo-French enterprise R&D",
+      "rater": "claude"
+    },
+    "249": {
+      "rating": 0,
+      "title": "Clinical/Public Health Research Centres Scheme-India Alliance Grant",
+      "deadline": null,
+      "reason": "Clinical research centres",
+      "rater": "claude"
+    },
+    "254": {
+      "rating": 0,
+      "title": "DBT-BMGF (Bill & Melinda Gates Foundation)",
+      "deadline": null,
+      "reason": "Global health partnership",
+      "rater": "claude"
+    },
+    "267": {
+      "rating": 3,
+      "title": "Biomedical Device and Technology Development (BDTD)",
+      "deadline": null,
+      "reason": "Biomedical device R&D for academic institutions: exactly the ask",
+      "rater": "claude"
+    },
+    "268": {
+      "rating": 0,
+      "title": "Common Research and Technology Development Hubs (CRTDHs)",
+      "deadline": null,
+      "reason": "Small enterprise hubs",
+      "rater": "claude"
+    },
+    "293": {
+      "rating": 1,
+      "title": "Research Grants - Individual",
+      "deadline": null,
+      "reason": "Generic individual research grants",
+      "rater": "claude"
+    },
+    "305": {
+      "rating": 2,
+      "title": "Core Research Grant (CRG)",
+      "deadline": null,
+      "reason": "SERB core grant; can fund device research",
+      "rater": "claude"
+    },
+    "313": {
+      "rating": 0,
+      "title": "Research Grants - International",
+      "deadline": null,
+      "reason": "Biotech collaboration",
+      "rater": "claude"
+    },
+    "316": {
+      "rating": 0,
+      "title": "Patent Acquisition and Collaborative Research & Technology Development (PACE)",
+      "deadline": null,
+      "reason": "Industry technology development",
+      "rater": "claude"
+    },
+    "322": {
+      "rating": 1,
+      "title": "Prime Minister Early Career Research Grant",
+      "deadline": null,
+      "reason": "Early-career grant; researcher may be past that stage",
+      "rater": "claude"
+    },
+    "325": {
+      "rating": 2,
+      "title": "Core Research Grant (Individual Centric)",
+      "deadline": null,
+      "reason": "SERB core grant; can fund device research",
+      "rater": "claude"
+    },
+    "329": {
+      "rating": 0,
+      "title": "SERB Science and Technology Award for Research (SERB-STAR)",
+      "deadline": null,
+      "reason": "Award",
+      "rater": "claude"
+    },
+    "331": {
+      "rating": 2,
+      "title": "Technology Translation Award (SERB-TETRA)",
+      "deadline": null,
+      "reason": "Technology translation for academic investigators; fits device development",
+      "rater": "claude"
+    },
+    "332": {
+      "rating": 1,
+      "title": "E-YUVA Scheme Call For Proposal",
+      "deadline": "2026-10-31T17:30:00",
+      "reason": "Translational research for young researchers",
+      "rater": "claude"
+    },
+    "346": {
+      "rating": 1,
+      "title": "TDP Call for Proposal 2026 (11)",
+      "deadline": "2026-10-31T23:59:59",
+      "reason": "IoT projects incl. healthcare",
+      "rater": "claude"
+    }
+  },
+  "biotech-ignition-founder-in": {
+    "29": {
+      "rating": 3,
+      "title": "C-CAMP Wadhwani Innovation Network (WIN) CoE Non-Dilutive Funding Program",
+      "deadline": null,
+      "reason": "Biotech-focused non‑dilutive funding for Indian startups"
+    },
+    "30": {
+      "rating": 1,
+      "title": "Idea Grant",
+      "deadline": null,
+      "reason": "Regional early‑stage grant, not biotech‑specific"
+    },
+    "31": {
+      "rating": 0,
+      "title": "BCDD Grant by KSUM & BCDD Kerala",
+      "deadline": null,
+      "reason": "Restricted to OBC graduates in Kerala, not applicable"
+    },
+    "32": {
+      "rating": 2,
+      "title": "Startup India Seed Fund Scheme (SISFS) For Startups",
+      "deadline": null,
+      "reason": "Early-stage seed fund for Indian tech startups, fits funding need though not biotech‑specific"
+    },
+    "217": {
+      "rating": 2,
+      "title": "TDB-BIRAC Partnership",
+      "deadline": null,
+      "reason": "Targets Indian biotech innovators; suitable for proof‑of‑concept but partnership‑focused"
+    },
+    "224": {
+      "rating": 0,
+      "title": "Biotechnology Career Advancement & Re-orientation Programme (BioCARe)",
+      "deadline": null,
+      "reason": "Women‑scientist scheme, not startup"
+    },
+    "230": {
+      "rating": 1,
+      "title": "BIRAC Nesta Discovery Awards",
+      "deadline": null,
+      "reason": "Biotech seed grant but only for AMR Longitude Prize ideas",
+      "rater": "claude"
+    },
+    "244": {
+      "rating": 2,
+      "title": "BIRAC-CEFIPRA Partnership",
+      "deadline": null,
+      "reason": "Biotech start‑up scheme but requires Indo‑French collaboration"
+    },
+    "277": {
+      "rating": 0,
+      "title": "Biotechnology Programme for Societal Development",
+      "deadline": null,
+      "reason": "Limited to institutions/NGOs, not startup companies"
+    },
+    "287": {
+      "rating": 0,
+      "title": "Basic and Fundamental Research",
+      "deadline": null,
+      "reason": "Only for individual scientists/researchers, not eligible startup"
+    },
+    "293": {
+      "rating": 0,
+      "title": "Research Grants - Individual",
+      "deadline": null,
+      "reason": "Only for individual researchers/academics, not startups"
+    },
+    "295": {
+      "rating": 2,
+      "title": "Start Up Schemes - Department of Science & Technology",
+      "deadline": null,
+      "reason": "DST startup schemes provide early-stage funding, generic"
+    },
+    "304": {
+      "rating": 3,
+      "title": "BIRAC-Wellcome Trust Partnership",
+      "deadline": null,
+      "reason": "Designed for biotech entrepreneurs; directly funds translational biotech projects"
+    },
+    "306": {
+      "rating": 0,
+      "title": "Conference, Travel, Exhibition, and popular lectures (CTEP)",
+      "deadline": null,
+      "reason": "Provides travel/conference support, not research funding"
+    },
+    "311": {
+      "rating": 2,
+      "title": "NIDHI- Seed Support System (NIDHI-SSS)",
+      "deadline": null,
+      "reason": "Seed support for Indian startups, fits early-stage but not biotech-specific"
+    },
+    "313": {
+      "rating": 0,
+      "title": "Research Grants - International",
+      "deadline": null,
+      "reason": "Only for researchers/academics, not startups"
+    },
+    "316": {
+      "rating": 0,
+      "title": "Patent Acquisition and Collaborative Research & Technology Development (PACE)",
+      "deadline": null,
+      "reason": "Industry/R&D scheme, not early‑stage biotech startup"
+    },
+    "320": {
+      "rating": 0,
+      "title": "Postgraduate Teaching Programme",
+      "deadline": null,
+      "reason": "Teaching programme, not applicable"
+    },
+    "332": {
+      "rating": 0,
+      "title": "E-YUVA Scheme Call For Proposal",
+      "deadline": "2026-10-31T17:30:00",
+      "reason": "Targeted at students/researchers, not startups"
+    }
+  },
+  "carbontech-startup": {
+    "36": {
+      "rating": 1,
+      "title": "a16z Speedrun",
+      "deadline": null,
+      "reason": "General startup funding, not carbon‑capture specific"
+    },
+    "37": {
+      "rating": 0,
+      "title": "AI2 Incubator",
+      "deadline": null,
+      "reason": "AI‑focused incubator, not carbon capture"
+    },
+    "102": {
+      "rating": 0,
+      "title": "Alliance Crypto & AI Accelerator",
+      "deadline": null,
+      "reason": "Focused on crypto/AI, unrelated to carbon capture"
+    },
+    "134": {
+      "rating": 0,
+      "title": "Marketing Grant – Major Stream",
+      "deadline": "2027-02-03T23:59:59",
+      "reason": "Marketing grant for creative sector, irrelevant"
+    },
+    "196": {
+      "rating": 0,
+      "title": "PMS Blackett Memorial Lecture and Jagadis Chandra Bose Memorial Lecture",
+      "deadline": null,
+      "reason": "Lecture award, no funding for startups"
+    },
+    "215": {
+      "rating": 0,
+      "title": "Jawaharlal Nehru Birth Centenary Medal",
+      "deadline": null,
+      "reason": "Award for scientists, not startup funding"
+    },
+    "223": {
+      "rating": 0,
+      "title": "International Travel Support (ITS)",
+      "deadline": null,
+      "reason": "Travel support, not startup funding"
+    },
+    "225": {
+      "rating": 0,
+      "title": "Arturo Falaschi Short-Term Postdoc Fellowships",
+      "deadline": null,
+      "reason": "Postdoc fellowships, not startup funding"
+    },
+    "227": {
+      "rating": 0,
+      "title": "INSA-Vainu Bappu Memorial Award",
+      "deadline": null,
+      "reason": "Astronomy award, unrelated"
+    },
+    "254": {
+      "rating": 0,
+      "title": "DBT-BMGF (Bill & Melinda Gates Foundation)",
+      "deadline": null,
+      "reason": "Health/development focus, not carbon capture"
+    },
+    "259": {
+      "rating": 0,
+      "title": "Technology Development and Utilization Programme for Women (TDUPW)",
+      "deadline": null,
+      "reason": "Women-only program, unrelated fields"
+    },
+    "264": {
+      "rating": 0,
+      "title": "Longitude Prize",
+      "deadline": null,
+      "reason": "Antibiotic resistance prize, not carbon capture"
+    },
+    "269": {
+      "rating": 0,
+      "title": "Abel Prize",
+      "deadline": null,
+      "reason": "Mathematics award, irrelevant"
+    },
+    "303": {
+      "rating": 0,
+      "title": "CSIR Research Grants",
+      "deadline": null,
+      "reason": "Research grants for scientists, not startups"
+    },
+    "318": {
+      "rating": 0,
+      "title": "National Renewable Energy Internship (NREI) Scheme",
+      "deadline": null,
+      "reason": "Internship scheme for students, not startup funding"
+    },
+    "367": {
+      "rating": 1,
+      "title": "Echoing Green Fellowship",
+      "deadline": null,
+      "reason": "Social-impact seed funding, not specific to carbon capture",
+      "rater": "claude"
+    },
+    "368": {
+      "rating": 0,
+      "title": "EMBO Postdoctoral Fellowships",
+      "deadline": "2027-01-22T14:00:00",
+      "reason": "Life-science postdoc fellowship",
+      "rater": "claude"
+    },
+    "370": {
+      "rating": 0,
+      "title": "Humboldt Research Fellowship",
+      "deadline": null,
+      "reason": "Research fellowship, not startup funding",
+      "rater": "claude"
+    }
+  },
+  "cell-biology-postdoc-es": {
+    "36": {
+      "rating": 0,
+      "title": "a16z Speedrun",
+      "deadline": null,
+      "reason": "Startup accelerator",
+      "rater": "claude"
+    },
+    "37": {
+      "rating": 0,
+      "title": "AI2 Incubator",
+      "deadline": null,
+      "reason": "AI startup incubator",
+      "rater": "claude"
+    },
+    "196": {
+      "rating": 0,
+      "title": "PMS Blackett Memorial Lecture and Jagadis Chandra Bose Memorial Lecture",
+      "deadline": null,
+      "reason": "Lecture award",
+      "rater": "claude"
+    },
+    "215": {
+      "rating": 0,
+      "title": "Jawaharlal Nehru Birth Centenary Medal",
+      "deadline": null,
+      "reason": "Medal",
+      "rater": "claude"
+    },
+    "223": {
+      "rating": 0,
+      "title": "International Travel Support (ITS)",
+      "deadline": null,
+      "reason": "Indian travel support",
+      "rater": "claude"
+    },
+    "225": {
+      "rating": 2,
+      "title": "Arturo Falaschi Short-Term Postdoc Fellowships",
+      "deadline": null,
+      "reason": "Short-term molecular biology postdoc at ICGEB labs incl. Trieste",
+      "rater": "claude"
+    },
+    "227": {
+      "rating": 0,
+      "title": "INSA-Vainu Bappu Memorial Award",
+      "deadline": null,
+      "reason": "Astronomy award",
+      "rater": "claude"
+    },
+    "254": {
+      "rating": 0,
+      "title": "DBT-BMGF (Bill & Melinda Gates Foundation)",
+      "deadline": null,
+      "reason": "Global health partnership",
+      "rater": "claude"
+    },
+    "259": {
+      "rating": 0,
+      "title": "Technology Development and Utilization Programme for Women (TDUPW)",
+      "deadline": null,
+      "reason": "Indian programme for women",
+      "rater": "claude"
+    },
+    "264": {
+      "rating": 0,
+      "title": "Longitude Prize",
+      "deadline": null,
+      "reason": "AMR prize",
+      "rater": "claude"
+    },
+    "269": {
+      "rating": 0,
+      "title": "Abel Prize",
+      "deadline": null,
+      "reason": "Mathematics prize",
+      "rater": "claude"
+    },
+    "303": {
+      "rating": 0,
+      "title": "CSIR Research Grants",
+      "deadline": null,
+      "reason": "Indian research grants",
+      "rater": "claude"
+    },
+    "318": {
+      "rating": 0,
+      "title": "National Renewable Energy Internship (NREI) Scheme",
+      "deadline": null,
+      "reason": "Renewable energy internship",
+      "rater": "claude"
+    },
+    "367": {
+      "rating": 0,
+      "title": "Echoing Green Fellowship",
+      "deadline": null,
+      "reason": "Social entrepreneurship",
+      "rater": "claude"
+    },
+    "368": {
+      "rating": 3,
+      "title": "EMBO Postdoctoral Fellowships",
+      "deadline": "2027-01-22T14:00:00",
+      "reason": "Postdoc fellowship for moving to a lab in another European country: exactly the ask",
+      "rater": "claude"
+    },
+    "370": {
+      "rating": 2,
+      "title": "Humboldt Research Fellowship",
+      "deadline": null,
+      "reason": "Postdoc fellowship for research in Germany, any field",
+      "rater": "claude"
+    }
+  },
+  "college-teacher-summer-research-in": {
+    "113": {
+      "rating": 0,
+      "title": "J C Bose National Fellowship",
+      "deadline": null,
+      "reason": "Recognition fellowship",
+      "rater": "claude"
+    },
+    "197": {
+      "rating": 0,
+      "title": "India's International Fellows",
+      "deadline": null,
+      "reason": "International exposure fellowships",
+      "rater": "claude"
+    },
+    "210": {
+      "rating": 0,
+      "title": "Emeritus Fellowship",
+      "deadline": null,
+      "reason": "For retired teachers",
+      "rater": "claude"
+    },
+    "225": {
+      "rating": 0,
+      "title": "Arturo Falaschi Short-Term Postdoc Fellowships",
+      "deadline": null,
+      "reason": "Postdoc fellowship",
+      "rater": "claude"
+    },
+    "226": {
+      "rating": 1,
+      "title": "Research Award",
+      "deadline": null,
+      "reason": "Research award for permanent teachers, not a summer placement",
+      "rater": "claude"
+    },
+    "228": {
+      "rating": 0,
+      "title": "DAE- Raja Rammana Fellowship (RRF)",
+      "deadline": null,
+      "reason": "For retired scientists",
+      "rater": "claude"
+    },
+    "231": {
+      "rating": 0,
+      "title": "Building Energy Efficiency Higher and Advanced Network (BHAVAN) Fellowships",
+      "deadline": null,
+      "reason": "Building energy fellowship",
+      "rater": "claude"
+    },
+    "232": {
+      "rating": 0,
+      "title": "DAE Graduate Fellowship Scheme for Engineering Graduates and Physics Postgraduates",
+      "deadline": null,
+      "reason": "Graduate fellowship",
+      "rater": "claude"
+    },
+    "236": {
+      "rating": 0,
+      "title": "India International Fellows",
+      "deadline": null,
+      "reason": "International exposure",
+      "rater": "claude"
+    },
+    "257": {
+      "rating": 0,
+      "title": "Special Assistance Programme (SAP)",
+      "deadline": null,
+      "reason": "For university departments",
+      "rater": "claude"
+    },
+    "278": {
+      "rating": 0,
+      "title": "Travel Grant Scheme for College Teachers/College Librarians/Vice Chancellors/Commission Members and UGC Officers",
+      "deadline": null,
+      "reason": "Conference travel for college teachers",
+      "rater": "claude"
+    },
+    "303": {
+      "rating": 0,
+      "title": "CSIR Research Grants",
+      "deadline": null,
+      "reason": "Research project grants",
+      "rater": "claude"
+    },
+    "314": {
+      "rating": 1,
+      "title": "AICTE-INAE Teachers Research Fellowship Scheme for Engineering Teachers for Doctoral Research in Central Laboratories",
+      "deadline": null,
+      "reason": "Research fellowship for engineering teachers",
+      "rater": "claude"
+    },
+    "320": {
+      "rating": 0,
+      "title": "Postgraduate Teaching Programme",
+      "deadline": null,
+      "reason": "Teaching programme",
+      "rater": "claude"
+    },
+    "327": {
+      "rating": 0,
+      "title": "J.C. Bose Fellowship",
+      "deadline": null,
+      "reason": "Recognition fellowship",
+      "rater": "claude"
+    },
+    "332": {
+      "rating": 0,
+      "title": "E-YUVA Scheme Call For Proposal",
+      "deadline": "2026-10-31T17:30:00",
+      "reason": "For students",
+      "rater": "claude"
+    },
+    "360": {
+      "rating": 0,
+      "title": "Indo-U.S. Fellowship for Women in STEMM (WISTEMM)",
+      "deadline": null,
+      "reason": "Women's US fellowship",
+      "rater": "claude"
+    },
+    "363": {
+      "rating": 2,
+      "title": "Focus Area Science Technology-Summer Fellowship [FAST-SF] Program — 2027",
+      "deadline": "2026-11-30T23:59:59",
+      "reason": "Summer research fellowship for teachers, focused on some regions",
+      "rater": "claude"
+    },
+    "364": {
+      "rating": 0,
+      "title": "India Science and Research Fellowship Programme 2025-26",
+      "deadline": null,
+      "reason": "Research exchange fellowship",
+      "rater": "claude"
+    }
+  },
+  "community-services-nonprofit-us": {
+    "36": {
+      "rating": 0,
+      "title": "a16z Speedrun",
+      "deadline": null,
+      "reason": "Venture funding for startups, not nonprofit"
+    },
+    "37": {
+      "rating": 0,
+      "title": "AI2 Incubator",
+      "deadline": null,
+      "reason": "Incubator for AI startups, irrelevant to community services"
+    },
+    "102": {
+      "rating": 0,
+      "title": "Alliance Crypto & AI Accelerator",
+      "deadline": null,
+      "reason": "Crypto/AI accelerator for startups, not community services"
+    },
+    "107": {
+      "rating": 0,
+      "title": "Verizon Small Business Digital Ready National Grant",
+      "deadline": null,
+      "reason": "For‑profit small business grant, applicant type mismatch"
+    },
+    "196": {
+      "rating": 0,
+      "title": "PMS Blackett Memorial Lecture and Jagadis Chandra Bose Memorial Lecture",
+      "deadline": null,
+      "reason": "Scientific lecture award, not funding community development"
+    },
+    "215": {
+      "rating": 0,
+      "title": "Jawaharlal Nehru Birth Centenary Medal",
+      "deadline": null,
+      "reason": "Science medal award, not relevant"
+    },
+    "223": {
+      "rating": 0,
+      "title": "International Travel Support (ITS)",
+      "deadline": null,
+      "reason": "Travel support for researchers, not applicable"
+    },
+    "225": {
+      "rating": 0,
+      "title": "Arturo Falaschi Short-Term Postdoc Fellowships",
+      "deadline": null,
+      "reason": "Postdoc fellowship in life sciences, not applicable to NGO"
+    },
+    "227": {
+      "rating": 0,
+      "title": "INSA-Vainu Bappu Memorial Award",
+      "deadline": null,
+      "reason": "Astronomy award, unrelated"
+    },
+    "230": {
+      "rating": 0,
+      "title": "BIRAC Nesta Discovery Awards",
+      "deadline": null,
+      "reason": "Biotech discovery award, unrelated field"
+    },
+    "254": {
+      "rating": 0,
+      "title": "DBT-BMGF (Bill & Melinda Gates Foundation)",
+      "deadline": null,
+      "reason": "Health/development grant for faculty/scientists, not NGO"
+    },
+    "259": {
+      "rating": 0,
+      "title": "Technology Development and Utilization Programme for Women (TDUPW)",
+      "deadline": null,
+      "reason": "Technology program for women in science, unrelated to nonprofit services"
+    },
+    "264": {
+      "rating": 0,
+      "title": "Longitude Prize",
+      "deadline": null,
+      "reason": "Prize for antibiotic resistance, not a block grant for NGOs"
+    },
+    "303": {
+      "rating": 0,
+      "title": "CSIR Research Grants",
+      "deadline": null,
+      "reason": "Science research grant for scientists, not community service nonprofit"
+    },
+    "313": {
+      "rating": 0,
+      "title": "Research Grants - International",
+      "deadline": null,
+      "reason": "Science research focus, not community services nonprofit"
+    },
+    "318": {
+      "rating": 0,
+      "title": "National Renewable Energy Internship (NREI) Scheme",
+      "deadline": null,
+      "reason": "Internship scheme for students, not nonprofit funding"
+    },
+    "359": {
+      "rating": 0,
+      "title": "IUSSTF-American Physical Society Fellowship",
+      "deadline": null,
+      "reason": "Physics travel exchange",
+      "rater": "claude"
+    },
+    "367": {
+      "rating": 1,
+      "title": "Echoing Green Fellowship",
+      "deadline": null,
+      "reason": "Seed funding for new social ventures, not a block grant for an established nonprofit",
+      "rater": "claude"
+    }
+  },
+  "drone-uav-startup-in": {
+    "29": {
+      "rating": 1,
+      "title": "C-CAMP Wadhwani Innovation Network (WIN) CoE Non-Dilutive Funding Program",
+      "deadline": null,
+      "reason": "Non-dilutive for biotech/deep-tech TRL4+; drones only loosely fit",
+      "rater": "claude"
+    },
+    "30": {
+      "rating": 1,
+      "title": "Idea Grant",
+      "deadline": null,
+      "reason": "Early-stage grant but Kerala startups only",
+      "rater": "claude"
+    },
+    "31": {
+      "rating": 0,
+      "title": "BCDD Grant by KSUM & BCDD Kerala",
+      "deadline": null,
+      "reason": "Restricted to OBC graduates in Kerala, demographic‑specific"
+    },
+    "32": {
+      "rating": 2,
+      "title": "Startup India Seed Fund Scheme (SISFS) For Startups",
+      "deadline": null,
+      "reason": "General seed fund for Indian tech startups, fits accelerator/incubator need"
+    },
+    "34": {
+      "rating": 1,
+      "title": "TN Space Tech Fund",
+      "deadline": null,
+      "reason": "Space‑tech fund, not directly drone hardware but tech startup eligible"
+    },
+    "35": {
+      "rating": 1,
+      "title": "Next Bharat Residency Program",
+      "deadline": null,
+      "reason": "Equity residency for rural impact ventures; partial fit",
+      "rater": "claude"
+    },
+    "36": {
+      "rating": 1,
+      "title": "a16z Speedrun",
+      "deadline": null,
+      "reason": "Generic global accelerator; hardware is not its focus",
+      "rater": "claude"
+    },
+    "37": {
+      "rating": 1,
+      "title": "AI2 Incubator",
+      "deadline": null,
+      "reason": "AI‑focused incubator, tangential to autonomous navigation but not hardware‑centric"
+    },
+    "38": {
+      "rating": 2,
+      "title": "Atoms X",
+      "deadline": null,
+      "reason": "Accel pre-seed accelerator for Indian deep-tech founders",
+      "rater": "claude"
+    },
+    "102": {
+      "rating": 0,
+      "title": "Alliance Crypto & AI Accelerator",
+      "deadline": null,
+      "reason": "Crypto and AI accelerator only",
+      "rater": "claude"
+    },
+    "212": {
+      "rating": 2,
+      "title": "TDB Seed Fund",
+      "deadline": null,
+      "reason": "Seed funding for Indian tech startups",
+      "rater": "claude"
+    },
+    "268": {
+      "rating": 0,
+      "title": "Common Research and Technology Development Hubs (CRTDHs)",
+      "deadline": null,
+      "reason": "Focus on energy, environment, material science; unrelated to drones"
+    },
+    "283": {
+      "rating": 0,
+      "title": "Technology Acquisition Fund Programme (TAFP)",
+      "deadline": null,
+      "reason": "Technology acquisition programme, not accelerator/incubator for startups"
+    },
+    "295": {
+      "rating": 2,
+      "title": "Start Up Schemes - Department of Science & Technology",
+      "deadline": null,
+      "reason": "DST incubation and startup schemes (NIDHI-TBI); matches the incubation ask",
+      "rater": "claude"
+    },
+    "311": {
+      "rating": 2,
+      "title": "NIDHI- Seed Support System (NIDHI-SSS)",
+      "deadline": null,
+      "reason": "Seed support for tech startups through incubators",
+      "rater": "claude"
+    },
+    "312": {
+      "rating": 1,
+      "title": "Promoting Innovations in Individuals, Startups And MSMEs (PRISM)",
+      "deadline": null,
+      "reason": "Support for individual innovators and MSMEs, not an accelerator",
+      "rater": "claude"
+    },
+    "316": {
+      "rating": 0,
+      "title": "Patent Acquisition and Collaborative Research & Technology Development (PACE)",
+      "deadline": null,
+      "reason": "Targeted at industries/R&D orgs, not early‑stage hardware startup"
+    },
+    "345": {
+      "rating": 0,
+      "title": "TDP Call for Proposal 2026",
+      "deadline": "2026-10-20T23:59:59",
+      "reason": "IoT projects for Scheduled Tribe communities; ST-only eligibility",
+      "rater": "claude"
+    },
+    "346": {
+      "rating": 0,
+      "title": "TDP Call for Proposal 2026 (11)",
+      "deadline": "2026-10-31T23:59:59",
+      "reason": "IoT projects for academic institutions",
+      "rater": "claude"
+    }
+  },
+  "edtech-startup-in": {
+    "29": {
+      "rating": 0,
+      "title": "C-CAMP Wadhwani Innovation Network (WIN) CoE Non-Dilutive Funding Program",
+      "deadline": null,
+      "reason": "Biotech and deep-tech funding",
+      "rater": "claude"
+    },
+    "30": {
+      "rating": 1,
+      "title": "Idea Grant",
+      "deadline": null,
+      "reason": "Early-stage grant, but Kerala startups only",
+      "rater": "claude"
+    },
+    "31": {
+      "rating": 0,
+      "title": "BCDD Grant by KSUM & BCDD Kerala",
+      "deadline": null,
+      "reason": "Kerala OBC graduates only",
+      "rater": "claude"
+    },
+    "32": {
+      "rating": 2,
+      "title": "Startup India Seed Fund Scheme (SISFS) For Startups",
+      "deadline": null,
+      "reason": "Seed fund for Indian tech startups",
+      "rater": "claude"
+    },
+    "35": {
+      "rating": 1,
+      "title": "Next Bharat Residency Program",
+      "deadline": null,
+      "reason": "Equity for rural impact ventures",
+      "rater": "claude"
+    },
+    "38": {
+      "rating": 1,
+      "title": "Atoms X",
+      "deadline": null,
+      "reason": "Pre-seed equity, not edtech-specific",
+      "rater": "claude"
+    },
+    "199": {
+      "rating": 0,
+      "title": "Joint Appointment for Exchange of Human Resources between Universities and other Institutions/ Organisations",
+      "deadline": null,
+      "reason": "Faculty exchange",
+      "rater": "claude"
+    },
+    "212": {
+      "rating": 2,
+      "title": "TDB Seed Fund",
+      "deadline": null,
+      "reason": "Seed funding for Indian tech startups",
+      "rater": "claude"
+    },
+    "230": {
+      "rating": 0,
+      "title": "BIRAC Nesta Discovery Awards",
+      "deadline": null,
+      "reason": "AMR seed grants",
+      "rater": "claude"
+    },
+    "247": {
+      "rating": 0,
+      "title": "Science and Technology for Women",
+      "deadline": null,
+      "reason": "Technology for women",
+      "rater": "claude"
+    },
+    "250": {
+      "rating": 0,
+      "title": "Cross-Cutting and Futuristic initiatives (CCFI)",
+      "deadline": null,
+      "reason": "Research hubs",
+      "rater": "claude"
+    },
+    "268": {
+      "rating": 0,
+      "title": "Common Research and Technology Development Hubs (CRTDHs)",
+      "deadline": null,
+      "reason": "Small enterprise hubs",
+      "rater": "claude"
+    },
+    "283": {
+      "rating": 0,
+      "title": "Technology Acquisition Fund Programme (TAFP)",
+      "deadline": null,
+      "reason": "Industry technology acquisition",
+      "rater": "claude"
+    },
+    "295": {
+      "rating": 2,
+      "title": "Start Up Schemes - Department of Science & Technology",
+      "deadline": null,
+      "reason": "DST startup and incubation schemes",
+      "rater": "claude"
+    },
+    "311": {
+      "rating": 2,
+      "title": "NIDHI- Seed Support System (NIDHI-SSS)",
+      "deadline": null,
+      "reason": "Seed support for tech startups through incubators",
+      "rater": "claude"
+    },
+    "312": {
+      "rating": 1,
+      "title": "Promoting Innovations in Individuals, Startups And MSMEs (PRISM)",
+      "deadline": null,
+      "reason": "Support for individual innovators and MSMEs",
+      "rater": "claude"
+    },
+    "345": {
+      "rating": 0,
+      "title": "TDP Call for Proposal 2026",
+      "deadline": "2026-10-20T23:59:59",
+      "reason": "IoT for Scheduled Tribe communities",
+      "rater": "claude"
+    },
+    "367": {
+      "rating": 1,
+      "title": "Echoing Green Fellowship",
+      "deadline": null,
+      "reason": "Social entrepreneurship fellowship; possible for a social edtech venture",
+      "rater": "claude"
+    }
+  },
+  "engineering-teacher-phd-in": {
+    "113": {
+      "rating": 0,
+      "title": "J C Bose National Fellowship",
+      "deadline": null,
+      "reason": "Senior scientist fellowship, not for teachers or PhD candidates"
+    },
+    "197": {
+      "rating": 1,
+      "title": "India's International Fellows",
+      "deadline": null,
+      "reason": "General international fellowship, not teacher‑specific"
+    },
+    "210": {
+      "rating": 0,
+      "title": "Emeritus Fellowship",
+      "deadline": null,
+      "reason": "For superannuated teachers, not active faculty seeking PhD"
+    },
+    "219": {
+      "rating": 0,
+      "title": "S&T Awards - Others",
+      "deadline": null,
+      "reason": "Award program, not a PhD fellowship for teachers"
+    },
+    "225": {
+      "rating": 0,
+      "title": "Arturo Falaschi Short-Term Postdoc Fellowships",
+      "deadline": null,
+      "reason": "Postdoctoral fellowship, not for teachers pursuing PhD"
+    },
+    "226": {
+      "rating": 1,
+      "title": "Research Award",
+      "deadline": null,
+      "reason": "Research award for permanent teachers, may support PhD work but not a dedicated fellowship"
+    },
+    "228": {
+      "rating": 0,
+      "title": "DAE- Raja Rammana Fellowship (RRF)",
+      "deadline": null,
+      "reason": "Retired scientist fellowship, not applicable to current faculty"
+    },
+    "231": {
+      "rating": 1,
+      "title": "Building Energy Efficiency Higher and Advanced Network (BHAVAN) Fellowships",
+      "deadline": null,
+      "reason": "PhD student fellowship, but not limited to teachers"
+    },
+    "232": {
+      "rating": 0,
+      "title": "DAE Graduate Fellowship Scheme for Engineering Graduates and Physics Postgraduates",
+      "deadline": null,
+      "reason": "Targeted at engineering graduates/postgraduates, not faculty"
+    },
+    "236": {
+      "rating": 0,
+      "title": "India International Fellows",
+      "deadline": null,
+      "reason": "International exposure programme, not PhD support for teachers",
+      "rater": "claude"
+    },
+    "245": {
+      "rating": 0,
+      "title": "Bhaskara Advanced Solar Energy (BASE) Fellowship Program",
+      "deadline": null,
+      "reason": "Solar research exchange to the US, not PhD support for teachers",
+      "rater": "claude"
+    },
+    "276": {
+      "rating": 0,
+      "title": "Grants for Seminar and Conferences",
+      "deadline": null,
+      "reason": "Funding for seminars, not doctoral fellowship"
+    },
+    "278": {
+      "rating": 0,
+      "title": "Travel Grant Scheme for College Teachers/College Librarians/Vice Chancellors/Commission Members and UGC Officers",
+      "deadline": null,
+      "reason": "Travel grant only, not a PhD fellowship"
+    },
+    "294": {
+      "rating": 0,
+      "title": "AICTE-Faculty Development Programme (FDP)",
+      "deadline": null,
+      "reason": "Faculty development programme focuses on training, not PhD funding"
+    },
+    "303": {
+      "rating": 1,
+      "title": "CSIR Research Grants",
+      "deadline": null,
+      "reason": "CSIR research grant for faculty, tangentially could fund PhD research"
+    },
+    "308": {
+      "rating": 1,
+      "title": "CSIR Partial Financial Assistance scheme",
+      "deadline": null,
+      "reason": "Partial financial assistance for faculty, could aid PhD but not a specific fellowship"
+    },
+    "314": {
+      "rating": 3,
+      "title": "AICTE-INAE Teachers Research Fellowship Scheme for Engineering Teachers for Doctoral Research in Central Laboratories",
+      "deadline": null,
+      "reason": "Exact match: fellowship for engineering teachers to do doctoral research"
+    },
+    "327": {
+      "rating": 0,
+      "title": "J.C. Bose Fellowship",
+      "deadline": null,
+      "reason": "Senior scientist award, not for teachers or PhD"
+    },
+    "332": {
+      "rating": 0,
+      "title": "E-YUVA Scheme Call For Proposal",
+      "deadline": "2026-10-31T17:30:00",
+      "reason": "Targeted at young researchers, not faculty members"
+    },
+    "344": {
+      "rating": 0,
+      "title": "Doctoral Fellowship",
+      "deadline": null,
+      "reason": "Doctoral fellowship for social and human sciences only",
+      "rater": "claude"
+    },
+    "355": {
+      "rating": 0,
+      "title": "ICSSR Full-Term Doctoral Fellowship 2026-27",
+      "deadline": null,
+      "reason": "Doctoral fellowship for social sciences only",
+      "rater": "claude"
+    },
+    "356": {
+      "rating": 0,
+      "title": "Bhaskara Advanced Solar Energy Fellowship",
+      "deadline": null,
+      "reason": "Solar research exchange to the US",
+      "rater": "claude"
+    },
+    "357": {
+      "rating": 0,
+      "title": "Bioenergy-Awards for Cutting Edge Research",
+      "deadline": null,
+      "reason": "Bioenergy research exchange",
+      "rater": "claude"
+    },
+    "360": {
+      "rating": 0,
+      "title": "Indo-U.S. Fellowship for Women in STEMM (WISTEMM)",
+      "deadline": null,
+      "reason": "Fellowship for women researchers in the US",
+      "rater": "claude"
+    },
+    "363": {
+      "rating": 1,
+      "title": "Focus Area Science Technology-Summer Fellowship [FAST-SF] Program — 2027",
+      "deadline": "2026-11-30T23:59:59",
+      "reason": "Summer research fellowship open to teachers; not PhD support",
+      "rater": "claude"
+    }
+  },
+  "farm-machinery-startup-in": {
+    "29": {
+      "rating": 0,
+      "title": "C-CAMP Wadhwani Innovation Network (WIN) CoE Non-Dilutive Funding Program",
+      "deadline": null,
+      "reason": "Focus on biotech/deep‑tech, unrelated to farm machinery"
+    },
+    "30": {
+      "rating": 0,
+      "title": "Idea Grant",
+      "deadline": null,
+      "reason": "Kerala‑specific grant, likely geographic restriction and no ag focus"
+    },
+    "31": {
+      "rating": 0,
+      "title": "BCDD Grant by KSUM & BCDD Kerala",
+      "deadline": null,
+      "reason": "Restricted to OBC graduates in Kerala, unrelated sector"
+    },
+    "32": {
+      "rating": 1,
+      "title": "Startup India Seed Fund Scheme (SISFS) For Startups",
+      "deadline": null,
+      "reason": "General seed fund for tech startups, no agritech specificity"
+    },
+    "35": {
+      "rating": 2,
+      "title": "Next Bharat Residency Program",
+      "deadline": null,
+      "reason": "Startup‑focused, rural impact theme aligns with low‑cost farm machinery"
+    },
+    "36": {
+      "rating": 1,
+      "title": "a16z Speedrun",
+      "deadline": null,
+      "reason": "Generic global VC accelerator, unlikely for agri hardware",
+      "rater": "claude"
+    },
+    "37": {
+      "rating": 0,
+      "title": "AI2 Incubator",
+      "deadline": null,
+      "reason": "AI‑only focus and international eligibility, not relevant"
+    },
+    "38": {
+      "rating": 1,
+      "title": "Atoms X",
+      "deadline": null,
+      "reason": "Pre-seed equity for Indian founders; not a grant, not agri-specific",
+      "rater": "claude"
+    },
+    "212": {
+      "rating": 2,
+      "title": "TDB Seed Fund",
+      "deadline": null,
+      "reason": "Open to Indian startups across science; suitable for agritech innovation"
+    },
+    "219": {
+      "rating": 0,
+      "title": "S&T Awards - Others",
+      "deadline": null,
+      "reason": "Awards for individuals/scientists, not startup funding"
+    },
+    "230": {
+      "rating": 0,
+      "title": "BIRAC Nesta Discovery Awards",
+      "deadline": null,
+      "reason": "Only individuals/teams; not a startup and biotech focus"
+    },
+    "231": {
+      "rating": 0,
+      "title": "Building Energy Efficiency Higher and Advanced Network (BHAVAN) Fellowships",
+      "deadline": null,
+      "reason": "Fellowship for students in building energy efficiency",
+      "rater": "claude"
+    },
+    "238": {
+      "rating": 1,
+      "title": "TDB-ICCO Partnership",
+      "deadline": null,
+      "reason": "Agriculture focus but limited to social entrepreneurs/farmers, not startups"
+    },
+    "261": {
+      "rating": 0,
+      "title": "Contract Research/Service Scheme (CRS)",
+      "deadline": null,
+      "reason": "Research contract scheme for institutions, not startup funding"
+    },
+    "268": {
+      "rating": 0,
+      "title": "Common Research and Technology Development Hubs (CRTDHs)",
+      "deadline": null,
+      "reason": "Fields unrelated to agriculture; eligibility MSEs but not a fit"
+    },
+    "283": {
+      "rating": 0,
+      "title": "Technology Acquisition Fund Programme (TAFP)",
+      "deadline": null,
+      "reason": "Designed for industries/PSUs, not startups, unrelated field"
+    },
+    "295": {
+      "rating": 1,
+      "title": "Start Up Schemes - Department of Science & Technology",
+      "deadline": null,
+      "reason": "Generic startup/tech scheme, no agriculture focus"
+    },
+    "303": {
+      "rating": 0,
+      "title": "CSIR Research Grants",
+      "deadline": null,
+      "reason": "Only scientists/faculty eligible, not startups"
+    },
+    "311": {
+      "rating": 1,
+      "title": "NIDHI- Seed Support System (NIDHI-SSS)",
+      "deadline": null,
+      "reason": "Broad seed support for startups, not agritech specific"
+    },
+    "312": {
+      "rating": 1,
+      "title": "Promoting Innovations in Individuals, Startups And MSMEs (PRISM)",
+      "deadline": null,
+      "reason": "Broad innovation grant for startups, not agriculture‑focused"
+    },
+    "316": {
+      "rating": 0,
+      "title": "Patent Acquisition and Collaborative Research & Technology Development (PACE)",
+      "deadline": null,
+      "reason": "Targets industries/R&D orgs, not early‑stage startups"
+    },
+    "345": {
+      "rating": 0,
+      "title": "TDP Call for Proposal 2026",
+      "deadline": "2026-10-20T23:59:59",
+      "reason": "Targeted to Scheduled Tribe faculty, not open to general startups"
+    },
+    "360": {
+      "rating": 0,
+      "title": "Indo-U.S. Fellowship for Women in STEMM (WISTEMM)",
+      "deadline": null,
+      "reason": "Fellowship for women scientists, not agritech startup funding",
+      "rater": "claude"
+    }
+  },
+  "frontier-ai-benchmarks-uk": {
+    "36": {
+      "rating": 0,
+      "title": "a16z Speedrun",
+      "deadline": null,
+      "reason": "Venture funding for startups, not academic AI benchmark work"
+    },
+    "37": {
+      "rating": 0,
+      "title": "AI2 Incubator",
+      "deadline": null,
+      "reason": "Only for early‑stage AI startups, not a researcher"
+    },
+    "102": {
+      "rating": 0,
+      "title": "Alliance Crypto & AI Accelerator",
+      "deadline": null,
+      "reason": "Startup accelerator, not dataset research funding"
+    },
+    "196": {
+      "rating": 0,
+      "title": "PMS Blackett Memorial Lecture and Jagadis Chandra Bose Memorial Lecture",
+      "deadline": null,
+      "reason": "Lecture award, no research funding"
+    },
+    "198": {
+      "rating": 0,
+      "title": "COVID 2.0 FUNDING",
+      "deadline": null,
+      "reason": "COVID/health focus, no AI relevance"
+    },
+    "215": {
+      "rating": 0,
+      "title": "Jawaharlal Nehru Birth Centenary Medal",
+      "deadline": null,
+      "reason": "General science medal, not funding for AI benchmarks"
+    },
+    "223": {
+      "rating": 0,
+      "title": "International Travel Support (ITS)",
+      "deadline": null,
+      "reason": "Travel support, not research funding for benchmarks"
+    },
+    "225": {
+      "rating": 0,
+      "title": "Arturo Falaschi Short-Term Postdoc Fellowships",
+      "deadline": null,
+      "reason": "Biotech postdoc fellowship, not AI benchmark research"
+    },
+    "227": {
+      "rating": 0,
+      "title": "INSA-Vainu Bappu Memorial Award",
+      "deadline": null,
+      "reason": "Astronomy award, no AI relevance"
+    },
+    "230": {
+      "rating": 0,
+      "title": "BIRAC Nesta Discovery Awards",
+      "deadline": null,
+      "reason": "Life sciences/biotech, unrelated to AI datasets"
+    },
+    "254": {
+      "rating": 0,
+      "title": "DBT-BMGF (Bill & Melinda Gates Foundation)",
+      "deadline": null,
+      "reason": "Health/development focus, no AI relevance"
+    },
+    "259": {
+      "rating": 0,
+      "title": "Technology Development and Utilization Programme for Women (TDUPW)",
+      "deadline": null,
+      "reason": "Indian technology programme for women; not AI",
+      "rater": "claude"
+    },
+    "264": {
+      "rating": 0,
+      "title": "Longitude Prize",
+      "deadline": null,
+      "reason": "Life‑science challenge unrelated to AI benchmarks"
+    },
+    "269": {
+      "rating": 0,
+      "title": "Abel Prize",
+      "deadline": null,
+      "reason": "Mathematics prize, no project funding"
+    },
+    "303": {
+      "rating": 0,
+      "title": "CSIR Research Grants",
+      "deadline": null,
+      "reason": "Broad science/tech but not AI benchmark funding"
+    },
+    "318": {
+      "rating": 0,
+      "title": "National Renewable Energy Internship (NREI) Scheme",
+      "deadline": null,
+      "reason": "Renewable energy internship, unrelated field"
+    },
+    "367": {
+      "rating": 0,
+      "title": "Echoing Green Fellowship",
+      "deadline": null,
+      "reason": "Social entrepreneurship fellowship",
+      "rater": "claude"
+    },
+    "368": {
+      "rating": 0,
+      "title": "EMBO Postdoctoral Fellowships",
+      "deadline": "2027-01-22T14:00:00",
+      "reason": "Life-science postdoc fellowship",
+      "rater": "claude"
+    },
+    "370": {
+      "rating": 1,
+      "title": "Humboldt Research Fellowship",
+      "deadline": null,
+      "reason": "Funds any research in Germany, incl. AI, but not benchmark work in the UK",
+      "rater": "claude"
+    }
+  },
+  "industrial-cybersecurity-es": {
+    "36": {
+      "rating": 1,
+      "title": "a16z Speedrun",
+      "deadline": null,
+      "reason": "General startup funding, not specific to cybersecurity"
+    },
+    "37": {
+      "rating": 1,
+      "title": "AI2 Incubator",
+      "deadline": null,
+      "reason": "Early-stage startup focus, but AI not specific to industrial cybersecurity"
+    },
+    "102": {
+      "rating": 1,
+      "title": "Alliance Crypto & AI Accelerator",
+      "deadline": null,
+      "reason": "Crypto/AI focus, only loosely related to security"
+    },
+    "196": {
+      "rating": 0,
+      "title": "PMS Blackett Memorial Lecture and Jagadis Chandra Bose Memorial Lecture",
+      "deadline": null,
+      "reason": "Lecture award for faculty/scientists, not a grant for startups"
+    },
+    "215": {
+      "rating": 0,
+      "title": "Jawaharlal Nehru Birth Centenary Medal",
+      "deadline": null,
+      "reason": "Award for scientific contributions, not funding"
+    },
+    "223": {
+      "rating": 0,
+      "title": "International Travel Support (ITS)",
+      "deadline": null,
+      "reason": "Travel support program, unrelated field"
+    },
+    "225": {
+      "rating": 0,
+      "title": "Arturo Falaschi Short-Term Postdoc Fellowships",
+      "deadline": null,
+      "reason": "Life sciences postdoc fellowship, unrelated field and applicant type"
+    },
+    "227": {
+      "rating": 0,
+      "title": "INSA-Vainu Bappu Memorial Award",
+      "deadline": null,
+      "reason": "Astronomy award, unrelated"
+    },
+    "254": {
+      "rating": 0,
+      "title": "DBT-BMGF (Bill & Melinda Gates Foundation)",
+      "deadline": null,
+      "reason": "Health/development focus, irrelevant"
+    },
+    "259": {
+      "rating": 0,
+      "title": "Technology Development and Utilization Programme for Women (TDUPW)",
+      "deadline": null,
+      "reason": "Women‑only scheme in unrelated fields"
+    },
+    "264": {
+      "rating": 0,
+      "title": "Longitude Prize",
+      "deadline": null,
+      "reason": "Antibiotic resistance prize, unrelated to cybersecurity"
+    },
+    "269": {
+      "rating": 0,
+      "title": "Abel Prize",
+      "deadline": null,
+      "reason": "Mathematics award, not relevant to industrial security"
+    },
+    "303": {
+      "rating": 0,
+      "title": "CSIR Research Grants",
+      "deadline": null,
+      "reason": "Research grants for scientists, not startups or cybersecurity"
+    },
+    "318": {
+      "rating": 0,
+      "title": "National Renewable Energy Internship (NREI) Scheme",
+      "deadline": null,
+      "reason": "Internship scheme for students, not industrial cybersecurity"
+    },
+    "349": {
+      "rating": 3,
+      "title": "Industrial Cybersecurity Grant 2026",
+      "deadline": "2026-11-23T23:59:59",
+      "reason": "Directly funds industrial cybersecurity for Spanish companies"
+    },
+    "367": {
+      "rating": 0,
+      "title": "Echoing Green Fellowship",
+      "deadline": null,
+      "reason": "Social entrepreneurship fellowship, not industrial cybersecurity",
+      "rater": "claude"
+    }
+  },
+  "livestock-health-research-in": {
+    "39": {
+      "rating": 2,
+      "title": "Core Research Grant (CRG)",
+      "deadline": null,
+      "reason": "General SERB research grant; eligible Indian professor, can fund animal health work"
+    },
+    "198": {
+      "rating": 0,
+      "title": "COVID 2.0 FUNDING",
+      "deadline": null,
+      "reason": "Focused on COVID‑19 diagnostics, not livestock or animal health"
+    },
+    "202": {
+      "rating": 0,
+      "title": "Biotechnology Career Advancement and Re-orientation Programme (Bio-CARe) for Women Scientists",
+      "deadline": null,
+      "reason": "Women-only scheme; applicant gender unknown, not eligible"
+    },
+    "211": {
+      "rating": 0,
+      "title": "GD Birla Award for Scientific Research",
+      "deadline": null,
+      "reason": "Award, not research funding",
+      "rater": "claude"
+    },
+    "218": {
+      "rating": 0,
+      "title": "Shanti Swarup Bhatnagar Prize 2020",
+      "deadline": null,
+      "reason": "Science prize, not research funding",
+      "rater": "claude"
+    },
+    "219": {
+      "rating": 0,
+      "title": "S&T Awards - Others",
+      "deadline": null,
+      "reason": "Award program, not a research grant for animal health"
+    },
+    "224": {
+      "rating": 0,
+      "title": "Biotechnology Career Advancement & Re-orientation Programme (BioCARe)",
+      "deadline": null,
+      "reason": "Women‑only scheme; applicant gender unknown"
+    },
+    "225": {
+      "rating": 0,
+      "title": "Arturo Falaschi Short-Term Postdoc Fellowships",
+      "deadline": null,
+      "reason": "Short-term postdoc fellowship",
+      "rater": "claude"
+    },
+    "235": {
+      "rating": 0,
+      "title": "IMA Medical Education and Research Award for Young Scientists",
+      "deadline": null,
+      "reason": "For young scientists only; applicant is senior professor"
+    },
+    "241": {
+      "rating": 0,
+      "title": "Women Scientist Scheme-A (WOS-A)",
+      "deadline": null,
+      "reason": "Women-only scheme; applicant likely not eligible"
+    },
+    "249": {
+      "rating": 0,
+      "title": "Clinical/Public Health Research Centres Scheme-India Alliance Grant",
+      "deadline": null,
+      "reason": "Focus on human clinical/public health, not veterinary"
+    },
+    "251": {
+      "rating": 3,
+      "title": "Animal Health",
+      "deadline": null,
+      "reason": "Directly funds animal disease vaccines and diagnostics"
+    },
+    "252": {
+      "rating": 0,
+      "title": "SERB Women Excellence Award",
+      "deadline": null,
+      "reason": "Women‑only award; applicant gender not indicated"
+    },
+    "254": {
+      "rating": 2,
+      "title": "DBT-BMGF (Bill & Melinda Gates Foundation)",
+      "deadline": null,
+      "reason": "Broad health focus, includes animal health in developing countries"
+    },
+    "255": {
+      "rating": 1,
+      "title": "Animal Production",
+      "deadline": null,
+      "reason": "Focuses on livestock production, not vaccines/diagnostics"
+    },
+    "258": {
+      "rating": 2,
+      "title": "Collaborative Scientific Research Programme",
+      "deadline": null,
+      "reason": "India‑France collaborative program; open to science projects including veterinary research"
+    },
+    "261": {
+      "rating": 1,
+      "title": "Contract Research/Service Scheme (CRS)",
+      "deadline": null,
+      "reason": "Contract research incl. agricultural sciences; not a project grant",
+      "rater": "claude"
+    },
+    "264": {
+      "rating": 1,
+      "title": "Longitude Prize",
+      "deadline": null,
+      "reason": "Antibiotic resistance prize, tangential to livestock vaccine research"
+    },
+    "268": {
+      "rating": 0,
+      "title": "Common Research and Technology Development Hubs (CRTDHs)",
+      "deadline": null,
+      "reason": "Only for micro/small enterprises, not academic researchers"
+    },
+    "273": {
+      "rating": 0,
+      "title": "Gujar Mal Modi Award for Science & Technology",
+      "deadline": null,
+      "reason": "Award, not research funding",
+      "rater": "claude"
+    },
+    "287": {
+      "rating": 1,
+      "title": "Basic and Fundamental Research",
+      "deadline": null,
+      "reason": "General life‑science grant, only tangentially related"
+    },
+    "293": {
+      "rating": 1,
+      "title": "Research Grants - Individual",
+      "deadline": null,
+      "reason": "Generic individual research grants, not animal‑health specific"
+    },
+    "303": {
+      "rating": 1,
+      "title": "CSIR Research Grants",
+      "deadline": null,
+      "reason": "Wide‑scope CSIR grant, not targeted to veterinary vaccines"
+    },
+    "305": {
+      "rating": 2,
+      "title": "Core Research Grant (CRG)",
+      "deadline": null,
+      "reason": "General SERB CRG; eligible and can support veterinary vaccine research"
+    },
+    "313": {
+      "rating": 1,
+      "title": "Research Grants - International",
+      "deadline": null,
+      "reason": "Broad biotech grant, not specific to animal health"
+    },
+    "321": {
+      "rating": 2,
+      "title": "Advanced Research Grant (ARG)",
+      "deadline": null,
+      "reason": "ANRF investigator-driven grant; eligible professor",
+      "rater": "claude"
+    },
+    "322": {
+      "rating": 0,
+      "title": "Prime Minister Early Career Research Grant",
+      "deadline": null,
+      "reason": "Limited to early‑career researchers, not eligible"
+    },
+    "324": {
+      "rating": 0,
+      "title": "Ramanujan Fellowship",
+      "deadline": null,
+      "reason": "Targeted at Indian/Indian‑origin scientists abroad, not current Indian professor"
+    },
+    "325": {
+      "rating": 2,
+      "title": "Core Research Grant (Individual Centric)",
+      "deadline": null,
+      "reason": "SERB core grant for PhD faculty; can fund veterinary vaccine research",
+      "rater": "claude"
+    },
+    "327": {
+      "rating": 0,
+      "title": "J.C. Bose Fellowship",
+      "deadline": null,
+      "reason": "Recognition fellowship for highly decorated scientists",
+      "rater": "claude"
+    },
+    "332": {
+      "rating": 0,
+      "title": "E-YUVA Scheme Call For Proposal",
+      "deadline": "2026-10-31T17:30:00",
+      "reason": "Designed for students/early‑career researchers, not senior faculty"
+    },
+    "345": {
+      "rating": 0,
+      "title": "TDP Call for Proposal 2026",
+      "deadline": "2026-10-20T23:59:59",
+      "reason": "Irrelevant field and eligibility restrictions"
+    },
+    "364": {
+      "rating": 0,
+      "title": "India Science and Research Fellowship Programme 2025-26",
+      "deadline": null,
+      "reason": "Research exchange fellowship, not a project grant",
+      "rater": "claude"
+    }
+  },
+  "medtech-diagnostics-startup-in": {
+    "29": {
+      "rating": 3,
+      "title": "C-CAMP Wadhwani Innovation Network (WIN) CoE Non-Dilutive Funding Program",
+      "deadline": null,
+      "reason": "Non-dilutive funding for Indian startups in biotech/deep‑tech, fits prototype development"
+    },
+    "32": {
+      "rating": 2,
+      "title": "Startup India Seed Fund Scheme (SISFS) For Startups",
+      "deadline": null,
+      "reason": "Seed fund for Indian tech startups, but may involve equity"
+    },
+    "38": {
+      "rating": 1,
+      "title": "Atoms X",
+      "deadline": null,
+      "reason": "Pre‑seed VC program, dilutive equity rather than non‑dilutive"
+    },
+    "198": {
+      "rating": 1,
+      "title": "COVID 2.0 FUNDING",
+      "deadline": null,
+      "reason": "COVID‑focused funding, tangential unless device is COVID‑related"
+    },
+    "212": {
+      "rating": 3,
+      "title": "TDB Seed Fund",
+      "deadline": null,
+      "reason": "TDB Seed Fund provides non‑dilutive support to Indian startups for tech prototypes"
+    },
+    "230": {
+      "rating": 3,
+      "title": "BIRAC Nesta Discovery Awards",
+      "deadline": null,
+      "reason": "BIRAC‑Nesta seed awards provide non‑dilutive funds to Indian innovators in biotech/medtech"
+    },
+    "242": {
+      "rating": 0,
+      "title": "CEFIPRA - BPI FRANCE",
+      "deadline": null,
+      "reason": "Bilateral research partnership, not a seed grant for startups"
+    },
+    "249": {
+      "rating": 0,
+      "title": "Clinical/Public Health Research Centres Scheme-India Alliance Grant",
+      "deadline": null,
+      "reason": "Requires PI from research institutions, not applicable to a startup"
+    },
+    "251": {
+      "rating": 0,
+      "title": "Animal Health",
+      "deadline": null,
+      "reason": "Targets animal health and academic institutions, not human medtech startups"
+    },
+    "261": {
+      "rating": 0,
+      "title": "Contract Research/Service Scheme (CRS)",
+      "deadline": null,
+      "reason": "Contract research for institutions, not a startup seed grant",
+      "rater": "claude"
+    },
+    "264": {
+      "rating": 0,
+      "title": "Longitude Prize",
+      "deadline": null,
+      "reason": "International prize competition, not a seed grant"
+    },
+    "267": {
+      "rating": 0,
+      "title": "Biomedical Device and Technology Development (BDTD)",
+      "deadline": null,
+      "reason": "Targeted at academic/research institutions, not startups"
+    },
+    "268": {
+      "rating": 2,
+      "title": "Common Research and Technology Development Hubs (CRTDHs)",
+      "deadline": null,
+      "reason": "Supports Indian micro‑small enterprises in medical science, offers startup assistance"
+    },
+    "283": {
+      "rating": 0,
+      "title": "Technology Acquisition Fund Programme (TAFP)",
+      "deadline": null,
+      "reason": "Technology acquisition for industry, not startup prototype funding",
+      "rater": "claude"
+    },
+    "287": {
+      "rating": 0,
+      "title": "Basic and Fundamental Research",
+      "deadline": null,
+      "reason": "Academic basic research in life sciences, not startup prototype funding",
+      "rater": "claude"
+    },
+    "293": {
+      "rating": 0,
+      "title": "Research Grants - Individual",
+      "deadline": null,
+      "reason": "Only for individual researchers/academics, not startups"
+    },
+    "304": {
+      "rating": 3,
+      "title": "BIRAC-Wellcome Trust Partnership",
+      "deadline": null,
+      "reason": "BIRAC‑Wellcome Trust backs biotech entrepreneurs with translational prototype funding"
+    },
+    "307": {
+      "rating": 2,
+      "title": "TDB-PHDCCI Partnership",
+      "deadline": null,
+      "reason": "Industry‑focused tech grant, open to Indian startups in healthcare"
+    },
+    "311": {
+      "rating": 3,
+      "title": "NIDHI- Seed Support System (NIDHI-SSS)",
+      "deadline": null,
+      "reason": "Seed support system for Indian startups, non‑dilutive grant suitable for prototype"
+    },
+    "332": {
+      "rating": 0,
+      "title": "E-YUVA Scheme Call For Proposal",
+      "deadline": "2026-10-31T17:30:00",
+      "reason": "Only for students/PhDs, not eligible startup"
+    }
+  },
+  "milestone-grants-startup-ke": {
+    "36": {
+      "rating": 1,
+      "title": "a16z Speedrun",
+      "deadline": null,
+      "reason": "Startup‑focused but VC‑style investment, not a milestone‑based grant"
+    },
+    "37": {
+      "rating": 0,
+      "title": "AI2 Incubator",
+      "deadline": null,
+      "reason": "AI incubator, not fintech or Kenya‑specific grant"
+    },
+    "102": {
+      "rating": 0,
+      "title": "Alliance Crypto & AI Accelerator",
+      "deadline": null,
+      "reason": "Crypto/AI accelerator, not fintech or grant"
+    },
+    "196": {
+      "rating": 0,
+      "title": "PMS Blackett Memorial Lecture and Jagadis Chandra Bose Memorial Lecture",
+      "deadline": null,
+      "reason": "Not relevant to fintech startup funding in Kenya"
+    },
+    "215": {
+      "rating": 0,
+      "title": "Jawaharlal Nehru Birth Centenary Medal",
+      "deadline": null,
+      "reason": "Science medal, not applicable"
+    },
+    "223": {
+      "rating": 0,
+      "title": "International Travel Support (ITS)",
+      "deadline": null,
+      "reason": "India travel support, irrelevant field and applicant type"
+    },
+    "225": {
+      "rating": 0,
+      "title": "Arturo Falaschi Short-Term Postdoc Fellowships",
+      "deadline": null,
+      "reason": "Postdoc fellowships, not startup funding"
+    },
+    "227": {
+      "rating": 0,
+      "title": "INSA-Vainu Bappu Memorial Award",
+      "deadline": null,
+      "reason": "Astronomy award, irrelevant"
+    },
+    "254": {
+      "rating": 0,
+      "title": "DBT-BMGF (Bill & Melinda Gates Foundation)",
+      "deadline": null,
+      "reason": "BMGF program for faculty/scientists, not startup grant"
+    },
+    "259": {
+      "rating": 0,
+      "title": "Technology Development and Utilization Programme for Women (TDUPW)",
+      "deadline": null,
+      "reason": "Not relevant to fintech startup funding in Kenya"
+    },
+    "264": {
+      "rating": 0,
+      "title": "Longitude Prize",
+      "deadline": null,
+      "reason": "Not relevant to fintech startup funding in Kenya"
+    },
+    "269": {
+      "rating": 0,
+      "title": "Abel Prize",
+      "deadline": null,
+      "reason": "Not relevant to fintech startup funding in Kenya"
+    },
+    "303": {
+      "rating": 0,
+      "title": "CSIR Research Grants",
+      "deadline": null,
+      "reason": "Research grants for scientists, not startups"
+    },
+    "318": {
+      "rating": 0,
+      "title": "National Renewable Energy Internship (NREI) Scheme",
+      "deadline": null,
+      "reason": "Indian internship scheme, unrelated"
+    },
+    "367": {
+      "rating": 2,
+      "title": "Echoing Green Fellowship",
+      "deadline": null,
+      "reason": "Seed funding for early-stage social ventures worldwide; fits a fintech for informal workers",
+      "rater": "claude"
+    }
+  },
+  "national-postdoc-physics-in": {
+    "113": {
+      "rating": 0,
+      "title": "J C Bose National Fellowship",
+      "deadline": null,
+      "reason": "Senior‑level fellowship, not for fresh PhDs"
+    },
+    "197": {
+      "rating": 1,
+      "title": "India's International Fellows",
+      "deadline": null,
+      "reason": "Broad international‑exposure fellowship, not specifically postdoc"
+    },
+    "219": {
+      "rating": 0,
+      "title": "S&T Awards - Others",
+      "deadline": null,
+      "reason": "Award program, not a postdoctoral fellowship"
+    },
+    "225": {
+      "rating": 0,
+      "title": "Arturo Falaschi Short-Term Postdoc Fellowships",
+      "deadline": null,
+      "reason": "Life sciences focus, not physics"
+    },
+    "228": {
+      "rating": 0,
+      "title": "DAE- Raja Rammana Fellowship (RRF)",
+      "deadline": null,
+      "reason": "Targeted at retired scientists, not fresh PhD"
+    },
+    "231": {
+      "rating": 0,
+      "title": "Building Energy Efficiency Higher and Advanced Network (BHAVAN) Fellowships",
+      "deadline": null,
+      "reason": "Focus on building energy efficiency, unrelated field"
+    },
+    "232": {
+      "rating": 1,
+      "title": "DAE Graduate Fellowship Scheme for Engineering Graduates and Physics Postgraduates",
+      "deadline": null,
+      "reason": "Physics field but graduate‑level fellowship, not postdoc"
+    },
+    "234": {
+      "rating": 0,
+      "title": "CSIR'S Junior Research Fellowship (JRF) - GATE",
+      "deadline": null,
+      "reason": "Undergraduate fellowship, not postdoc"
+    },
+    "236": {
+      "rating": 1,
+      "title": "India International Fellows",
+      "deadline": null,
+      "reason": "Similar to 197, broad fellowship, not targeted postdoc"
+    },
+    "241": {
+      "rating": 0,
+      "title": "Women Scientist Scheme-A (WOS-A)",
+      "deadline": null,
+      "reason": "Women scientist scheme, not a postdoc fellowship"
+    },
+    "262": {
+      "rating": 0,
+      "title": "Senior Research Fellowship (SRF)",
+      "deadline": null,
+      "reason": "Fellowship for students/postgraduates, not postdoctoral"
+    },
+    "274": {
+      "rating": 1,
+      "title": "Fulbright-Nehru Postdoctoral Research Fellowships",
+      "deadline": null,
+      "reason": "Postdoc fellowship but international (US‑India), not national"
+    },
+    "299": {
+      "rating": 0,
+      "title": "UGC-Post Doctoral Fellowship for Women Candidates",
+      "deadline": null,
+      "reason": "Women‑only postdoc scheme, gender not specified"
+    },
+    "323": {
+      "rating": 3,
+      "title": "National Post Doctoral Fellowship (N-PDF)",
+      "deadline": null,
+      "reason": "Exact national postdoc fellowship for PhD holders in India"
+    },
+    "324": {
+      "rating": 0,
+      "title": "Ramanujan Fellowship",
+      "deadline": null,
+      "reason": "Senior‑level Ramanujan Fellowship, not for fresh PhDs"
+    },
+    "342": {
+      "rating": 0,
+      "title": "National Fellowship",
+      "deadline": null,
+      "reason": "Retired social scientists, not postdoc"
+    },
+    "344": {
+      "rating": 0,
+      "title": "Doctoral Fellowship",
+      "deadline": null,
+      "reason": "Social sciences doctoral fellowship"
+    },
+    "355": {
+      "rating": 0,
+      "title": "ICSSR Full-Term Doctoral Fellowship 2026-27",
+      "deadline": null,
+      "reason": "Social-science doctoral fellowship",
+      "rater": "claude"
+    },
+    "359": {
+      "rating": 1,
+      "title": "IUSSTF-American Physical Society Fellowship",
+      "deadline": null,
+      "reason": "Physics, but travel funds for India-US exchange, not a postdoc position",
+      "rater": "claude"
+    },
+    "368": {
+      "rating": 0,
+      "title": "EMBO Postdoctoral Fellowships",
+      "deadline": "2027-01-22T14:00:00",
+      "reason": "Life-science postdoc fellowship in Europe",
+      "rater": "claude"
+    },
+    "370": {
+      "rating": 1,
+      "title": "Humboldt Research Fellowship",
+      "deadline": null,
+      "reason": "Postdoc fellowship, but in Germany rather than India",
+      "rater": "claude"
+    }
+  },
+  "neuroscience-independent-group-uk": {
+    "37": {
+      "rating": 0,
+      "title": "AI2 Incubator",
+      "deadline": null,
+      "reason": "AI startup incubator",
+      "rater": "claude"
+    },
+    "196": {
+      "rating": 0,
+      "title": "PMS Blackett Memorial Lecture and Jagadis Chandra Bose Memorial Lecture",
+      "deadline": null,
+      "reason": "Lecture award",
+      "rater": "claude"
+    },
+    "198": {
+      "rating": 0,
+      "title": "COVID 2.0 FUNDING",
+      "deadline": null,
+      "reason": "COVID-19 research, India-UK",
+      "rater": "claude"
+    },
+    "215": {
+      "rating": 0,
+      "title": "Jawaharlal Nehru Birth Centenary Medal",
+      "deadline": null,
+      "reason": "Medal",
+      "rater": "claude"
+    },
+    "223": {
+      "rating": 0,
+      "title": "International Travel Support (ITS)",
+      "deadline": null,
+      "reason": "Indian travel support",
+      "rater": "claude"
+    },
+    "225": {
+      "rating": 0,
+      "title": "Arturo Falaschi Short-Term Postdoc Fellowships",
+      "deadline": null,
+      "reason": "Short-term postdoc at ICGEB",
+      "rater": "claude"
+    },
+    "227": {
+      "rating": 0,
+      "title": "INSA-Vainu Bappu Memorial Award",
+      "deadline": null,
+      "reason": "Astronomy award",
+      "rater": "claude"
+    },
+    "230": {
+      "rating": 0,
+      "title": "BIRAC Nesta Discovery Awards",
+      "deadline": null,
+      "reason": "AMR seed grants for Indian innovators",
+      "rater": "claude"
+    },
+    "254": {
+      "rating": 0,
+      "title": "DBT-BMGF (Bill & Melinda Gates Foundation)",
+      "deadline": null,
+      "reason": "Global health partnership",
+      "rater": "claude"
+    },
+    "259": {
+      "rating": 0,
+      "title": "Technology Development and Utilization Programme for Women (TDUPW)",
+      "deadline": null,
+      "reason": "Indian technology programme for women",
+      "rater": "claude"
+    },
+    "264": {
+      "rating": 0,
+      "title": "Longitude Prize",
+      "deadline": null,
+      "reason": "AMR diagnostics prize",
+      "rater": "claude"
+    },
+    "303": {
+      "rating": 0,
+      "title": "CSIR Research Grants",
+      "deadline": null,
+      "reason": "Indian research grants",
+      "rater": "claude"
+    },
+    "318": {
+      "rating": 0,
+      "title": "National Renewable Energy Internship (NREI) Scheme",
+      "deadline": null,
+      "reason": "Renewable energy internship",
+      "rater": "claude"
+    },
+    "367": {
+      "rating": 0,
+      "title": "Echoing Green Fellowship",
+      "deadline": null,
+      "reason": "Social entrepreneurship",
+      "rater": "claude"
+    },
+    "368": {
+      "rating": 1,
+      "title": "EMBO Postdoctoral Fellowships",
+      "deadline": "2027-01-22T14:00:00",
+      "reason": "Postdoc fellowship in life sciences, not a fellowship to start a group",
+      "rater": "claude"
+    },
+    "370": {
+      "rating": 1,
+      "title": "Humboldt Research Fellowship",
+      "deadline": null,
+      "reason": "Own research in Germany, but not for starting a group in the UK",
+      "rater": "claude"
+    },
+    "371": {
+      "rating": 3,
+      "title": "Starting Grant",
+      "deadline": "2026-10-14T23:59:59",
+      "reason": "ERC grant to start an independent group, open to UK hosts; missed because of the country-group bug",
+      "rater": "claude"
+    }
+  },
+  "new-assistant-professor-chemistry-in": {
+    "39": {
+      "rating": 2,
+      "title": "Core Research Grant (CRG)",
+      "deadline": null,
+      "reason": "SERB core grant; eligible new faculty",
+      "rater": "claude"
+    },
+    "199": {
+      "rating": 0,
+      "title": "Joint Appointment for Exchange of Human Resources between Universities and other Institutions/ Organisations",
+      "deadline": null,
+      "reason": "Faculty exchange",
+      "rater": "claude"
+    },
+    "204": {
+      "rating": 0,
+      "title": "Basic Research in Modern Biology",
+      "deadline": null,
+      "reason": "Biology research",
+      "rater": "claude"
+    },
+    "212": {
+      "rating": 0,
+      "title": "TDB Seed Fund",
+      "deadline": null,
+      "reason": "Startup seed fund",
+      "rater": "claude"
+    },
+    "244": {
+      "rating": 0,
+      "title": "BIRAC-CEFIPRA Partnership",
+      "deadline": null,
+      "reason": "Biotech startups",
+      "rater": "claude"
+    },
+    "251": {
+      "rating": 0,
+      "title": "Animal Health",
+      "deadline": null,
+      "reason": "Animal health",
+      "rater": "claude"
+    },
+    "257": {
+      "rating": 0,
+      "title": "Special Assistance Programme (SAP)",
+      "deadline": null,
+      "reason": "For departments",
+      "rater": "claude"
+    },
+    "274": {
+      "rating": 0,
+      "title": "Fulbright-Nehru Postdoctoral Research Fellowships",
+      "deadline": null,
+      "reason": "US postdoc fellowship",
+      "rater": "claude"
+    },
+    "295": {
+      "rating": 0,
+      "title": "Start Up Schemes - Department of Science & Technology",
+      "deadline": null,
+      "reason": "Startup schemes",
+      "rater": "claude"
+    },
+    "303": {
+      "rating": 2,
+      "title": "CSIR Research Grants",
+      "deadline": null,
+      "reason": "CSIR research grant for faculty",
+      "rater": "claude"
+    },
+    "305": {
+      "rating": 2,
+      "title": "Core Research Grant (CRG)",
+      "deadline": null,
+      "reason": "SERB core grant; eligible new faculty",
+      "rater": "claude"
+    },
+    "308": {
+      "rating": 0,
+      "title": "CSIR Partial Financial Assistance scheme",
+      "deadline": null,
+      "reason": "Conference travel support",
+      "rater": "claude"
+    },
+    "311": {
+      "rating": 0,
+      "title": "NIDHI- Seed Support System (NIDHI-SSS)",
+      "deadline": null,
+      "reason": "Startup seed support",
+      "rater": "claude"
+    },
+    "313": {
+      "rating": 0,
+      "title": "Research Grants - International",
+      "deadline": null,
+      "reason": "Biotech collaboration",
+      "rater": "claude"
+    },
+    "314": {
+      "rating": 0,
+      "title": "AICTE-INAE Teachers Research Fellowship Scheme for Engineering Teachers for Doctoral Research in Central Laboratories",
+      "deadline": null,
+      "reason": "For engineering teachers",
+      "rater": "claude"
+    },
+    "319": {
+      "rating": 1,
+      "title": "DAE Young Scientist Research Award (DAE-YSRA)",
+      "deadline": null,
+      "reason": "Start-up style grant, but nuclear sciences only",
+      "rater": "claude"
+    },
+    "322": {
+      "rating": 3,
+      "title": "Prime Minister Early Career Research Grant",
+      "deadline": null,
+      "reason": "Early-career grant to start research in a new institution: exactly the ask",
+      "rater": "claude"
+    },
+    "325": {
+      "rating": 2,
+      "title": "Core Research Grant (Individual Centric)",
+      "deadline": null,
+      "reason": "SERB core grant for faculty",
+      "rater": "claude"
+    },
+    "326": {
+      "rating": 3,
+      "title": "Start-up Research Grant (SRG)",
+      "deadline": null,
+      "reason": "Start-up research grant for new faculty: exactly the ask",
+      "rater": "claude"
+    },
+    "332": {
+      "rating": 0,
+      "title": "E-YUVA Scheme Call For Proposal",
+      "deadline": "2026-10-31T17:30:00",
+      "reason": "For students",
+      "rater": "claude"
+    },
+    "345": {
+      "rating": 0,
+      "title": "TDP Call for Proposal 2026",
+      "deadline": "2026-10-20T23:59:59",
+      "reason": "IoT for Scheduled Tribe communities",
+      "rater": "claude"
+    }
+  },
+  "quantum-technology-faculty-in": {
+    "31": {
+      "rating": 0,
+      "title": "BCDD Grant by KSUM & BCDD Kerala",
+      "deadline": null,
+      "reason": "Kerala startup grant",
+      "rater": "claude"
+    },
+    "36": {
+      "rating": 0,
+      "title": "a16z Speedrun",
+      "deadline": null,
+      "reason": "Startup accelerator",
+      "rater": "claude"
+    },
+    "113": {
+      "rating": 0,
+      "title": "J C Bose National Fellowship",
+      "deadline": null,
+      "reason": "Recognition fellowship",
+      "rater": "claude"
+    },
+    "198": {
+      "rating": 0,
+      "title": "COVID 2.0 FUNDING",
+      "deadline": null,
+      "reason": "COVID-19 research",
+      "rater": "claude"
+    },
+    "212": {
+      "rating": 0,
+      "title": "TDB Seed Fund",
+      "deadline": null,
+      "reason": "Startup seed fund",
+      "rater": "claude"
+    },
+    "219": {
+      "rating": 0,
+      "title": "S&T Awards - Others",
+      "deadline": null,
+      "reason": "Awards",
+      "rater": "claude"
+    },
+    "223": {
+      "rating": 0,
+      "title": "International Travel Support (ITS)",
+      "deadline": null,
+      "reason": "Travel support",
+      "rater": "claude"
+    },
+    "232": {
+      "rating": 0,
+      "title": "DAE Graduate Fellowship Scheme for Engineering Graduates and Physics Postgraduates",
+      "deadline": null,
+      "reason": "Graduate fellowship",
+      "rater": "claude"
+    },
+    "237": {
+      "rating": 0,
+      "title": "Grant for holding Symposium/Seminar",
+      "deadline": null,
+      "reason": "Symposium grant",
+      "rater": "claude"
+    },
+    "241": {
+      "rating": 0,
+      "title": "Women Scientist Scheme-A (WOS-A)",
+      "deadline": null,
+      "reason": "Women scientists scheme",
+      "rater": "claude"
+    },
+    "261": {
+      "rating": 0,
+      "title": "Contract Research/Service Scheme (CRS)",
+      "deadline": null,
+      "reason": "Contract research services",
+      "rater": "claude"
+    },
+    "268": {
+      "rating": 0,
+      "title": "Common Research and Technology Development Hubs (CRTDHs)",
+      "deadline": null,
+      "reason": "Small enterprise hubs",
+      "rater": "claude"
+    },
+    "273": {
+      "rating": 0,
+      "title": "Gujar Mal Modi Award for Science & Technology",
+      "deadline": null,
+      "reason": "Award",
+      "rater": "claude"
+    },
+    "283": {
+      "rating": 0,
+      "title": "Technology Acquisition Fund Programme (TAFP)",
+      "deadline": null,
+      "reason": "Industry technology acquisition",
+      "rater": "claude"
+    },
+    "290": {
+      "rating": 0,
+      "title": "Bioinformatics, AI & Big Data",
+      "deadline": null,
+      "reason": "Bioinformatics",
+      "rater": "claude"
+    },
+    "303": {
+      "rating": 2,
+      "title": "CSIR Research Grants",
+      "deadline": null,
+      "reason": "CSIR research grant for scientists; can fund quantum research",
+      "rater": "claude"
+    },
+    "313": {
+      "rating": 0,
+      "title": "Research Grants - International",
+      "deadline": null,
+      "reason": "Biotech collaboration",
+      "rater": "claude"
+    },
+    "316": {
+      "rating": 0,
+      "title": "Patent Acquisition and Collaborative Research & Technology Development (PACE)",
+      "deadline": null,
+      "reason": "Industry technology development",
+      "rater": "claude"
+    },
+    "329": {
+      "rating": 0,
+      "title": "SERB Science and Technology Award for Research (SERB-STAR)",
+      "deadline": null,
+      "reason": "Award",
+      "rater": "claude"
+    },
+    "331": {
+      "rating": 1,
+      "title": "Technology Translation Award (SERB-TETRA)",
+      "deadline": null,
+      "reason": "Technology translation for SERB investigators",
+      "rater": "claude"
+    },
+    "346": {
+      "rating": 0,
+      "title": "TDP Call for Proposal 2026 (11)",
+      "deadline": "2026-10-31T23:59:59",
+      "reason": "IoT projects",
+      "rater": "claude"
+    },
+    "363": {
+      "rating": 0,
+      "title": "Focus Area Science Technology-Summer Fellowship [FAST-SF] Program — 2027",
+      "deadline": "2026-11-30T23:59:59",
+      "reason": "Summer fellowship",
+      "rater": "claude"
+    }
+  },
+  "recycling-entrepreneur-ph": {
+    "36": {
+      "rating": 1,
+      "title": "a16z Speedrun",
+      "deadline": null,
+      "reason": "General startup funding, not specific to recycling"
+    },
+    "37": {
+      "rating": 0,
+      "title": "AI2 Incubator",
+      "deadline": null,
+      "reason": "AI startup incubator, unrelated field"
+    },
+    "102": {
+      "rating": 0,
+      "title": "Alliance Crypto & AI Accelerator",
+      "deadline": null,
+      "reason": "Crypto/AI accelerator, unrelated field"
+    },
+    "196": {
+      "rating": 0,
+      "title": "PMS Blackett Memorial Lecture and Jagadis Chandra Bose Memorial Lecture",
+      "deadline": null,
+      "reason": "Lecture awards for scientists, not entrepreneurial support"
+    },
+    "215": {
+      "rating": 0,
+      "title": "Jawaharlal Nehru Birth Centenary Medal",
+      "deadline": null,
+      "reason": "Award for scientific contributions, not entrepreneurial program"
+    },
+    "223": {
+      "rating": 0,
+      "title": "International Travel Support (ITS)",
+      "deadline": null,
+      "reason": "Travel support, unrelated to waste‑management business"
+    },
+    "225": {
+      "rating": 0,
+      "title": "Arturo Falaschi Short-Term Postdoc Fellowships",
+      "deadline": null,
+      "reason": "Postdoc fellowship in biotech, not for recycling entrepreneurs"
+    },
+    "227": {
+      "rating": 0,
+      "title": "INSA-Vainu Bappu Memorial Award",
+      "deadline": null,
+      "reason": "Astronomy award, unrelated field"
+    },
+    "254": {
+      "rating": 0,
+      "title": "DBT-BMGF (Bill & Melinda Gates Foundation)",
+      "deadline": null,
+      "reason": "Health/development focus, eligibility limited to faculty/scientists"
+    },
+    "259": {
+      "rating": 0,
+      "title": "Technology Development and Utilization Programme for Women (TDUPW)",
+      "deadline": null,
+      "reason": "Women‑focused tech program, not recycling entrepreneurship"
+    },
+    "264": {
+      "rating": 0,
+      "title": "Longitude Prize",
+      "deadline": null,
+      "reason": "Life sciences prize on antibiotics, not waste management"
+    },
+    "269": {
+      "rating": 0,
+      "title": "Abel Prize",
+      "deadline": null,
+      "reason": "Mathematics award, irrelevant"
+    },
+    "288": {
+      "rating": 0,
+      "title": "ASEAN-India Research Training Fellowships (AI-RTF)",
+      "deadline": null,
+      "reason": "Research fellowship for scientists, not entrepreneurs"
+    },
+    "303": {
+      "rating": 0,
+      "title": "CSIR Research Grants",
+      "deadline": null,
+      "reason": "Research grants for scientists, not startup founders"
+    },
+    "318": {
+      "rating": 0,
+      "title": "National Renewable Energy Internship (NREI) Scheme",
+      "deadline": null,
+      "reason": "Internship scheme for students, not startup support"
+    },
+    "367": {
+      "rating": 2,
+      "title": "Echoing Green Fellowship",
+      "deadline": null,
+      "reason": "Seed funding for early-stage social entrepreneurs worldwide; fits a recycling social enterprise",
+      "rater": "claude"
+    }
+  },
+  "returning-scientist-in": {
+    "39": {
+      "rating": 1,
+      "title": "Core Research Grant (CRG)",
+      "deadline": null,
+      "reason": "Research grant for Indian institutions, not a return‑ee fellowship"
+    },
+    "113": {
+      "rating": 0,
+      "title": "J C Bose National Fellowship",
+      "deadline": null,
+      "reason": "Senior‑level fellowship, not for early‑career returnees"
+    },
+    "197": {
+      "rating": 0,
+      "title": "India's International Fellows",
+      "deadline": null,
+      "reason": "General fellowship, not targeted at returnees"
+    },
+    "211": {
+      "rating": 0,
+      "title": "GD Birla Award for Scientific Research",
+      "deadline": null,
+      "reason": "Award, not a fellowship for returning scientists"
+    },
+    "228": {
+      "rating": 0,
+      "title": "DAE- Raja Rammana Fellowship (RRF)",
+      "deadline": null,
+      "reason": "Targeted at retired scientists, not early‑career returnees"
+    },
+    "231": {
+      "rating": 0,
+      "title": "Building Energy Efficiency Higher and Advanced Network (BHAVAN) Fellowships",
+      "deadline": null,
+      "reason": "Student‑level fellowship, unrelated field"
+    },
+    "234": {
+      "rating": 0,
+      "title": "CSIR'S Junior Research Fellowship (JRF) - GATE",
+      "deadline": null,
+      "reason": "Junior fellowship for early students, not for postdoc returnees"
+    },
+    "236": {
+      "rating": 0,
+      "title": "India International Fellows",
+      "deadline": null,
+      "reason": "General fellowship, no focus on returning abroad scientists"
+    },
+    "245": {
+      "rating": 0,
+      "title": "Bhaskara Advanced Solar Energy (BASE) Fellowship Program",
+      "deadline": null,
+      "reason": "Solar energy focus, limited to PhD candidates"
+    },
+    "262": {
+      "rating": 0,
+      "title": "Senior Research Fellowship (SRF)",
+      "deadline": null,
+      "reason": "Targeted at postgraduate students, not returning researchers"
+    },
+    "274": {
+      "rating": 0,
+      "title": "Fulbright-Nehru Postdoctoral Research Fellowships",
+      "deadline": null,
+      "reason": "Supports Indian researchers to go abroad, opposite direction"
+    },
+    "309": {
+      "rating": 0,
+      "title": "CSIR - Travel Grant",
+      "deadline": null,
+      "reason": "Travel grant, not a research fellowship"
+    },
+    "319": {
+      "rating": 0,
+      "title": "DAE Young Scientist Research Award (DAE-YSRA)",
+      "deadline": null,
+      "reason": "Young scientist award for those already in India"
+    },
+    "323": {
+      "rating": 1,
+      "title": "National Post Doctoral Fellowship (N-PDF)",
+      "deadline": null,
+      "reason": "Post‑doc fellowship for Indian PhDs, but not specifically for returnees or independent labs"
+    },
+    "324": {
+      "rating": 3,
+      "title": "Ramanujan Fellowship",
+      "deadline": null,
+      "reason": "Specifically attracts Indian scientists abroad to set up research in India"
+    },
+    "327": {
+      "rating": 0,
+      "title": "J.C. Bose Fellowship",
+      "deadline": null,
+      "reason": "Fellowship for established Indian scientists, not returnees"
+    },
+    "342": {
+      "rating": 0,
+      "title": "National Fellowship",
+      "deadline": null,
+      "reason": "Social‑science focus, unrelated field"
+    },
+    "343": {
+      "rating": 0,
+      "title": "Senior Fellowship",
+      "deadline": null,
+      "reason": "Social‑science senior fellowship, irrelevant field"
+    },
+    "356": {
+      "rating": 0,
+      "title": "Bhaskara Advanced Solar Energy Fellowship",
+      "deadline": null,
+      "reason": "Solar fellowship to go to the US, not to return to India",
+      "rater": "claude"
+    },
+    "359": {
+      "rating": 0,
+      "title": "IUSSTF-American Physical Society Fellowship",
+      "deadline": null,
+      "reason": "Physics travel exchange",
+      "rater": "claude"
+    },
+    "360": {
+      "rating": 0,
+      "title": "Indo-U.S. Fellowship for Women in STEMM (WISTEMM)",
+      "deadline": null,
+      "reason": "Fellowship for women to research in the US",
+      "rater": "claude"
+    },
+    "363": {
+      "rating": 0,
+      "title": "Focus Area Science Technology-Summer Fellowship [FAST-SF] Program — 2027",
+      "deadline": "2026-11-30T23:59:59",
+      "reason": "Summer fellowship for students and teachers",
+      "rater": "claude"
+    },
+    "364": {
+      "rating": 1,
+      "title": "India Science and Research Fellowship Programme 2025-26",
+      "deadline": null,
+      "reason": "Research stay in India, not a fellowship to set up a lab on return",
+      "rater": "claude"
+    }
+  },
+  "senior-scientist-national-fellowship-in": {
+    "113": {
+      "rating": 3,
+      "title": "J C Bose National Fellowship",
+      "deadline": null,
+      "reason": "J C Bose National Fellowship targets outstanding senior Indian scientists"
+    },
+    "196": {
+      "rating": 1,
+      "title": "PMS Blackett Memorial Lecture and Jagadis Chandra Bose Memorial Lecture",
+      "deadline": null,
+      "reason": "Prestigious recognition but a lectureship, not a fellowship",
+      "rater": "claude"
+    },
+    "197": {
+      "rating": 0,
+      "title": "India's International Fellows",
+      "deadline": null,
+      "reason": "Focus on international exposure, not senior career award"
+    },
+    "201": {
+      "rating": 0,
+      "title": "Dr. K.S.Krishnan Research Associateship (KSKRA)",
+      "deadline": null,
+      "reason": "For young doctorates in atomic energy",
+      "rater": "claude"
+    },
+    "210": {
+      "rating": 1,
+      "title": "Emeritus Fellowship",
+      "deadline": null,
+      "reason": "For superannuated teachers, not a senior scientist recognition fellowship"
+    },
+    "218": {
+      "rating": 0,
+      "title": "Shanti Swarup Bhatnagar Prize 2020",
+      "deadline": null,
+      "reason": "Prize for early/mid‑career scientists, not a fellowship"
+    },
+    "219": {
+      "rating": 1,
+      "title": "S&T Awards - Others",
+      "deadline": null,
+      "reason": "Recognition awards, not a national fellowship",
+      "rater": "claude"
+    },
+    "228": {
+      "rating": 1,
+      "title": "DAE- Raja Rammana Fellowship (RRF)",
+      "deadline": null,
+      "reason": "For retired scientists/engineers, tangential to senior active fellowship"
+    },
+    "234": {
+      "rating": 0,
+      "title": "CSIR'S Junior Research Fellowship (JRF) - GATE",
+      "deadline": null,
+      "reason": "Junior fellowship for students"
+    },
+    "236": {
+      "rating": 0,
+      "title": "India International Fellows",
+      "deadline": null,
+      "reason": "Broad research fellowship, not senior‑career recognition"
+    },
+    "245": {
+      "rating": 0,
+      "title": "Bhaskara Advanced Solar Energy (BASE) Fellowship Program",
+      "deadline": null,
+      "reason": "Solar‑energy PhD fellowship, not senior"
+    },
+    "252": {
+      "rating": 0,
+      "title": "SERB Women Excellence Award",
+      "deadline": null,
+      "reason": "Women‑only award, not senior national fellowship"
+    },
+    "262": {
+      "rating": 0,
+      "title": "Senior Research Fellowship (SRF)",
+      "deadline": null,
+      "reason": "Designed for postgraduate students, not senior faculty"
+    },
+    "274": {
+      "rating": 0,
+      "title": "Fulbright-Nehru Postdoctoral Research Fellowships",
+      "deadline": null,
+      "reason": "Postdoctoral focus, not senior fellowship"
+    },
+    "322": {
+      "rating": 0,
+      "title": "Prime Minister Early Career Research Grant",
+      "deadline": null,
+      "reason": "Early‑career grant"
+    },
+    "323": {
+      "rating": 0,
+      "title": "National Post Doctoral Fellowship (N-PDF)",
+      "deadline": null,
+      "reason": "Post‑doctoral fellowship for early‑career researchers"
+    },
+    "324": {
+      "rating": 1,
+      "title": "Ramanujan Fellowship",
+      "deadline": null,
+      "reason": "Attracts Indian/Indian‑origin scientists, but aimed at returnees rather than senior recognition"
+    },
+    "327": {
+      "rating": 3,
+      "title": "J.C. Bose Fellowship",
+      "deadline": null,
+      "reason": "National fellowship for active senior scientists across all fields in India"
+    },
+    "342": {
+      "rating": 0,
+      "title": "National Fellowship",
+      "deadline": null,
+      "reason": "Social sciences focus, retired scholars only"
+    },
+    "343": {
+      "rating": 0,
+      "title": "Senior Fellowship",
+      "deadline": null,
+      "reason": "Social sciences domain, not relevant to chemical biology"
+    },
+    "363": {
+      "rating": 0,
+      "title": "Focus Area Science Technology-Summer Fellowship [FAST-SF] Program — 2027",
+      "deadline": "2026-11-30T23:59:59",
+      "reason": "Summer fellowship for students and teachers",
+      "rater": "claude"
+    },
+    "364": {
+      "rating": 0,
+      "title": "India Science and Research Fellowship Programme 2025-26",
+      "deadline": null,
+      "reason": "Research exchange fellowship, not recognition of a career",
+      "rater": "claude"
+    },
+    "368": {
+      "rating": 0,
+      "title": "EMBO Postdoctoral Fellowships",
+      "deadline": "2027-01-22T14:00:00",
+      "reason": "Postdoc fellowship",
+      "rater": "claude"
+    },
+    "370": {
+      "rating": 0,
+      "title": "Humboldt Research Fellowship",
+      "deadline": null,
+      "reason": "Research stay in Germany, not national recognition",
+      "rater": "claude"
+    }
+  },
+  "small-business-growth-us": {
+    "36": {
+      "rating": 1,
+      "title": "a16z Speedrun",
+      "deadline": null,
+      "reason": "Startup funding but tech‑focused, not small‑biz specific"
+    },
+    "37": {
+      "rating": 0,
+      "title": "AI2 Incubator",
+      "deadline": null,
+      "reason": "AI incubator, not applicable"
+    },
+    "102": {
+      "rating": 0,
+      "title": "Alliance Crypto & AI Accelerator",
+      "deadline": null,
+      "reason": "Crypto/AI accelerator unrelated to bakery"
+    },
+    "107": {
+      "rating": 3,
+      "title": "Verizon Small Business Digital Ready National Grant",
+      "deadline": null,
+      "reason": "Directly funds US for‑profit small businesses for growth"
+    },
+    "196": {
+      "rating": 0,
+      "title": "PMS Blackett Memorial Lecture and Jagadis Chandra Bose Memorial Lecture",
+      "deadline": null,
+      "reason": "Scientific lecture awards, not business support"
+    },
+    "215": {
+      "rating": 0,
+      "title": "Jawaharlal Nehru Birth Centenary Medal",
+      "deadline": null,
+      "reason": "Science medal, unrelated to small business"
+    },
+    "223": {
+      "rating": 0,
+      "title": "International Travel Support (ITS)",
+      "deadline": null,
+      "reason": "Travel support for scientists"
+    },
+    "225": {
+      "rating": 0,
+      "title": "Arturo Falaschi Short-Term Postdoc Fellowships",
+      "deadline": null,
+      "reason": "Postdoc fellowship in life sciences, not business"
+    },
+    "227": {
+      "rating": 0,
+      "title": "INSA-Vainu Bappu Memorial Award",
+      "deadline": null,
+      "reason": "Astronomy award for scientists, not business"
+    },
+    "230": {
+      "rating": 0,
+      "title": "BIRAC Nesta Discovery Awards",
+      "deadline": null,
+      "reason": "Biotech discovery awards, not small business"
+    },
+    "254": {
+      "rating": 0,
+      "title": "DBT-BMGF (Bill & Melinda Gates Foundation)",
+      "deadline": null,
+      "reason": "Health/development grants for researchers"
+    },
+    "259": {
+      "rating": 0,
+      "title": "Technology Development and Utilization Programme for Women (TDUPW)",
+      "deadline": null,
+      "reason": "Women‑only tech program, not bakery funding"
+    },
+    "264": {
+      "rating": 0,
+      "title": "Longitude Prize",
+      "deadline": null,
+      "reason": "Antibiotic resistance prize, unrelated to bakery"
+    },
+    "303": {
+      "rating": 0,
+      "title": "CSIR Research Grants",
+      "deadline": null,
+      "reason": "Scientific research grants for faculty"
+    },
+    "313": {
+      "rating": 0,
+      "title": "Research Grants - International",
+      "deadline": null,
+      "reason": "Research biotech grants for academics"
+    },
+    "318": {
+      "rating": 0,
+      "title": "National Renewable Energy Internship (NREI) Scheme",
+      "deadline": null,
+      "reason": "Internship scheme for students, not business funding"
+    },
+    "367": {
+      "rating": 1,
+      "title": "Echoing Green Fellowship",
+      "deadline": null,
+      "reason": "For social-impact ventures, not general small-business growth",
+      "rater": "claude"
+    }
+  },
+  "sociology-urban-migration-in": {
+    "39": {
+      "rating": 0,
+      "title": "Core Research Grant (CRG)",
+      "deadline": null,
+      "reason": "Science/engineering focus, not social science"
+    },
+    "197": {
+      "rating": 0,
+      "title": "India's International Fellows",
+      "deadline": null,
+      "reason": "Science/R&D focus, not social science"
+    },
+    "211": {
+      "rating": 0,
+      "title": "GD Birla Award for Scientific Research",
+      "deadline": null,
+      "reason": "Award for young scientists, not a research grant for senior sociologist"
+    },
+    "219": {
+      "rating": 1,
+      "title": "S&T Awards - Others",
+      "deadline": null,
+      "reason": "Social sciences listed but program is an award, not project grant"
+    },
+    "220": {
+      "rating": 0,
+      "title": "Streeshakti Science Award",
+      "deadline": null,
+      "reason": "Award for women scientists, not research funding",
+      "rater": "claude"
+    },
+    "236": {
+      "rating": 0,
+      "title": "India International Fellows",
+      "deadline": null,
+      "reason": "Science/R&D focus, not social science"
+    },
+    "258": {
+      "rating": 1,
+      "title": "Collaborative Scientific Research Programme",
+      "deadline": null,
+      "reason": "Bilateral science programme, not targeted to social sciences"
+    },
+    "262": {
+      "rating": 0,
+      "title": "Senior Research Fellowship (SRF)",
+      "deadline": null,
+      "reason": "Fellowship for postgraduate students, not senior faculty"
+    },
+    "293": {
+      "rating": 2,
+      "title": "Research Grants - Individual",
+      "deadline": null,
+      "reason": "Includes Social Sciences, eligible for Indian academics"
+    },
+    "309": {
+      "rating": 0,
+      "title": "CSIR - Travel Grant",
+      "deadline": null,
+      "reason": "Conference travel for scientists, not a social science project grant",
+      "rater": "claude"
+    },
+    "313": {
+      "rating": 0,
+      "title": "Research Grants - International",
+      "deadline": null,
+      "reason": "Fields biotech/engineering, not social science"
+    },
+    "321": {
+      "rating": 2,
+      "title": "Advanced Research Grant (ARG)",
+      "deadline": null,
+      "reason": "Advanced Research Grant includes social sciences and allows PI; relevant but broad"
+    },
+    "324": {
+      "rating": 0,
+      "title": "Ramanujan Fellowship",
+      "deadline": null,
+      "reason": "General science fellowship for scientists/engineers, not social scientists"
+    },
+    "325": {
+      "rating": 0,
+      "title": "Core Research Grant (Individual Centric)",
+      "deadline": null,
+      "reason": "Science/engineering focus, no social science"
+    },
+    "326": {
+      "rating": 0,
+      "title": "Start-up Research Grant (SRG)",
+      "deadline": null,
+      "reason": "Start-up grant for new science and engineering faculty",
+      "rater": "claude"
+    },
+    "327": {
+      "rating": 0,
+      "title": "J.C. Bose Fellowship",
+      "deadline": null,
+      "reason": "Science fellowship; social sciences not covered",
+      "rater": "claude"
+    },
+    "329": {
+      "rating": 0,
+      "title": "SERB Science and Technology Award for Research (SERB-STAR)",
+      "deadline": null,
+      "reason": "Science/engineering focus, not social science"
+    },
+    "341": {
+      "rating": 3,
+      "title": "Indo-German Funding Opportunity for Joint Research Projects in Social Science Research",
+      "deadline": null,
+      "reason": "Directly funds social science research, Indo‑German collaboration"
+    },
+    "342": {
+      "rating": 0,
+      "title": "National Fellowship",
+      "deadline": null,
+      "reason": "Fellowship limited to retired scholars, applicant not eligible"
+    },
+    "343": {
+      "rating": 3,
+      "title": "Senior Fellowship",
+      "deadline": null,
+      "reason": "ICSSR Senior Fellowship for senior social scientists, matches field and eligibility"
+    },
+    "344": {
+      "rating": 0,
+      "title": "Doctoral Fellowship",
+      "deadline": null,
+      "reason": "Only for PhD students, not professor‑led project"
+    },
+    "355": {
+      "rating": 1,
+      "title": "ICSSR Full-Term Doctoral Fellowship 2026-27",
+      "deadline": null,
+      "reason": "Social science, but a fellowship for PhD students, not a project grant",
+      "rater": "claude"
+    },
+    "364": {
+      "rating": 0,
+      "title": "India Science and Research Fellowship Programme 2025-26",
+      "deadline": null,
+      "reason": "Science research exchange fellowship",
+      "rater": "claude"
+    }
+  },
+  "solar-energy-fellowship-in": {
+    "113": {
+      "rating": 0,
+      "title": "J C Bose National Fellowship",
+      "deadline": null,
+      "reason": "Senior scientists, India‑only"
+    },
+    "197": {
+      "rating": 2,
+      "title": "India's International Fellows",
+      "deadline": null,
+      "reason": "Open to Indian students; supports international fellowships in science"
+    },
+    "225": {
+      "rating": 0,
+      "title": "Arturo Falaschi Short-Term Postdoc Fellowships",
+      "deadline": null,
+      "reason": "Postdoc only, unrelated field"
+    },
+    "228": {
+      "rating": 0,
+      "title": "DAE- Raja Rammana Fellowship (RRF)",
+      "deadline": null,
+      "reason": "Targeted at retired scientists, not eligible"
+    },
+    "231": {
+      "rating": 1,
+      "title": "Building Energy Efficiency Higher and Advanced Network (BHAVAN) Fellowships",
+      "deadline": null,
+      "reason": "Student‑eligible but focuses on building energy, not solar photovoltaics"
+    },
+    "232": {
+      "rating": 1,
+      "title": "DAE Graduate Fellowship Scheme for Engineering Graduates and Physics Postgraduates",
+      "deadline": null,
+      "reason": "Graduate fellowship, India‑based, not abroad"
+    },
+    "236": {
+      "rating": 2,
+      "title": "India International Fellows",
+      "deadline": null,
+      "reason": "Similar international fellowship for Indian researchers/students"
+    },
+    "245": {
+      "rating": 3,
+      "title": "Bhaskara Advanced Solar Energy (BASE) Fellowship Program",
+      "deadline": null,
+      "reason": "Solar energy research fellowship at US labs for Indian PhD students: exactly the ask",
+      "rater": "claude"
+    },
+    "246": {
+      "rating": 0,
+      "title": "DAE-Relevant Research Project (RP)",
+      "deadline": null,
+      "reason": "Energy/nuclear focus, no fellowship component for students"
+    },
+    "248": {
+      "rating": 1,
+      "title": "Climate Change Programme",
+      "deadline": null,
+      "reason": "Energy/environment focus, but not a fellowship program for overseas research"
+    },
+    "250": {
+      "rating": 0,
+      "title": "Cross-Cutting and Futuristic initiatives (CCFI)",
+      "deadline": null,
+      "reason": "Large research initiative, not a personal fellowship for abroad work"
+    },
+    "257": {
+      "rating": 0,
+      "title": "Special Assistance Programme (SAP)",
+      "deadline": null,
+      "reason": "Department‑level program, not individual"
+    },
+    "258": {
+      "rating": 1,
+      "title": "Collaborative Scientific Research Programme",
+      "deadline": null,
+      "reason": "Group collaboration, not individual fellowship"
+    },
+    "301": {
+      "rating": 0,
+      "title": "DRDO Naval Research Board-Grant-in-aid scheme",
+      "deadline": null,
+      "reason": "Naval research grant-in-aid for institutions, not a fellowship abroad",
+      "rater": "claude"
+    },
+    "309": {
+      "rating": 1,
+      "title": "CSIR - Travel Grant",
+      "deadline": null,
+      "reason": "Travel grant, not a research fellowship"
+    },
+    "313": {
+      "rating": 0,
+      "title": "Research Grants - International",
+      "deadline": null,
+      "reason": "DBT joint biotech projects, not a solar fellowship abroad",
+      "rater": "claude"
+    },
+    "314": {
+      "rating": 0,
+      "title": "AICTE-INAE Teachers Research Fellowship Scheme for Engineering Teachers for Doctoral Research in Central Laboratories",
+      "deadline": null,
+      "reason": "Only for permanent faculty/teachers, not for a research assistant"
+    },
+    "318": {
+      "rating": 2,
+      "title": "National Renewable Energy Internship (NREI) Scheme",
+      "deadline": null,
+      "reason": "Renewable energy focus, open to international placement"
+    },
+    "327": {
+      "rating": 0,
+      "title": "J.C. Bose Fellowship",
+      "deadline": null,
+      "reason": "For senior active scientists, not eligible for PhD student"
+    },
+    "332": {
+      "rating": 1,
+      "title": "E-YUVA Scheme Call For Proposal",
+      "deadline": "2026-10-31T17:30:00",
+      "reason": "Covers clean energy and open to PhDs, but not specifically a abroad fellowship"
+    },
+    "356": {
+      "rating": 3,
+      "title": "Bhaskara Advanced Solar Energy Fellowship",
+      "deadline": null,
+      "reason": "Solar energy research fellowship at US labs for Indian PhD students: exactly the ask",
+      "rater": "claude"
+    },
+    "357": {
+      "rating": 1,
+      "title": "Bioenergy-Awards for Cutting Edge Research",
+      "deadline": null,
+      "reason": "India-US clean-energy fellowship, but bioenergy, not solar",
+      "rater": "claude"
+    },
+    "360": {
+      "rating": 1,
+      "title": "Indo-U.S. Fellowship for Women in STEMM (WISTEMM)",
+      "deadline": null,
+      "reason": "India-US research fellowship but only for women, in any STEMM field",
+      "rater": "claude"
+    },
+    "362": {
+      "rating": 0,
+      "title": "Water Advanced Research and Innovation (WARI) Fellowship",
+      "deadline": null,
+      "reason": "Water research fellowship",
+      "rater": "claude"
+    },
+    "363": {
+      "rating": 0,
+      "title": "Focus Area Science Technology-Summer Fellowship [FAST-SF] Program — 2027",
+      "deadline": "2026-11-30T23:59:59",
+      "reason": "Summer fellowship within India",
+      "rater": "claude"
+    }
+  },
+  "space-tech-startup-in": {
+    "29": {
+      "rating": 0,
+      "title": "C-CAMP Wadhwani Innovation Network (WIN) CoE Non-Dilutive Funding Program",
+      "deadline": null,
+      "reason": "Focuses on biotech, not space"
+    },
+    "30": {
+      "rating": 1,
+      "title": "Idea Grant",
+      "deadline": null,
+      "reason": "Generic early-stage tech startup grant, not space-focused"
+    },
+    "31": {
+      "rating": 0,
+      "title": "BCDD Grant by KSUM & BCDD Kerala",
+      "deadline": null,
+      "reason": "Demographic‑specific startup grant, no space tech relevance"
+    },
+    "32": {
+      "rating": 1,
+      "title": "Startup India Seed Fund Scheme (SISFS) For Startups",
+      "deadline": null,
+      "reason": "General seed fund for tech startups, not space-specific"
+    },
+    "34": {
+      "rating": 3,
+      "title": "TN Space Tech Fund",
+      "deadline": null,
+      "reason": "Specifically funds Indian space tech startups"
+    },
+    "35": {
+      "rating": 0,
+      "title": "Next Bharat Residency Program",
+      "deadline": null,
+      "reason": "Impact/rural focus, unrelated"
+    },
+    "36": {
+      "rating": 1,
+      "title": "a16z Speedrun",
+      "deadline": null,
+      "reason": "Generic startup VC, not space-focused",
+      "rater": "claude"
+    },
+    "37": {
+      "rating": 1,
+      "title": "AI2 Incubator",
+      "deadline": null,
+      "reason": "AI‑focused incubator, tangential to EO data but not satellite hardware"
+    },
+    "102": {
+      "rating": 0,
+      "title": "Alliance Crypto & AI Accelerator",
+      "deadline": null,
+      "reason": "Crypto and AI accelerator only",
+      "rater": "claude"
+    },
+    "113": {
+      "rating": 0,
+      "title": "J C Bose National Fellowship",
+      "deadline": null,
+      "reason": "Fellowship for eminent scientists, not startups",
+      "rater": "claude"
+    },
+    "211": {
+      "rating": 0,
+      "title": "GD Birla Award for Scientific Research",
+      "deadline": null,
+      "reason": "Award for individual scientists, not startup funding",
+      "rater": "claude"
+    },
+    "212": {
+      "rating": 1,
+      "title": "TDB Seed Fund",
+      "deadline": null,
+      "reason": "Broad science grant, not space-specific"
+    },
+    "218": {
+      "rating": 0,
+      "title": "Shanti Swarup Bhatnagar Prize 2020",
+      "deadline": null,
+      "reason": "Science prize for scientists, not startup funding",
+      "rater": "claude"
+    },
+    "219": {
+      "rating": 0,
+      "title": "S&T Awards - Others",
+      "deadline": null,
+      "reason": "Awards for individuals, not startup funding"
+    },
+    "223": {
+      "rating": 0,
+      "title": "International Travel Support (ITS)",
+      "deadline": null,
+      "reason": "Travel support only"
+    },
+    "237": {
+      "rating": 0,
+      "title": "Grant for holding Symposium/Seminar",
+      "deadline": null,
+      "reason": "Funds events, not product development"
+    },
+    "261": {
+      "rating": 0,
+      "title": "Contract Research/Service Scheme (CRS)",
+      "deadline": null,
+      "reason": "Contract research scheme for institutions",
+      "rater": "claude"
+    },
+    "268": {
+      "rating": 0,
+      "title": "Common Research and Technology Development Hubs (CRTDHs)",
+      "deadline": null,
+      "reason": "No space focus; unrelated fields"
+    },
+    "273": {
+      "rating": 0,
+      "title": "Gujar Mal Modi Award for Science & Technology",
+      "deadline": null,
+      "reason": "Award for faculty/scientists, not startups"
+    },
+    "283": {
+      "rating": 0,
+      "title": "Technology Acquisition Fund Programme (TAFP)",
+      "deadline": null,
+      "reason": "Targets industries/PSUs, not startups or space"
+    },
+    "293": {
+      "rating": 0,
+      "title": "Research Grants - Individual",
+      "deadline": null,
+      "reason": "Individual research grants, not for startups"
+    },
+    "295": {
+      "rating": 1,
+      "title": "Start Up Schemes - Department of Science & Technology",
+      "deadline": null,
+      "reason": "General startup tech funding, not space-specific"
+    },
+    "311": {
+      "rating": 1,
+      "title": "NIDHI- Seed Support System (NIDHI-SSS)",
+      "deadline": null,
+      "reason": "General seed support for tech startups"
+    },
+    "312": {
+      "rating": 1,
+      "title": "Promoting Innovations in Individuals, Startups And MSMEs (PRISM)",
+      "deadline": null,
+      "reason": "Support for individual innovators and MSMEs, not space-specific",
+      "rater": "claude"
+    },
+    "316": {
+      "rating": 1,
+      "title": "Patent Acquisition and Collaborative Research & Technology Development (PACE)",
+      "deadline": null,
+      "reason": "General R&D support, not targeted to space startups"
+    },
+    "329": {
+      "rating": 0,
+      "title": "SERB Science and Technology Award for Research (SERB-STAR)",
+      "deadline": null,
+      "reason": "Academic award, not for startups"
+    },
+    "345": {
+      "rating": 0,
+      "title": "TDP Call for Proposal 2026",
+      "deadline": "2026-10-20T23:59:59",
+      "reason": "IoT projects for Scheduled Tribe communities",
+      "rater": "claude"
+    },
+    "363": {
+      "rating": 0,
+      "title": "Focus Area Science Technology-Summer Fellowship [FAST-SF] Program — 2027",
+      "deadline": "2026-11-30T23:59:59",
+      "reason": "Summer research fellowship for students and teachers",
+      "rater": "claude"
+    }
+  },
+  "student-conference-travel-in": {
+    "196": {
+      "rating": 0,
+      "title": "PMS Blackett Memorial Lecture and Jagadis Chandra Bose Memorial Lecture",
+      "deadline": null,
+      "reason": "Lecture awards for senior scientists, not travel support"
+    },
+    "197": {
+      "rating": 1,
+      "title": "India's International Fellows",
+      "deadline": null,
+      "reason": "Fellowship program, not specifically travel funding"
+    },
+    "215": {
+      "rating": 0,
+      "title": "Jawaharlal Nehru Birth Centenary Medal",
+      "deadline": null,
+      "reason": "Medal for international cooperation, not travel funding",
+      "rater": "claude"
+    },
+    "219": {
+      "rating": 0,
+      "title": "S&T Awards - Others",
+      "deadline": null,
+      "reason": "Award program, not travel funding"
+    },
+    "223": {
+      "rating": 2,
+      "title": "International Travel Support (ITS)",
+      "deadline": null,
+      "reason": "General international travel support, likely open to PhD students"
+    },
+    "227": {
+      "rating": 0,
+      "title": "INSA-Vainu Bappu Memorial Award",
+      "deadline": null,
+      "reason": "Astronomy award",
+      "rater": "claude"
+    },
+    "236": {
+      "rating": 1,
+      "title": "India International Fellows",
+      "deadline": null,
+      "reason": "Fellowship initiative, not dedicated travel support"
+    },
+    "237": {
+      "rating": 0,
+      "title": "Grant for holding Symposium/Seminar",
+      "deadline": null,
+      "reason": "Supports societies to hold events, not student travel"
+    },
+    "245": {
+      "rating": 0,
+      "title": "Bhaskara Advanced Solar Energy (BASE) Fellowship Program",
+      "deadline": null,
+      "reason": "Solar research stay in the US, not conference travel",
+      "rater": "claude"
+    },
+    "257": {
+      "rating": 0,
+      "title": "Special Assistance Programme (SAP)",
+      "deadline": null,
+      "reason": "Department‑level assistance, not individual student travel"
+    },
+    "258": {
+      "rating": 0,
+      "title": "Collaborative Scientific Research Programme",
+      "deadline": null,
+      "reason": "Research collaboration funding, not travel grant for students"
+    },
+    "276": {
+      "rating": 2,
+      "title": "Grants for Seminar and Conferences",
+      "deadline": null,
+      "reason": "Conference grant for Indian PhD students, may cover travel"
+    },
+    "278": {
+      "rating": 0,
+      "title": "Travel Grant Scheme for College Teachers/College Librarians/Vice Chancellors/Commission Members and UGC Officers",
+      "deadline": null,
+      "reason": "Eligibility limited to senior academic staff, not students"
+    },
+    "298": {
+      "rating": 1,
+      "title": "Best Research Presentation Medal",
+      "deadline": null,
+      "reason": "Award for presentation, may involve students but no travel funding"
+    },
+    "306": {
+      "rating": 1,
+      "title": "Conference, Travel, Exhibition, and popular lectures (CTEP)",
+      "deadline": null,
+      "reason": "Life‑sciences focus, not clearly for power‑electronics PhD travel"
+    },
+    "308": {
+      "rating": 0,
+      "title": "CSIR Partial Financial Assistance scheme",
+      "deadline": null,
+      "reason": "Only faculty/research scientists eligible"
+    },
+    "309": {
+      "rating": 3,
+      "title": "CSIR - Travel Grant",
+      "deadline": null,
+      "reason": "Explicit travel grant for Indian PhD students"
+    },
+    "310": {
+      "rating": 0,
+      "title": "Support for Symposium/Seminar/Conference/Workshop",
+      "deadline": null,
+      "reason": "For organizing events; not for individual student travel"
+    },
+    "313": {
+      "rating": 0,
+      "title": "Research Grants - International",
+      "deadline": null,
+      "reason": "Research collaboration grant, not travel specific"
+    },
+    "332": {
+      "rating": 0,
+      "title": "E-YUVA Scheme Call For Proposal",
+      "deadline": "2026-10-31T17:30:00",
+      "reason": "Biotech/AI scheme, no travel component"
+    },
+    "344": {
+      "rating": 0,
+      "title": "Doctoral Fellowship",
+      "deadline": null,
+      "reason": "Social-science doctoral fellowship",
+      "rater": "claude"
+    },
+    "355": {
+      "rating": 0,
+      "title": "ICSSR Full-Term Doctoral Fellowship 2026-27",
+      "deadline": null,
+      "reason": "Social-science doctoral fellowship",
+      "rater": "claude"
+    },
+    "357": {
+      "rating": 0,
+      "title": "Bioenergy-Awards for Cutting Edge Research",
+      "deadline": null,
+      "reason": "Bioenergy research exchange",
+      "rater": "claude"
+    },
+    "359": {
+      "rating": 1,
+      "title": "IUSSTF-American Physical Society Fellowship",
+      "deadline": null,
+      "reason": "Travel funds for PhD students, but physics exchange visits, not conference travel",
+      "rater": "claude"
+    },
+    "360": {
+      "rating": 0,
+      "title": "Indo-U.S. Fellowship for Women in STEMM (WISTEMM)",
+      "deadline": null,
+      "reason": "Fellowship for women researchers",
+      "rater": "claude"
+    }
+  },
+  "tb-drug-discovery-in": {
+    "39": {
+      "rating": 2,
+      "title": "Core Research Grant (CRG)",
+      "deadline": null,
+      "reason": "SERB core grant; can fund TB drug discovery",
+      "rater": "claude"
+    },
+    "198": {
+      "rating": 0,
+      "title": "COVID 2.0 FUNDING",
+      "deadline": null,
+      "reason": "COVID-19 research",
+      "rater": "claude"
+    },
+    "204": {
+      "rating": 1,
+      "title": "Basic Research in Modern Biology",
+      "deadline": null,
+      "reason": "Basic biology, not drug discovery",
+      "rater": "claude"
+    },
+    "224": {
+      "rating": 0,
+      "title": "Biotechnology Career Advancement & Re-orientation Programme (BioCARe)",
+      "deadline": null,
+      "reason": "Women-only biotech scheme",
+      "rater": "claude"
+    },
+    "230": {
+      "rating": 1,
+      "title": "BIRAC Nesta Discovery Awards",
+      "deadline": null,
+      "reason": "AMR seed grants, but for diagnostics ideas",
+      "rater": "claude"
+    },
+    "242": {
+      "rating": 0,
+      "title": "CEFIPRA - BPI FRANCE",
+      "deadline": null,
+      "reason": "Indo-French enterprise R&D",
+      "rater": "claude"
+    },
+    "251": {
+      "rating": 0,
+      "title": "Animal Health",
+      "deadline": null,
+      "reason": "Animal vaccines",
+      "rater": "claude"
+    },
+    "258": {
+      "rating": 1,
+      "title": "Collaborative Scientific Research Programme",
+      "deadline": null,
+      "reason": "Indo-French collaborative research; needs a French partner",
+      "rater": "claude"
+    },
+    "261": {
+      "rating": 0,
+      "title": "Contract Research/Service Scheme (CRS)",
+      "deadline": null,
+      "reason": "Contract research services",
+      "rater": "claude"
+    },
+    "264": {
+      "rating": 1,
+      "title": "Longitude Prize",
+      "deadline": null,
+      "reason": "AMR prize for diagnostics, not drugs",
+      "rater": "claude"
+    },
+    "287": {
+      "rating": 1,
+      "title": "Basic and Fundamental Research",
+      "deadline": null,
+      "reason": "Basic life-science research",
+      "rater": "claude"
+    },
+    "293": {
+      "rating": 1,
+      "title": "Research Grants - Individual",
+      "deadline": null,
+      "reason": "Generic individual research grants",
+      "rater": "claude"
+    },
+    "303": {
+      "rating": 2,
+      "title": "CSIR Research Grants",
+      "deadline": null,
+      "reason": "CSIR research grant covering medicine; can fund TB drug research",
+      "rater": "claude"
+    },
+    "304": {
+      "rating": 1,
+      "title": "BIRAC-Wellcome Trust Partnership",
+      "deadline": null,
+      "reason": "Translational healthcare products for biotech entrepreneurs",
+      "rater": "claude"
+    },
+    "305": {
+      "rating": 2,
+      "title": "Core Research Grant (CRG)",
+      "deadline": null,
+      "reason": "SERB core grant; can fund TB drug discovery",
+      "rater": "claude"
+    },
+    "306": {
+      "rating": 0,
+      "title": "Conference, Travel, Exhibition, and popular lectures (CTEP)",
+      "deadline": null,
+      "reason": "Conference and travel support",
+      "rater": "claude"
+    },
+    "313": {
+      "rating": 1,
+      "title": "Research Grants - International",
+      "deadline": null,
+      "reason": "International biotech collaboration",
+      "rater": "claude"
+    },
+    "322": {
+      "rating": 1,
+      "title": "Prime Minister Early Career Research Grant",
+      "deadline": null,
+      "reason": "Early-career grant; researcher may be past that stage",
+      "rater": "claude"
+    },
+    "332": {
+      "rating": 0,
+      "title": "E-YUVA Scheme Call For Proposal",
+      "deadline": "2026-10-31T17:30:00",
+      "reason": "Translational research for students",
+      "rater": "claude"
+    }
+  },
+  "undergrad-summer-research-in": {
+    "197": {
+      "rating": 0,
+      "title": "India's International Fellows",
+      "deadline": null,
+      "reason": "International exposure fellowships",
+      "rater": "claude"
+    },
+    "205": {
+      "rating": 0,
+      "title": "ISHAN UDAY - Special Scholarship Scheme For North Eastern Region",
+      "deadline": null,
+      "reason": "Scholarship for the North East",
+      "rater": "claude"
+    },
+    "209": {
+      "rating": 0,
+      "title": "Prime Minister's Special Scholarship Scheme (PMSSS) J&K",
+      "deadline": null,
+      "reason": "Scholarship for J&K students",
+      "rater": "claude"
+    },
+    "219": {
+      "rating": 0,
+      "title": "S&T Awards - Others",
+      "deadline": null,
+      "reason": "Awards",
+      "rater": "claude"
+    },
+    "223": {
+      "rating": 0,
+      "title": "International Travel Support (ITS)",
+      "deadline": null,
+      "reason": "Travel support",
+      "rater": "claude"
+    },
+    "231": {
+      "rating": 0,
+      "title": "Building Energy Efficiency Higher and Advanced Network (BHAVAN) Fellowships",
+      "deadline": null,
+      "reason": "Fellowship for postgraduates",
+      "rater": "claude"
+    },
+    "236": {
+      "rating": 0,
+      "title": "India International Fellows",
+      "deadline": null,
+      "reason": "International exposure",
+      "rater": "claude"
+    },
+    "245": {
+      "rating": 0,
+      "title": "Bhaskara Advanced Solar Energy (BASE) Fellowship Program",
+      "deadline": null,
+      "reason": "Solar PhD fellowship",
+      "rater": "claude"
+    },
+    "250": {
+      "rating": 0,
+      "title": "Cross-Cutting and Futuristic initiatives (CCFI)",
+      "deadline": null,
+      "reason": "Research hubs",
+      "rater": "claude"
+    },
+    "258": {
+      "rating": 0,
+      "title": "Collaborative Scientific Research Programme",
+      "deadline": null,
+      "reason": "Collaborative research",
+      "rater": "claude"
+    },
+    "287": {
+      "rating": 0,
+      "title": "Basic and Fundamental Research",
+      "deadline": null,
+      "reason": "Research grants",
+      "rater": "claude"
+    },
+    "291": {
+      "rating": 0,
+      "title": "Clean Air Research Initiative (CARI)",
+      "deadline": null,
+      "reason": "Research grants",
+      "rater": "claude"
+    },
+    "313": {
+      "rating": 0,
+      "title": "Research Grants - International",
+      "deadline": null,
+      "reason": "Research collaboration",
+      "rater": "claude"
+    },
+    "318": {
+      "rating": 2,
+      "title": "National Renewable Energy Internship (NREI) Scheme",
+      "deadline": null,
+      "reason": "Internship for undergraduate students in renewable energy",
+      "rater": "claude"
+    },
+    "327": {
+      "rating": 0,
+      "title": "J.C. Bose Fellowship",
+      "deadline": null,
+      "reason": "Recognition fellowship",
+      "rater": "claude"
+    },
+    "332": {
+      "rating": 1,
+      "title": "E-YUVA Scheme Call For Proposal",
+      "deadline": "2026-10-31T17:30:00",
+      "reason": "Translational research scheme open to undergraduates",
+      "rater": "claude"
+    },
+    "356": {
+      "rating": 0,
+      "title": "Bhaskara Advanced Solar Energy Fellowship",
+      "deadline": null,
+      "reason": "Solar PhD fellowship",
+      "rater": "claude"
+    },
+    "357": {
+      "rating": 0,
+      "title": "Bioenergy-Awards for Cutting Edge Research",
+      "deadline": null,
+      "reason": "Bioenergy PhD fellowship",
+      "rater": "claude"
+    },
+    "359": {
+      "rating": 0,
+      "title": "IUSSTF-American Physical Society Fellowship",
+      "deadline": null,
+      "reason": "For PhD students and postdocs",
+      "rater": "claude"
+    },
+    "360": {
+      "rating": 0,
+      "title": "Indo-U.S. Fellowship for Women in STEMM (WISTEMM)",
+      "deadline": null,
+      "reason": "Women researchers",
+      "rater": "claude"
+    },
+    "363": {
+      "rating": 2,
+      "title": "Focus Area Science Technology-Summer Fellowship [FAST-SF] Program — 2027",
+      "deadline": "2026-11-30T23:59:59",
+      "reason": "Summer research fellowship for students, focused on some regions",
+      "rater": "claude"
+    },
+    "364": {
+      "rating": 0,
+      "title": "India Science and Research Fellowship Programme 2025-26",
+      "deadline": null,
+      "reason": "Research exchange fellowship",
+      "rater": "claude"
+    }
+  },
+  "water-purification-research-in": {
+    "39": {
+      "rating": 2,
+      "title": "Core Research Grant (CRG)",
+      "deadline": null,
+      "reason": "SERB core grant; eligible faculty, can fund water treatment research",
+      "rater": "claude"
+    },
+    "198": {
+      "rating": 0,
+      "title": "COVID 2.0 FUNDING",
+      "deadline": null,
+      "reason": "COVID-19 research",
+      "rater": "claude"
+    },
+    "224": {
+      "rating": 0,
+      "title": "Biotechnology Career Advancement & Re-orientation Programme (BioCARe)",
+      "deadline": null,
+      "reason": "Women biotechnologists",
+      "rater": "claude"
+    },
+    "245": {
+      "rating": 0,
+      "title": "Bhaskara Advanced Solar Energy (BASE) Fellowship Program",
+      "deadline": null,
+      "reason": "Solar fellowship",
+      "rater": "claude"
+    },
+    "248": {
+      "rating": 1,
+      "title": "Climate Change Programme",
+      "deadline": null,
+      "reason": "Climate programme; environment, but not water treatment",
+      "rater": "claude"
+    },
+    "250": {
+      "rating": 2,
+      "title": "Cross-Cutting and Futuristic initiatives (CCFI)",
+      "deadline": null,
+      "reason": "Sustainable rural technology hubs incl. water; fits low-cost groundwater treatment",
+      "rater": "claude"
+    },
+    "268": {
+      "rating": 0,
+      "title": "Common Research and Technology Development Hubs (CRTDHs)",
+      "deadline": null,
+      "reason": "Hubs for small enterprises",
+      "rater": "claude"
+    },
+    "283": {
+      "rating": 0,
+      "title": "Technology Acquisition Fund Programme (TAFP)",
+      "deadline": null,
+      "reason": "Industry technology acquisition",
+      "rater": "claude"
+    },
+    "291": {
+      "rating": 1,
+      "title": "Clean Air Research Initiative (CARI)",
+      "deadline": null,
+      "reason": "Environmental technology, but air pollution",
+      "rater": "claude"
+    },
+    "293": {
+      "rating": 1,
+      "title": "Research Grants - Individual",
+      "deadline": null,
+      "reason": "Generic individual research grants",
+      "rater": "claude"
+    },
+    "305": {
+      "rating": 2,
+      "title": "Core Research Grant (CRG)",
+      "deadline": null,
+      "reason": "SERB core grant; eligible faculty, can fund water treatment research",
+      "rater": "claude"
+    },
+    "316": {
+      "rating": 0,
+      "title": "Patent Acquisition and Collaborative Research & Technology Development (PACE)",
+      "deadline": null,
+      "reason": "Industry technology development",
+      "rater": "claude"
+    },
+    "329": {
+      "rating": 0,
+      "title": "SERB Science and Technology Award for Research (SERB-STAR)",
+      "deadline": null,
+      "reason": "Award for SERB investigators",
+      "rater": "claude"
+    },
+    "331": {
+      "rating": 1,
+      "title": "Technology Translation Award (SERB-TETRA)",
+      "deadline": null,
+      "reason": "Technology translation for SERB investigators; possible next step",
+      "rater": "claude"
+    },
+    "345": {
+      "rating": 0,
+      "title": "TDP Call for Proposal 2026",
+      "deadline": "2026-10-20T23:59:59",
+      "reason": "IoT for Scheduled Tribe communities",
+      "rater": "claude"
+    },
+    "346": {
+      "rating": 0,
+      "title": "TDP Call for Proposal 2026 (11)",
+      "deadline": "2026-10-31T23:59:59",
+      "reason": "IoT projects",
+      "rater": "claude"
+    },
+    "357": {
+      "rating": 0,
+      "title": "Bioenergy-Awards for Cutting Edge Research",
+      "deadline": null,
+      "reason": "Bioenergy",
+      "rater": "claude"
+    },
+    "362": {
+      "rating": 2,
+      "title": "Water Advanced Research and Innovation (WARI) Fellowship",
+      "deadline": null,
+      "reason": "India-US water technology research fellowship",
+      "rater": "claude"
+    }
+  },
+  "women-engineer-us-research-in": {
+    "197": {
+      "rating": 1,
+      "title": "India's International Fellows",
+      "deadline": null,
+      "reason": "International exposure fellowships, not US- or women-specific",
+      "rater": "claude"
+    },
+    "231": {
+      "rating": 1,
+      "title": "Building Energy Efficiency Higher and Advanced Network (BHAVAN) Fellowships",
+      "deadline": null,
+      "reason": "India-US fellowship, but building energy and for students",
+      "rater": "claude"
+    },
+    "232": {
+      "rating": 0,
+      "title": "DAE Graduate Fellowship Scheme for Engineering Graduates and Physics Postgraduates",
+      "deadline": null,
+      "reason": "Graduate fellowship",
+      "rater": "claude"
+    },
+    "234": {
+      "rating": 0,
+      "title": "CSIR'S Junior Research Fellowship (JRF) - GATE",
+      "deadline": null,
+      "reason": "Junior research fellowship for graduates",
+      "rater": "claude"
+    },
+    "241": {
+      "rating": 1,
+      "title": "Women Scientist Scheme-A (WOS-A)",
+      "deadline": null,
+      "reason": "Women scientists scheme, but research in India",
+      "rater": "claude"
+    },
+    "245": {
+      "rating": 0,
+      "title": "Bhaskara Advanced Solar Energy (BASE) Fellowship Program",
+      "deadline": null,
+      "reason": "Solar fellowship",
+      "rater": "claude"
+    },
+    "252": {
+      "rating": 0,
+      "title": "SERB Women Excellence Award",
+      "deadline": null,
+      "reason": "Award",
+      "rater": "claude"
+    },
+    "274": {
+      "rating": 2,
+      "title": "Fulbright-Nehru Postdoctoral Research Fellowships",
+      "deadline": null,
+      "reason": "US postdoc research fellowship for Indian researchers",
+      "rater": "claude"
+    },
+    "299": {
+      "rating": 1,
+      "title": "UGC-Post Doctoral Fellowship for Women Candidates",
+      "deadline": null,
+      "reason": "Postdoc fellowship for women, in India",
+      "rater": "claude"
+    },
+    "314": {
+      "rating": 0,
+      "title": "AICTE-INAE Teachers Research Fellowship Scheme for Engineering Teachers for Doctoral Research in Central Laboratories",
+      "deadline": null,
+      "reason": "For engineering teachers",
+      "rater": "claude"
+    },
+    "323": {
+      "rating": 0,
+      "title": "National Post Doctoral Fellowship (N-PDF)",
+      "deadline": null,
+      "reason": "Indian postdoc fellowship",
+      "rater": "claude"
+    },
+    "324": {
+      "rating": 0,
+      "title": "Ramanujan Fellowship",
+      "deadline": null,
+      "reason": "For scientists returning to India",
+      "rater": "claude"
+    },
+    "330": {
+      "rating": 0,
+      "title": "SERB Women Excellence Research Grant",
+      "deadline": null,
+      "reason": "Award-based grant",
+      "rater": "claude"
+    },
+    "356": {
+      "rating": 0,
+      "title": "Bhaskara Advanced Solar Energy Fellowship",
+      "deadline": null,
+      "reason": "Solar fellowship",
+      "rater": "claude"
+    },
+    "357": {
+      "rating": 0,
+      "title": "Bioenergy-Awards for Cutting Edge Research",
+      "deadline": null,
+      "reason": "Bioenergy fellowship",
+      "rater": "claude"
+    },
+    "358": {
+      "rating": 1,
+      "title": "Building Energy Efficiency Higher & Advanced Network Fellowship",
+      "deadline": null,
+      "reason": "India-US fellowship for PhD holders, but building energy efficiency",
+      "rater": "claude"
+    },
+    "360": {
+      "rating": 3,
+      "title": "Indo-U.S. Fellowship for Women in STEMM (WISTEMM)",
+      "deadline": null,
+      "reason": "India-US research fellowship for women engineers: exactly the ask",
+      "rater": "claude"
+    },
+    "362": {
+      "rating": 0,
+      "title": "Water Advanced Research and Innovation (WARI) Fellowship",
+      "deadline": null,
+      "reason": "Water fellowship",
+      "rater": "claude"
+    }
+  },
+  "women-led-business-co": {
+    "36": {
+      "rating": 0,
+      "title": "a16z Speedrun",
+      "deadline": null,
+      "reason": "VC program for startups/founders, not nonprofit NGOs"
+    },
+    "37": {
+      "rating": 0,
+      "title": "AI2 Incubator",
+      "deadline": null,
+      "reason": "AI focus, early-stage startups, not women entrepreneurship"
+    },
+    "102": {
+      "rating": 0,
+      "title": "Alliance Crypto & AI Accelerator",
+      "deadline": null,
+      "reason": "Accelerator for crypto/AI startups, not NGOs"
+    },
+    "196": {
+      "rating": 0,
+      "title": "PMS Blackett Memorial Lecture and Jagadis Chandra Bose Memorial Lecture",
+      "deadline": null,
+      "reason": "Scientific lecture award, not for NGOs or women-led businesses"
+    },
+    "215": {
+      "rating": 0,
+      "title": "Jawaharlal Nehru Birth Centenary Medal",
+      "deadline": null,
+      "reason": "Award/medal, no funding for women‑led businesses"
+    },
+    "223": {
+      "rating": 0,
+      "title": "International Travel Support (ITS)",
+      "deadline": null,
+      "reason": "Travel support for scientists, not NGO or women entrepreneurship"
+    },
+    "225": {
+      "rating": 0,
+      "title": "Arturo Falaschi Short-Term Postdoc Fellowships",
+      "deadline": null,
+      "reason": "Postdoc fellowships, not applicable to NGOs"
+    },
+    "227": {
+      "rating": 0,
+      "title": "INSA-Vainu Bappu Memorial Award",
+      "deadline": null,
+      "reason": "Award for astronomers, unrelated field"
+    },
+    "254": {
+      "rating": 0,
+      "title": "DBT-BMGF (Bill & Melinda Gates Foundation)",
+      "deadline": null,
+      "reason": "Grants for faculty/scientists, unrelated to economic empowerment projects"
+    },
+    "259": {
+      "rating": 1,
+      "title": "Technology Development and Utilization Programme for Women (TDUPW)",
+      "deadline": null,
+      "reason": "Women‑focused tech scheme, but limited to individual women, not NGOs supporting businesses"
+    },
+    "264": {
+      "rating": 0,
+      "title": "Longitude Prize",
+      "deadline": null,
+      "reason": "Life sciences antibiotic challenge, no relevance"
+    },
+    "269": {
+      "rating": 0,
+      "title": "Abel Prize",
+      "deadline": null,
+      "reason": "Mathematics prize for scientists, unrelated field"
+    },
+    "303": {
+      "rating": 0,
+      "title": "CSIR Research Grants",
+      "deadline": null,
+      "reason": "Research grants for scientists/faculty, not NGOs"
+    },
+    "318": {
+      "rating": 0,
+      "title": "National Renewable Energy Internship (NREI) Scheme",
+      "deadline": null,
+      "reason": "Internship scheme for students, not funding NGOs"
+    },
+    "367": {
+      "rating": 1,
+      "title": "Echoing Green Fellowship",
+      "deadline": null,
+      "reason": "Supports social entrepreneurs, but not focused on women-led businesses",
+      "rater": "claude"
+    }
+  },
+  "women-scientist-career-break-in": {
+    "197": {
+      "rating": 0,
+      "title": "India's International Fellows",
+      "deadline": null,
+      "reason": "General international fellowship, no women or re‑entry focus"
+    },
+    "202": {
+      "rating": 2,
+      "title": "Biotechnology Career Advancement and Re-orientation Programme (Bio-CARe) for Women Scientists",
+      "deadline": null,
+      "reason": "Women‑only biotech re‑orientation programme targeting career advancement"
+    },
+    "224": {
+      "rating": 2,
+      "title": "Biotechnology Career Advancement & Re-orientation Programme (BioCARe)",
+      "deadline": null,
+      "reason": "Women‑only biotech re‑orientation programme, suitable for re‑entry"
+    },
+    "225": {
+      "rating": 0,
+      "title": "Arturo Falaschi Short-Term Postdoc Fellowships",
+      "deadline": null,
+      "reason": "General postdoc fellowship, no women or career‑break focus"
+    },
+    "228": {
+      "rating": 0,
+      "title": "DAE- Raja Rammana Fellowship (RRF)",
+      "deadline": null,
+      "reason": "Retired scientist fellowship, no women or re‑entry emphasis"
+    },
+    "231": {
+      "rating": 0,
+      "title": "Building Energy Efficiency Higher and Advanced Network (BHAVAN) Fellowships",
+      "deadline": null,
+      "reason": "Building-energy fellowship for students",
+      "rater": "claude"
+    },
+    "236": {
+      "rating": 0,
+      "title": "India International Fellows",
+      "deadline": null,
+      "reason": "Same as 197, not women or re‑entry specific"
+    },
+    "241": {
+      "rating": 1,
+      "title": "Women Scientist Scheme-A (WOS-A)",
+      "deadline": null,
+      "reason": "Women-focused scheme but not specifically for career‑break re‑entry"
+    },
+    "243": {
+      "rating": 0,
+      "title": "National Awards for Womens Development through Application of Science & Technology",
+      "deadline": null,
+      "reason": "Award for contributions, not a fellowship or career‑break program"
+    },
+    "247": {
+      "rating": 1,
+      "title": "Science and Technology for Women",
+      "deadline": null,
+      "reason": "Women‑focused scheme, but not specifically for re‑entry after a career break"
+    },
+    "252": {
+      "rating": 1,
+      "title": "SERB Women Excellence Award",
+      "deadline": null,
+      "reason": "Women scientists award, but not a re‑entry fellowship"
+    },
+    "262": {
+      "rating": 0,
+      "title": "Senior Research Fellowship (SRF)",
+      "deadline": null,
+      "reason": "Post‑graduate fellowship, not targeted at women returning after a break"
+    },
+    "274": {
+      "rating": 0,
+      "title": "Fulbright-Nehru Postdoctoral Research Fellowships",
+      "deadline": null,
+      "reason": "Postdoctoral fellowship open to all, no women or re‑entry emphasis"
+    },
+    "299": {
+      "rating": 1,
+      "title": "UGC-Post Doctoral Fellowship for Women Candidates",
+      "deadline": null,
+      "reason": "Post‑doc fellowship for women PhDs, but not explicitly for re‑entry"
+    },
+    "319": {
+      "rating": 0,
+      "title": "DAE Young Scientist Research Award (DAE-YSRA)",
+      "deadline": null,
+      "reason": "Young scientist award, not women‑specific or re‑entry"
+    },
+    "323": {
+      "rating": 1,
+      "title": "National Post Doctoral Fellowship (N-PDF)",
+      "deadline": null,
+      "reason": "Postdoc fellowship, not a re-entry scheme for women",
+      "rater": "claude"
+    },
+    "324": {
+      "rating": 0,
+      "title": "Ramanujan Fellowship",
+      "deadline": null,
+      "reason": "Attracts Indian diaspora scientists, not women‑specific or re‑entry"
+    },
+    "327": {
+      "rating": 0,
+      "title": "J.C. Bose Fellowship",
+      "deadline": null,
+      "reason": "Prestigious fellowship for active scientists, not re‑entry"
+    },
+    "330": {
+      "rating": 1,
+      "title": "SERB Women Excellence Research Grant",
+      "deadline": null,
+      "reason": "Women scientists grant, no explicit career‑break provision"
+    },
+    "332": {
+      "rating": 0,
+      "title": "E-YUVA Scheme Call For Proposal",
+      "deadline": "2026-10-31T17:30:00",
+      "reason": "Youth‑focused scheme, not for career‑break women scientists"
+    },
+    "342": {
+      "rating": 0,
+      "title": "National Fellowship",
+      "deadline": null,
+      "reason": "Social‑science fellowship for retired scholars, unrelated field"
+    },
+    "360": {
+      "rating": 1,
+      "title": "Indo-U.S. Fellowship for Women in STEMM (WISTEMM)",
+      "deadline": null,
+      "reason": "For Indian women scientists, but US research visits, not re-entry",
+      "rater": "claude"
+    },
+    "364": {
+      "rating": 0,
+      "title": "India Science and Research Fellowship Programme 2025-26",
+      "deadline": null,
+      "reason": "Research exchange fellowship, not for women returning after a break",
+      "rater": "claude"
+    },
+    "368": {
+      "rating": 1,
+      "title": "EMBO Postdoctoral Fellowships",
+      "deadline": "2027-01-22T14:00:00",
+      "reason": "Molecular biology postdoc fellowship in Europe; not a re-entry scheme",
+      "rater": "claude"
+    },
+    "370": {
+      "rating": 1,
+      "title": "Humboldt Research Fellowship",
+      "deadline": null,
+      "reason": "Postdoc fellowship in Germany open to women; not a re-entry scheme",
+      "rater": "claude"
+    }
+  }
+}

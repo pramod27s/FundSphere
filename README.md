@@ -86,7 +86,7 @@ The browser only talks to `CoreBackend`. `CoreBackend` calls `ai-service` with s
 ### How AI Match works
 
 1. `CoreBackend` loads the researcher's full profile and forwards it with the query to `ai-service`.
-2. The query is expanded with related terms. Optionally, HyDE writes a hypothetical call text to search with.
+2. The query is expanded with related terms, and HyDE writes a hypothetical call text to search with. The original query is always searched too, and the results of all versions are merged by rank.
 3. Two channels search in parallel: Pinecone hybrid search (dense `llama-text-embed-v2` plus sparse `pinecone-sparse-english-v0`), and PostgreSQL full-text search in `CoreBackend`.
 4. The results are merged with Reciprocal Rank Fusion, then closed calls and hard eligibility conflicts are removed.
 5. The remaining candidates are reranked with `bge-reranker-v2-m3` and scored on five signals: semantic fit 50%, eligibility 20%, keywords 10%, funding fit 10%, deadline 10%. The weights are configurable.
@@ -237,7 +237,10 @@ Every setting has a default in [`rag/config.py`](ai-service/rag/config.py) and [
 |---|---|---|
 | `PROPOSAL_GEMINI_MODEL` | `gemini-2.5-flash` | Main model for reviews, extraction and drafting |
 | `PROPOSAL_GEMINI_FALLBACK_MODEL` | none | Comma-separated Gemini models to try when the main one is rate-limited |
-| `ENABLE_HYDE` | `false` | Search with a hypothetical call text as well as the query (needs `GROQ_API_KEY_HYDE`) |
+| `ENABLE_HYDE` | `true` | Search with a hypothetical call text as well as the query (needs `GROQ_API_KEY_HYDE`) |
+| `ENABLE_PROFILE_QUERY_SPLIT` | `false` | Search the live query and the profile separately, weighting the query higher (measured worse; kept for comparison) |
+| `ENABLE_STRUCTURED_RERANK_PROMPT` | `true` | Rerank against the live query rather than the whole profile text |
+| `CHUNK_MAX_TOKENS` | `400` | Largest indexed chunk, in estimated tokens; keep under 512, the sparse model's input limit |
 | `ENABLE_HARD_ELIGIBILITY_FILTER` | `true` | Drop calls that conflict with the profile |
 | `EXCLUDE_EXPIRED_GRANTS` | `true` | Leave closed calls out of matches |
 | `WEIGHT_SEMANTIC` … `WEIGHT_FRESHNESS` | `0.50`, `0.20`, `0.10`, `0.10`, `0.10` | Match score weights |
@@ -262,7 +265,7 @@ Match quality is measured separately with the offline evaluation in [`ai-service
 ```bash
 cd ai-service
 python -m eval.run                              # score the current settings
-python -m eval.run --compare ENABLE_HYDE=true   # compare against a changed setting
+python -m eval.run --compare ENABLE_HYDE=false  # compare against a changed setting
 python -m eval.run --tune                       # suggest WEIGHT_* values
 ```
 

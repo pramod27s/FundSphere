@@ -9,17 +9,24 @@ from datetime import datetime, timedelta, timezone
 from unittest import mock
 
 from eval import run as eval_run
+from rag import recommender as recommender_module
 from rag.cache import query_cache
 from rag.config import settings
+from rag.countries import UNRESOLVED_GROUP, canonical_country, country_allows, country_keys
+from rag.document_builder import build_pinecone_records, chunk_text, estimate_tokens
 from rag.filters import (
     APPLICANT_ALIASES,
     INSTITUTION_ALIASES,
     _match_strength,
     eligibility_score,
+    is_strictly_disqualified,
     keyword_overlap_score,
 )
-from rag.recommender import RecommenderService, blend, candidate_signals
+from rag.pinecone_client import PineconeService
+from rag.profile_builder import build_profile_only_text, build_user_query_text
+from rag.recommender import RecommenderService, blend, candidate_signals, relevance_from_rerank
 from rag.schemas import (
+    GrantData,
     KeywordCandidate,
     RecommendationItem,
     RecommendationRequest,
@@ -80,10 +87,12 @@ class FakePinecone:
         self.store = {g["grant_id"]: g for g in [*self.semantic, *store]}
         self.rerank_scores = rerank_scores
         self.filters = []
+        self.queries = []
         self.reranked_ids = []
 
     def batch_search(self, queries, top_k, metadata_filter=None, alpha=0.7):
         self.filters.append(metadata_filter)
+        self.queries.extend(queries)
         hits = [
             SemanticHit(grantId=g["grant_id"], semanticScore=1.0 - i * 0.01, fields=dict(g))
             for i, g in enumerate(self.semantic)
@@ -159,15 +168,52 @@ class PipelineTests(unittest.TestCase):
 
         self.assertEqual(resp.results, [])
 
-    def test_semantic_signal_is_the_raw_rerank_score(self):
+    def test_semantic_signal_is_the_rerank_score_on_its_logit_scale(self):
         pinecone = FakePinecone([grant(1, "Weak match A"), grant(2, "Weak match B")], {1: 0.04, 2: 0.02})
 
         resp = self.recommend(pinecone)
 
         top = resp.results[0]
         self.assertEqual(top.grantId, 1)
-        self.assertAlmostEqual(top.semanticScore, 0.04)  # not stretched to 1.0
+        self.assertAlmostEqual(top.semanticScore, relevance_from_rerank(0.04), places=5)  # not stretched to 1.0
         self.assertLess(top.finalScore, 0.5)  # a weak pool shows as weak
+
+    def test_a_relevant_broad_scheme_outranks_an_eligible_off_topic_grant(self):
+        # The eval's typical scores: a broad scheme that suits the user ~0.016,
+        # an off-topic grant ~0.004. The off-topic one names the user's country,
+        # which on the raw scale was enough to put it first.
+        pinecone = FakePinecone(
+            [grant(1, "Off-topic but eligible", eligible_countries=["India"]), grant(2, "Broad scheme that suits")],
+            {1: 0.004, 2: 0.016},
+        )
+
+        resp = self.recommend(pinecone)
+
+        self.assertEqual([r.grantId for r in resp.results], [2, 1])
+
+    def test_relevance_spreads_the_low_end_and_keeps_the_order(self):
+        scores = [0.0, 0.001, 0.004, 0.016, 0.1, 0.5, 0.95, 1.0]
+        relevance = [relevance_from_rerank(s) for s in scores]
+
+        self.assertEqual(relevance, sorted(relevance))
+        self.assertGreater(relevance_from_rerank(0.016) - relevance_from_rerank(0.004), 0.1)
+        self.assertEqual((relevance[0], relevance[-1]), (0.0, 1.0))
+
+    def test_results_are_labelled_topic_or_broad_by_rerank_score(self):
+        pinecone = FakePinecone([grant(1, "Solar cells"), grant(2, "Any science")], {1: 0.6, 2: 0.02})
+
+        with mock.patch.object(settings, "topic_match_min_score", 0.1):
+            resp = self.recommend(pinecone)
+
+        self.assertEqual({r.grantId: r.matchType for r in resp.results}, {1: "topic", 2: "broad"})
+
+    def test_without_rerank_scores_no_result_is_labelled(self):
+        pinecone = FakePinecone([grant(1, "Solar cells")], {1: 0.6})
+
+        with mock.patch.object(settings, "use_rerank", False):
+            resp = self.recommend(pinecone)
+
+        self.assertIsNone(resp.results[0].matchType)
 
     def test_pinecone_filter_keeps_the_deadline_clause_on_the_thin_results_retry(self):
         pinecone = FakePinecone([grant(1, "Only grant")], {1: 0.5})  # < 5 hits triggers the retry
@@ -177,9 +223,9 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(len(pinecone.filters), 2)
         first, retry = (json.dumps(f) for f in pinecone.filters)
         self.assertIn("deadline_epoch", first)
-        self.assertIn("eligible_countries", first)
+        self.assertIn("country_keys", first)
         self.assertIn("deadline_epoch", retry)
-        self.assertNotIn("eligible_countries", retry)
+        self.assertNotIn("country_keys", retry)
 
     def test_keyword_and_semantic_channels_run_concurrently(self):
         # Each channel waits for the other at the barrier. Run one after the
@@ -220,6 +266,288 @@ class PipelineTests(unittest.TestCase):
         ranked = sorted(candidates, key=lambda c: (-blend(eval_run.current_weights(), c[1], c[2]), c[3]))
 
         self.assertEqual([c[0] for c in ranked], [it.grantId for it in resp.results])
+
+    REWRITES = ["photovoltaic research funding", "solar cell programmes"]
+
+    def recommend_expanded(self, query="solar energy research", split=False):
+        pinecone = FakePinecone([grant(1, "Solar grant")], {1: 0.5})
+        with mock.patch.multiple(settings, enable_query_expansion=True, enable_profile_query_split=split), \
+                mock.patch.object(recommender_module, "expand_queries", return_value=self.REWRITES):
+            self.recommend(pinecone, query=query)
+        return pinecone.queries
+
+    def test_the_original_query_runs_alongside_its_expansions(self):
+        queries = self.recommend_expanded()
+
+        self.assertIn(build_user_query_text(PROFILE, "solar energy research"), queries)
+        for rewrite in self.REWRITES:
+            self.assertIn(rewrite, queries)
+
+    def test_split_keeps_the_full_profile_text_out_of_the_intent_channel(self):
+        queries = self.recommend_expanded(split=True)
+
+        self.assertNotIn(build_user_query_text(PROFILE, "solar energy research"), queries)
+        self.assertIn(build_profile_only_text(PROFILE), queries)  # the fit channel
+        for rewrite in self.REWRITES:
+            self.assertIn(rewrite, queries)
+
+    def test_without_a_query_the_profile_text_runs_alongside_its_expansions(self):
+        queries = self.recommend_expanded(query=None, split=True)
+
+        self.assertIn(build_user_query_text(PROFILE, None), queries)
+        for rewrite in self.REWRITES:
+            self.assertIn(rewrite, queries)
+
+
+def hit(gid: int, score: float, chunk: str = "") -> SemanticHit:
+    return SemanticHit(grantId=gid, semanticScore=score, fields={"grant_id": gid, "chunk_text": chunk})
+
+
+class SemanticFusionTests(unittest.TestCase):
+    def test_query_variants_are_fused_by_rank_not_raw_score(self):
+        # The long query's hybrid scores run far higher (the sparse part grows
+        # with query length), but grant 2 tops two of the three variants.
+        per_query = {
+            "a long query": [hit(1, 40.0), hit(3, 39.0)],
+            "short a": [hit(2, 0.6), hit(3, 0.4)],
+            "short b": [hit(2, 0.7), hit(1, 0.3)],
+        }
+
+        class ByQuery:
+            def batch_search(self, queries, top_k, metadata_filter=None, alpha=0.7):
+                return [per_query[q] for q in queries]
+
+        rec = RecommenderService(FakeSpring(), ByQuery())
+        with mock.patch.object(settings, "enable_batch_embeddings", True):
+            hits = rec._run_semantic_queries(list(per_query), 0.7, None, None)
+
+        self.assertEqual([h.grantId for h in hits], [2, 1, 3])
+
+    def test_each_grant_keeps_the_chunk_from_its_best_ranking(self):
+        fused = RecommenderService._weighted_rrf_semantic(
+            [([hit(1, 50.0), hit(2, 49.0, "second for the long query")], 1.0),
+             ([hit(2, 0.4, "first for the short query")], 1.0)],
+            k=60,
+        )
+
+        self.assertEqual(fused[0].grantId, 2)
+        self.assertEqual(fused[0].fields["chunk_text"], "first for the short query")
+
+
+class CountryTests(unittest.TestCase):
+    US = UserProfile(country="United States")
+
+    def test_spellings_reduce_to_one_canonical_name(self):
+        self.assertEqual(canonical_country("USA"), "united states")
+        self.assertEqual(canonical_country("  The United  Kingdom "), "united kingdom")
+        self.assertEqual(canonical_country("Kenya"), "kenya")
+        self.assertEqual(country_keys(["All countries", "Open to all", "Worldwide"]), ["any"])
+
+    def test_alias_and_open_to_all_grants_are_not_disqualified(self):
+        for countries in (["USA"], ["All countries"], ["Open to all nationalities"], ["Kenya", "Global"]):
+            self.assertFalse(is_strictly_disqualified(self.US, {"eligible_countries": countries})[0], countries)
+        self.assertTrue(is_strictly_disqualified(self.US, {"eligible_countries": ["Kenya"]})[0])
+
+    def test_citizenship_compares_the_same_names(self):
+        uk = UserProfile(citizenship="UK")
+        self.assertFalse(is_strictly_disqualified(uk, {"citizenship_required": ["United Kingdom"]})[0])
+        self.assertFalse(is_strictly_disqualified(uk, {"citizenship_required": ["Open"]})[0])
+        self.assertTrue(is_strictly_disqualified(uk, {"citizenship_required": ["India"]})[0])
+
+    def test_missing_data_is_never_a_conflict(self):
+        self.assertTrue(country_allows([], "India"))
+        self.assertTrue(country_allows(["Kenya"], None))
+
+    def test_pinecone_filter_matches_the_keys_stored_at_indexing(self):
+        clause = RecommenderService._country_clause(UserProfile(country="U.S.A."))
+        record = build_pinecone_records(GrantData(id=1, grantTitle="T", eligibleCountries=["USA", "All countries"]))[0]
+
+        self.assertEqual(clause["$or"][0], {"country_keys": {"$in": ["united states", "any", UNRESOLVED_GROUP]}})
+        self.assertEqual(record["country_keys"], ["united states", "any"])
+
+    # As the ERC Starting Grant was extracted: open to hosts in the EU and in
+    # Horizon Europe's associated countries (the UK among them).
+    ERC = ["EU Member States", "associated countries"]
+
+    def test_a_region_admits_its_member_countries(self):
+        for country in ("Spain", "Germany", "Republic of Ireland"):
+            self.assertTrue(country_allows(["EU Member States"], country), country)
+            self.assertTrue(country_allows(["EEA"], country), country)
+        self.assertTrue(country_allows(["EEA countries"], "Norway"))
+        self.assertFalse(country_allows(["EU Member States"], "India"))
+        self.assertFalse(country_allows(["Nordics"], "Spain"))
+
+    def test_a_group_we_cannot_resolve_rules_nobody_out(self):
+        for country in ("United Kingdom", "India", "Spain"):
+            self.assertFalse(is_strictly_disqualified(UserProfile(country=country), {"eligible_countries": self.ERC})[0], country)
+        for group in ("Countries associated with the LIFE Programme", "Low- and middle-income countries",
+                      "Non-associated third countries", "Africa", "Others"):
+            self.assertEqual(canonical_country(group), UNRESOLVED_GROUP, group)
+
+    def test_country_names_are_not_mistaken_for_groups(self):
+        self.assertEqual(canonical_country("South Africa"), "south africa")
+        self.assertEqual(canonical_country("United States"), "united states")
+        self.assertEqual(canonical_country("Republic of Ireland"), "ireland")
+
+    def test_regions_reach_the_index_and_the_pinecone_filter(self):
+        record = build_pinecone_records(GrantData(id=1, grantTitle="ERC", eligibleCountries=self.ERC))[0]
+        spain = RecommenderService._country_clause(UserProfile(country="Spain"))["$or"][0]["country_keys"]["$in"]
+
+        self.assertEqual(record["country_keys"], ["european union", UNRESOLVED_GROUP])
+        self.assertIn("european union", spain)
+        self.assertIn("european economic area", spain)
+
+
+class ChunkingTests(unittest.TestCase):
+    LIMIT = 120
+    HEADER = "Title: Quantum Sensing Grant\nAgency: DST\n"
+    BULLETS = "\n".join(f"- Support for activity {i} including travel, equipment and consumables" for i in range(25))
+
+    def chunks(self, **fields):
+        grant_data = GrantData(id=7, grantTitle="Quantum Sensing Grant", fundingAgency="DST", **fields)
+        with mock.patch.multiple(settings, enable_chunking=True, chunk_max_tokens=self.LIMIT, chunk_overlap_tokens=20):
+            return [r["chunk_text"] for r in build_pinecone_records(grant_data)]
+
+    def test_a_bulleted_description_splits_within_the_limit(self):
+        chunks = self.chunks(description=self.BULLETS)
+
+        self.assertGreater(len(chunks), 3)
+        for chunk in chunks:
+            self.assertLessEqual(estimate_tokens(chunk), self.LIMIT)
+
+    def test_every_chunk_starts_with_its_grant(self):
+        for chunk in self.chunks(description=self.BULLETS):
+            self.assertTrue(chunk.startswith(self.HEADER), chunk[:80])
+            self.assertGreater(len(chunk), len(self.HEADER))  # never the header alone
+
+    def test_a_short_grant_is_one_chunk(self):
+        self.assertEqual(self.chunks(description="Funds quantum sensors."),
+                         [self.HEADER + "Description: Funds quantum sensors."])
+
+    def test_one_endless_sentence_is_cut_into_word_runs(self):
+        pieces = chunk_text(" ".join(["word"] * 1000), max_tokens=100, overlap_tokens=10)
+
+        self.assertGreater(len(pieces), 1)
+        for piece in pieces:
+            self.assertLessEqual(estimate_tokens(piece), 100)
+        self.assertGreaterEqual(sum(piece.split().count("word") for piece in pieces), 1000)
+
+    def test_neighbouring_chunks_share_their_boundary_sentences(self):
+        text = " ".join(f"Sentence {i} about the lab." for i in range(60))
+        pieces = chunk_text(text, max_tokens=60, overlap_tokens=20)
+
+        self.assertGreater(len(pieces), 2)
+        for prev, nxt in zip(pieces, pieces[1:]):
+            last_sentence = "Sentence" + prev.rsplit("Sentence", 1)[-1]
+            self.assertIn(last_sentence, nxt)
+
+
+class IndexingTests(unittest.TestCase):
+    def test_a_grant_is_embedded_in_one_call_per_model(self):
+        calls = []
+
+        def embed(model, inputs, parameters):
+            calls.append((model, len(inputs), parameters["input_type"]))
+            return [mock.Mock(values=[0.1], sparse_indices=[1], sparse_values=[0.5]) for _ in inputs]
+
+        service = PineconeService.__new__(PineconeService)  # skips the API-key checks
+        service.pc = mock.Mock()
+        service.pc.inference.embed.side_effect = embed
+        service.index = mock.Mock()
+        service.index.list.return_value = []
+        service.namespace = "grants"
+
+        description = "\n".join(f"Line {i} on eligible costs." for i in range(70))
+        with mock.patch.multiple(settings, enable_chunking=True, chunk_max_tokens=200, chunk_overlap_tokens=20):
+            records = service.upsert_grant(GrantData(id=3, grantTitle="Big grant", description=description))
+
+        self.assertGreater(len(records), 1)
+        self.assertEqual(calls, [
+            ("llama-text-embed-v2", len(records), "passage"),
+            ("pinecone-sparse-english-v0", len(records), "passage"),
+        ])
+        upserted = service.index.upsert.call_args.kwargs["vectors"]
+        self.assertEqual([v["id"] for v in upserted], [r["id"] for r in records])
+
+
+class SearchTextTests(unittest.TestCase):
+    PROFILE = UserProfile(
+        country="India", institutionType="Research Institute", applicantType="Researcher",
+        careerStage="Research Assistant", preferredMinAmount=300000, preferredGrantType="Fellowship",
+        researchBio="Works on perovskite solar cells.", researchInterests=["Solar Energy"],
+        keywords=["perovskite"], department="Materials Science",
+    )
+    ELIGIBILITY_WORDS = ("India", "Research Institute", "Research Assistant", "300000", "Fellowship")
+
+    def test_search_text_is_the_topic_only(self):
+        text = build_user_query_text(self.PROFILE, "stability funding")
+
+        for topic in ("perovskite solar cells", "Solar Energy", "perovskite", "Materials Science", "stability funding"):
+            self.assertIn(topic, text)
+        for word in self.ELIGIBILITY_WORDS:
+            self.assertNotIn(word, text)
+
+    def test_the_llm_prompts_get_the_topic_only(self):
+        from rag.hyde import _build_user_prompt
+        prompt = _build_user_prompt(self.PROFILE, "stability funding")
+
+        self.assertIn("perovskite", prompt)
+        for word in self.ELIGIBILITY_WORDS:
+            self.assertNotIn(word, prompt)
+
+    def test_eligibility_text_comes_back_for_comparison(self):
+        with mock.patch.object(settings, "search_with_eligibility_text", True):
+            text = build_user_query_text(self.PROFILE)
+
+        self.assertIn("Researcher country: India.", text)
+        self.assertIn("Preferred grant type: Fellowship.", text)
+
+
+class PhdRequirementTests(unittest.TestCase):
+    STUDENT = UserProfile(hasPhd=False)
+
+    def disqualified(self, applicants):
+        return is_strictly_disqualified(self.STUDENT, {"requires_phd": True, "eligible_applicants": applicants})[0]
+
+    def test_a_grant_open_to_phd_students_is_not_hidden_from_them(self):
+        # Real extractions from the corpus that carried requires_phd anyway.
+        for applicants in (["Indian citizens pursuing a Ph.D.", "Indian citizens with a Ph.D."],
+                           ["Ph.D. Students", "Researchers with Ph.D."], ["PhD students"],
+                           ["Doctoral scholars"], ["Students enrolled in a PhD"]):
+            self.assertFalse(self.disqualified(applicants), applicants)
+
+    def test_a_grant_for_phd_holders_still_excludes_students(self):
+        for applicants in (["Researchers with Ph.D."], ["Postdocs", "Scientists with PhDs"], []):
+            self.assertTrue(self.disqualified(applicants), applicants)
+
+
+class ExplanationTests(unittest.TestCase):
+    def explain(self, reply: str) -> list[RecommendationItem]:
+        from rag import llm_judge
+        items = [RecommendationItem(grantId=gid, finalScore=0.5, title=f"Grant {gid}") for gid in (1, 2, 3)]
+        client = mock.Mock()
+        client.chat.completions.create.return_value.choices = [mock.Mock(message=mock.Mock(content=reply))]
+        with mock.patch.multiple(settings, enable_llm_judge=True, groq_api_key_llm_judge="key"), \
+                mock.patch.object(llm_judge, "OpenAI", return_value=client):
+            return llm_judge.explain_candidates(UserProfile(), "solar", items)
+
+    def test_each_explanation_carries_an_honest_fit_rating(self):
+        items = self.explain(json.dumps({"explanations": [
+            {"grantId": 1, "fit": "strong", "reason": "About solar cells."},
+            {"grantId": 2, "fit": "Weak", "reason": "Funds marine biology, not solar work."},
+            {"grantId": 3, "fit": "excellent", "reason": "Unknown rating."},
+        ]}))
+
+        self.assertEqual([i.llmFit for i in items], ["strong", "weak", None])
+        self.assertEqual(items[1].reason, "Funds marine biology, not solar work.")
+        self.assertEqual(len(items), 3)  # a weak fit is described, never dropped
+
+    def test_the_prompt_asks_for_honesty_not_a_case_for_every_grant(self):
+        from rag import llm_judge
+        source = open(llm_judge.__file__, encoding="utf-8").read()
+
+        self.assertIn("Never invent a link", source)
+        self.assertNotIn("why it could be a fit", source)
 
 
 class CacheKeyTests(unittest.TestCase):

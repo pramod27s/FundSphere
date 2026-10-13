@@ -76,27 +76,14 @@ public class AiProfileMapper {
         return s != null && !s.isBlank();
     }
 
-    public String buildQueryText(AiUserProfileResponse profile) {
-        StringBuilder parts = new StringBuilder();
-        if (profile.getResearchBio() != null && !profile.getResearchBio().isBlank()) {
-            parts.append(profile.getResearchBio()).append(" ");
-        }
-        if (profile.getResearchInterests() != null && !profile.getResearchInterests().isEmpty()) {
-            parts.append(String.join(", ", profile.getResearchInterests())).append(" ");
-        }
-        if (profile.getKeywords() != null && !profile.getKeywords().isEmpty()) {
-            parts.append(String.join(", ", profile.getKeywords())).append(" ");
-        }
-        if (profile.getDepartment() != null && !profile.getDepartment().isBlank()) {
-            parts.append(profile.getDepartment()).append(" ");
-        }
-        if (profile.getCountry() != null && !profile.getCountry().isBlank()) {
-            parts.append(profile.getCountry()).append(" ");
-        }
-        return parts.toString().trim();
-    }
-
-    private String buildResearchBio(ResearcherResponse researcher) {
+    /**
+     * The researcher's topic, for the recommender to search with: their own
+     * summary, then department, field and keywords. Position, institution and
+     * country stay out — they're sent as their own fields for the eligibility
+     * checks, and in the search text they matched every grant open to the same
+     * kind of applicant, whatever its topic.
+     */
+    String buildResearchBio(ResearcherResponse researcher) {
         StringBuilder bio = new StringBuilder();
 
         // Lead with the researcher's own free-text summary when available — it
@@ -111,29 +98,12 @@ public class AiProfileMapper {
             bio.append(" ");
         }
 
-        String position = researcher.getPosition() != null ? humanizeEnum(researcher.getPosition().name()) : null;
         String field = researcher.getPrimaryField() != null ? humanizeEnum(researcher.getPrimaryField().name()) : null;
         String dept = researcher.getDepartment();
-        String institution = researcher.getInstitutionName();
-        String country = researcher.getCountry();
         List<String> keywords = researcher.getKeywords();
 
-        if (position != null) {
-            bio.append(position);
-        }
         if (dept != null && !dept.isBlank()) {
-            bio.append(bio.length() > 0 ? " in the department of " : "Department of ");
-            bio.append(dept);
-        }
-        if (institution != null && !institution.isBlank()) {
-            bio.append(bio.length() > 0 ? " at " : "At ");
-            bio.append(institution);
-        }
-        if (country != null && !country.isBlank()) {
-            bio.append(", ").append(country);
-        }
-        if (bio.length() > 0) {
-            bio.append(". ");
+            bio.append("Department of ").append(dept.trim()).append(". ");
         }
         if (field != null) {
             bio.append("Research focus: ").append(field).append(". ");
