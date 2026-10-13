@@ -31,6 +31,7 @@ import { ReviewOutcome, ScoreSparkline } from './reviewDisplay';
 import { scoreTone } from './reviewMeta';
 import ReviewStatusView from './ReviewStatusView';
 import { useReview } from './useReview';
+import { buttonClasses } from '../common/buttonStyles';
 
 type StepTone = 'critical' | 'warning' | 'good' | 'neutral';
 type WorkspaceTab = 'checklist' | 'readiness' | 'proposal';
@@ -98,11 +99,11 @@ export default function ProposalAssistant() {
     <div className="min-h-screen flex flex-col">
       <div className="bg-white border-b border-brand-200 px-4 sm:px-6 h-16 flex items-center gap-4 sticky top-0 z-30">
         <button onClick={() => navigate('/discovery')}
-          className="flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-900 px-2 py-1.5 -ml-2 rounded-lg hover:bg-brand-100">
+          className="hidden md:flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-900 px-2 py-1.5 -ml-2 rounded-lg hover:bg-brand-100">
           <ArrowLeft className="w-4 h-4" />
           <span>Back</span>
         </button>
-        <div className="h-5 w-px bg-brand-200" />
+        <div className="hidden md:block h-5 w-px bg-brand-200" />
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
           <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center shadow-xs shrink-0">
             <FileText className="w-4 h-4 text-white" />
@@ -182,7 +183,8 @@ export default function ProposalAssistant() {
           </>
         )}
 
-        <QuickCheck />
+        {/* With no applications yet, the one-off check is the thing to do here, so it starts open. */}
+        {(data !== null || error) && <QuickCheck defaultOpen={data !== null && rows.length === 0} />}
       </ListLayout>
     </div>
   );
@@ -537,27 +539,28 @@ function EmptyState({ onDiscover, onApplications }: { onDiscover: () => void; on
   return (
     <div className="rounded-xl border border-brand-200 bg-white p-8 sm:p-10 flex flex-col items-center text-center shadow-medium">
       <div className="w-16 h-16 rounded-xl bg-primary-50 flex items-center justify-center mb-4 border border-primary-200">
-        <ClipboardCheck className="w-8 h-8 text-primary-400" />
+        <FileText className="w-8 h-8 text-primary-400" />
       </div>
       <h2 className="text-lg font-bold text-brand-900 tracking-tight mb-2">Your proposal scores will show here</h2>
       <p className="text-brand-500 text-sm max-w-md mb-6">
         Start an application and read its guidelines once. Every draft you check in its Proposal tab is scored against
-        the call's rules, and this page tracks how each proposal improves.
+        the call's rules, and this page tracks how each proposal improves. Have a draft ready now? Check it
+        below without an application.
       </p>
       <div className="flex flex-col sm:flex-row gap-3">
         <button
           onClick={onDiscover}
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold shadow-xs"
+          className={buttonClasses('primary', 'md')}
         >
           <Compass className="w-4 h-4" />
           Find a grant
         </button>
         <button
           onClick={onApplications}
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-white border border-brand-300 hover:bg-brand-50 text-brand-900 text-sm font-semibold"
+          className={buttonClasses('secondary', 'md')}
         >
           <ClipboardCheck className="w-4 h-4" />
-          Go to Applications
+          Go to applications
         </button>
       </div>
     </div>
@@ -565,8 +568,8 @@ function EmptyState({ onDiscover, onApplications }: { onDiscover: () => void; on
 }
 
 /** A draft checked against any call's guidelines without an application (no version history). */
-function QuickCheck() {
-  const [open, setOpen] = useState(false);
+function QuickCheck({ defaultOpen = false }: { defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
   const [recent, setRecent] = useState<ProposalReview[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [starting, setStarting] = useState(false);

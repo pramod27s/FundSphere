@@ -4,6 +4,9 @@ import { formatDay } from '../../utils/applicationDates';
 /** The width the workspace pages share, so switching tabs or opening an item doesn't move the content. */
 export const PAGE_WIDTH = 'w-full max-w-6xl 2xl:max-w-7xl mx-auto px-4 sm:px-6';
 
+/** Where the scroll-to-top button sits on signed-in pages: above the phone tab bar, beside the desktop rail. */
+export const RAIL_SCROLL_TOP_POSITION = 'fixed bottom-[calc(var(--mobile-tab-bar)_+_1rem)] right-4 md:bottom-6 md:right-26';
+
 /** The sticky panel's distance from the top (the 4rem header plus a gap) and the room it leaves at the bottom, in px. */
 const PANEL_TOP = 88;
 const PANEL_BOTTOM = 24;

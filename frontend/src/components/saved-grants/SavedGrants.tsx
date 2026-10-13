@@ -22,6 +22,7 @@ import StartApplicationButton from '../applications/StartApplicationButton';
 import { STATUS_META } from '../applications/applicationMeta';
 import { ListLayout } from '../common/PageLayout';
 import SavedPanel from './SavedPanel';
+import { buttonClasses } from '../common/buttonStyles';
 
 interface SavedGrantsProps {
   onBack: () => void;
@@ -86,19 +87,19 @@ export default function SavedGrants({ onBack }: SavedGrantsProps) {
       <div className="bg-white border-b border-brand-200 px-4 sm:px-6 h-16 flex items-center gap-4 sticky top-0 z-30">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-900 transition-colors px-2 py-1.5 -ml-2 rounded-lg hover:bg-brand-100"
+          className="hidden md:flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-900 transition-colors px-2 py-1.5 -ml-2 rounded-lg hover:bg-brand-100"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back</span>
         </button>
-        <div className="h-5 w-px bg-brand-200" />
+        <div className="hidden md:block h-5 w-px bg-brand-200" />
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
           <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center shadow-xs shrink-0">
             <Bookmark className="w-4 h-4 text-white" />
           </div>
           <div className="min-w-0">
             <h1 className="text-lg font-bold text-brand-900 tracking-tight leading-none truncate">
-              Saved Grants
+              Saved grants
             </h1>
             <p className="text-xs text-brand-600 mt-1 leading-none tabular-nums truncate">
               {total === 0
@@ -364,7 +365,7 @@ function SavedGrantCard({ entry, application, onOpenDetails, onUnsave, onSaveNot
           onClick={onOpenDetails}
           aria-label={`View details for ${grant.title}`}
         >
-          View Details
+          View details
           <ChevronRight className="w-3.5 h-3.5" />
         </button>
       </div>
@@ -445,9 +446,9 @@ function EmptyState({ onBack }: { onBack: () => void }) {
       </p>
       <button
         onClick={onBack}
-        className="px-6 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold shadow-xs active:scale-[0.98] transition-all"
+        className={buttonClasses('primary', 'md')}
       >
-        Browse Grants
+        Browse grants
       </button>
     </div>
   );

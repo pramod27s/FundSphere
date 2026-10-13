@@ -39,18 +39,18 @@ interface RangeOption {
 
 /** Matched in the title, description, grant type and tags (which include the grant's field). */
 export const GRANT_TYPE_OPTIONS: KeywordOption[] = [
-  { label: 'Research Projects', key: 'RESEARCH', pattern: /research|project/i },
+  { label: 'Research projects', key: 'RESEARCH', pattern: /research|project/i },
   { label: 'Fellowships', key: 'FELLOWSHIP', pattern: /fellowship/i },
-  { label: 'Travel Grants', key: 'TRAVEL', pattern: /travel/i },
+  { label: 'Travel grants', key: 'TRAVEL', pattern: /travel/i },
   { label: 'Equipment / Lab', key: 'EQUIPMENT', pattern: /equipment|instrument|apparatus|\blab(s|oratory|oratories)?\b/i },
 ];
 
 /** Matched in the eligibility text, description, career stages and tags (which include the grant's field). */
 export const APPLICANT_TYPE_OPTIONS: KeywordOption[] = [
-  { label: 'Early Career', key: 'EARLY_CAREER', pattern: /early.?career|early.?stage|postdoc|young (researcher|scientist|investigator)|junior/i },
+  { label: 'Early career', key: 'EARLY_CAREER', pattern: /early.?career|early.?stage|postdoc|young (researcher|scientist|investigator)|junior/i },
   { label: 'Students (PhD/MSc)', key: 'STUDENT', pattern: /ph\.?d|m\.?sc|student|doctoral|graduate/i },
-  { label: 'Senior Researchers', key: 'SENIOR', pattern: /senior|faculty|professor|principal investigator|\bpi\b/i },
-  { label: 'Startups / Industry', key: 'INDUSTRY', pattern: /start.?ups?|industry|industrial|compan(y|ies)|\bsmes?\b|msmes?|enterprise|commercial/i },
+  { label: 'Senior researchers', key: 'SENIOR', pattern: /senior|faculty|professor|principal investigator|\bpi\b/i },
+  { label: 'Startups / industry', key: 'INDUSTRY', pattern: /start.?ups?|industry|industrial|compan(y|ies)|\bsmes?\b|msmes?|enterprise|commercial/i },
 ];
 
 /** The larger amount in rupees; grants with no amount or an unknown currency don't match. */

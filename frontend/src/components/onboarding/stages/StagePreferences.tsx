@@ -103,7 +103,7 @@ export default function StagePreferences({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className={labelClass}>
-              Country of Residence / Lab Location <span className="text-primary-600">*</span>
+              Country of residence or lab location <span className="text-primary-600">*</span>
             </label>
             <select
               value={country}
@@ -122,7 +122,7 @@ export default function StagePreferences({
           </div>
 
           <div>
-            <label className={labelClass}>Citizenship / Nationality</label>
+            <label className={labelClass}>Citizenship or nationality</label>
             <select
               value={citizenship}
               onChange={(e) => updateFields({ citizenship: e.target.value })}
@@ -144,7 +144,7 @@ export default function StagePreferences({
             <label className={labelClass}>State / Province / Region</label>
             <input
               type="text"
-              placeholder="e.g. Karnataka or California"
+              placeholder="e.g. Karnataka or Maharashtra"
               value={state}
               onChange={(e) => updateFields({ state: e.target.value })}
               className={inputClass}
@@ -155,7 +155,7 @@ export default function StagePreferences({
             <label className={labelClass}>City</label>
             <input
               type="text"
-              placeholder="e.g. Bengaluru or Boston"
+              placeholder="e.g. Bengaluru or Pune"
               value={city}
               onChange={(e) => updateFields({ city: e.target.value })}
               className={inputClass}
@@ -167,7 +167,7 @@ export default function StagePreferences({
       {/* Notification Preferences */}
       <div className="pt-2 border-t border-brand-100">
         <h3 className="text-base font-semibold text-brand-900 mb-1">
-          Notification & Alert Preferences
+          Notifications & alerts
         </h3>
         <p className="text-xs text-brand-500 mb-4">
           Manage how and when FundSphere alerts you to relevant opportunities.
@@ -206,7 +206,7 @@ export default function StagePreferences({
           <Sparkles className="w-4 h-4" />
         </div>
         <div>
-          <h5 className="font-semibold text-brand-900">Ready to Discover Grants</h5>
+          <h5 className="font-semibold text-brand-900">Ready to discover grants</h5>
           <p className="text-brand-600 mt-0.5">
             Once you click Complete Setup, FundSphere's AI indexing engine will immediately personalize your recommendations and match you with active grant opportunities.
           </p>

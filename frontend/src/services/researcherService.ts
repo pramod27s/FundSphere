@@ -19,8 +19,8 @@ export interface ResearcherRequest {
   minFundingAmount: number;
   maxFundingAmount: number;
   preferredGrantType: string;
-  yearsOfExperience: number;
-  educationLevel: string;
+  yearsOfExperience: number | null;
+  educationLevel: string | null;
   hasCompletedPhd: boolean | null;
   previousGrantsReceived: boolean;
   emailNotifications: boolean;
@@ -55,8 +55,8 @@ export interface ResearcherResponse {
   minFundingAmount: number;
   maxFundingAmount: number;
   preferredGrantType: string;
-  yearsOfExperience: number;
-  educationLevel: string;
+  yearsOfExperience: number | null;
+  educationLevel: string | null;
   hasCompletedPhd: boolean | null;
   previousGrantsReceived: boolean;
   emailNotifications: boolean;

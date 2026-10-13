@@ -8,6 +8,7 @@ import { ListLayout, PAGE_WIDTH } from '../common/PageLayout';
 import ApplicationFormModal from './ApplicationFormModal';
 import ApplicationsPanel from './ApplicationsPanel';
 import { STATUS_META, STATUS_ORDER } from './applicationMeta';
+import { buttonClasses } from '../common/buttonStyles';
 
 type StatusFilter = 'ALL' | ApplicationStatus;
 
@@ -63,12 +64,12 @@ export default function Applications() {
       <div className="bg-white border-b border-brand-200 px-4 sm:px-6 h-16 flex items-center gap-4 sticky top-0 z-30">
         <button
           onClick={() => navigate('/discovery')}
-          className="flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-900 transition-colors px-2 py-1.5 -ml-2 rounded-lg hover:bg-brand-100"
+          className="hidden md:flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-900 transition-colors px-2 py-1.5 -ml-2 rounded-lg hover:bg-brand-100"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back</span>
         </button>
-        <div className="h-5 w-px bg-brand-200" />
+        <div className="hidden md:block h-5 w-px bg-brand-200" />
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
           <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center shadow-xs shrink-0">
             <ClipboardCheck className="w-4 h-4 text-white" />
@@ -87,9 +88,9 @@ export default function Applications() {
         <button
           type="button"
           onClick={() => setAdding(true)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-primary-600 hover:bg-primary-700 shadow-xs shrink-0"
+          className={buttonClasses('primary', 'sm', 'shrink-0')}
         >
-          <Plus className="w-3.5 h-3.5" />
+          <Plus className="w-4 h-4" />
           <span className="hidden sm:inline">Add a call not in FundSphere</span>
           <span className="sm:hidden">Add call</span>
         </button>
@@ -250,14 +251,14 @@ function EmptyState({ onDiscover, onAdd }: { onDiscover: () => void; onAdd: () =
       <div className="flex flex-col sm:flex-row gap-3">
         <button
           onClick={onDiscover}
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold shadow-xs"
+          className={buttonClasses('primary', 'md')}
         >
           <Compass className="w-4 h-4" />
           Find a grant
         </button>
         <button
           onClick={onAdd}
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-white border border-brand-300 hover:bg-brand-50 text-brand-900 text-sm font-semibold"
+          className={buttonClasses('secondary', 'md')}
         >
           <Plus className="w-4 h-4" />
           Add a call not in FundSphere

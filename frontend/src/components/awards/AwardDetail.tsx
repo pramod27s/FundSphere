@@ -14,6 +14,7 @@ import ProjectObjectives from './ProjectObjectives';
 import ProjectOutputs from './ProjectOutputs';
 import SpendCheckCard from './SpendCheckCard';
 import { AWARD_STATUS_META, PORTAL_LABEL, projectLength, timeUsed, UNSPENT_LABEL } from './awardMeta';
+import { buttonClasses } from '../common/buttonStyles';
 
 const SECTIONS = [
   { id: 'deadlines', label: 'Reporting deadlines' },
@@ -83,9 +84,9 @@ export default function AwardDetail() {
         <button
           type="button"
           onClick={() => setEditing(true)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-brand-800 bg-white border border-brand-300 hover:bg-brand-50 shrink-0"
+          className={buttonClasses('secondary', 'sm', 'shrink-0')}
         >
-          <Pencil className="w-3.5 h-3.5" />
+          <Pencil className="w-4 h-4" />
           Edit
         </button>
       }

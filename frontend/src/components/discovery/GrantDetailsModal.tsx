@@ -41,7 +41,7 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
     { label: 'Opens', icon: CalendarPlus, raw: grant.openingDate },
     { label: 'LOI Due', icon: FileText, raw: grant.loiDeadline },
     { label: 'Decision', icon: Gavel, raw: grant.decisionDate },
-    { label: 'Project Start', icon: Rocket, raw: grant.projectStartDate },
+    { label: 'Project start', icon: Rocket, raw: grant.projectStartDate },
   ];
   const keyDates = timeline
     .map((m) => ({ ...m, fmt: formatKeyDate(m.raw) }))
@@ -332,7 +332,7 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
             <StartApplicationButton grant={grant} />
             <button
                 onClick={() => onToggleSave?.(grant)}
-                className={`w-full sm:w-auto px-5 py-2.5 rounded-lg font-semibold border transition-all flex items-center justify-center gap-2 active:scale-[0.98] ${
+                className={`w-full sm:w-auto px-5 py-2.5 rounded-lg text-sm font-semibold border transition-all flex items-center justify-center gap-2 active:scale-[0.98] ${
                   isSaved
                     ? 'text-primary-700 bg-primary-50 border-primary-200 hover:bg-primary-100 shadow-sm'
                     : 'text-brand-700 bg-white border-brand-200 hover:bg-brand-50 hover:border-brand-300 shadow-xs'
@@ -353,7 +353,7 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
                   }}
                   disabled={disabled}
                   title={disabled ? 'Provider did not publish an application link' : undefined}
-                  className={`w-full sm:w-auto px-6 py-2.5 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 ${
+                  className={`w-full sm:w-auto px-6 py-2.5 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
                     disabled
                       ? 'bg-brand-100 text-brand-500 cursor-not-allowed border border-brand-200'
                       : 'text-white bg-primary-600 hover:bg-primary-700 shadow-xs active:scale-[0.98]'

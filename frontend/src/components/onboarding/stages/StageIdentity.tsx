@@ -85,7 +85,7 @@ export default function StageIdentity({
     <div className="space-y-6">
       <div>
         <h3 className="text-base font-semibold text-brand-900 mb-1">
-          Select Your Profile Type <span className="text-primary-600">*</span>
+          Select your profile type <span className="text-primary-600">*</span>
         </h3>
         <p className="text-xs text-brand-500 mb-3">
           This tunes recommendation filters for eligibility gates (e.g. faculty-only grants, student fellowships).
@@ -128,7 +128,7 @@ export default function StageIdentity({
 
       <div className="pt-2 border-t border-brand-100">
         <h3 className="text-base font-semibold text-brand-900 mb-1">
-          Institution & Role Affiliation
+          Institution & role
         </h3>
         <p className="text-xs text-brand-500 mb-4">
           Many research grants require verified institutional backing.
@@ -137,12 +137,12 @@ export default function StageIdentity({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className={labelClass}>
-              Institution or Organization Name <span className="text-primary-600">*</span>
+              Institution or organization name <span className="text-primary-600">*</span>
             </label>
             <input
               type="text"
               required
-              placeholder="e.g. Stanford University or MIT"
+              placeholder="e.g. IISc Bengaluru or IIT Bombay"
               value={orgName}
               onChange={(e) => updateFields({ orgName: e.target.value })}
               className={inputClass}
@@ -150,10 +150,10 @@ export default function StageIdentity({
           </div>
 
           <div>
-            <label className={labelClass}>Department or Center</label>
+            <label className={labelClass}>Department or centre</label>
             <input
               type="text"
-              placeholder="e.g. Department of Bioengineering"
+              placeholder="e.g. Department of Biotechnology"
               value={department}
               onChange={(e) => updateFields({ department: e.target.value })}
               className={inputClass}
@@ -162,7 +162,7 @@ export default function StageIdentity({
 
           <div>
             <label className={labelClass}>
-              Your Position / Role <span className="text-primary-600">*</span>
+              Your position or role <span className="text-primary-600">*</span>
             </label>
             <select
               value={role}
@@ -181,7 +181,7 @@ export default function StageIdentity({
           </div>
 
           <div>
-            <label className={labelClass}>Institution Type</label>
+            <label className={labelClass}>Institution type</label>
             <select
               value={institutionType}
               onChange={(e) => updateFields({ institutionType: e.target.value })}

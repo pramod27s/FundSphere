@@ -31,7 +31,7 @@ export default function Login({ onLoginSuccess, onNavigateToRegister }: LoginPro
       saveSession(session);
       // Keep the loading state through the parent's post-login work
       // (profile fetch + route decision) so the button doesn't flicker
-      // back to "Sign In" before the redirect happens.
+      // back to "Sign in" before the redirect happens.
       await onLoginSuccess();
     } catch (err) {
       setErrorMsg(friendlyAuthError(err, 'login'));
@@ -80,10 +80,7 @@ export default function Login({ onLoginSuccess, onNavigateToRegister }: LoginPro
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-sm font-semibold text-brand-800">Password</label>
-                <a href="#" className="text-xs font-medium text-primary-600 hover:text-primary-700 transition-colors">Forgot password?</a>
-              </div>
+              <label className="block text-sm font-medium text-brand-800 mb-1">Password</label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-brand-800/40 group-focus-within:text-primary-500 transition-colors">
                   <Lock size={20} />
@@ -114,7 +111,7 @@ export default function Login({ onLoginSuccess, onNavigateToRegister }: LoginPro
             disabled={isLoading}
             className="w-full flex items-center justify-center py-3.5 px-4 rounded-lg text-white bg-primary-600 hover:bg-primary-700 shadow-xs focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transform transition-all active:scale-[0.98] font-bold text-lg group disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            {isLoading ? 'Signing In...' : 'Sign In'}
+            {isLoading ? 'Signing in…' : 'Sign in'}
             {!isLoading && <ArrowRight size={20} className="ml-2 group-hover:translate-x-1 transition-transform" />}
           </button>
         </form>

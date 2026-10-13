@@ -138,7 +138,7 @@ export default function StageFundingEligibility({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="text-xs text-brand-600 mb-1 block">Minimum Funding</label>
+            <label className="text-xs text-brand-600 mb-1 block">Minimum funding</label>
             <div className="relative">
               <span className="absolute left-3.5 top-2.5 text-xs font-semibold text-brand-500 select-none">
                 {currency}
@@ -155,7 +155,7 @@ export default function StageFundingEligibility({
           </div>
 
           <div>
-            <label className="text-xs text-brand-600 mb-1 block">Maximum Funding</label>
+            <label className="text-xs text-brand-600 mb-1 block">Maximum funding</label>
             <div className="relative">
               <span className="absolute left-3.5 top-2.5 text-xs font-semibold text-brand-500 select-none">
                 {currency}
@@ -181,7 +181,7 @@ export default function StageFundingEligibility({
       {/* Experience & Eligibility Gates */}
       <div className="pt-2 border-t border-brand-100">
         <h3 className="text-base font-semibold text-brand-900 mb-1">
-          Eligibility & Experience Qualifications
+          Eligibility & experience
         </h3>
         <p className="text-xs text-brand-500 mb-4">
           Fund sponsors use career stage and degree completion to enforce hard eligibility criteria.
@@ -189,7 +189,7 @@ export default function StageFundingEligibility({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className={labelClass}>Years of Professional / Research Experience</label>
+            <label className={labelClass}>Years of professional or research experience</label>
             <select
               value={yearsExperience}
               onChange={(e) => updateFields({ yearsExperience: e.target.value })}
@@ -206,7 +206,7 @@ export default function StageFundingEligibility({
           </div>
 
           <div>
-            <label className={labelClass}>Current Education Level</label>
+            <label className={labelClass}>Current education level</label>
             <select
               value={educationLevel}
               onChange={(e) => updateFields({ educationLevel: e.target.value })}

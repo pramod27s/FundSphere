@@ -148,7 +148,7 @@ export default function Register({ onRegisterSuccess, onNavigateToLogin }: Regis
             title={passwordTooWeak ? 'Strengthen your password to continue' : undefined}
             className="w-full flex items-center justify-center py-3.5 px-4 rounded-lg text-white bg-primary-600 hover:bg-primary-700 shadow-xs focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-900 transform transition-all active:scale-[0.98] font-bold text-lg group mt-2 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:from-brand-900 disabled:hover:to-brand-800"
           >
-            {isLoading ? 'Signing Up...' : 'Sign Up'}
+            {isLoading ? 'Creating account…' : 'Create account'}
             {!isLoading && <ArrowRight size={20} className="ml-2 group-hover:translate-x-1 transition-transform" />}
           </button>
         </form>

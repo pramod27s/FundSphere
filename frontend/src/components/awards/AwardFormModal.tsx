@@ -609,7 +609,8 @@ function Section({ title, hint, children }: { title: string; hint?: string; chil
   return (
     <fieldset className="flex flex-col gap-4">
       <legend className="text-sm font-bold text-brand-900 mb-1">{title}</legend>
-      {hint && <p className="text-xs text-brand-500 -mt-3">{hint}</p>}
+      {/* A legend isn't a flex item, so the hint starts right under it; no negative margin. */}
+      {hint && <p className="text-xs text-brand-500">{hint}</p>}
       {children}
     </fieldset>
   );

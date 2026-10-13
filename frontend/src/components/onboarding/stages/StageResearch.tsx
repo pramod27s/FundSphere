@@ -162,7 +162,7 @@ export default function StageResearch({
       {/* Primary Field Selection */}
       <div>
         <label className={labelClass}>
-          Primary Research Field <span className="text-primary-600">*</span>
+          Primary research field <span className="text-primary-600">*</span>
         </label>
         <p className="text-xs text-brand-500 mb-3">
           The main discipline your research falls under.
@@ -190,7 +190,7 @@ export default function StageResearch({
 
       {/* Additional Fields Multi-select */}
       <div>
-        <label className={labelClass}>Additional / Interdisciplinary Areas (Optional)</label>
+        <label className={labelClass}>Additional or interdisciplinary areas (optional)</label>
         <p className="text-xs text-brand-500 mb-2">
           Select any cross-cutting domains to discover interdisciplinary grant programs.
         </p>
@@ -222,7 +222,7 @@ export default function StageResearch({
       <div>
         <div className="flex items-center justify-between mb-1">
           <label className={labelClass}>
-            Research Summary & Problem Statement <span className="text-brand-500 font-normal lowercase">(recommended)</span>
+            Research summary & problem statement <span className="text-brand-500 font-normal lowercase">(recommended)</span>
           </label>
         </div>
         <p className="text-xs text-brand-500 mb-2">
@@ -240,7 +240,7 @@ export default function StageResearch({
       {/* Interactive Keyword Tags */}
       <div>
         <label className={labelClass}>
-          Keywords & Methodologies <span className="text-brand-500 font-normal lowercase">(optional)</span>
+          Keywords & methods <span className="text-brand-500 font-normal lowercase">(optional)</span>
         </label>
         <p className="text-xs text-brand-500 mb-2">
           Add specific topics, techniques, or equipment (press Enter or comma to add).

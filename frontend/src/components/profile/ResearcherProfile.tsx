@@ -11,19 +11,17 @@ import {
   MapPin,
   Target,
   Wallet,
-  GraduationCap,
   Bell,
-  ArrowLeft,
   LogOut,
-  CheckCircle2,
-  Circle,
   Camera,
   Edit3,
 } from 'lucide-react';
+import { buttonClasses } from '../common/buttonStyles';
+import { PAGE_WIDTH } from '../common/PageLayout';
+import { loadSession } from '../../services/authService';
 
 interface ResearcherProfileProps {
   researcher: ResearcherResponse;
-  onBack?: () => void;
   onLogout?: () => void;
 }
 
@@ -54,6 +52,11 @@ const formatEnum = (value: string | null | undefined): string => {
     .join(' ');
 };
 
+const formatYears = (years: number | null | undefined): string => {
+  if (years === null || years === undefined) return NOT_PROVIDED;
+  return `${years} ${years === 1 ? 'year' : 'years'}`;
+};
+
 const formatText = (value: string | null | undefined): string => {
   return value && value.trim().length > 0 ? capitalizeWords(value) : NOT_PROVIDED;
 };
@@ -67,9 +70,10 @@ const formatCurrency = (value: number | null | undefined): string => {
   }).format(value);
 };
 
-const formatBoolean = (value: boolean): string => (value ? 'Yes' : 'No');
+const formatBoolean = (value: boolean | null | undefined): string =>
+  value === null || value === undefined ? NOT_PROVIDED : value ? 'Yes' : 'No';
 
-function ResearcherProfile({ researcher: initialResearcher, onBack, onLogout }: ResearcherProfileProps) {
+function ResearcherProfile({ researcher: initialResearcher, onLogout }: ResearcherProfileProps) {
   const { setResearcher } = useResearcher();
   const [researcher, setLocalResearcher] = useState<ResearcherResponse>(initialResearcher);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -113,19 +117,6 @@ function ResearcherProfile({ researcher: initialResearcher, onBack, onLogout }: 
     return <div className="p-8 text-center text-brand-500">No profile data found.</div>;
   }
 
-  const formattedCity = researcher.city ? capitalizeWords(researcher.city) : '';
-  const formattedState = researcher.state ? capitalizeWords(researcher.state) : '';
-  const formattedCountry = researcher.country ? capitalizeWords(researcher.country) : '';
-  const location = [formattedCity, formattedState, formattedCountry]
-    .filter((item) => item && item !== NOT_PROVIDED)
-    .join(', ');
-
-  const notificationCount = [
-    researcher.emailNotifications,
-    researcher.deadlineReminders,
-    researcher.weeklyGrantRecommendations,
-  ].filter(Boolean).length;
-
   const completionFields = [
     researcher.userType,
     researcher.institutionName,
@@ -156,137 +147,105 @@ function ResearcherProfile({ researcher: initialResearcher, onBack, onLogout }: 
     .filter(Boolean)
     .join(' • ');
 
-  return (
-    <div className="min-h-screen px-4 py-6 md:px-8 md:py-8">
-      <div className="max-w-6xl mx-auto space-y-5">
-        {/* Hero header card */}
-        <section className="relative overflow-hidden rounded-xl border border-brand-200 bg-white p-5 md:p-7 shadow-soft">
-          <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-5">
-            <div className="flex items-start gap-4">
-              <div className="relative group">
-                <div className="h-16 w-16 md:h-20 md:w-20 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center shrink-0 overflow-hidden border border-primary-200">
-                  {profileImage ? (
-                    <img src={profileImage} alt="Profile" className="h-full w-full object-cover" />
-                  ) : (
-                    <User className="w-8 h-8 md:w-10 md:h-10" />
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="absolute -bottom-1.5 -right-1.5 bg-white p-1.5 rounded-full border border-brand-200 shadow-xs text-brand-600 hover:text-primary-600 hover:border-primary-300 transition-all hover:scale-110 cursor-pointer"
-                  title="Change profile picture"
-                >
-                  <Camera className="w-3.5 h-3.5" />
-                </button>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  ref={fileInputRef}
-                  onChange={handleImageUpload}
-                />
-              </div>
-              <div>
-                <h1 className="text-2xl md:text-3xl font-bold text-brand-900 tracking-tight">Researcher Profile</h1>
-                <p className="text-brand-600 mt-1 text-sm md:text-base font-medium">
-                  {profileSubtitle}
-                </p>
-                <div className="mt-2.5 flex items-center gap-2">
-                  <div className="flex-1 max-w-[160px] h-1.5 bg-brand-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary-600 rounded-full transition-all"
-                      style={{ width: `${completionPercent}%` }}
-                    />
-                  </div>
-                  <span className="text-xs text-brand-600 font-semibold tabular-nums">{completionPercent}% complete</span>
-                </div>
-              </div>
-            </div>
+  const session = loadSession();
+  const displayName = session?.user.fullName?.trim() || 'Your profile';
 
-            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+  return (
+    <div className="min-h-screen flex flex-col">
+      <div className="bg-white border-b border-brand-200 px-4 sm:px-6 h-16 flex items-center gap-3 sm:gap-4 sticky top-0 z-30">
+        <div className="flex items-center gap-2.5 flex-1 min-w-0">
+          <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center shadow-xs shrink-0">
+            <User className="w-4 h-4 text-white" />
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-lg font-bold text-brand-900 tracking-tight leading-none truncate">Profile</h1>
+            <p className="text-xs text-brand-600 mt-1 leading-none tabular-nums truncate">{completionPercent}% complete</p>
+          </div>
+        </div>
+        <button type="button" onClick={() => setIsEditModalOpen(true)} className={buttonClasses('primary', 'sm')}>
+          <Edit3 className="w-4 h-4" aria-hidden="true" />
+          Edit profile
+        </button>
+        {onLogout && (
+          <button
+            type="button"
+            onClick={onLogout}
+            aria-label="Sign out"
+            className={buttonClasses('ghost', 'sm', 'text-red-600 hover:text-red-700 hover:bg-red-50')}
+          >
+            <LogOut className="w-4 h-4" aria-hidden="true" />
+            <span className="hidden sm:inline">Sign out</span>
+          </button>
+        )}
+      </div>
+
+      <div className={`flex-1 ${PAGE_WIDTH} py-6 sm:py-8 space-y-5`}>
+        {/* Who this is */}
+        <section className="rounded-xl border border-brand-200 bg-white p-5 md:p-6 shadow-soft">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+            <div className="relative shrink-0 self-start sm:self-auto">
+              <div className="h-16 w-16 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center overflow-hidden border border-primary-200">
+                {profileImage ? (
+                  <img src={profileImage} alt="Profile" className="h-full w-full object-cover" />
+                ) : (
+                  <User className="w-8 h-8" />
+                )}
+              </div>
               <button
                 type="button"
-                onClick={() => setIsEditModalOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary-600 text-white font-semibold hover:bg-primary-700 transition-all shadow-xs text-sm"
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute -bottom-1.5 -right-1.5 bg-white p-1.5 rounded-full border border-brand-200 shadow-xs text-brand-600 hover:text-primary-600 hover:border-primary-300 transition-colors cursor-pointer"
+                title="Change profile picture"
+                aria-label="Change profile picture"
               >
-                <Edit3 className="w-4 h-4" />
-                <span>Edit Profile</span>
+                <Camera className="w-3.5 h-3.5" />
               </button>
-
-              {onBack && (
-                <button
-                  type="button"
-                  onClick={onBack}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white border border-brand-200 text-brand-700 font-medium hover:bg-brand-50 hover:border-brand-300 transition-all shadow-xs text-sm"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span className="hidden sm:inline">Back to Discovery</span>
-                  <span className="sm:hidden">Back</span>
-                </button>
-              )}
-              {onLogout && (
-                <button
-                  type="button"
-                  onClick={onLogout}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white border border-red-200 text-red-600 font-medium hover:bg-red-50 hover:border-red-300 transition-all shadow-xs text-sm"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Logout
-                </button>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                ref={fileInputRef}
+                onChange={handleImageUpload}
+              />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-xl font-bold text-brand-900 tracking-tight truncate">{displayName}</h2>
+              {session?.user.email && <p className="text-sm text-brand-500 truncate">{session.user.email}</p>}
+              {profileSubtitle && <p className="mt-1.5 text-sm font-medium text-brand-700">{profileSubtitle}</p>}
+            </div>
+            <div className="sm:w-56 shrink-0">
+              <div className="flex items-baseline justify-between text-xs">
+                <span className="font-medium text-brand-600">Profile completeness</span>
+                <span className="font-semibold tabular-nums text-brand-900">{completionPercent}%</span>
+              </div>
+              <div className="mt-1.5 h-1.5 bg-brand-100 rounded-full overflow-hidden">
+                <div className="h-full bg-primary-600 rounded-full" style={{ width: `${completionPercent}%` }} />
+              </div>
+              {completionPercent < 100 && (
+                <p className="mt-1.5 text-xs text-brand-500">A fuller profile gives better matches.</p>
               )}
             </div>
           </div>
         </section>
 
-        {/* Stat cards with colored accents */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatCard
-            label="Experience"
-            value={`${researcher.yearsOfExperience ?? 0} years`}
-            accent="primary"
-            icon={<GraduationCap className="w-4 h-4" />}
-          />
-          <StatCard
-            label="Funding Preference"
-            value={`${formatCurrency(researcher.minFundingAmount)} – ${formatCurrency(researcher.maxFundingAmount)}`}
-            accent="green"
-            small
-            icon={<Wallet className="w-4 h-4" />}
-          />
-          <StatCard
-            label="Notifications Enabled"
-            value={`${notificationCount}/3`}
-            accent="brand"
-            icon={<Bell className="w-4 h-4" />}
-          />
-        </section>
-
-        {/* Detail cards */}
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <DetailCard icon={<Building2 className="w-4 h-4" />} title="Organization">
+          <DetailCard icon={<Building2 className="w-4 h-4" />} title="Background">
             <ProfileRow label="Institution" value={formatText(researcher.institutionName)} />
             <ProfileRow label="Department" value={formatText(researcher.department)} />
-            <ProfileRow
-              label="Education Level"
-              value={formatEnum(researcher.educationLevel)}
-              icon={<GraduationCap className="w-3.5 h-3.5 text-primary-600" />}
-              isBadge
-            />
+            <ProfileRow label="Education level" value={formatEnum(researcher.educationLevel)} isBadge />
+            <ProfileRow label="Research experience" value={formatYears(researcher.yearsOfExperience)} />
           </DetailCard>
 
           <DetailCard icon={<MapPin className="w-4 h-4" />} title="Location">
-            <ProfileRow label="Current Location" value={location || NOT_PROVIDED} />
             <ProfileRow label="Country" value={formatText(researcher.country)} />
-            <ProfileRow
-              label="State / City"
-              value={`${formattedState || NOT_PROVIDED} / ${formattedCity || NOT_PROVIDED}`}
-            />
+            <ProfileRow label="State" value={formatText(researcher.state)} />
+            <ProfileRow label="City" value={formatText(researcher.city)} />
+            <ProfileRow label="Citizenship" value={formatText(researcher.citizenship)} />
           </DetailCard>
 
-          <DetailCard icon={<Target className="w-4 h-4" />} title="Research Focus">
-            <ProfileRow label="Primary Field" value={formatEnum(researcher.primaryField)} isBadge />
-            <ProfileRow label="Preferred Grant Type" value={formatEnum(researcher.preferredGrantType)} isBadge />
+          <DetailCard icon={<Target className="w-4 h-4" />} title="Research focus">
+            <ProfileRow label="Primary field" value={formatEnum(researcher.primaryField)} isBadge />
+            <ProfileRow label="Preferred grant type" value={formatEnum(researcher.preferredGrantType)} isBadge />
             <div className="pt-2 pb-1">
               <p className="text-brand-500 font-medium mb-2 text-xs">Keywords</p>
               {researcher.keywords && researcher.keywords.length > 0 ? (
@@ -294,51 +253,34 @@ function ResearcherProfile({ researcher: initialResearcher, onBack, onLogout }: 
                   {researcher.keywords.map((keyword) => (
                     <span
                       key={keyword}
-                      className="px-2.5 py-1 rounded-lg text-xs bg-primary-50 text-primary-800 border border-primary-200 font-semibold shadow-2xs"
+                      className="px-2.5 py-1 rounded-lg text-xs bg-primary-50 text-primary-800 border border-primary-200 font-semibold"
                     >
                       {keyword}
                     </span>
                   ))}
                 </div>
               ) : (
-                <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs bg-brand-50 text-brand-500 border border-brand-200 font-medium">
-                  {NOT_PROVIDED}
-                </span>
+                <span className="text-sm font-medium text-brand-400">{NOT_PROVIDED}</span>
               )}
             </div>
           </DetailCard>
 
-          <DetailCard icon={<Wallet className="w-4 h-4" />} title="Funding & Eligibility">
-            <ProfileRow label="Min Amount" value={formatCurrency(researcher.minFundingAmount)} />
-            <ProfileRow label="Max Amount" value={formatCurrency(researcher.maxFundingAmount)} />
-            <ProfileRow
-              label="Previous Grants Received"
-              value={formatBoolean(researcher.previousGrantsReceived)}
-              isBadge
-            />
+          <DetailCard icon={<Wallet className="w-4 h-4" />} title="Funding and eligibility">
+            <ProfileRow label="Minimum amount" value={formatCurrency(researcher.minFundingAmount)} />
+            <ProfileRow label="Maximum amount" value={formatCurrency(researcher.maxFundingAmount)} />
+            <ProfileRow label="PhD completed" value={formatBoolean(researcher.hasCompletedPhd)} />
+            <ProfileRow label="Previous grants received" value={formatBoolean(researcher.previousGrantsReceived)} />
           </DetailCard>
         </section>
 
-        {/* Notifications */}
-        <section className="rounded-xl border border-brand-200 bg-white p-5 shadow-soft">
-          <div className="flex items-center gap-2.5 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-primary-50 border border-primary-200 flex items-center justify-center text-primary-600">
-              <Bell className="w-4 h-4" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-brand-900 tracking-tight leading-none">Notification Settings</h2>
-              <p className="text-xs text-brand-500 mt-1 leading-none">Manage how you receive grant updates</p>
-            </div>
+        <DetailCard icon={<Bell className="w-4 h-4" />} title="Notifications" hint="Change these with Edit profile.">
+          <div className="grid grid-cols-1 md:grid-cols-3 md:gap-x-8">
+            <NotificationRow label="New grant emails" enabled={researcher.emailNotifications} />
+            <NotificationRow label="Deadline reminders" enabled={researcher.deadlineReminders} />
+            <NotificationRow label="Weekly recommendations" enabled={researcher.weeklyGrantRecommendations} />
           </div>
+        </DetailCard>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <NotificationItem label="New Grant Emails" enabled={researcher.emailNotifications} />
-            <NotificationItem label="Deadline Reminders" enabled={researcher.deadlineReminders} />
-            <NotificationItem label="Weekly Recommendations" enabled={researcher.weeklyGrantRecommendations} />
-          </div>
-        </section>
-
-        {/* Edit Profile Modal */}
         <ResearcherEditModal
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
@@ -350,110 +292,65 @@ function ResearcherProfile({ researcher: initialResearcher, onBack, onLogout }: 
   );
 }
 
-interface StatCardProps {
-  label: string;
-  value: string;
-  accent: 'primary' | 'green' | 'brand';
-  icon: ReactNode;
-  small?: boolean;
-}
-
-function StatCard({ label, value, accent, icon, small }: StatCardProps) {
-  const accentMap = {
-    primary: {
-      icon: 'bg-primary-50 text-primary-700 border-primary-200',
-      value: 'text-brand-900',
-    },
-    green: {
-      icon: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-      value: 'text-brand-900',
-    },
-    brand: {
-      icon: 'bg-cyan-50 text-cyan-700 border-cyan-200',
-      value: 'text-brand-900',
-    },
-  }[accent];
-
-  return (
-    <div className="rounded-xl border border-brand-200 bg-white p-4.5 shadow-soft hover:shadow-md transition-shadow">
-      <div className="flex items-center gap-2.5 mb-2.5">
-        <div className={`w-8 h-8 rounded-lg border ${accentMap.icon} flex items-center justify-center`}>{icon}</div>
-        <p className="text-xs text-brand-500 font-medium">{label}</p>
-      </div>
-      <p className={`${small ? 'text-sm md:text-base' : 'text-xl'} font-bold ${accentMap.value} tabular-nums`}>{value}</p>
-    </div>
-  );
-}
-
 interface DetailCardProps {
   icon: ReactNode;
   title: string;
+  hint?: string;
   children: ReactNode;
 }
 
-function DetailCard({ icon, title, children }: DetailCardProps) {
+function DetailCard({ icon, title, hint, children }: DetailCardProps) {
   return (
-    <div className="rounded-xl border border-brand-200 bg-white p-5 shadow-soft hover:shadow-elevated transition-shadow duration-200">
-      <div className="flex items-center gap-2.5 mb-4 pb-3 border-b border-brand-100">
-        <div className="w-8 h-8 rounded-lg bg-primary-50 border border-primary-200 flex items-center justify-center text-primary-600">
+    <section className="rounded-xl border border-brand-200 bg-white p-5 shadow-soft">
+      <div className="flex items-center gap-2.5 mb-3 pb-3 border-b border-brand-100">
+        <div className="w-8 h-8 rounded-lg bg-primary-50 border border-primary-200 flex items-center justify-center text-primary-600 shrink-0">
           {icon}
         </div>
-        <h2 className="text-base font-bold text-brand-900 tracking-tight">{title}</h2>
+        <div className="min-w-0">
+          <h2 className="text-base font-bold text-brand-900 tracking-tight">{title}</h2>
+          {hint && <p className="text-xs text-brand-500">{hint}</p>}
+        </div>
       </div>
-      <div className="space-y-1.5 text-sm">
-        {children}
-      </div>
-    </div>
+      <div className="text-sm">{children}</div>
+    </section>
   );
 }
 
 interface ProfileRowProps {
   label: string;
   value: string;
-  icon?: ReactNode;
   isBadge?: boolean;
 }
 
-function ProfileRow({ label, value, icon, isBadge }: ProfileRowProps) {
+function ProfileRow({ label, value, isBadge }: ProfileRowProps) {
+  const missing = value === NOT_PROVIDED;
   return (
     <div className="flex items-center justify-between gap-4 py-2 border-b border-brand-100 last:border-b-0">
       <span className="text-brand-500 font-medium text-xs shrink-0">{label}</span>
-      {isBadge ? (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary-50 text-primary-800 border border-primary-200 shadow-2xs">
-          {icon}
-          <span>{value}</span>
+      {missing ? (
+        <span className="text-sm font-medium text-brand-400">{value}</span>
+      ) : isBadge ? (
+        <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary-50 text-primary-800 border border-primary-200">
+          {value}
         </span>
       ) : (
-        <span className="text-brand-900 font-semibold text-right inline-flex items-center gap-1.5 text-sm">
-          {icon}
-          <span>{value}</span>
-        </span>
+        <span className="text-brand-900 font-semibold text-right text-sm">{value}</span>
       )}
     </div>
   );
 }
 
-interface NotificationItemProps {
-  label: string;
-  enabled: boolean;
-}
-
-function NotificationItem({ label, enabled }: NotificationItemProps) {
+/** A notification setting as read-only text, so it doesn't look like a toggle. */
+function NotificationRow({ label, enabled }: { label: string; enabled: boolean }) {
   return (
-    <div className={`relative rounded-lg border px-4 py-3 flex items-center justify-between transition-all overflow-hidden ${
-      enabled
-        ? 'border-green-200 bg-green-50 shadow-sm'
-        : 'border-brand-200 bg-white shadow-sm'
-    }`}>
-      {enabled && <div className="absolute top-0 left-0 w-0.5 h-full bg-primary-500" />}
-      <span className="text-sm font-medium text-brand-800">{label}</span>
-      <span className={`inline-flex items-center gap-1 text-xs font-bold ${enabled ? 'text-green-700' : 'text-brand-500'}`}>
-        {enabled ? <CheckCircle2 className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
-        {enabled ? 'Enabled' : 'Disabled'}
+    <div className="flex items-center justify-between gap-4 py-2 border-b border-brand-100 last:border-b-0 md:border-b-0">
+      <span className="text-brand-700 text-sm">{label}</span>
+      <span className={`inline-flex items-center gap-1.5 text-sm font-semibold ${enabled ? 'text-primary-700' : 'text-brand-400'}`}>
+        <span className={`h-1.5 w-1.5 rounded-full ${enabled ? 'bg-primary-500' : 'bg-brand-300'}`} aria-hidden="true" />
+        {enabled ? 'On' : 'Off'}
       </span>
     </div>
   );
 }
 
 export default ResearcherProfile;
-

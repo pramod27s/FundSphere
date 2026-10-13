@@ -243,7 +243,7 @@ export default function FilterSidebar({ filters, onChange, onClose, availableFun
           className="w-full py-2.5 bg-white border border-brand-200 text-brand-700 font-semibold rounded-lg hover:bg-primary-50 hover:text-primary-700 hover:border-primary-300 transition-all text-sm shadow-xs hover:shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-2"
         >
           <RotateCcw className="w-3.5 h-3.5" />
-          Reset All Filters
+          Reset all filters
         </button>
       </div>
     </aside>

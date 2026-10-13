@@ -5,6 +5,8 @@ export interface AnimatedLogoProps {
   className?: string;
   textClassName?: string;
   showText?: boolean;
+  /** Draw the bars in white, for use on a dark background. */
+  onDark?: boolean;
 }
 
 // ── Two independent elements, just like the screenshot ──────────────────────
@@ -45,11 +47,13 @@ const BARS = [
 // Theme Colors
 const THEME_TEAL = "#0d9488"; // standard tailwind teal-600
 const THEME_NAVY = "#0f172a"; // standard tailwind slate-900
+const THEME_WHITE = "#ffffff";
 
 export default function AnimatedLogo({
   className     = 'w-10 h-10',
   textClassName = 'text-2xl',
   showText      = false,
+  onDark        = false,
 }: AnimatedLogoProps) {
   const [ringDone, setRingDone] = useState(false);
 
@@ -72,8 +76,8 @@ export default function AnimatedLogo({
               <motion.path
                 key={i}
                 d={barPath}
-                fill={THEME_NAVY}
-                style={{ transformOrigin: '50% 100%', transformBox: 'fill-box' }}
+                fill={onDark ? THEME_WHITE : THEME_NAVY}
+                style={{ transformOrigin: '50% 100%', transformBox: 'fill-box', transition: 'fill 0.3s ease' }}
                 initial={{ scaleY: 0, opacity: 0 }}
                 animate={{ scaleY: 1, opacity: 1 }}
                 transition={{

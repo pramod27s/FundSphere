@@ -7,6 +7,7 @@ import ErrorBoundary from './components/common/ErrorBoundary.tsx';
 import ScrollToTopButton from './components/common/ScrollToTopButton.tsx';
 import TopLoadingBar from './components/common/TopLoadingBar.tsx';
 import NavRail from './components/common/NavRail.tsx';
+import { RAIL_SCROLL_TOP_POSITION } from './components/common/PageLayout.tsx';
 
 // The landing page ships in the main bundle (it's the first paint for most
 // visitors); every other screen is split into its own chunk and fetched on
@@ -88,7 +89,7 @@ function RootLayout() {
         <Toaster
           position="bottom-right"
           gutter={8}
-          containerClassName={hasRail ? 'md:right-24!' : undefined}
+          containerClassName={hasRail ? 'bottom-[calc(var(--mobile-tab-bar)_+_0.5rem)]! md:bottom-4! md:right-24!' : undefined}
           toastOptions={{
             duration: 2800,
             style: {
@@ -110,7 +111,7 @@ function RootLayout() {
             <Outlet />
           </Suspense>
         </ErrorBoundary>
-        <ScrollToTopButton positionClassName={hasRail ? 'fixed bottom-6 right-6 md:right-26' : undefined} />
+        <ScrollToTopButton positionClassName={hasRail ? RAIL_SCROLL_TOP_POSITION : undefined} />
       </div>
     </ResearcherProvider>
   );
@@ -250,7 +251,7 @@ function AppShell() {
   const { researcher } = useResearcher();
   return (
     <>
-      <div className="md:pr-20">
+      <div className="pb-[var(--mobile-tab-bar)] md:pb-0 md:pr-20">
         {/* Own boundary so switching tabs keeps the rail mounted while the next screen's chunk loads. */}
         <Suspense fallback={<TopLoadingBar visible />}>
           <Outlet />
@@ -273,7 +274,6 @@ function ProfileRoute() {
   return (
     <ResearcherProfile
       researcher={researcher}
-      onBack={() => navigate('/discovery')}
       onLogout={() => {
         clearSession();
         setResearcher(null);

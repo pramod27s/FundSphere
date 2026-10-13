@@ -35,7 +35,7 @@ export default function StartApplicationButton({ grant, size = 'md' }: StartAppl
 
   const sizing = size === 'sm'
     ? 'px-2.5 py-1 rounded-md text-xs gap-1.5'
-    : 'w-full sm:w-auto px-5 py-2.5 rounded-lg gap-2 shadow-xs active:scale-[0.98]';
+    : 'w-full sm:w-auto px-5 py-2.5 rounded-lg text-sm gap-2 shadow-xs active:scale-[0.98]';
   const icon = size === 'sm' ? 'w-3 h-3' : 'w-4 h-4';
 
   return (

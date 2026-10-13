@@ -75,10 +75,10 @@ const initialData: OnboardingFormData = {
 };
 
 const stagesConfig = [
-  { id: 'identity', title: 'Identity & Role', subtitle: 'Who you are & your affiliation' },
-  { id: 'research', title: 'Research Focus', subtitle: 'Your domains, bio & keywords' },
-  { id: 'funding', title: 'Funding & Eligibility', subtitle: 'Target grants & career background' },
-  { id: 'preferences', title: 'Location & Alerts', subtitle: 'Residency & notification settings' },
+  { id: 'identity', title: 'Identity & role', subtitle: 'Who you are & your affiliation' },
+  { id: 'research', title: 'Research focus', subtitle: 'Your domains, bio & keywords' },
+  { id: 'funding', title: 'Funding & eligibility', subtitle: 'Target grants & career background' },
+  { id: 'preferences', title: 'Location & alerts', subtitle: 'Residency & notification settings' },
 ];
 
 const userTypeMap: Record<string, string> = {
@@ -216,11 +216,15 @@ export default function OnboardingWizard({ onComplete }: { onComplete: (data: Re
   const handleSkip = async () => {
     setIsSkipping(true);
     try {
+      // Send only what the user actually entered. Unknown facts stay empty
+      // (the profile shows "Not provided") rather than invented: a made-up
+      // education level would read as "no PhD" and hide PhD-only calls.
+      // userType, position and primaryField are NOT NULL, so they keep defaults.
       const payload: ResearcherRequest = {
         userType: userTypeMap[formData.userType] || 'RESEARCHER',
-        institutionName: formData.orgName.trim() || 'Academic Institution',
+        institutionName: formData.orgName.trim(),
         department: formData.department.trim() || '',
-        position: 'RESEARCH_ASSISTANT',
+        position: positionMap[formData.role] || 'RESEARCH_ASSISTANT',
         institutionType: 'UNIVERSITY',
         primaryField: validFields.includes(formData.primaryField)
           ? formData.primaryField
@@ -228,9 +232,8 @@ export default function OnboardingWizard({ onComplete }: { onComplete: (data: Re
         additionalFields: formData.additionalFields,
         keywords: formData.keywords
           ? formData.keywords.split(',').map((k) => k.trim()).filter(Boolean)
-          : ['Research', 'Grants'],
-        researchSummary:
-          formData.researchSummary.trim() || 'Exploring interdisciplinary grant opportunities.',
+          : [],
+        researchSummary: formData.researchSummary.trim(),
         orcidId: formData.orcidId.trim(),
         country: formData.country || 'India',
         state: formData.state.trim() || '',
@@ -239,8 +242,8 @@ export default function OnboardingWizard({ onComplete }: { onComplete: (data: Re
         minFundingAmount: Number(formData.minFunding) || 10000,
         maxFundingAmount: Number(formData.maxFunding) || 500000,
         preferredGrantType: grantTypeMap[formData.grantType] || 'RESEARCH_GRANT',
-        yearsOfExperience: 1,
-        educationLevel: 'UNDERGRADUATE',
+        yearsOfExperience: null,
+        educationLevel: null,
         hasCompletedPhd: null,
         previousGrantsReceived: false,
         emailNotifications: true,
@@ -478,12 +481,12 @@ export default function OnboardingWizard({ onComplete }: { onComplete: (data: Re
           {isSubmitting ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Saving Profile...</span>
+              <span>Saving profile…</span>
             </>
           ) : isLastStage ? (
             <>
               <Sparkles className="w-4 h-4" />
-              <span>Complete Setup & Discover</span>
+              <span>Complete setup & discover</span>
             </>
           ) : (
             <>

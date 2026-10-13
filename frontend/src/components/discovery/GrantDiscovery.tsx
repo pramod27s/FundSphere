@@ -4,9 +4,9 @@ import GrantList from './GrantList.tsx';
 import FilterSidebar from './FilterSidebar.tsx';
 import AnimatedLogo from '../common/AnimatedLogo.tsx';
 import CustomSelect from '../common/CustomSelect.tsx';
-import UserAvatarMenu from '../common/UserAvatarMenu.tsx';
 import ScrollToTopButton from '../common/ScrollToTopButton.tsx';
 import TopLoadingBar from '../common/TopLoadingBar.tsx';
+import { RAIL_SCROLL_TOP_POSITION } from '../common/PageLayout.tsx';
 import type { ResearcherResponse } from '../../services/researcherService';
 import { fetchGrantAgencies, getDiscoveryGrants, type DiscoveryGrant } from '../../services/discoveryService';
 import { applyFilters, countActiveFilters, EMPTY_FILTERS, grantInrAmount, type FilterState } from '../../utils/grantFilters';
@@ -257,19 +257,13 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
   };
 
   return (
-    <div className="flex h-screen w-full overflow-hidden relative bg-brand-50">
+    <div className="flex h-[calc(100vh_-_var(--mobile-tab-bar))] md:h-screen w-full overflow-hidden relative bg-brand-50">
       <TopLoadingBar visible={isLoading} />
 
       {/* Pinned to viewport but listens to main's internal scroll. The
           RootLayout's window-scroll button never shows here because the
           window itself doesn't scroll on /discovery. */}
-      <ScrollToTopButton scrollTarget={mainScrollRef} positionClassName="fixed bottom-6 right-6 md:right-26" />
-
-      {researcher && (
-        <div className="md:hidden absolute top-4 right-4 z-50">
-          <UserAvatarMenu researcherId={researcher.id} />
-        </div>
-      )}
+      <ScrollToTopButton scrollTarget={mainScrollRef} positionClassName={RAIL_SCROLL_TOP_POSITION} />
 
       {isSidebarOpen && (
         <div
@@ -493,10 +487,10 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                     width="w-[155px]"
                     size="sm"
                     options={[
-                      ...(dataSource === 'ai' ? [{ value: 'match', label: 'Match Score' }] : []),
-                      { value: 'deadline', label: 'Closing Soon' },
-                      { value: 'funding', label: 'Highest Amount' },
-                      { value: 'recent', label: 'Recently Updated' },
+                      ...(dataSource === 'ai' ? [{ value: 'match', label: 'Match score' }] : []),
+                      { value: 'deadline', label: 'Closing soon' },
+                      { value: 'funding', label: 'Highest amount' },
+                      { value: 'recent', label: 'Recently updated' },
                     ]}
                   />
                 </div>

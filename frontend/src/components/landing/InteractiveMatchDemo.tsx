@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useRef, useState } from 'react';
+import { motion, AnimatePresence, useInView, useReducedMotion } from 'framer-motion';
 import {
   Sparkles,
   ShieldCheck,
@@ -10,8 +10,13 @@ import {
   Layers,
   Clock,
   TriangleAlert,
+  Pause,
 } from 'lucide-react';
 import MatchScoreDial from '../common/MatchScoreDial';
+import { EASE } from './motion';
+
+/** Seconds each example stays on screen while the demo plays itself. */
+const TOUR_SECONDS = 7;
 
 interface Persona {
   id: string;
@@ -30,7 +35,7 @@ interface Persona {
     deadlineTone: 'normal' | 'warn' | 'urgent';
     lastVerified: string;
     matchScore: number;
-    eligibility: 'Eligible' | 'Check Eligibility';
+    eligibility: 'Eligible' | 'Check eligibility';
     tags: string[];
     rationale: string;
     signals: {
@@ -50,140 +55,183 @@ interface Persona {
 
 const PERSONAS: Persona[] = [
   {
-    id: 'bio-postdoc',
-    name: 'Dr. Elena Rostova',
-    role: 'Postdoctoral Fellow in Oncology',
-    institution: 'Stanford School of Medicine',
-    badge: 'Early Career',
-    researchFocus: 'Targeted mRNA nanocarriers for drug-resistant triple-negative breast cancer immunotherapy.',
+    id: 'early-career',
+    name: 'Dr. Ananya Rao',
+    role: 'Assistant Professor, Molecular Biology',
+    institution: 'IISER Pune',
+    badge: 'Early career',
+    researchFocus: 'CRISPR-based diagnostics for drug-resistant tuberculosis in low-resource clinics.',
     grant: {
       id: 101,
-      title: 'NIH NCI Early-Stage Investigator R01 Innovator Award in Immuno-Oncology',
-      funder: 'NIH / NCI',
-      grantType: 'Research Project Grant (R01)',
-      amount: '$1,250,000 ($250k / yr)',
-      deadlineLabel: '52 days left (Oct 15, 2026)',
+      title: 'ANRF Start-up Research Grant in Life Sciences',
+      funder: 'ANRF (formerly SERB)',
+      grantType: 'Early-career research grant',
+      amount: '₹30 lakh over 2 years',
+      deadlineLabel: '38 days left',
       deadlineTone: 'normal',
-      lastVerified: 'Verified 2 days ago',
-      matchScore: 96,
+      lastVerified: 'Verified today',
+      matchScore: 94,
       eligibility: 'Eligible',
-      tags: ['Oncology', 'mRNA Therapeutics', 'Early Stage Investigator', 'Immunotherapy'],
-      rationale: 'Exceptional semantic alignment with NCI immuno-oncology priorities. The candidate meets all Early-Stage Investigator (ESI) window criteria (<5 yrs post-PhD). mRNA targeted delivery directly fulfills Section 4.2 priority areas.',
-      signals: {
-        semantic: 98,
-        eligibility: 100,
-        keyword: 92,
-        fundingFit: 95,
-        deadline: 94,
-      },
+      tags: ['Infectious disease', 'Diagnostics', 'CRISPR', 'Early career'],
+      rationale:
+        "Close match with the call's infectious-disease diagnostics priority. Your faculty position and years since PhD fall inside the early-career window, and the planned budget sits under the cap.",
+      signals: { semantic: 96, eligibility: 100, keyword: 90, fundingFit: 92, deadline: 88 },
       criteria: [
-        { label: 'Field of Research', verdict: 'match', detail: 'Direct match with NCI cancer immunotherapy focus vector' },
-        { label: 'Degree Requirement', verdict: 'match', detail: 'PhD completed in 2023 (satisfies post-doc qualification)' },
-        { label: 'Career Stage Window', verdict: 'match', detail: 'ESI status (<5 yrs post-PhD) satisfies eligibility rules' },
-        { label: 'Budget Request', verdict: 'match', detail: 'Proposed direct cost conforms with standard $250k/yr slab' },
+        { label: 'Research area', verdict: 'match', detail: 'Diagnostics for drug-resistant TB is a listed priority' },
+        { label: 'Degree', verdict: 'match', detail: 'PhD completed in 2021' },
+        { label: 'Career stage', verdict: 'match', detail: 'Within two years of a first regular faculty post' },
+        { label: 'Budget', verdict: 'match', detail: 'A ₹28 lakh plan is under the ₹30 lakh cap' },
       ],
     },
   },
   {
-    id: 'cleantech-startup',
+    id: 'deep-tech',
     name: 'Aravind Swaminathan',
-    role: 'Co-Founder & CTO',
-    institution: 'Aetheris CleanTech Labs',
-    badge: 'DeepTech Startup',
-    researchFocus: 'High-temperature solid oxide electrolyzers for low-cost green hydrogen generation at industrial scale.',
+    role: 'Co-founder and CTO',
+    institution: 'Aetheris Biologics',
+    badge: 'Deep-tech startup',
+    researchFocus: 'A low-cost point-of-care biosensor for early detection of sepsis in neonatal ICUs.',
     grant: {
       id: 102,
-      title: 'SERB-DST DeepTech Energy Transition & National Green Hydrogen Mission',
-      funder: 'SERB / DST',
-      grantType: 'Commercialization Grant',
-      amount: '₹1.85 Crore ($220k)',
-      deadlineLabel: '98 days left (Nov 30, 2026)',
-      deadlineTone: 'normal',
-      lastVerified: 'Verified 1 day ago',
-      matchScore: 92,
-      eligibility: 'Eligible',
-      tags: ['Green Hydrogen', 'Electrolyzers', 'CleanTech', 'DPIIT Startup'],
-      rationale: 'Strong alignment with National Green Hydrogen Mission directives. DPIIT startup status satisfies consortium eligibility. Direct match with high-yield electrolyzer R&D parameters.',
-      signals: {
-        semantic: 94,
-        eligibility: 90,
-        keyword: 95,
-        fundingFit: 90,
-        deadline: 91,
-      },
+      title: 'BIRAC Biotechnology Ignition Grant (BIG)',
+      funder: 'BIRAC',
+      grantType: 'Proof-of-concept grant',
+      amount: 'Up to ₹50 lakh over 18 months',
+      deadlineLabel: 'Closing soon: 21 days left',
+      deadlineTone: 'warn',
+      lastVerified: 'Verified yesterday',
+      matchScore: 91,
+      eligibility: 'Check eligibility',
+      tags: ['Medical devices', 'Biosensors', 'Neonatal care', 'Startup'],
+      rationale:
+        'Strong fit with the call\'s focus on early-stage healthcare innovation, and your proof-of-concept stage matches the grant\'s purpose. One requirement needs a document from you before you apply.',
+      signals: { semantic: 95, eligibility: 80, keyword: 92, fundingFit: 94, deadline: 82 },
       criteria: [
-        { label: 'Domain & Themes', verdict: 'match', detail: 'Matches "Green Hydrogen", "CleanTech", and "Electrolyzers"' },
-        { label: 'Applicant Eligibility', verdict: 'match', detail: 'Recognized DPIIT startup satisfies commercialization track' },
-        { label: 'Budget Fit', verdict: 'match', detail: '₹1.85 Cr falls safely within the ₹2 Cr max allocated ceiling' },
-        { label: 'Consortium Model', verdict: 'match', detail: 'Allows startup-led applied research and prototype trials' },
+        { label: 'Applicant type', verdict: 'match', detail: 'DPIIT-recognised startup' },
+        { label: 'Stage', verdict: 'match', detail: 'Prototype ready for proof-of-concept validation' },
+        { label: 'Budget', verdict: 'match', detail: 'A ₹46 lakh plan fits under the ₹50 lakh ceiling' },
+        { label: 'Shareholding', verdict: 'warn', detail: 'Proof of majority Indian ownership is needed' },
       ],
     },
   },
   {
-    id: 'ai-quantum',
-    name: 'Prof. Marcus Thorne',
-    role: 'Associate Professor of Computer Science',
-    institution: 'ETH Zürich / Cambridge',
-    badge: 'Tenured PI',
-    researchFocus: 'Fault-tolerant quantum error mitigation algorithms on NISQ hardware architectures.',
+    id: 'senior-pi',
+    name: 'Prof. Rajesh Iyer',
+    role: 'Professor of Physics',
+    institution: 'IIT Madras',
+    badge: 'Senior PI',
+    researchFocus: 'Error mitigation for superconducting qubits on noisy intermediate-scale quantum hardware.',
     grant: {
       id: 103,
-      title: 'Horizon Europe ERC Consolidator Grant in Quantum Error Mitigation',
-      funder: 'Horizon Europe (ERC)',
-      grantType: 'Consolidator Grant',
-      amount: '€2,000,000 (5 Years)',
-      deadlineLabel: 'Closing soon (28 days left)',
-      deadlineTone: 'warn',
-      lastVerified: 'Verified today',
+      title: 'ANRF Core Research Grant in Physical Sciences',
+      funder: 'ANRF (formerly SERB)',
+      grantType: 'Core research grant',
+      amount: '₹60 lakh over 3 years',
+      deadlineLabel: '52 days left',
+      deadlineTone: 'normal',
+      lastVerified: 'Verified 2 days ago',
       matchScore: 95,
       eligibility: 'Eligible',
-      tags: ['Quantum Computing', 'NISQ Architecture', 'Horizon Europe', 'ERC'],
-      rationale: 'Direct match for the ERC 7-12 years post-PhD tenure bracket. Research proposal keywords match Horizon Europe Quantum Flagship Pillar 2 objectives with zero eligibility conflicts.',
-      signals: {
-        semantic: 96,
-        eligibility: 100,
-        keyword: 94,
-        fundingFit: 96,
-        deadline: 88,
-      },
+      tags: ['Quantum computing', 'Superconducting qubits', 'Physics', 'Core research'],
+      rationale:
+        'Your error-mitigation work matches the quantum technologies theme of the call. A regular faculty post at a recognised institution meets the PI rules, and the three-year plan fits the budget limit.',
+      signals: { semantic: 97, eligibility: 100, keyword: 93, fundingFit: 90, deadline: 92 },
       criteria: [
-        { label: 'Consolidator Window', verdict: 'match', detail: '8 years post-PhD precisely fits ERC 7-12 yrs window' },
-        { label: 'EU Flagship Alignment', verdict: 'match', detail: 'NISQ error mitigation directly matches Pillar 2 priority' },
-        { label: 'Institutional Track', verdict: 'match', detail: 'Host institution qualifies under Horizon Europe framework' },
-        { label: 'Funding Slab', verdict: 'match', detail: '€2.0M requested conforms with max allowable threshold' },
+        { label: 'Research area', verdict: 'match', detail: 'Quantum technologies is a listed theme' },
+        { label: 'PI position', verdict: 'match', detail: 'Regular faculty at a recognised institution' },
+        { label: 'Running projects', verdict: 'match', detail: 'Under the limit on concurrent grants' },
+        { label: 'Budget', verdict: 'match', detail: 'A ₹58 lakh plan is within the scheme limit' },
       ],
     },
   },
 ];
 
+const cardVariants = {
+  hidden: { opacity: 0, y: 12, filter: 'blur(4px)' },
+  show: {
+    opacity: 1,
+    y: 0,
+    filter: 'blur(0px)',
+    transition: { duration: 0.45, ease: EASE, staggerChildren: 0.06, delayChildren: 0.15 },
+  },
+  exit: { opacity: 0, y: -8, filter: 'blur(4px)', transition: { duration: 0.2 } },
+};
+
+const childVariants = {
+  hidden: { opacity: 0, y: 6 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: EASE } },
+};
+
 export default function InteractiveMatchDemo() {
-  const [selectedId, setSelectedId] = useState<string>('bio-postdoc');
+  const [selectedId, setSelectedId] = useState<string>(PERSONAS[0].id);
   const [isSaved, setIsSaved] = useState<boolean>(false);
   const [showSignals, setShowSignals] = useState<boolean>(false);
+
+  // The demo plays through the examples by itself until the visitor
+  // interacts. It pauses on hover, on keyboard focus and when off screen.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const inView = useInView(rootRef, { amount: 0.35 });
+  const reduceMotion = useReducedMotion();
+  const [touring, setTouring] = useState(true);
+  const [hovering, setHovering] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const playing = touring && !hovering && !focused && inView && !reduceMotion;
 
   const persona = PERSONAS.find((p) => p.id === selectedId) ?? PERSONAS[0];
   const grant = persona.grant;
 
+  const showNext = () => {
+    setSelectedId((current) => {
+      const index = PERSONAS.findIndex((p) => p.id === current);
+      return PERSONAS[(index + 1) % PERSONAS.length].id;
+    });
+    setIsSaved(false);
+  };
+
   const signals = [
-    { label: 'Research fit', weight: 35, value: grant.signals.semantic },
-    { label: 'Eligibility', weight: 25, value: grant.signals.eligibility },
-    { label: 'Keywords', weight: 15, value: grant.signals.keyword },
-    { label: 'Budget fit', weight: 15, value: grant.signals.fundingFit },
+    { label: 'Research fit', weight: 50, value: grant.signals.semantic },
+    { label: 'Eligibility', weight: 20, value: grant.signals.eligibility },
+    { label: 'Keywords', weight: 10, value: grant.signals.keyword },
+    { label: 'Budget fit', weight: 10, value: grant.signals.fundingFit },
     { label: 'Deadline', weight: 10, value: grant.signals.deadline },
   ];
 
   return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col gap-5 text-left">
+    <div
+      ref={rootRef}
+      onPointerEnter={() => setHovering(true)}
+      onPointerLeave={() => setHovering(false)}
+      onFocus={() => setFocused(true)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocused(false);
+      }}
+      className="w-full max-w-4xl mx-auto flex flex-col gap-5 text-left"
+    >
 
       {/* 1. Persona switcher */}
       <div>
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-3">
-          <p id="persona-label" className="text-sm font-semibold text-brand-800">
-            Choose a researcher
-          </p>
+          <div className="flex items-center gap-3">
+            <p id="persona-label" className="text-sm font-semibold text-brand-800">
+              Choose a researcher
+            </p>
+            {touring && !reduceMotion && (
+              <button
+                type="button"
+                onClick={() => setTouring(false)}
+                className="inline-flex items-center gap-1 rounded-full border border-brand-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-brand-500 hover:text-brand-800 hover:border-brand-300"
+              >
+                <Pause className="w-3 h-3" aria-hidden="true" />
+                Stop auto-play
+              </button>
+            )}
+          </div>
           <button
             type="button"
-            onClick={() => setShowSignals(!showSignals)}
+            onClick={() => {
+              setTouring(false);
+              setShowSignals(!showSignals);
+            }}
             aria-expanded={showSignals}
             aria-controls="demo-signals"
             className="self-start sm:self-auto inline-flex items-center gap-1.5 text-sm font-semibold text-primary-700 hover:text-primary-800 rounded-md"
@@ -202,10 +250,11 @@ export default function InteractiveMatchDemo() {
                 type="button"
                 aria-pressed={isSelected}
                 onClick={() => {
+                  setTouring(false);
                   setSelectedId(p.id);
                   setIsSaved(false);
                 }}
-                className={`text-left px-4 py-3 rounded-xl border transition-colors ${
+                className={`relative overflow-hidden text-left px-4 py-3 rounded-xl border transition-[border-color,box-shadow] duration-300 ${
                   isSelected
                     ? 'bg-white border-primary-500 ring-2 ring-primary-500/20 shadow-soft'
                     : 'bg-white border-brand-200 hover:border-brand-300 hover:bg-white'
@@ -216,6 +265,17 @@ export default function InteractiveMatchDemo() {
                 </span>
                 <span className="mt-0.5 block font-bold text-brand-900 truncate">{p.name}</span>
                 <span className="block text-sm text-brand-500 truncate">{p.role}</span>
+                {isSelected && playing && (
+                  <motion.span
+                    key={`${p.id}-tour`}
+                    aria-hidden="true"
+                    className="absolute inset-x-0 bottom-0 h-0.5 origin-left bg-primary-500"
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: 1 }}
+                    transition={{ duration: TOUR_SECONDS, ease: 'linear' }}
+                    onAnimationComplete={showNext}
+                  />
+                )}
               </button>
             );
           })}
@@ -230,7 +290,7 @@ export default function InteractiveMatchDemo() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.25, ease: EASE }}
             className="overflow-hidden"
           >
             <div className="bg-white border border-brand-200 rounded-xl p-5 shadow-soft">
@@ -238,7 +298,7 @@ export default function InteractiveMatchDemo() {
                 The match score combines five signals. The number in brackets is how much each one counts.
               </p>
               <dl className="grid grid-cols-1 sm:grid-cols-5 gap-4">
-                {signals.map((signal) => (
+                {signals.map((signal, index) => (
                   <div key={signal.label}>
                     <div className="flex justify-between text-sm mb-1.5">
                       <dt className="text-brand-600">
@@ -247,7 +307,13 @@ export default function InteractiveMatchDemo() {
                       <dd className="font-bold text-brand-900 tabular-nums">{signal.value}</dd>
                     </div>
                     <div className="h-1.5 w-full bg-brand-100 rounded-full overflow-hidden" aria-hidden="true">
-                      <div className="h-full bg-primary-500 rounded-full" style={{ width: `${signal.value}%` }} />
+                      <motion.div
+                        key={`${persona.id}-${signal.label}`}
+                        className="h-full origin-left bg-linear-to-r from-primary-400 to-primary-600 rounded-full"
+                        initial={{ scaleX: 0 }}
+                        animate={{ scaleX: signal.value / 100 }}
+                        transition={{ duration: 0.9, delay: 0.05 * index, ease: EASE }}
+                      />
                     </div>
                   </div>
                 ))}
@@ -257,15 +323,15 @@ export default function InteractiveMatchDemo() {
         )}
       </AnimatePresence>
 
-      {/* 3. Grant card — mirrors the real discovery card */}
+      {/* 3. Grant card, mirroring the real discovery card */}
       <AnimatePresence mode="wait">
         <motion.article
           key={persona.id}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{ duration: 0.2 }}
-          aria-live="polite"
+          variants={cardVariants}
+          initial="hidden"
+          animate="show"
+          exit="exit"
+          aria-live={touring ? 'off' : 'polite'}
           className="bg-white border border-brand-200 rounded-xl p-5 sm:p-6 shadow-medium"
         >
           <div className="flex items-start gap-4">
@@ -278,13 +344,26 @@ export default function InteractiveMatchDemo() {
               <h3 className="mt-1.5 text-lg sm:text-xl font-bold text-brand-900 tracking-tight leading-snug text-pretty">
                 {grant.title}
               </h3>
+              <p className="mt-1 text-sm text-brand-500">
+                For {persona.name}, {persona.institution}: <span className="italic">{persona.researchFocus}</span>
+              </p>
             </div>
 
             <div className="flex items-start gap-1 shrink-0">
-              <MatchScoreDial score={grant.matchScore} />
+              <motion.div
+                variants={{
+                  hidden: { opacity: 0, scale: 0.8, rotate: -20 },
+                  show: { opacity: 1, scale: 1, rotate: 0, transition: { type: 'spring', stiffness: 260, damping: 18 } },
+                }}
+              >
+                <MatchScoreDial score={grant.matchScore} />
+              </motion.div>
               <button
                 type="button"
-                onClick={() => setIsSaved(!isSaved)}
+                onClick={() => {
+                  setTouring(false);
+                  setIsSaved(!isSaved);
+                }}
                 aria-pressed={isSaved}
                 aria-label={isSaved ? 'Remove from saved' : 'Save grant'}
                 className={`p-2 rounded-lg transition-colors ${
@@ -296,9 +375,18 @@ export default function InteractiveMatchDemo() {
             </div>
           </div>
 
-          <ul className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm">
-            <li className="flex items-center gap-1.5 font-semibold text-primary-700">
-              <ShieldCheck className="w-4 h-4" aria-hidden="true" /> {grant.eligibility}
+          <motion.ul variants={childVariants} className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm">
+            <li
+              className={`flex items-center gap-1.5 font-semibold ${
+                grant.eligibility === 'Eligible' ? 'text-primary-700' : 'text-amber-700'
+              }`}
+            >
+              {grant.eligibility === 'Eligible' ? (
+                <ShieldCheck className="w-4 h-4" aria-hidden="true" />
+              ) : (
+                <TriangleAlert className="w-4 h-4" aria-hidden="true" />
+              )}
+              {grant.eligibility}
             </li>
             <li className={`flex items-center gap-1.5 ${grant.deadlineTone === 'warn' ? 'font-semibold text-amber-700' : 'text-brand-700'}`}>
               <Calendar className="w-4 h-4 opacity-70" aria-hidden="true" /> {grant.deadlineLabel}
@@ -307,21 +395,23 @@ export default function InteractiveMatchDemo() {
             <li className="flex items-center gap-1.5 text-brand-500">
               <Clock className="w-4 h-4 text-brand-500" aria-hidden="true" /> {grant.lastVerified}
             </li>
-          </ul>
+          </motion.ul>
 
-          <p className="mt-4 flex gap-2.5 rounded-lg bg-primary-50 px-4 py-3 text-sm text-brand-700 leading-relaxed">
+          <motion.p variants={childVariants} className="mt-4 flex gap-2.5 rounded-lg bg-primary-50 px-4 py-3 text-sm text-brand-700 leading-relaxed">
             <Sparkles className="w-4 h-4 text-primary-600 shrink-0 mt-0.5" aria-hidden="true" />
             <span>
               <span className="font-semibold text-primary-900">Why it fits: </span>
               {grant.rationale}
             </span>
-          </p>
+          </motion.p>
 
           <div className="mt-4">
-            <h4 className="text-sm font-semibold text-brand-800 mb-2">Eligibility checks</h4>
+            <motion.h4 variants={childVariants} className="text-sm font-semibold text-brand-800 mb-2">
+              Eligibility checks
+            </motion.h4>
             <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5">
               {grant.criteria.map((c) => (
-                <li key={c.label} className="flex items-start gap-2 text-sm">
+                <motion.li key={c.label} variants={childVariants} className="flex items-start gap-2 text-sm">
                   {c.verdict === 'match' ? (
                     <Check className="w-4 h-4 mt-0.5 shrink-0 text-primary-600" aria-label="Meets requirement" />
                   ) : (
@@ -331,16 +421,20 @@ export default function InteractiveMatchDemo() {
                     <span className="font-semibold text-brand-800">{c.label}.</span>{' '}
                     <span className="text-brand-600">{c.detail}</span>
                   </span>
-                </li>
+                </motion.li>
               ))}
             </ul>
           </div>
 
           <div className="mt-5 flex flex-wrap gap-1.5">
             {grant.tags.map((tag) => (
-              <span key={tag} className="text-xs font-medium px-2.5 py-1 rounded-full bg-brand-100 text-brand-600">
+              <motion.span
+                key={tag}
+                variants={childVariants}
+                className="text-xs font-medium px-2.5 py-1 rounded-full bg-brand-100 text-brand-600"
+              >
                 {tag}
-              </span>
+              </motion.span>
             ))}
           </div>
         </motion.article>

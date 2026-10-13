@@ -112,9 +112,11 @@ export default function ResearcherEditModal({
     minFundingAmount: researcher.minFundingAmount ?? 100000,
     maxFundingAmount: researcher.maxFundingAmount ?? 5000000,
     preferredGrantType: researcher.preferredGrantType || 'RESEARCH_GRANT',
-    yearsOfExperience: researcher.yearsOfExperience ?? 3,
-    educationLevel: researcher.educationLevel || 'PHD',
-    hasCompletedPhd: researcher.hasCompletedPhd ?? (researcher.educationLevel === 'PHD' || researcher.educationLevel === 'POSTDOC'),
+    // Unknown stays unknown: a guessed level or PhD flag would change which calls match.
+    yearsOfExperience: researcher.yearsOfExperience ?? null,
+    educationLevel: researcher.educationLevel || null,
+    hasCompletedPhd: researcher.hasCompletedPhd
+      ?? (researcher.educationLevel ? researcher.educationLevel === 'PHD' || researcher.educationLevel === 'POSTDOC' : null),
     previousGrantsReceived: researcher.previousGrantsReceived ?? false,
     emailNotifications: researcher.emailNotifications ?? true,
     deadlineReminders: researcher.deadlineReminders ?? true,
@@ -203,9 +205,9 @@ export default function ResearcherEditModal({
 
   const tabs = [
     { id: 'organization' as TabType, label: 'Organization', icon: Building2 },
-    { id: 'research' as TabType, label: 'Research Focus', icon: Target },
+    { id: 'research' as TabType, label: 'Research focus', icon: Target },
     { id: 'location' as TabType, label: 'Location', icon: MapPin },
-    { id: 'funding' as TabType, label: 'Funding & Background', icon: Wallet },
+    { id: 'funding' as TabType, label: 'Funding & background', icon: Wallet },
     { id: 'notifications' as TabType, label: 'Notifications', icon: Bell },
   ];
 
@@ -287,7 +289,7 @@ export default function ResearcherEditModal({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-brand-700 mb-1.5">
-                      User Type *
+                      User type *
                     </label>
                     <select
                       value={formData.userType}
@@ -303,7 +305,7 @@ export default function ResearcherEditModal({
 
                   <div>
                     <label className="block text-sm font-medium text-brand-700 mb-1.5">
-                      Position / Role *
+                      Position or role *
                     </label>
                     <select
                       value={formData.position || 'PROFESSOR'}
@@ -320,7 +322,7 @@ export default function ResearcherEditModal({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-brand-700 mb-1.5">
-                      Institution / University Name *
+                      Institution or university name *
                     </label>
                     <input
                       type="text"
@@ -334,7 +336,7 @@ export default function ResearcherEditModal({
 
                   <div>
                     <label className="block text-sm font-medium text-brand-700 mb-1.5">
-                      Department / School
+                      Department or school
                     </label>
                     <input
                       type="text"
@@ -349,7 +351,7 @@ export default function ResearcherEditModal({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-brand-700 mb-1.5">
-                      Institution Type
+                      Institution type
                     </label>
                     <select
                       value={formData.institutionType || 'UNIVERSITY'}
@@ -364,13 +366,14 @@ export default function ResearcherEditModal({
 
                   <div>
                     <label className="block text-sm font-medium text-brand-700 mb-1.5">
-                      Education Level
+                      Education level
                     </label>
                     <select
-                      value={formData.educationLevel || 'PHD'}
-                      onChange={(e) => handleFieldChange('educationLevel', e.target.value)}
+                      value={formData.educationLevel ?? ''}
+                      onChange={(e) => handleFieldChange('educationLevel', e.target.value || null)}
                       className="w-full px-3.5 py-2.5 rounded-lg border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white"
                     >
+                      <option value="">Not specified</option>
                       {EDUCATION_LEVELS.map((el) => (
                         <option key={el.value} value={el.value}>{el.label}</option>
                       ))}
@@ -519,7 +522,7 @@ export default function ResearcherEditModal({
 
                   <div>
                     <label className="block text-sm font-medium text-brand-700 mb-1.5">
-                      Citizenship / Nationality
+                      Citizenship or nationality
                     </label>
                     <input
                       type="text"
@@ -534,7 +537,7 @@ export default function ResearcherEditModal({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-brand-700 mb-1.5">
-                      State / Province
+                      State or province
                     </label>
                     <input
                       type="text"
@@ -571,7 +574,7 @@ export default function ResearcherEditModal({
               >
                 <div>
                   <label className="block text-sm font-medium text-brand-700 mb-1.5">
-                    Preferred Grant Type
+                    Preferred grant type
                   </label>
                   <select
                     value={formData.preferredGrantType}
@@ -587,7 +590,7 @@ export default function ResearcherEditModal({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-brand-700 mb-1.5">
-                      Min Target Amount (₹)
+                      Minimum amount (₹)
                     </label>
                     <input
                       type="number"
@@ -601,7 +604,7 @@ export default function ResearcherEditModal({
 
                   <div>
                     <label className="block text-sm font-medium text-brand-700 mb-1.5">
-                      Max Target Amount (₹)
+                      Maximum amount (₹)
                     </label>
                     <input
                       type="number"
@@ -617,14 +620,14 @@ export default function ResearcherEditModal({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                   <div>
                     <label className="block text-sm font-medium text-brand-700 mb-1.5">
-                      Years of Research Experience
+                      Years of research experience
                     </label>
                     <input
                       type="number"
                       min={0}
                       max={50}
-                      value={formData.yearsOfExperience}
-                      onChange={(e) => handleFieldChange('yearsOfExperience', Number(e.target.value))}
+                      value={formData.yearsOfExperience ?? ''}
+                      onChange={(e) => handleFieldChange('yearsOfExperience', e.target.value === '' ? null : Number(e.target.value))}
                       className="w-full px-3.5 py-2.5 rounded-lg border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                     />
                   </div>
@@ -657,7 +660,7 @@ export default function ResearcherEditModal({
                 <div className="p-4 rounded-xl border border-brand-200 bg-brand-50 space-y-3">
                   <label className="flex items-center justify-between cursor-pointer py-1">
                     <div>
-                      <span className="text-sm font-semibold text-brand-900 block">New Grant Email Alerts</span>
+                      <span className="text-sm font-semibold text-brand-900 block">New grant emails</span>
                       <span className="text-xs text-brand-500 block">Get notified when new grants matching your field are indexed</span>
                     </div>
                     <input
@@ -672,7 +675,7 @@ export default function ResearcherEditModal({
 
                   <label className="flex items-center justify-between cursor-pointer py-1">
                     <div>
-                      <span className="text-sm font-semibold text-brand-900 block">Deadline Reminders</span>
+                      <span className="text-sm font-semibold text-brand-900 block">Deadline reminders</span>
                       <span className="text-xs text-brand-500 block">Receive reminders 14 and 3 days before saved grant deadlines</span>
                     </div>
                     <input
@@ -687,7 +690,7 @@ export default function ResearcherEditModal({
 
                   <label className="flex items-center justify-between cursor-pointer py-1">
                     <div>
-                      <span className="text-sm font-semibold text-brand-900 block">Weekly Digest Recommendations</span>
+                      <span className="text-sm font-semibold text-brand-900 block">Weekly recommendations</span>
                       <span className="text-xs text-brand-500 block">Weekly curated summary of top grants scored for your profile</span>
                     </div>
                     <input
@@ -720,12 +723,12 @@ export default function ResearcherEditModal({
               {isSaving ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Saving Changes...
+                  Saving changes…
                 </>
               ) : (
                 <>
                   <Check className="w-4 h-4" />
-                  Save Changes
+                  Save changes
                 </>
               )}
             </button>

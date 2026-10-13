@@ -1,13 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Bookmark, ClipboardCheck, FileText, Landmark, LogOut } from 'lucide-react';
+import { User, LogOut } from 'lucide-react';
 import { loadSession, clearSession } from '../../services/authService';
-import { useSavedGrantIds } from '../../hooks/useSavedGrants';
-import { useDeadlineAlerts } from '../../hooks/useDeadlineAlerts';
 
 interface UserAvatarMenuProps {
   researcherId?: number;
+  /** Open the menu under the avatar (page headers) or over it (the phone tab bar). */
+  placement?: 'below' | 'above';
+  size?: 'md' | 'sm';
 }
 
 function getInitials(fullName: string): string {
@@ -16,19 +17,13 @@ function getInitials(fullName: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-export default function UserAvatarMenu({ researcherId }: UserAvatarMenuProps) {
+export default function UserAvatarMenu({ researcherId, placement = 'below', size = 'md' }: UserAvatarMenuProps) {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const session = loadSession();
   const initials = session ? getInitials(session.user.fullName) : '?';
-
-  // Lightweight saved-grant count — just IDs, no full payload fetch.
-  const { savedIds } = useSavedGrantIds();
-  const savedCount = savedIds.size;
-  const savedDisplay = savedCount > 9 ? '9+' : String(savedCount);
-  const { urgent } = useDeadlineAlerts();
 
   const [profileImage, setProfileImage] = useState<string | null>(() =>
     researcherId ? localStorage.getItem(`profile_image_${researcherId}`) : null,
@@ -64,16 +59,9 @@ export default function UserAvatarMenu({ researcherId }: UserAvatarMenuProps) {
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, [isOpen]);
 
-  const handleNavigate = (page: 'profile' | 'saved-grants' | 'applications' | 'proposal' | 'my-grants') => {
+  const openProfile = () => {
     setIsOpen(false);
-    const pathMap = {
-      profile: '/profile',
-      'saved-grants': '/saved',
-      applications: '/applications',
-      proposal: '/proposal',
-      'my-grants': '/my-grants',
-    } as const;
-    navigate(pathMap[page]);
+    navigate('/profile');
   };
 
   const handleLogout = () => {
@@ -86,7 +74,7 @@ export default function UserAvatarMenu({ researcherId }: UserAvatarMenuProps) {
     <div className="relative z-50" ref={containerRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-9 h-9 rounded-full bg-primary-600 text-white text-sm font-semibold flex items-center justify-center hover:ring-2 hover:ring-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-300 transition-all overflow-hidden cursor-pointer"
+        className={`${size === 'sm' ? 'w-8 h-8 text-xs' : 'w-9 h-9 text-sm'} rounded-full bg-primary-600 text-white font-semibold flex items-center justify-center hover:ring-2 hover:ring-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-300 transition-all overflow-hidden cursor-pointer`}
         aria-label="Open user menu"
         aria-expanded={isOpen}
       >
@@ -100,11 +88,11 @@ export default function UserAvatarMenu({ researcherId }: UserAvatarMenuProps) {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -8, scale: 0.96 }}
+            initial={{ opacity: 0, y: placement === 'above' ? 8 : -8, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.96 }}
+            exit={{ opacity: 0, y: placement === 'above' ? 8 : -8, scale: 0.96 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute right-0 mt-2 w-56 bg-white border border-brand-200 rounded-xl shadow-xs py-1.5 overflow-hidden z-50"
+            className={`absolute right-0 ${placement === 'above' ? 'bottom-full mb-3' : 'mt-2'} w-56 bg-white border border-brand-200 rounded-xl shadow-xs py-1.5 overflow-hidden z-50`}
           >
             {/* User Identity Header */}
             {session && (
@@ -116,61 +104,12 @@ export default function UserAvatarMenu({ researcherId }: UserAvatarMenuProps) {
 
             <div className="py-1">
               <button
-                onClick={() => handleNavigate('profile')}
+                onClick={openProfile}
                 className="flex items-center gap-3 w-full px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 hover:text-brand-900 transition-colors cursor-pointer"
               >
                 <User className="w-4 h-4 text-primary-600 shrink-0" />
-                <span>View Profile</span>
+                <span>View profile</span>
               </button>
-
-              {/* Mobile-only shortcuts (hidden on desktop where the nav rail is present) */}
-              <div className="md:hidden">
-                <div className="border-t border-brand-100 my-1" />
-                <button
-                  onClick={() => handleNavigate('saved-grants')}
-                  className="flex items-center gap-3 w-full px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 hover:text-brand-900 transition-colors cursor-pointer"
-                >
-                  <Bookmark className="w-4 h-4 text-primary-600 shrink-0" />
-                  <span className="flex-1 text-left">Saved Grants</span>
-                  {savedCount > 0 && (
-                    <span className="text-[11px] font-bold tabular-nums bg-primary-100 text-primary-800 px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
-                      {savedDisplay}
-                    </span>
-                  )}
-                </button>
-
-                <button
-                  onClick={() => handleNavigate('applications')}
-                  className="flex items-center gap-3 w-full px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 hover:text-brand-900 transition-colors cursor-pointer"
-                >
-                  <ClipboardCheck className="w-4 h-4 text-primary-600 shrink-0" />
-                  <span>Applications</span>
-                </button>
-
-                <button
-                  onClick={() => handleNavigate('proposal')}
-                  className="flex items-center gap-3 w-full px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 hover:text-brand-900 transition-colors cursor-pointer"
-                >
-                  <FileText className="w-4 h-4 text-primary-600 shrink-0" />
-                  <span>Proposal Assistant</span>
-                </button>
-
-                <button
-                  onClick={() => handleNavigate('my-grants')}
-                  className="flex items-center gap-3 w-full px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 hover:text-brand-900 transition-colors cursor-pointer"
-                >
-                  <Landmark className="w-4 h-4 text-primary-600 shrink-0" />
-                  <span className="flex-1 text-left">My grants</span>
-                  {urgent > 0 && (
-                    <span
-                      className="text-[11px] font-bold tabular-nums bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full min-w-[20px] text-center"
-                      aria-label={`${urgent} overdue or due within a week`}
-                    >
-                      {urgent > 9 ? '9+' : urgent}
-                    </span>
-                  )}
-                </button>
-              </div>
 
               <div className="border-t border-brand-100 my-1" />
 
@@ -179,7 +118,7 @@ export default function UserAvatarMenu({ researcherId }: UserAvatarMenuProps) {
                 className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
               >
                 <LogOut className="w-4 h-4 text-red-500 shrink-0" />
-                <span>Sign Out</span>
+                <span>Sign out</span>
               </button>
             </div>
           </motion.div>
