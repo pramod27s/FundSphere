@@ -68,6 +68,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/calendar/feed/*").permitAll()
                         .requestMatchers("/api/calendar/**").authenticated()
                         .requestMatchers("/api/proposal-reviews/**").authenticated()
+                        // The admin area (2nd.md). Adding or removing admins also needs the owner (AdminUserService).
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

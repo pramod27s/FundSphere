@@ -132,6 +132,27 @@ public class AiServiceClient {
     }
 
     /**
+     * Reads a funding call into the admin's "Add a grant" form (2nd.md, Part B):
+     * send exactly one of the PDF, a link or pasted text. Returns each grant
+     * detail with the sentence it came from. Nothing is stored.
+     */
+    public Map<String, Object> readCall(MultipartFile callPdf, String url, String text) {
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        if (callPdf != null) {
+            try {
+                body.add("call_pdf", buildPdfPart(callPdf, "call.pdf"));
+            } catch (IOException ex) {
+                throw new ResponseStatusException(BAD_GATEWAY,
+                        "Could not read uploaded PDF: " + ex.getMessage(), ex);
+            }
+        }
+        body.add("url", url == null ? "" : url);
+        body.add("text", text == null ? "" : text);
+        return postMultipart("/intake/read-call", body, "call reading",
+                "Reading the call took longer than the configured timeout. Please try again.");
+    }
+
+    /**
      * Reads a guidelines PDF (checklist + proposal rules). Used by background
      * jobs, which hold the bytes rather than the upload.
      */

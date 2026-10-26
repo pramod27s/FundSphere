@@ -4,7 +4,10 @@ export interface AuthUser {
   id: number;
   fullName: string;
   email: string;
+  /** 'USER' or 'ADMIN'. The saved copy is for display only; the admin page asks the server (fetchMe). */
   role: string;
+  /** True for the owner, the only account that can add or remove admins. */
+  owner?: boolean;
 }
 
 export interface AuthSession {

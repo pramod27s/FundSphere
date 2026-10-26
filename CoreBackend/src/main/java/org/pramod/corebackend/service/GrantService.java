@@ -7,6 +7,7 @@ package org.pramod.corebackend.service;
 import org.pramod.corebackend.dto.GrantRequest;
 import org.pramod.corebackend.dto.GrantResponse;
 import org.pramod.corebackend.entity.Grant;
+import org.pramod.corebackend.enums.GrantEntrySource;
 import org.pramod.corebackend.repository.ApplicationRepository;
 import org.pramod.corebackend.repository.GrantRepository;
 import org.pramod.corebackend.repository.SavedGrantRepository;
@@ -21,9 +22,14 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HexFormat;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -47,6 +53,8 @@ public class GrantService {
 
     public record SaveOrUpdateResult(GrantResponse response, boolean created) {}
     public record KeywordSearchHit(Long grantId, double keywordScore) {}
+    /** A grant that may already be the one an admin is adding; sameUrl means it certainly is. */
+    public record PossibleDuplicate(Long id, String grantTitle, String fundingAgency, String grantUrl, int score, boolean sameUrl) {}
     private record DuplicateMatch(Grant grant, int confidence, boolean autoMerge) {}
     private record DuplicateMatchCandidate(Grant grant, DuplicateScore score) {}
     private record DuplicateScore(int score, double titleSimilarity, double agencySimilarity, boolean sameApplicationLink) {}
@@ -68,6 +76,8 @@ public class GrantService {
      * Step 3: If it exists → Compare checksum.
      *         - If checksum is the same → Do nothing (grant page has not changed).
      *         - If checksum is different → Update the grant record, checksum, and updatedAt.
+     * A grant an admin added by hand (MANUAL) is never changed here: its
+     * details were checked by a person, and a fresh scrape would overwrite them.
      */
     @Transactional
     public SaveOrUpdateResult saveOrUpdateGrant(GrantRequest request) {
@@ -75,9 +85,17 @@ public class GrantService {
         Optional<Grant> existingOpt = findExistingByGrantUrl(normalizedGrantUrl);
         LocalDateTime now = LocalDateTime.now();
 
+        if (existingOpt.isPresent() && isManual(existingOpt.get())) {
+            return new SaveOrUpdateResult(mapToResponse(existingOpt.get()), false);
+        }
+
         if (existingOpt.isEmpty()) {
             // New grant — save it
             Optional<DuplicateMatch> duplicateOpt = findLikelyDuplicate(request);
+            if (duplicateOpt.isPresent() && duplicateOpt.get().autoMerge() && isManual(duplicateOpt.get().grant())) {
+                // The same call, already added by hand: keep the checked copy as it is.
+                return new SaveOrUpdateResult(mapToResponse(duplicateOpt.get().grant()), false);
+            }
             if (duplicateOpt.isPresent() && duplicateOpt.get().autoMerge()) {
                 DuplicateMatch duplicate = duplicateOpt.get();
                 Grant existing = duplicate.grant();
@@ -99,6 +117,7 @@ public class GrantService {
             }
 
             Grant grant = mapToEntity(request);
+            grant.setEntrySource(GrantEntrySource.SCRAPED);
             duplicateOpt.ifPresent(duplicate -> {
                 grant.setPossibleDuplicateOfId(duplicate.grant().getId());
                 grant.setDuplicateConfidence(duplicate.confidence());
@@ -220,12 +239,97 @@ public class GrantService {
      * Scraper cleanup hook: deletes the grant stored for this URL (e.g. a
      * listing page that was wrongly saved as a grant).
      * Returns the deleted grant's id, or empty if no grant matches the URL.
+     * Grants added by hand are left alone; an admin deletes those in the app.
      */
     @Transactional
     public Optional<Long> deleteGrantByUrl(String grantUrl) {
-        Optional<Grant> grantOpt = findExistingByGrantUrl(normalizeGrantUrl(grantUrl));
+        Optional<Grant> grantOpt = findExistingByGrantUrl(normalizeGrantUrl(grantUrl))
+                .filter(grant -> !isManual(grant));
         grantOpt.ifPresent(grant -> removeGrant(grant.getId()));
         return grantOpt.map(Grant::getId);
+    }
+
+    /**
+     * An admin adds a grant by hand (2nd.md, Part B) after checking its
+     * details against the call. It is indexed like a scraped grant, but the
+     * scraper never re-checks, overwrites or removes it.
+     */
+    @Transactional
+    public GrantResponse createManualGrant(GrantRequest request, Long checkedById, String checkedByName) {
+        if (request == null || !hasText(request.getGrantTitle())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The grant needs a title");
+        }
+        String url = normalizeGrantUrl(request.getGrantUrl());
+        if (!hasText(url) || !url.matches("(?i)^https?://\\S+$")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Add the link to the page or PDF where the call is published (starting with http:// or https://)");
+        }
+        findExistingByGrantUrl(url).ifPresent(existing -> {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "This call is already in FundSphere: \"" + existing.getGrantTitle() + "\"");
+        });
+
+        request.setGrantTitle(request.getGrantTitle().trim());
+        request.setGrantUrl(url);
+        Grant grant = mapToEntity(request);
+        grant.setChecksum(manualChecksum(request));
+        grant.setEntrySource(GrantEntrySource.MANUAL);
+        grant.setCheckedById(checkedById);
+        grant.setCheckedByName(checkedByName);
+        grant.setCheckedAt(LocalDateTime.now());
+        findLikelyDuplicate(request).ifPresent(duplicate -> {
+            grant.setPossibleDuplicateOfId(duplicate.grant().getId());
+            grant.setDuplicateConfidence(duplicate.confidence());
+        });
+        grant.setNeedsReindex(true);
+        grant.setReindexAttempts(0);
+        grant.setNextRetryAt(null);
+        grant.setLastIndexError(null);
+        Grant saved = grantRepository.save(grant);
+        indexAfterCommit(saved.getId());
+        return mapToResponse(saved);
+    }
+
+    /**
+     * Grants that may be the call an admin is about to add: the same URL first,
+     * then close matches on title, agency and link, best first (at most 3).
+     */
+    @Transactional(readOnly = true)
+    public List<PossibleDuplicate> findPossibleDuplicates(GrantRequest request) {
+        List<PossibleDuplicate> found = new ArrayList<>();
+        Optional<Grant> sameUrl = findExistingByGrantUrl(normalizeGrantUrl(request.getGrantUrl()));
+        sameUrl.ifPresent(grant -> found.add(toPossibleDuplicate(grant, 100, true)));
+        duplicateCandidates(request).values().stream()
+                .filter(grant -> sameUrl.map(same -> !same.getId().equals(grant.getId())).orElse(true))
+                .map(grant -> new DuplicateMatchCandidate(grant, scoreDuplicate(request, grant)))
+                .filter(candidate -> candidate.score().score() >= 65)
+                .sorted(Comparator.comparingInt((DuplicateMatchCandidate candidate) -> candidate.score().score()).reversed())
+                .limit(3 - found.size())
+                .forEach(candidate -> found.add(toPossibleDuplicate(candidate.grant(), candidate.score().score(), false)));
+        return found;
+    }
+
+    private PossibleDuplicate toPossibleDuplicate(Grant grant, int score, boolean sameUrl) {
+        return new PossibleDuplicate(grant.getId(), grant.getGrantTitle(), grant.getFundingAgency(), grant.getGrantUrl(),
+                score, sameUrl);
+    }
+
+    private static boolean isManual(Grant grant) {
+        return grant.getEntrySource() == GrantEntrySource.MANUAL;
+    }
+
+    /** A stable fingerprint of the checked details (the column can't be empty). */
+    private static String manualChecksum(GrantRequest request) {
+        String fields = String.join("\u001f", String.valueOf(request.getGrantTitle()), String.valueOf(request.getFundingAgency()),
+                String.valueOf(request.getGrantUrl()), String.valueOf(request.getApplicationDeadline()),
+                String.valueOf(request.getFundingAmountMin()), String.valueOf(request.getFundingAmountMax()),
+                String.valueOf(request.getEligibilityCriteria()));
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(fields.getBytes(StandardCharsets.UTF_8));
+            return "manual:" + HexFormat.of().formatHex(digest);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 is unavailable", ex);
+        }
     }
 
     /**
@@ -268,6 +372,21 @@ public class GrantService {
     }
 
     private Optional<DuplicateMatch> findLikelyDuplicate(GrantRequest request) {
+        return duplicateCandidates(request).values().stream()
+                .map(grant -> new DuplicateMatchCandidate(grant, scoreDuplicate(request, grant)))
+                .filter(candidate -> candidate.score().score() >= 65)
+                .max(Comparator.comparingInt(candidate -> candidate.score().score()))
+                .map(candidate -> {
+                    DuplicateScore score = candidate.score();
+                    boolean autoMerge = score.score() >= 85
+                            && (score.sameApplicationLink()
+                            || (score.titleSimilarity() >= 0.75 && score.agencySimilarity() >= 0.70));
+                    return new DuplicateMatch(candidate.grant(), score.score(), autoMerge);
+                });
+    }
+
+    /** Grants worth scoring as duplicates: same application link, same agency or a shared distinctive title word. */
+    private Map<Long, Grant> duplicateCandidates(GrantRequest request) {
         Map<Long, Grant> candidates = new LinkedHashMap<>();
 
         String applicationLink = normalizeGrantUrl(request.getApplicationLink());
@@ -286,18 +405,7 @@ public class GrantService {
             grantRepository.findTop100ByGrantTitleContainingIgnoreCaseOrderByUpdatedAtDesc(titleToken)
                     .forEach(grant -> candidates.put(grant.getId(), grant));
         }
-
-        return candidates.values().stream()
-                .map(grant -> new DuplicateMatchCandidate(grant, scoreDuplicate(request, grant)))
-                .filter(candidate -> candidate.score().score() >= 65)
-                .max(Comparator.comparingInt(candidate -> candidate.score().score()))
-                .map(candidate -> {
-                    DuplicateScore score = candidate.score();
-                    boolean autoMerge = score.score() >= 85
-                            && (score.sameApplicationLink()
-                            || (score.titleSimilarity() >= 0.75 && score.agencySimilarity() >= 0.70));
-                    return new DuplicateMatch(candidate.grant(), score.score(), autoMerge);
-                });
+        return candidates;
     }
 
     private DuplicateScore scoreDuplicate(GrantRequest request, Grant grant) {
@@ -485,6 +593,9 @@ public class GrantService {
                 .updatedAt(grant.getUpdatedAt())
                 .lastScrapedAt(grant.getLastScrapedAt())
                 .lastVerifiedAt(grant.getLastVerifiedAt())
+                .entrySource(grant.getEntrySource() == null ? null : grant.getEntrySource().name())
+                .checkedByName(grant.getCheckedByName())
+                .checkedAt(grant.getCheckedAt())
                 .build();
     }
 

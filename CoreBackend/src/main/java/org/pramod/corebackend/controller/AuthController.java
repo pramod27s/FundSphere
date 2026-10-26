@@ -10,6 +10,7 @@ import org.pramod.corebackend.dto.auth.AuthUserResponse;
 import org.pramod.corebackend.dto.auth.LoginRequest;
 import org.pramod.corebackend.dto.auth.RefreshTokenRequest;
 import org.pramod.corebackend.dto.auth.RegisterRequest;
+import org.pramod.corebackend.security.OwnerAccess;
 import org.pramod.corebackend.security.UserPrincipal;
 import org.pramod.corebackend.service.AuthService;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +25,7 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+    private final OwnerAccess ownerAccess;
 
     /**
      * Registers a new user into the system.
@@ -67,9 +69,11 @@ public class AuthController {
     }
 
     /**
-     * Retrieves the currently authenticated user's details.
+     * Retrieves the currently authenticated user's details. The role is read
+     * from the database on every request, so the admin page asks here rather
+     * than trusting the copy saved in the browser.
      * @param principal The security principal extracted from the JWT token.
-     * @return User details (ID, full name, email, role).
+     * @return User details (ID, full name, email, role, whether they're the owner).
      */
     @GetMapping("/me")
     public ResponseEntity<AuthUserResponse> me(@AuthenticationPrincipal UserPrincipal principal) {
@@ -78,6 +82,7 @@ public class AuthController {
                 .fullName(principal.getFullName())
                 .email(principal.getEmail())
                 .role(principal.getRole())
+                .owner(ownerAccess.isOwner(principal.getEmail()))
                 .build());
     }
 }

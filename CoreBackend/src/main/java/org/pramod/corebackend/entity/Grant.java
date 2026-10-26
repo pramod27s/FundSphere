@@ -6,6 +6,7 @@ package org.pramod.corebackend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.pramod.corebackend.enums.GrantEntrySource;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -160,6 +161,22 @@ public class Grant {
      * null, the frontend falls back to lastScrapedAt for the freshness badge.
      */
     private LocalDateTime lastVerifiedAt;
+
+    // --- Grants added by hand (2nd.md, Part B) ---
+    // Plain nullable columns: existing rows count as SCRAPED.
+
+    /** SCRAPED or MANUAL. A MANUAL grant is never overwritten, re-checked or removed by the scraper. */
+    @Enumerated(EnumType.STRING)
+    @Column(length = 16)
+    private GrantEntrySource entrySource;
+
+    /** The admin who checked a MANUAL grant's details against its source. */
+    private Long checkedById;
+
+    /** Their name at the time, kept so it still shows if their account changes. */
+    private String checkedByName;
+
+    private LocalDateTime checkedAt;
 
     // --- Pinecone reindex tracking ---
     // Set true on every save/update; flipped to false only after a confirmed

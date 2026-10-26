@@ -1,8 +1,9 @@
 import { NavLink } from 'react-router-dom';
-import { Bookmark, ClipboardCheck, Compass, FileText, Landmark, type LucideIcon } from 'lucide-react';
+import { Bookmark, ClipboardCheck, Compass, FileText, Landmark, ShieldCheck, type LucideIcon } from 'lucide-react';
 import UserAvatarMenu from './UserAvatarMenu';
 import { useSavedGrantIds } from '../../hooks/useSavedGrants';
 import { useDeadlineAlerts } from '../../hooks/useDeadlineAlerts';
+import { loadSession } from '../../services/authService';
 
 interface NavRailProps {
   researcherId: number;
@@ -17,6 +18,9 @@ const ITEMS: { to: string; label: string; icon: LucideIcon; badge?: Badge }[] = 
   { to: '/proposal', label: 'Proposals', icon: FileText },
   { to: '/my-grants', label: 'My grants', icon: Landmark, badge: 'deadlines' },
 ];
+
+/** Only for admins. The saved role just decides whether the tab shows; the page asks the server. */
+const ADMIN_ITEM = { to: '/admin', label: 'Admin', icon: ShieldCheck };
 
 /** A tab's icon in its pill, with the saved-count or urgent-deadline badge. */
 function TabIcon({ icon: Icon, badge, isActive, savedCount, urgent }: {
@@ -69,6 +73,8 @@ export default function NavRail({ researcherId }: NavRailProps) {
   const { savedIds } = useSavedGrantIds();
   const savedCount = savedIds.size;
   const { urgent } = useDeadlineAlerts();
+  const isAdmin = loadSession()?.user.role === 'ADMIN';
+  const items: { to: string; label: string; icon: LucideIcon; badge?: Badge }[] = isAdmin ? [...ITEMS, ADMIN_ITEM] : ITEMS;
 
   return (
     <>
@@ -82,7 +88,7 @@ export default function NavRail({ researcherId }: NavRailProps) {
         </div>
 
         <nav aria-label="Primary" className="flex flex-col items-center gap-2 w-full pt-4">
-          {ITEMS.map(({ to, label, icon, badge }) => (
+          {items.map(({ to, label, icon, badge }) => (
             <NavLink
               key={to}
               to={to}
@@ -103,8 +109,8 @@ export default function NavRail({ researcherId }: NavRailProps) {
         aria-label="Primary"
         className="md:hidden fixed inset-x-0 bottom-0 z-40 bg-white/95 backdrop-blur border-t border-brand-200 pb-[env(safe-area-inset-bottom)]"
       >
-        <ul className="grid grid-cols-6 h-16">
-          {ITEMS.map(({ to, label, icon, badge }) => (
+        <ul className={`grid ${isAdmin ? 'grid-cols-7' : 'grid-cols-6'} h-16`}>
+          {items.map(({ to, label, icon, badge }) => (
             <li key={to}>
               <NavLink to={to} className="group flex h-full flex-col items-center justify-center gap-0.5">
                 {({ isActive }) => (

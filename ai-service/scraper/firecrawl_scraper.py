@@ -405,6 +405,19 @@ GRANT_LINK_KEYWORDS = [
     "call for proposal",
 ]
 
+# Link labels that say nothing about the target ("View", "Download (1.2 MB)",
+# "Click here"). Indian government sites put the call's title in the table row
+# or list item instead (ICMR's call list), so such links are judged by that text.
+GENERIC_LINK_TEXT = re.compile(r"^(view|download|open document|click here|here|read more|more|details|pdf)\b", re.I)
+
+# Notices that are not open calls: results and selection lists, amendments,
+# administrative circulars, tenders and job adverts (UGC's notices are mostly these).
+NON_GRANT_LINK_TEXT = re.compile(
+    r"\b(results?|list of selected|selected (candidates|proposals)|shortlisted|corrigendum|addendum|"
+    r"circular|tender|vacanc(y|ies)|recruitment|dearness)\b",
+    re.I,
+)
+
 
 # Pages that never hold a single grant: site chrome, machine endpoints
 # (sitemaps, APIs, feeds), and non-grant sections. Matched against whole URL
@@ -531,11 +544,14 @@ def crawl_for_grants(start_url, max_required=8):
             # but only if they are clearly grants (avoid menu items)
             for a in soup.find_all("a", href=True):
                 l = urljoin(current_url, a["href"])
-                
+
                 # Ignore fragment-only links unless we want the current page
                 if a["href"].startswith("#"):
                     continue
-                
+                # javascript:, mailto: and tel: links can't be fetched
+                if not l.startswith(("http://", "https://")):
+                    continue
+
                 if _is_non_grant_url(l):
                     continue
                 # Skip non-PDF binary asset extensions; PDFs are handled.
@@ -544,15 +560,26 @@ def crawl_for_grants(start_url, max_required=8):
                     continue
                 
                 try:
-                    text = a.text.strip().lower()
+                    text = " ".join(a.get_text(" ", strip=True).split()).lower()
                 except Exception:
                     text = ""
 
                 if not text:
                     continue
 
+                if GENERIC_LINK_TEXT.match(text):
+                    row = a.find_parent(["tr", "li"])
+                    if row is not None:
+                        text = " ".join(row.get_text(" ", strip=True).split())[:300].lower()
+
+                if NON_GRANT_LINK_TEXT.search(text):
+                    continue
+
                 is_grant = False
-                grant_keywords = ["fellowship", "research grant", "award", "scholarship", "funding", "call for proposal", "grants for artificial intelligence", "grants for conference"]
+                grant_keywords = ["fellowship", "research grant", "award", "scholarship", "funding", "call for proposal",
+                                  "call for research proposal", "call for application", "call for nomination",
+                                  "special call", "proposals invited", "expression of interest",
+                                  "grants for artificial intelligence", "grants for conference"]
                 for kw in grant_keywords:
                     # Require the keyword and at least 2 words to avoid generic links
                     if kw in text and len(text.split()) > 1: 

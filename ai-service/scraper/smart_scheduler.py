@@ -225,6 +225,8 @@ def _clean_candidate_url(url: str) -> str | None:
     """Canonical form of a discovered URL, or None if it can't be a single grant page."""
     url, _fragment = urldefrag(url.strip())
     parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):          # javascript:, mailto:, tel:
+        return None
     # Hindi mirrors (/hi/...) duplicate the English page; scrape the English one.
     if parsed.path.lower().startswith("/hi/"):
         url = parsed._replace(path=parsed.path[3:]).geturl()
@@ -1063,9 +1065,20 @@ if __name__ == "__main__":
         "https://www.iusstf.org/",               # Indo-US S&T Forum fellowships and research awards
         "https://insaindia.res.in/",             # INSA fellowships and calls (ISRF, SRFP, INSPIRE Faculty)
         "https://www.indiascienceandtechnology.gov.in/funding-opportunities/grants-for-conference-seminars",
-        # Not seeded: dbtindia.gov.in and online-inspire.gov.in didn't resolve, icmr.gov.in
-        # serves an incomplete TLS chain, and csirhrdg.res.in, dst.gov.in, indiaalliance.org,
-        # msh.meity.gov.in and nidhi.dst.gov.in expose no grant links to a static crawl.
+        "https://www.icmr.gov.in/call-for-proposals",  # ICMR extramural calls, published as PDF notices
+        "https://epms.icmr.org.in/",                   # ICMR ePMS: JRF and post-doctoral fellowships, special calls
+        # UGC fellowships (JRF, Savitribai Phule), research awards and cooperation calls; about
+        # half its notices are scholarships abroad or prizes, which extraction marks not-a-grant.
+        "https://www.ugc.gov.in/",
+        # Not seeded (checked 26 Oct 2026), so these calls are added by hand:
+        # - dbtindia.gov.in doesn't resolve from our network; dbtepromis.nic.in has a broken
+        #   certificate chain (DBT calls also come through BIRAC, seeded above).
+        # - aicte-india.org resets the connection and vgst.karnataka.gov.in answers 403:
+        #   both block crawlers, which we respect.
+        # - dst.gov.in, moes.gov.in and meity.gov.in are JavaScript apps; DST's call list
+        #   renders only in a browser and was empty ("No Data Available").
+        # - online-inspire.gov.in didn't resolve; indiaalliance.org, msh.meity.gov.in and
+        #   nidhi.dst.gov.in expose no grant links.
         # Dropped Oct 2026: startupgrantsindia.com (startup accelerators, junk pages) and
         # fundsforngos AI area (mostly non-India, mostly closed calls, half the credit spend).
     ], help="Seed URLs to crawl and monitor")
@@ -1084,6 +1097,18 @@ if __name__ == "__main__":
         "https://royalsociety.org/grants/university-research/",
         "https://www.humboldt-foundation.de/en/apply/sponsorship-programmes/humboldt-research-fellowship",
         "https://erc.europa.eu/apply-grant/starting-grant",
+        # Indian schemes whose agencies have no crawlable call list (added 26 Oct 2026).
+        # Each loads without JavaScript, so it works with SPA_RENDER_FALLBACK=false.
+        "https://csirhrdg.res.in/Home/Index/1/Default/3317/62",   # CSIR research schemes (extramural)
+        "https://csirhrdg.res.in/Home/Index/1/Default/3283/63",   # CSIR sponsored research schemes
+        "https://csirhrdg.res.in/Home/Index/1/Default/3423/68",   # CSIR Bhatnagar Fellowship
+        "https://csirhrdg.res.in/Home/Index/1/Default/2677/69",   # CSIR travel grants
+        "https://csirhrdg.res.in/Home/Index/1/Default/2680/70",   # CSIR symposium grants
+        "https://epms.icmr.org.in/adhoc",                         # ICMR extramural research programme
+        "https://brns.res.in/brns_rp.php",                        # DAE-BRNS research grants
+        "https://brns.res.in/brns_dgfs.php",                      # DAE Graduate Fellowship Scheme
+        "https://www.isro.gov.in/RESPOND.html",                   # ISRO RESPOND (open all year)
+        "https://www.kscst.org.in/spp.html",                      # KSCST Student Project Programme (Karnataka)
     ], help="Pages that each describe one grant, scraped directly")
     parser.add_argument("--max", "-m", type=int, default=8, help="Max items per seed URL")
     parser.add_argument("--remove", nargs="+", metavar="URL",

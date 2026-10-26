@@ -23,13 +23,14 @@ const ApplicationDetail = lazy(() => import('./components/applications/Applicati
 const Awards = lazy(() => import('./components/awards/Awards.tsx'));
 const AwardDetail = lazy(() => import('./components/awards/AwardDetail.tsx'));
 const ReportEditor = lazy(() => import('./components/awards/ReportEditor.tsx'));
+const AdminPage = lazy(() => import('./components/admin/AdminPage.tsx'));
 import { loadSession, clearSession } from './services/authService';
 import { ResearcherProvider, useResearcher } from './context/ResearcherContext';
 
 const SCROLL_KEY_PREFIX = 'fundsphere.scroll.';
 
 /** Routes rendered inside <AppShell>, i.e. with the desktop nav rail (prefix match). */
-const RAIL_ROUTES = ['/discovery', '/saved', '/applications', '/my-grants', '/proposal', '/profile'];
+const RAIL_ROUTES = ['/discovery', '/saved', '/applications', '/my-grants', '/proposal', '/profile', '/admin'];
 
 function hasNavRail(pathname: string): boolean {
   return RAIL_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));
@@ -183,7 +184,10 @@ function AuthRoute() {
   }, [researcher, ensureLoaded]);
 
   if (!resolved) return null;
-  if (researcher) return <Navigate to="/discovery" replace />;
+  // Only someone still signed in moves on. A profile left in the cache after
+  // signing out must not send them to /discovery, which would send them
+  // straight back here (an endless redirect instead of the sign-in form).
+  if (researcher && loadSession()) return <Navigate to="/discovery" replace />;
   if (researcher === null && loadSession()) return <Navigate to="/onboarding" replace />;
 
   // refresh() bypasses any cached `null` left over from a previous logout,
@@ -308,6 +312,8 @@ export default function App() {
             <Route path="/my-grants/:id/reports/:draftId" element={<ReportEditor />} />
             <Route path="/proposal" element={<ProposalAssistant />} />
             <Route path="/profile" element={<ProfileRoute />} />
+            {/* Admins only: the page asks the server and sends anyone else to /discovery. */}
+            <Route path="/admin" element={<AdminPage />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

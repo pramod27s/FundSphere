@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, LogOut } from 'lucide-react';
 import { loadSession, clearSession } from '../../services/authService';
+import { useResearcher } from '../../context/ResearcherContext';
 
 interface UserAvatarMenuProps {
   researcherId?: number;
@@ -19,6 +20,7 @@ function getInitials(fullName: string): string {
 
 export default function UserAvatarMenu({ researcherId, placement = 'below', size = 'md' }: UserAvatarMenuProps) {
   const navigate = useNavigate();
+  const { setResearcher } = useResearcher();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -67,6 +69,9 @@ export default function UserAvatarMenu({ researcherId, placement = 'below', size
   const handleLogout = () => {
     setIsOpen(false);
     clearSession();
+    // Drop the cached profile too, as the Profile page's sign-out does: with it
+    // still cached, /auth would send the signed-out user back to /discovery.
+    setResearcher(null);
     navigate('/auth', { replace: true });
   };
 

@@ -25,7 +25,15 @@ public interface GrantRepository extends JpaRepository<Grant, Long>, JpaSpecific
     /** Lookup across URL spellings (e.g. with/without a trailing slash on legacy rows). */
     Optional<Grant> findFirstByGrantUrlIn(Collection<String> grantUrls);
 
-    @Query("SELECT g.grantUrl FROM Grant g WHERE g.grantUrl IS NOT NULL AND g.grantUrl <> ''")
+    /**
+     * The URLs the scraper re-checks each run. Grants added by hand are left
+     * out: the scraper would re-extract them and overwrite details a person checked.
+     */
+    @Query("""
+            SELECT g.grantUrl FROM Grant g
+            WHERE g.grantUrl IS NOT NULL AND g.grantUrl <> ''
+              AND (g.entrySource IS NULL OR g.entrySource <> org.pramod.corebackend.enums.GrantEntrySource.MANUAL)
+            """)
     List<String> findAllGrantUrls();
 
     /** Every funding agency name, for the Discovery agency filter; without closed grants unless asked. */

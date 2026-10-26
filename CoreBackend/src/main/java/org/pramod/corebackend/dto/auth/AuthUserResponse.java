@@ -14,6 +14,8 @@ public class AuthUserResponse {
     private String fullName;
     private String email;
     private String role;
+    /** True for the owner (OWNER_EMAIL), the only account that can add or remove admins. */
+    private boolean owner;
 }
 
 

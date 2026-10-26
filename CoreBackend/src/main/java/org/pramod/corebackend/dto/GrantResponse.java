@@ -58,4 +58,8 @@ public class GrantResponse {
     private LocalDateTime updatedAt;
     private LocalDateTime lastScrapedAt;
     private LocalDateTime lastVerifiedAt;
+    /** SCRAPED or MANUAL (added by an admin); null on grants saved before this existed. */
+    private String entrySource;
+    private String checkedByName;
+    private LocalDateTime checkedAt;
 }

@@ -12,6 +12,7 @@ import org.pramod.corebackend.enums.Role;
 import org.pramod.corebackend.repository.AppUserRepository;
 import org.pramod.corebackend.repository.RefreshTokenRepository;
 import org.pramod.corebackend.security.JwtService;
+import org.pramod.corebackend.security.OwnerAccess;
 import org.pramod.corebackend.security.UserPrincipal;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -34,7 +35,9 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final OwnerAccess ownerAccess;
 
+    /** Every new account is a USER: no request can choose its role (admins are added by the owner). */
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         validateRegisterRequest(request);
@@ -141,6 +144,7 @@ public class AuthService {
                         .fullName(user.getFullName())
                         .email(user.getEmail())
                         .role(user.getRole().name())
+                        .owner(ownerAccess.isOwner(user.getEmail()))
                         .build())
                 .build();
     }
