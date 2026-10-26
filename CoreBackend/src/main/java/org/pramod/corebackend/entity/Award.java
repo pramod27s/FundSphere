@@ -8,6 +8,7 @@ package org.pramod.corebackend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
 import org.pramod.corebackend.enums.AwardStatus;
@@ -88,11 +89,14 @@ public class Award {
 
     /**
      * Whose reporting rules the deadlines follow (4.2). The column default
-     * fills grants added before this field existed.
+     * fills grants added before this field existed. The type and the default
+     * are given separately: as one columnDefinition, Hibernate's schema update
+     * took the whole string for the type and logged a failed ALTER on every start.
      */
     @Builder.Default
     @Enumerated(EnumType.STRING)
-    @Column(name = "reporting_profile", nullable = false, columnDefinition = "varchar(20) default 'OTHER' not null")
+    @Column(name = "reporting_profile", nullable = false, length = 20)
+    @ColumnDefault("'OTHER'")
     private ReportingProfile reportingProfile = ReportingProfile.OTHER;
 
     @Builder.Default

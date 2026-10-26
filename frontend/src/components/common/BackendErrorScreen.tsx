@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ServerCrash, RefreshCw, LogOut } from 'lucide-react';
-import { clearSession } from '../../services/authService';
+import { signOut } from '../../services/authService';
 
 interface BackendErrorScreenProps {
   message: string;
@@ -29,7 +29,8 @@ export default function BackendErrorScreen({ message, onRetry, onSignOut }: Back
   };
 
   const handleSignOut = () => {
-    clearSession();
+    // The backend is unreachable here, so the token revocation will likely fail; signOut doesn't wait for it.
+    signOut();
     onSignOut?.();
   };
 

@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useRef } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
 import { Navigate, Outlet, Route, Routes, useLocation, useNavigate, useNavigationType } from 'react-router-dom';
 import LandingPage from './components/landing/LandingPage.tsx';
@@ -24,8 +24,9 @@ const Awards = lazy(() => import('./components/awards/Awards.tsx'));
 const AwardDetail = lazy(() => import('./components/awards/AwardDetail.tsx'));
 const ReportEditor = lazy(() => import('./components/awards/ReportEditor.tsx'));
 const AdminPage = lazy(() => import('./components/admin/AdminPage.tsx'));
-import { loadSession, clearSession } from './services/authService';
-import { ResearcherProvider, useResearcher } from './context/ResearcherContext';
+import { loadSession, signOut } from './services/authService';
+import { ResearcherProvider } from './context/ResearcherContext';
+import { useResearcher } from './context/useResearcher';
 
 const SCROLL_KEY_PREFIX = 'fundsphere.scroll.';
 
@@ -126,17 +127,11 @@ function RootLayout() {
 function RequireResearcher() {
   const navigate = useNavigate();
   const { researcher, ensureLoaded, refresh, error } = useResearcher();
-  const [resolved, setResolved] = useState(researcher !== undefined);
+  // Settled once the profile is known (an object, or null for none) or the fetch failed.
+  const resolved = researcher !== undefined || error !== null;
 
   useEffect(() => {
-    if (researcher !== undefined) {
-      setResolved(true);
-      return;
-    }
-    void (async () => {
-      await ensureLoaded();
-      setResolved(true);
-    })();
+    if (researcher === undefined) void ensureLoaded();
   }, [researcher, ensureLoaded]);
 
   if (!resolved) return null; // No flash — fetch is sub-second
@@ -163,32 +158,23 @@ function RequireResearcher() {
  */
 function AuthRoute() {
   const navigate = useNavigate();
-  const { researcher, ensureLoaded, refresh } = useResearcher();
-  const [resolved, setResolved] = useState(researcher !== undefined);
+  const { researcher, ensureLoaded, refresh, error } = useResearcher();
+  const signedIn = loadSession() !== null;
+  // Signed out: show the form straight away. Signed in: wait for the profile (or a failed fetch).
+  const resolved = !signedIn || researcher !== undefined || error !== null;
 
-  // On first mount: if a session already exists, resolve the profile and
-  // redirect. This handles "user types /auth while logged in".
+  // If a session already exists, resolve the profile and redirect. This
+  // handles "user types /auth while logged in".
   useEffect(() => {
-    if (researcher !== undefined) {
-      setResolved(true);
-      return;
-    }
-    if (!loadSession()) {
-      setResolved(true);
-      return;
-    }
-    void (async () => {
-      await ensureLoaded();
-      setResolved(true);
-    })();
+    if (researcher === undefined && loadSession()) void ensureLoaded();
   }, [researcher, ensureLoaded]);
 
   if (!resolved) return null;
   // Only someone still signed in moves on. A profile left in the cache after
   // signing out must not send them to /discovery, which would send them
   // straight back here (an endless redirect instead of the sign-in form).
-  if (researcher && loadSession()) return <Navigate to="/discovery" replace />;
-  if (researcher === null && loadSession()) return <Navigate to="/onboarding" replace />;
+  if (researcher && signedIn) return <Navigate to="/discovery" replace />;
+  if (researcher === null && signedIn) return <Navigate to="/onboarding" replace />;
 
   // refresh() bypasses any cached `null` left over from a previous logout,
   // so a returning user with a profile lands on /discovery, not /onboarding.
@@ -208,17 +194,11 @@ function AuthRoute() {
 function OnboardingRoute() {
   const navigate = useNavigate();
   const { researcher, ensureLoaded, refresh, setResearcher, error } = useResearcher();
-  const [resolved, setResolved] = useState(researcher !== undefined);
+  // Settled once the profile is known (an object, or null for none) or the fetch failed.
+  const resolved = researcher !== undefined || error !== null;
 
   useEffect(() => {
-    if (researcher !== undefined) {
-      setResolved(true);
-      return;
-    }
-    void (async () => {
-      await ensureLoaded();
-      setResolved(true);
-    })();
+    if (researcher === undefined) void ensureLoaded();
   }, [researcher, ensureLoaded]);
 
   if (!loadSession()) return <Navigate to="/auth" replace />;
@@ -279,7 +259,7 @@ function ProfileRoute() {
     <ResearcherProfile
       researcher={researcher}
       onLogout={() => {
-        clearSession();
+        signOut();
         setResearcher(null);
         navigate('/auth', { replace: true });
         toast.success('You\'ve been logged out');

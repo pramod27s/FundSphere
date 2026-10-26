@@ -196,8 +196,8 @@ export default function ResearcherEditModal({
     try {
       await onSave(formData);
       onClose();
-    } catch (err: any) {
-      setErrorMessage(err?.message || 'Failed to update researcher profile.');
+    } catch (err) {
+      setErrorMessage(err instanceof Error && err.message ? err.message : 'Failed to update researcher profile.');
     } finally {
       setIsSaving(false);
     }

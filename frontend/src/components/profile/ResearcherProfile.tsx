@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { ResearcherResponse, ResearcherRequest } from '../../services/researcherService';
 import { updateMyResearcher } from '../../services/researcherService';
-import { useResearcher } from '../../context/ResearcherContext';
+import { useResearcher } from '../../context/useResearcher';
 import ResearcherEditModal from './ResearcherEditModal';
 import { toast } from 'react-hot-toast';
 import {

@@ -1,9 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useSyncExternalStore } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, LogOut } from 'lucide-react';
-import { loadSession, clearSession } from '../../services/authService';
-import { useResearcher } from '../../context/ResearcherContext';
+import { loadSession, signOut } from '../../services/authService';
+import { useResearcher } from '../../context/useResearcher';
 
 interface UserAvatarMenuProps {
   researcherId?: number;
@@ -18,6 +18,19 @@ function getInitials(fullName: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
+/**
+ * The avatar photo lives in localStorage; re-read it when another tab changes
+ * storage or the profile page announces a new photo.
+ */
+function subscribeToProfileImage(onChange: () => void) {
+  window.addEventListener('storage', onChange);
+  window.addEventListener('profile:image-updated', onChange);
+  return () => {
+    window.removeEventListener('storage', onChange);
+    window.removeEventListener('profile:image-updated', onChange);
+  };
+}
+
 export default function UserAvatarMenu({ researcherId, placement = 'below', size = 'md' }: UserAvatarMenuProps) {
   const navigate = useNavigate();
   const { setResearcher } = useResearcher();
@@ -27,27 +40,9 @@ export default function UserAvatarMenu({ researcherId, placement = 'below', size
   const session = loadSession();
   const initials = session ? getInitials(session.user.fullName) : '?';
 
-  const [profileImage, setProfileImage] = useState<string | null>(() =>
+  const profileImage = useSyncExternalStore(subscribeToProfileImage, () =>
     researcherId ? localStorage.getItem(`profile_image_${researcherId}`) : null,
   );
-
-  useEffect(() => {
-    if (!researcherId) return;
-    const key = `profile_image_${researcherId}`;
-    setProfileImage(localStorage.getItem(key));
-
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === key) setProfileImage(e.newValue);
-    };
-    const handleLocalUpdate = () => setProfileImage(localStorage.getItem(key));
-
-    window.addEventListener('storage', handleStorage);
-    window.addEventListener('profile:image-updated', handleLocalUpdate);
-    return () => {
-      window.removeEventListener('storage', handleStorage);
-      window.removeEventListener('profile:image-updated', handleLocalUpdate);
-    };
-  }, [researcherId]);
 
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
@@ -68,7 +63,7 @@ export default function UserAvatarMenu({ researcherId, placement = 'below', size
 
   const handleLogout = () => {
     setIsOpen(false);
-    clearSession();
+    signOut();
     // Drop the cached profile too, as the Profile page's sign-out does: with it
     // still cached, /auth would send the signed-out user back to /discovery.
     setResearcher(null);

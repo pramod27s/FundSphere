@@ -80,6 +80,22 @@ export async function logout(refreshTokenValue?: string): Promise<void> {
 }
 
 /**
+ * A user-initiated sign-out: forget the session here and ask the server to
+ * revoke its refresh token, so a copy of it can't be used to sign back in.
+ * The server call isn't awaited, so signing out never waits on, or fails
+ * because of, the network (the backend may be down).
+ */
+export function signOut(): void {
+  const refreshTokenValue = loadSession()?.refreshToken;
+  clearSession();
+  if (refreshTokenValue) {
+    logout(refreshTokenValue).catch(() => {
+      // Best effort: the token still expires on its own.
+    });
+  }
+}
+
+/**
  * Translate the raw server / network error from login/register into a
  * user-friendly message. Hides backend exception class names (e.g.
  * "BadCredentialsException") and follows the standard of not revealing
