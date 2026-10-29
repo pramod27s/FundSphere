@@ -206,6 +206,7 @@ def build_pinecone_records(grant: GrantData) -> list[dict]:
         "tags": _clean_list(grant.tags),
         "checksum": _clean_str(grant.checksum),
         "last_scraped_at": _clean_str(grant.lastScrapedAt),
+        "created_at": _clean_str(grant.createdAt),
         "updated_at": _clean_str(grant.updatedAt),
         "requires_phd": getattr(grant, "requiresPhd", None),
         "min_experience_years": getattr(grant, "minExperienceYears", None),

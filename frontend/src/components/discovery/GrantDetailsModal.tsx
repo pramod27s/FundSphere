@@ -108,7 +108,7 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
             </div>
             <div className="flex flex-wrap items-center gap-2 mb-3">
               <FreshnessBadge timestamp={grant.lastVerifiedAt ?? grant.lastScrapedAt ?? grant.updatedAt} size="full" />
-              <ProviderUpdatedInfo timestamp={grant.lastScrapedAt ?? grant.updatedAt} />
+              <ProviderUpdatedInfo timestamp={grant.lastScrapedAt ?? grant.updatedAt} addedAt={grant.createdAt} />
             </div>
             <h2 id={titleId} className="text-xl sm:text-2xl font-bold text-brand-900 leading-tight tracking-tight">
               {grant.title}

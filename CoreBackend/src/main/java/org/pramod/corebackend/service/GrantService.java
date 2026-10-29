@@ -206,6 +206,49 @@ public class GrantService {
         return grantRepository.findAgencies(includeClosed, LocalDateTime.now());
     }
 
+    /**
+     * Writes each grant's live timestamps into the "fields" of AI recommendation
+     * results. Pinecone metadata is only rewritten when a grant is re-indexed
+     * (its page changed), so its copies go stale between scraper runs, and it
+     * never held last_verified_at at all.
+     */
+    @Transactional(readOnly = true)
+    public void applyLiveTimestamps(Object recommendation) {
+        if (!(recommendation instanceof Map<?, ?> body) || !(body.get("results") instanceof List<?> results)) {
+            return;
+        }
+        List<Long> ids = results.stream()
+                .filter(item -> item instanceof Map<?, ?> map && map.get("grantId") instanceof Number)
+                .map(item -> ((Number) ((Map<?, ?>) item).get("grantId")).longValue())
+                .toList();
+        if (ids.isEmpty()) {
+            return;
+        }
+        Map<Long, Grant> grants = grantRepository.findAllById(ids).stream()
+                .collect(Collectors.toMap(Grant::getId, grant -> grant));
+
+        for (Object item : results) {
+            if (!(item instanceof Map<?, ?> map) || !(map.get("grantId") instanceof Number id)
+                    || !(map.get("fields") instanceof Map<?, ?> rawFields)) {
+                continue;
+            }
+            Grant grant = grants.get(id.longValue());
+            if (grant == null) {
+                continue;
+            }
+            @SuppressWarnings("unchecked")
+            Map<String, Object> fields = (Map<String, Object>) rawFields;
+            fields.put("created_at", isoOrNull(grant.getCreatedAt()));
+            fields.put("updated_at", isoOrNull(grant.getUpdatedAt()));
+            fields.put("last_scraped_at", isoOrNull(grant.getLastScrapedAt()));
+            fields.put("last_verified_at", isoOrNull(grant.getLastVerifiedAt()));
+        }
+    }
+
+    private static String isoOrNull(LocalDateTime value) {
+        return value == null ? null : value.toString();
+    }
+
     public GrantResponse getGrantById(Long id) {
         Grant grant = grantRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Grant not found with id: " + id));

@@ -12,6 +12,7 @@ import org.pramod.corebackend.enums.PrimaryField;
 import org.pramod.corebackend.enums.UserType;
 import org.pramod.corebackend.security.UserPrincipal;
 import org.pramod.corebackend.service.AiServiceClient;
+import org.pramod.corebackend.service.GrantService;
 import org.pramod.corebackend.service.ResearcherService;
 import org.pramod.corebackend.service.OrcidEnrichmentService;
 import org.pramod.corebackend.service.AiProfileMapper;
@@ -32,6 +33,7 @@ public class ResearcherController {
 
     private final ResearcherService researcherService;
     private final AiServiceClient aiServiceClient;
+    private final GrantService grantService;
     private final AiProfileMapper aiProfileMapper;
     private final OrcidEnrichmentService orcidEnrichmentService;
 
@@ -112,7 +114,9 @@ public class ResearcherController {
         requestToAi.put("useRerank", parseUseRerank(request));
         requestToAi.put("userQuery", userQuery);
 
-        return ResponseEntity.ok(aiServiceClient.recommend(requestToAi));
+        Object recommendation = aiServiceClient.recommend(requestToAi);
+        grantService.applyLiveTimestamps(recommendation);
+        return ResponseEntity.ok(recommendation);
     }
 
     /**

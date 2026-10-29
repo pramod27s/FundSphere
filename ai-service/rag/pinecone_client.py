@@ -35,6 +35,7 @@ SEARCH_FIELDS = [
     "chunk_text",
     "checksum",
     "last_scraped_at",
+    "created_at",
     "updated_at",
     "objectives",
     "eligibility_criteria",

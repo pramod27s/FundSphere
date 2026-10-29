@@ -43,6 +43,7 @@ interface CoreGrantResponse {
   field?: string;
   tags?: string[];
   applicationLink?: string;
+  createdAt?: string;
   updatedAt?: string;
   lastScrapedAt?: string;
   lastVerifiedAt?: string;
@@ -142,6 +143,7 @@ function mapCoreGrantToDiscoveryGrant(grant: CoreGrantResponse): DiscoveryGrant 
     researchThemes: splitTextList(grant.researchThemes),
     applicationLink: grant.applicationLink || '',
     grantUrl: grant.grantUrl || '',
+    createdAt: grant.createdAt,
     updatedAt: grant.updatedAt,
     lastScrapedAt: grant.lastScrapedAt,
     lastVerifiedAt: grant.lastVerifiedAt,

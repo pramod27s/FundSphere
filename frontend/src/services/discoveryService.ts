@@ -50,6 +50,8 @@ export interface DiscoveryGrant {
   loiDeadline?: string;
   decisionDate?: string;
   projectStartDate?: string;
+  /** When FundSphere first stored this grant. */
+  createdAt?: string;
   updatedAt?: string;
   /** When the provider last changed the source page (Firecrawl re-extracted). */
   lastScrapedAt?: string;
@@ -133,6 +135,7 @@ interface CoreGrantResponse {
   field?: string;
   tags?: string[];
   applicationLink?: string;
+  createdAt?: string;
   updatedAt?: string;
   lastScrapedAt?: string;
   lastVerifiedAt?: string;
@@ -286,6 +289,7 @@ function mapRecommendationToGrant(item: RecommendationItem): DiscoveryGrant {
     loiDeadline: asString(fields.loi_deadline),
     decisionDate: asString(fields.decision_date),
     projectStartDate: asString(fields.project_start_date),
+    createdAt: asString(fields.created_at),
     updatedAt: asString(fields.updated_at),
     lastScrapedAt: asString(fields.last_scraped_at),
     lastVerifiedAt: asString(fields.last_verified_at),
@@ -324,6 +328,7 @@ function mapCoreGrantToDiscoveryGrant(grant: CoreGrantResponse): DiscoveryGrant 
     loiDeadline: grant.loiDeadline,
     decisionDate: grant.decisionDate,
     projectStartDate: grant.projectStartDate,
+    createdAt: grant.createdAt,
     updatedAt: grant.updatedAt,
     lastScrapedAt: grant.lastScrapedAt,
     lastVerifiedAt: grant.lastVerifiedAt,

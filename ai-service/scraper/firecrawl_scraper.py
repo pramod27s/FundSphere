@@ -438,6 +438,8 @@ NON_GRANT_PATH_SEGMENTS = {
 NON_GRANT_HOSTS = {
     "youtube.com", "youtu.be", "facebook.com", "twitter.com", "x.com",
     "linkedin.com", "instagram.com", "wa.me", "t.me",
+    # UGC links its bank's fellowship disbursement portal (payments, not a grant).
+    "scholarship.canarabank.bank.in", "scholarship.canarabank.in",
 }
 # Words inside a segment that mark announcements of winners, not open calls
 # (e.g. "SF-Result-2026-27.pdf", "/result/announcement-award-...").
@@ -466,6 +468,16 @@ def _is_non_grant_url(url: str) -> bool:
     return False
 
 
+def _join_link(base: str, href: str) -> str | None:
+    """Absolute URL for an <a href>, or None if it can't be parsed (e.g. an
+    email disguised as a link: "https://cc [at] icssr [dot] org")."""
+    from urllib.parse import urljoin
+    try:
+        return urljoin(base, href.strip())
+    except ValueError:
+        return None
+
+
 def _selectors_for(url: str) -> list[str]:
     from urllib.parse import urlparse
     host = (urlparse(url).netloc or "").lower()
@@ -478,14 +490,12 @@ def _selectors_for(url: str) -> list[str]:
 
 def crawl_for_grants(start_url, max_required=8):
     print(f"[*] Crawling {start_url} to discover up to {max_required} valid grant pages...")
+    visited = set()
+    # queue stores tuples of (url, depth)
+    queue = [(start_url, 0)]
+    valid_candidates = []
     try:
-        from urllib.parse import urljoin
         from bs4 import BeautifulSoup
-
-        visited = set()
-        # queue stores tuples of (url, depth)
-        queue = [(start_url, 0)]
-        valid_candidates = []
 
         while queue and len(valid_candidates) < max_required * 2:
             current_url, depth = queue.pop(0)
@@ -531,9 +541,9 @@ def crawl_for_grants(start_url, max_required=8):
                     # Firecrawl sees the whole page and extracts its FIRST grant.
                     if not href or href.startswith("#"):
                         continue
-                    l = urljoin(current_url, href)
+                    l = _join_link(current_url, href)
 
-                    if l not in valid_candidates and l not in visited:
+                    if l and l not in valid_candidates and l not in visited:
                         valid_candidates.append(l)
                         try:
                             safe_print(f"       Found structured grant target: {title_source.get_text(strip=True)} -> {l}")
@@ -543,13 +553,13 @@ def crawl_for_grants(start_url, max_required=8):
             # Catch standard href links that explicitly mention grant keywords in text
             # but only if they are clearly grants (avoid menu items)
             for a in soup.find_all("a", href=True):
-                l = urljoin(current_url, a["href"])
+                l = _join_link(current_url, a["href"])
 
                 # Ignore fragment-only links unless we want the current page
                 if a["href"].startswith("#"):
                     continue
                 # javascript:, mailto: and tel: links can't be fetched
-                if not l.startswith(("http://", "https://")):
+                if not l or not l.startswith(("http://", "https://")):
                     continue
 
                 if _is_non_grant_url(l):
@@ -595,8 +605,8 @@ def crawl_for_grants(start_url, max_required=8):
             # If depth 0, look for category links to crawl further
             if depth == 0:
                 for a in soup.find_all("a", href=True):
-                    l = urljoin(current_url, a["href"])
-                    if l.startswith("http") and ("grant" in a.text.lower() or "fellowship" in a.text.lower()):
+                    l = _join_link(current_url, a["href"])
+                    if l and l.startswith("http") and ("grant" in a.text.lower() or "fellowship" in a.text.lower()):
                          if l not in visited and not any(q[0] == l for q in queue) and l != current_url and not a["href"].startswith("#"):
                              queue.append((l, depth + 1))
                             
@@ -604,8 +614,9 @@ def crawl_for_grants(start_url, max_required=8):
         return valid_candidates[:max_required * 2]
         
     except Exception as e:
+        # Keep what was found before the error rather than losing the whole seed.
         print(f"[-] Local crawler encountered an error: {str(e)}")
-        return []
+        return valid_candidates[:max_required * 2]
 
 import argparse
 

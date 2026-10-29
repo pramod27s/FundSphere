@@ -6,12 +6,6 @@
       "deadline": null,
       "reason": "Only for startups, not applicable to researcher"
     },
-    "39": {
-      "rating": 2,
-      "title": "Core Research Grant (CRG)",
-      "deadline": null,
-      "reason": "Broad science grant, eligible Indian researcher, can fund climate‑crop work"
-    },
     "194": {
       "rating": 1,
       "title": "FID – Fund for Innovation in Development (Innovative Project Funding)",
@@ -662,12 +656,6 @@
       "deadline": null,
       "reason": "Only for early-stage AI startups, not a researcher"
     },
-    "39": {
-      "rating": 2,
-      "title": "Core Research Grant (CRG)",
-      "deadline": null,
-      "reason": "General SERB research grant, eligible Indian researcher"
-    },
     "102": {
       "rating": 0,
       "title": "Alliance Crypto & AI Accelerator",
@@ -819,13 +807,6 @@
     }
   },
   "biomedical-device-academic-in": {
-    "39": {
-      "rating": 2,
-      "title": "Core Research Grant (CRG)",
-      "deadline": null,
-      "reason": "SERB core grant; can fund device research",
-      "rater": "claude"
-    },
     "198": {
       "rating": 0,
       "title": "COVID 2.0 FUNDING",
@@ -1384,13 +1365,6 @@
     }
   },
   "college-teacher-summer-research-in": {
-    "113": {
-      "rating": 0,
-      "title": "J C Bose National Fellowship",
-      "deadline": null,
-      "reason": "Recognition fellowship",
-      "rater": "claude"
-    },
     "197": {
       "rating": 0,
       "title": "India's International Fellows",
@@ -1959,12 +1933,6 @@
     }
   },
   "engineering-teacher-phd-in": {
-    "113": {
-      "rating": 0,
-      "title": "J C Bose National Fellowship",
-      "deadline": null,
-      "reason": "Senior scientist fellowship, not for teachers or PhD candidates"
-    },
     "197": {
       "rating": 1,
       "title": "India's International Fellows",
@@ -2554,12 +2522,6 @@
     }
   },
   "livestock-health-research-in": {
-    "39": {
-      "rating": 2,
-      "title": "Core Research Grant (CRG)",
-      "deadline": null,
-      "reason": "General SERB research grant; eligible Indian professor, can fund animal health work"
-    },
     "198": {
       "rating": 0,
       "title": "COVID 2.0 FUNDING",
@@ -3029,12 +2991,6 @@
     }
   },
   "national-postdoc-physics-in": {
-    "113": {
-      "rating": 0,
-      "title": "J C Bose National Fellowship",
-      "deadline": null,
-      "reason": "Senior‑level fellowship, not for fresh PhDs"
-    },
     "197": {
       "rating": 1,
       "title": "India's International Fellows",
@@ -3300,13 +3256,6 @@
     }
   },
   "new-assistant-professor-chemistry-in": {
-    "39": {
-      "rating": 2,
-      "title": "Core Research Grant (CRG)",
-      "deadline": null,
-      "reason": "SERB core grant; eligible new faculty",
-      "rater": "claude"
-    },
     "199": {
       "rating": 0,
       "title": "Joint Appointment for Exchange of Human Resources between Universities and other Institutions/ Organisations",
@@ -3485,13 +3434,6 @@
       "title": "a16z Speedrun",
       "deadline": null,
       "reason": "Startup accelerator",
-      "rater": "claude"
-    },
-    "113": {
-      "rating": 0,
-      "title": "J C Bose National Fellowship",
-      "deadline": null,
-      "reason": "Recognition fellowship",
       "rater": "claude"
     },
     "198": {
@@ -3770,18 +3712,6 @@
     }
   },
   "returning-scientist-in": {
-    "39": {
-      "rating": 1,
-      "title": "Core Research Grant (CRG)",
-      "deadline": null,
-      "reason": "Research grant for Indian institutions, not a return‑ee fellowship"
-    },
-    "113": {
-      "rating": 0,
-      "title": "J C Bose National Fellowship",
-      "deadline": null,
-      "reason": "Senior‑level fellowship, not for early‑career returnees"
-    },
     "197": {
       "rating": 0,
       "title": "India's International Fellows",
@@ -3915,12 +3845,6 @@
     }
   },
   "senior-scientist-national-fellowship-in": {
-    "113": {
-      "rating": 3,
-      "title": "J C Bose National Fellowship",
-      "deadline": null,
-      "reason": "J C Bose National Fellowship targets outstanding senior Indian scientists"
-    },
     "196": {
       "rating": 1,
       "title": "PMS Blackett Memorial Lecture and Jagadis Chandra Bose Memorial Lecture",
@@ -4215,12 +4139,6 @@
     }
   },
   "sociology-urban-migration-in": {
-    "39": {
-      "rating": 0,
-      "title": "Core Research Grant (CRG)",
-      "deadline": null,
-      "reason": "Science/engineering focus, not social science"
-    },
     "194": {
       "rating": 2,
       "title": "FID – Fund for Innovation in Development (Innovative Project Funding)",
@@ -4373,12 +4291,6 @@
     }
   },
   "solar-energy-fellowship-in": {
-    "113": {
-      "rating": 0,
-      "title": "J C Bose National Fellowship",
-      "deadline": null,
-      "reason": "Senior scientists, India‑only"
-    },
     "197": {
       "rating": 2,
       "title": "India's International Fellows",
@@ -4587,13 +4499,6 @@
       "title": "Alliance Crypto & AI Accelerator",
       "deadline": null,
       "reason": "Crypto and AI accelerator only",
-      "rater": "claude"
-    },
-    "113": {
-      "rating": 0,
-      "title": "J C Bose National Fellowship",
-      "deadline": null,
-      "reason": "Fellowship for eminent scientists, not startups",
       "rater": "claude"
     },
     "211": {
@@ -4872,13 +4777,6 @@
     }
   },
   "tb-drug-discovery-in": {
-    "39": {
-      "rating": 2,
-      "title": "Core Research Grant (CRG)",
-      "deadline": null,
-      "reason": "SERB core grant; can fund TB drug discovery",
-      "rater": "claude"
-    },
     "198": {
       "rating": 0,
       "title": "COVID 2.0 FUNDING",
@@ -5211,13 +5109,6 @@
     }
   },
   "water-purification-research-in": {
-    "39": {
-      "rating": 2,
-      "title": "Core Research Grant (CRG)",
-      "deadline": null,
-      "reason": "SERB core grant; eligible faculty, can fund water treatment research",
-      "rater": "claude"
-    },
     "198": {
       "rating": 0,
       "title": "COVID 2.0 FUNDING",
