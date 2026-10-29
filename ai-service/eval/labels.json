@@ -12,6 +12,12 @@
       "deadline": null,
       "reason": "Broad science grant, eligible Indian researcher, can fund climate‑crop work"
     },
+    "194": {
+      "rating": 1,
+      "title": "FID – Fund for Innovation in Development (Innovative Project Funding)",
+      "deadline": null,
+      "reason": "Broad development focus; could be framed for climate‑agri impact but not explicitly targeted"
+    },
     "200": {
       "rating": 1,
       "title": "Agro Meteorology",
@@ -41,6 +47,12 @@
       "title": "Building Energy Efficiency Higher and Advanced Network (BHAVAN) Fellowships",
       "deadline": null,
       "reason": "Building energy focus, applicant ineligible"
+    },
+    "237": {
+      "rating": 0,
+      "title": "Grant for holding Symposium/Seminar",
+      "deadline": null,
+      "reason": "Only supports seminars; not research funding for crop advisories"
     },
     "238": {
       "rating": 0,
@@ -218,6 +230,12 @@
       "title": "Alliance Crypto & AI Accelerator",
       "deadline": null,
       "reason": "Includes AI but centered on crypto, unlikely fit"
+    },
+    "194": {
+      "rating": 2,
+      "title": "FID – Fund for Innovation in Development (Innovative Project Funding)",
+      "deadline": null,
+      "reason": "Eligible for-profit startup in LMIC; focus on social/economic innovation aligns broadly with AI-driven public sector solutions"
     },
     "212": {
       "rating": 2,
@@ -443,6 +461,12 @@
       "title": "Startup India Seed Fund Scheme (SISFS) For Startups",
       "deadline": null,
       "reason": "For tech startups, applicant type mismatch"
+    },
+    "194": {
+      "rating": 2,
+      "title": "FID – Fund for Innovation in Development (Innovative Project Funding)",
+      "deadline": null,
+      "reason": "Eligible NGO in LMIC; fund supports innovative development projects that could include renewable energy biogas initiatives"
     },
     "213": {
       "rating": 1,
@@ -968,6 +992,12 @@
       "deadline": null,
       "reason": "Early-stage seed fund for Indian tech startups, fits funding need though not biotech‑specific"
     },
+    "194": {
+      "rating": 1,
+      "title": "FID – Fund for Innovation in Development (Innovative Project Funding)",
+      "deadline": null,
+      "reason": "Eligible startup in India but focus is poverty/social innovation, not biotech R&D"
+    },
     "217": {
       "rating": 2,
       "title": "TDB-BIRAC Partnership",
@@ -1085,6 +1115,24 @@
       "deadline": "2027-02-03T23:59:59",
       "reason": "Marketing grant for creative sector, irrelevant"
     },
+    "169": {
+      "rating": 0,
+      "title": "Request for Proposals: Interregional Innovation Investments Strand 1",
+      "deadline": "2026-11-12T23:59:59",
+      "reason": "EU‑only eligibility, not a startup fund"
+    },
+    "170": {
+      "rating": 0,
+      "title": "Call for Proposals: Interregional Innovation Investments Strand 2a",
+      "deadline": "2026-11-12T23:59:59",
+      "reason": "EU eligibility only, not suited for early‑stage startup"
+    },
+    "194": {
+      "rating": 0,
+      "title": "FID – Fund for Innovation in Development (Innovative Project Funding)",
+      "deadline": null,
+      "reason": "Limited to low‑income countries and unrelated field"
+    },
     "196": {
       "rating": 0,
       "title": "PMS Blackett Memorial Lecture and Jagadis Chandra Bose Memorial Lecture",
@@ -1114,6 +1162,18 @@
       "title": "INSA-Vainu Bappu Memorial Award",
       "deadline": null,
       "reason": "Astronomy award, unrelated"
+    },
+    "229": {
+      "rating": 0,
+      "title": "C.V. Raman Fellowship for African Researchers",
+      "deadline": null,
+      "reason": "Only African researchers, not a startup grant"
+    },
+    "239": {
+      "rating": 0,
+      "title": "Infosys Prize",
+      "deadline": null,
+      "reason": "Prize for individuals, not early‑stage startup funding"
     },
     "254": {
       "rating": 0,
@@ -1188,6 +1248,24 @@
       "reason": "AI startup incubator",
       "rater": "claude"
     },
+    "169": {
+      "rating": 0,
+      "title": "Request for Proposals: Interregional Innovation Investments Strand 1",
+      "deadline": "2026-11-12T23:59:59",
+      "reason": "Funding for entities/innovation projects, not postdoc mobility"
+    },
+    "170": {
+      "rating": 0,
+      "title": "Call for Proposals: Interregional Innovation Investments Strand 2a",
+      "deadline": "2026-11-12T23:59:59",
+      "reason": "Entity‑focused innovation funding, no postdoc fellowship"
+    },
+    "194": {
+      "rating": 0,
+      "title": "FID – Fund for Innovation in Development (Innovative Project Funding)",
+      "deadline": null,
+      "reason": "Targets development projects in low‑income countries, unrelated field"
+    },
     "196": {
       "rating": 0,
       "title": "PMS Blackett Memorial Lecture and Jagadis Chandra Bose Memorial Lecture",
@@ -1223,6 +1301,18 @@
       "reason": "Astronomy award",
       "rater": "claude"
     },
+    "229": {
+      "rating": 0,
+      "title": "C.V. Raman Fellowship for African Researchers",
+      "deadline": null,
+      "reason": "Only for African researchers, applicant ineligible"
+    },
+    "239": {
+      "rating": 0,
+      "title": "Infosys Prize",
+      "deadline": null,
+      "reason": "Prize for senior scientists, not a postdoctoral mobility grant"
+    },
     "254": {
       "rating": 0,
       "title": "DBT-BMGF (Bill & Melinda Gates Foundation)",
@@ -1257,6 +1347,12 @@
       "deadline": null,
       "reason": "Indian research grants",
       "rater": "claude"
+    },
+    "317": {
+      "rating": 1,
+      "title": "Sun Pharma Science Scholar Awards",
+      "deadline": null,
+      "reason": "Allows post‑doctoral applicants but is a prize, not a mobility fellowship"
     },
     "318": {
       "rating": 0,
@@ -1301,6 +1397,12 @@
       "deadline": null,
       "reason": "International exposure fellowships",
       "rater": "claude"
+    },
+    "199": {
+      "rating": 1,
+      "title": "Joint Appointment for Exchange of Human Resources between Universities and other Institutions/ Organisations",
+      "deadline": null,
+      "reason": "Relevant to faculty development and education but not a specific summer research fellowship"
     },
     "210": {
       "rating": 0,
@@ -1447,6 +1549,24 @@
       "deadline": null,
       "reason": "For‑profit small business grant, applicant type mismatch"
     },
+    "169": {
+      "rating": 0,
+      "title": "Request for Proposals: Interregional Innovation Investments Strand 1",
+      "deadline": "2026-11-12T23:59:59",
+      "reason": "EU‑focused innovation grant, not community services"
+    },
+    "170": {
+      "rating": 0,
+      "title": "Call for Proposals: Interregional Innovation Investments Strand 2a",
+      "deadline": "2026-11-12T23:59:59",
+      "reason": "EU innovation grant, not applicable to US nonprofit"
+    },
+    "194": {
+      "rating": 0,
+      "title": "FID – Fund for Innovation in Development (Innovative Project Funding)",
+      "deadline": null,
+      "reason": "Eligible only for low‑ and middle‑income countries, applicant is US"
+    },
     "196": {
       "rating": 0,
       "title": "PMS Blackett Memorial Lecture and Jagadis Chandra Bose Memorial Lecture",
@@ -1458,6 +1578,12 @@
       "title": "Jawaharlal Nehru Birth Centenary Medal",
       "deadline": null,
       "reason": "Science medal award, not relevant"
+    },
+    "220": {
+      "rating": 0,
+      "title": "Streeshakti Science Award",
+      "deadline": null,
+      "reason": "Science award for individuals, not nonprofit funding"
     },
     "223": {
       "rating": 0,
@@ -1477,11 +1603,29 @@
       "deadline": null,
       "reason": "Astronomy award, unrelated"
     },
+    "229": {
+      "rating": 0,
+      "title": "C.V. Raman Fellowship for African Researchers",
+      "deadline": null,
+      "reason": "Fellowship for African researchers, wrong applicant"
+    },
     "230": {
       "rating": 0,
       "title": "BIRAC Nesta Discovery Awards",
       "deadline": null,
       "reason": "Biotech discovery award, unrelated field"
+    },
+    "233": {
+      "rating": 0,
+      "title": "DST-ICTP Ramanujan Prize in Mathematics",
+      "deadline": null,
+      "reason": "Mathematics prize, unrelated field"
+    },
+    "239": {
+      "rating": 0,
+      "title": "Infosys Prize",
+      "deadline": null,
+      "reason": "Research prize, not community service funding"
     },
     "254": {
       "rating": 0,
@@ -1512,6 +1656,12 @@
       "title": "Research Grants - International",
       "deadline": null,
       "reason": "Science research focus, not community services nonprofit"
+    },
+    "317": {
+      "rating": 0,
+      "title": "Sun Pharma Science Scholar Awards",
+      "deadline": null,
+      "reason": "Student science awards, not nonprofit block grant"
     },
     "318": {
       "rating": 0,
@@ -1600,6 +1750,12 @@
       "deadline": null,
       "reason": "Crypto and AI accelerator only",
       "rater": "claude"
+    },
+    "194": {
+      "rating": 1,
+      "title": "FID – Fund for Innovation in Development (Innovative Project Funding)",
+      "deadline": null,
+      "reason": "Broad innovation grant for LMIC for‑profit firms, but not specific accelerator/incubator for UAV hardware"
     },
     "212": {
       "rating": 2,
@@ -1705,12 +1861,24 @@
       "reason": "Pre-seed equity, not edtech-specific",
       "rater": "claude"
     },
+    "194": {
+      "rating": 2,
+      "title": "FID – Fund for Innovation in Development (Innovative Project Funding)",
+      "deadline": null,
+      "reason": "Fits social‑innovation focus, open to for‑profit startups in India; not education‑specific but relevant to rural learning impact"
+    },
     "199": {
       "rating": 0,
       "title": "Joint Appointment for Exchange of Human Resources between Universities and other Institutions/ Organisations",
       "deadline": null,
       "reason": "Faculty exchange",
       "rater": "claude"
+    },
+    "209": {
+      "rating": 0,
+      "title": "Prime Minister's Special Scholarship Scheme (PMSSS) J&K",
+      "deadline": null,
+      "reason": "Only for individual students from J&K, not a startup"
     },
     "212": {
       "rating": 2,
@@ -2001,6 +2169,12 @@
       "reason": "Pre-seed equity for Indian founders; not a grant, not agri-specific",
       "rater": "claude"
     },
+    "194": {
+      "rating": 2,
+      "title": "FID – Fund for Innovation in Development (Innovative Project Funding)",
+      "deadline": null,
+      "reason": "Broad social innovation focus, open to for‑profit startups in LMICs; aligns with poverty‑alleviation via affordable farm tools"
+    },
     "212": {
       "rating": 2,
       "title": "TDB Seed Fund",
@@ -2113,6 +2287,24 @@
       "deadline": null,
       "reason": "Startup accelerator, not dataset research funding"
     },
+    "169": {
+      "rating": 0,
+      "title": "Request for Proposals: Interregional Innovation Investments Strand 1",
+      "deadline": "2026-11-12T23:59:59",
+      "reason": "Broad innovation focus, no AI or benchmark component"
+    },
+    "170": {
+      "rating": 0,
+      "title": "Call for Proposals: Interregional Innovation Investments Strand 2a",
+      "deadline": "2026-11-12T23:59:59",
+      "reason": "General digital/green innovation, not AI dataset work"
+    },
+    "194": {
+      "rating": 0,
+      "title": "FID – Fund for Innovation in Development (Innovative Project Funding)",
+      "deadline": null,
+      "reason": "Targets development/social issues in low‑income countries, unrelated field"
+    },
     "196": {
       "rating": 0,
       "title": "PMS Blackett Memorial Lecture and Jagadis Chandra Bose Memorial Lecture",
@@ -2155,6 +2347,12 @@
       "deadline": null,
       "reason": "Life sciences/biotech, unrelated to AI datasets"
     },
+    "239": {
+      "rating": 0,
+      "title": "Infosys Prize",
+      "deadline": null,
+      "reason": "Prize for scientific excellence, not project funding for AI benchmarks"
+    },
     "254": {
       "rating": 0,
       "title": "DBT-BMGF (Bill & Melinda Gates Foundation)",
@@ -2185,6 +2383,12 @@
       "title": "CSIR Research Grants",
       "deadline": null,
       "reason": "Broad science/tech but not AI benchmark funding"
+    },
+    "317": {
+      "rating": 0,
+      "title": "Sun Pharma Science Scholar Awards",
+      "deadline": null,
+      "reason": "Medical sciences award, no relevance to AI evaluation datasets"
     },
     "318": {
       "rating": 0,
@@ -2233,6 +2437,24 @@
       "deadline": null,
       "reason": "Crypto/AI focus, only loosely related to security"
     },
+    "169": {
+      "rating": 2,
+      "title": "Request for Proposals: Interregional Innovation Investments Strand 1",
+      "deadline": "2026-11-12T23:59:59",
+      "reason": "EU innovation program covering digital manufacturing; eligible startup but not cybersecurity‑specific"
+    },
+    "170": {
+      "rating": 2,
+      "title": "Call for Proposals: Interregional Innovation Investments Strand 2a",
+      "deadline": "2026-11-12T23:59:59",
+      "reason": "EU digital transition funding, open to private firms; relevant field but no explicit cyber focus"
+    },
+    "194": {
+      "rating": 0,
+      "title": "FID – Fund for Innovation in Development (Innovative Project Funding)",
+      "deadline": null,
+      "reason": "Targets low‑income countries and social/economic development, not industrial cyber security"
+    },
     "196": {
       "rating": 0,
       "title": "PMS Blackett Memorial Lecture and Jagadis Chandra Bose Memorial Lecture",
@@ -2244,6 +2466,12 @@
       "title": "Jawaharlal Nehru Birth Centenary Medal",
       "deadline": null,
       "reason": "Award for scientific contributions, not funding"
+    },
+    "220": {
+      "rating": 0,
+      "title": "Streeshakti Science Award",
+      "deadline": null,
+      "reason": "India‑focused award for individual women scientists, not a grant for companies"
     },
     "223": {
       "rating": 0,
@@ -2262,6 +2490,18 @@
       "title": "INSA-Vainu Bappu Memorial Award",
       "deadline": null,
       "reason": "Astronomy award, unrelated"
+    },
+    "229": {
+      "rating": 0,
+      "title": "C.V. Raman Fellowship for African Researchers",
+      "deadline": null,
+      "reason": "Restricted to African researchers; applicant in Spain ineligible"
+    },
+    "239": {
+      "rating": 0,
+      "title": "Infosys Prize",
+      "deadline": null,
+      "reason": "Prestigious Indian prize for scientists, not a funding program for startups"
     },
     "254": {
       "rating": 0,
@@ -2370,6 +2610,12 @@
       "title": "IMA Medical Education and Research Award for Young Scientists",
       "deadline": null,
       "reason": "For young scientists only; applicant is senior professor"
+    },
+    "239": {
+      "rating": 0,
+      "title": "Infosys Prize",
+      "deadline": null,
+      "reason": "Prize, not a research grant; not suitable for project funding"
     },
     "241": {
       "rating": 0,
@@ -2541,6 +2787,12 @@
       "deadline": null,
       "reason": "Pre‑seed VC program, dilutive equity rather than non‑dilutive"
     },
+    "194": {
+      "rating": 2,
+      "title": "FID – Fund for Innovation in Development (Innovative Project Funding)",
+      "deadline": null,
+      "reason": "Fits social innovation/poverty alleviation goals; eligible for Indian for‑profit startup, but not specifically targeted at medtech prototypes"
+    },
     "198": {
       "rating": 1,
       "title": "COVID 2.0 FUNDING",
@@ -2666,6 +2918,24 @@
       "deadline": null,
       "reason": "Crypto/AI accelerator, not fintech or grant"
     },
+    "169": {
+      "rating": 0,
+      "title": "Request for Proposals: Interregional Innovation Investments Strand 1",
+      "deadline": "2026-11-12T23:59:59",
+      "reason": "EU‑only eligibility, Kenya startup not eligible"
+    },
+    "170": {
+      "rating": 0,
+      "title": "Call for Proposals: Interregional Innovation Investments Strand 2a",
+      "deadline": "2026-11-12T23:59:59",
+      "reason": "EU‑only eligibility, Kenya startup not eligible"
+    },
+    "194": {
+      "rating": 2,
+      "title": "FID – Fund for Innovation in Development (Innovative Project Funding)",
+      "deadline": null,
+      "reason": "Open to for‑profit companies in low‑income countries; aligns with fintech/social impact goals"
+    },
     "196": {
       "rating": 0,
       "title": "PMS Blackett Memorial Lecture and Jagadis Chandra Bose Memorial Lecture",
@@ -2696,6 +2966,18 @@
       "deadline": null,
       "reason": "Astronomy award, irrelevant"
     },
+    "229": {
+      "rating": 0,
+      "title": "C.V. Raman Fellowship for African Researchers",
+      "deadline": null,
+      "reason": "Researcher fellowship, not for startups"
+    },
+    "233": {
+      "rating": 0,
+      "title": "DST-ICTP Ramanujan Prize in Mathematics",
+      "deadline": null,
+      "reason": "Mathematics prize, unrelated field"
+    },
     "254": {
       "rating": 0,
       "title": "DBT-BMGF (Bill & Melinda Gates Foundation)",
@@ -2725,6 +3007,12 @@
       "title": "CSIR Research Grants",
       "deadline": null,
       "reason": "Research grants for scientists, not startups"
+    },
+    "317": {
+      "rating": 0,
+      "title": "Sun Pharma Science Scholar Awards",
+      "deadline": null,
+      "reason": "Medical sciences award, unrelated field"
     },
     "318": {
       "rating": 0,
@@ -2922,12 +3210,24 @@
       "reason": "Astronomy award",
       "rater": "claude"
     },
+    "229": {
+      "rating": 0,
+      "title": "C.V. Raman Fellowship for African Researchers",
+      "deadline": null,
+      "reason": "Ineligible applicant region (requires African researcher)"
+    },
     "230": {
       "rating": 0,
       "title": "BIRAC Nesta Discovery Awards",
       "deadline": null,
       "reason": "AMR seed grants for Indian innovators",
       "rater": "claude"
+    },
+    "239": {
+      "rating": 1,
+      "title": "Infosys Prize",
+      "deadline": null,
+      "reason": "Broad life‑science prize, not a dedicated fellowship for independent group"
     },
     "254": {
       "rating": 0,
@@ -2956,6 +3256,12 @@
       "deadline": null,
       "reason": "Indian research grants",
       "rater": "claude"
+    },
+    "317": {
+      "rating": 1,
+      "title": "Sun Pharma Science Scholar Awards",
+      "deadline": null,
+      "reason": "Medical‑science award for post‑docs, but not a specific independent neuroscience fellowship"
     },
     "318": {
       "rating": 0,
@@ -3036,6 +3342,12 @@
       "reason": "Animal health",
       "rater": "claude"
     },
+    "254": {
+      "rating": 0,
+      "title": "DBT-BMGF (Bill & Melinda Gates Foundation)",
+      "deadline": null,
+      "reason": "Broad health/development focus, not relevant to organic synthesis lab setup"
+    },
     "257": {
       "rating": 0,
       "title": "Special Assistance Programme (SAP)",
@@ -3049,6 +3361,18 @@
       "deadline": null,
       "reason": "US postdoc fellowship",
       "rater": "claude"
+    },
+    "276": {
+      "rating": 0,
+      "title": "Grants for Seminar and Conferences",
+      "deadline": null,
+      "reason": "Funds seminars/conferences, not lab establishment"
+    },
+    "290": {
+      "rating": 0,
+      "title": "Bioinformatics, AI & Big Data",
+      "deadline": null,
+      "reason": "Focus on bioinformatics/AI, not organic chemistry lab start-up"
     },
     "295": {
       "rating": 0,
@@ -3098,6 +3422,12 @@
       "deadline": null,
       "reason": "For engineering teachers",
       "rater": "claude"
+    },
+    "316": {
+      "rating": 0,
+      "title": "Patent Acquisition and Collaborative Research & Technology Development (PACE)",
+      "deadline": null,
+      "reason": "Targets industry patents and collaborations, not faculty start-up research"
     },
     "319": {
       "rating": 1,
@@ -3255,6 +3585,12 @@
       "reason": "CSIR research grant for scientists; can fund quantum research",
       "rater": "claude"
     },
+    "311": {
+      "rating": 0,
+      "title": "NIDHI- Seed Support System (NIDHI-SSS)",
+      "deadline": null,
+      "reason": "Only for startups/TBIs; professor not eligible"
+    },
     "313": {
       "rating": 0,
       "title": "Research Grants - International",
@@ -3317,6 +3653,24 @@
       "deadline": null,
       "reason": "Crypto/AI accelerator, unrelated field"
     },
+    "169": {
+      "rating": 0,
+      "title": "Request for Proposals: Interregional Innovation Investments Strand 1",
+      "deadline": "2026-11-12T23:59:59",
+      "reason": "EU-only eligibility, not Philippines"
+    },
+    "170": {
+      "rating": 0,
+      "title": "Call for Proposals: Interregional Innovation Investments Strand 2a",
+      "deadline": "2026-11-12T23:59:59",
+      "reason": "EU-only eligibility, not Philippines"
+    },
+    "194": {
+      "rating": 2,
+      "title": "FID – Fund for Innovation in Development (Innovative Project Funding)",
+      "deadline": null,
+      "reason": "Eligible LMIC social enterprise; aligns with recycling entrepreneurship"
+    },
     "196": {
       "rating": 0,
       "title": "PMS Blackett Memorial Lecture and Jagadis Chandra Bose Memorial Lecture",
@@ -3346,6 +3700,18 @@
       "title": "INSA-Vainu Bappu Memorial Award",
       "deadline": null,
       "reason": "Astronomy award, unrelated field"
+    },
+    "229": {
+      "rating": 0,
+      "title": "C.V. Raman Fellowship for African Researchers",
+      "deadline": null,
+      "reason": "Restricted to African researchers"
+    },
+    "239": {
+      "rating": 0,
+      "title": "Infosys Prize",
+      "deadline": null,
+      "reason": "Award for scientists, not startup entrepreneurs"
     },
     "254": {
       "rating": 0,
@@ -3382,6 +3748,12 @@
       "title": "CSIR Research Grants",
       "deadline": null,
       "reason": "Research grants for scientists, not startup founders"
+    },
+    "317": {
+      "rating": 0,
+      "title": "Sun Pharma Science Scholar Awards",
+      "deadline": null,
+      "reason": "Medical science focus, unrelated"
     },
     "318": {
       "rating": 0,
@@ -3594,6 +3966,12 @@
       "deadline": null,
       "reason": "For retired scientists/engineers, tangential to senior active fellowship"
     },
+    "229": {
+      "rating": 0,
+      "title": "C.V. Raman Fellowship for African Researchers",
+      "deadline": null,
+      "reason": "Only for African researchers, not senior Indian scientists"
+    },
     "234": {
       "rating": 0,
       "title": "CSIR'S Junior Research Fellowship (JRF) - GATE",
@@ -3720,6 +4098,24 @@
       "deadline": null,
       "reason": "Directly funds US for‑profit small businesses for growth"
     },
+    "169": {
+      "rating": 0,
+      "title": "Request for Proposals: Interregional Innovation Investments Strand 1",
+      "deadline": "2026-11-12T23:59:59",
+      "reason": "EU-only eligibility, not a US small business"
+    },
+    "170": {
+      "rating": 0,
+      "title": "Call for Proposals: Interregional Innovation Investments Strand 2a",
+      "deadline": "2026-11-12T23:59:59",
+      "reason": "EU-only eligibility, not applicable to US bakery"
+    },
+    "194": {
+      "rating": 0,
+      "title": "FID – Fund for Innovation in Development (Innovative Project Funding)",
+      "deadline": null,
+      "reason": "Limited to low‑ and middle‑income countries, US ineligible"
+    },
     "196": {
       "rating": 0,
       "title": "PMS Blackett Memorial Lecture and Jagadis Chandra Bose Memorial Lecture",
@@ -3750,11 +4146,23 @@
       "deadline": null,
       "reason": "Astronomy award for scientists, not business"
     },
+    "229": {
+      "rating": 0,
+      "title": "C.V. Raman Fellowship for African Researchers",
+      "deadline": null,
+      "reason": "For African researchers, not a US startup"
+    },
     "230": {
       "rating": 0,
       "title": "BIRAC Nesta Discovery Awards",
       "deadline": null,
       "reason": "Biotech discovery awards, not small business"
+    },
+    "239": {
+      "rating": 0,
+      "title": "Infosys Prize",
+      "deadline": null,
+      "reason": "Academic prize for scientists, not small‑business grant"
     },
     "254": {
       "rating": 0,
@@ -3786,6 +4194,12 @@
       "deadline": null,
       "reason": "Research biotech grants for academics"
     },
+    "317": {
+      "rating": 0,
+      "title": "Sun Pharma Science Scholar Awards",
+      "deadline": null,
+      "reason": "Science scholar awards, not business funding"
+    },
     "318": {
       "rating": 0,
       "title": "National Renewable Energy Internship (NREI) Scheme",
@@ -3806,6 +4220,12 @@
       "title": "Core Research Grant (CRG)",
       "deadline": null,
       "reason": "Science/engineering focus, not social science"
+    },
+    "194": {
+      "rating": 2,
+      "title": "FID – Fund for Innovation in Development (Innovative Project Funding)",
+      "deadline": null,
+      "reason": "Supports poverty/social development research; university eligible"
     },
     "197": {
       "rating": 0,
@@ -3937,6 +4357,12 @@
       "deadline": null,
       "reason": "Social science, but a fellowship for PhD students, not a project grant",
       "rater": "claude"
+    },
+    "363": {
+      "rating": 0,
+      "title": "Focus Area Science Technology-Summer Fellowship [FAST-SF] Program — 2027",
+      "deadline": "2026-11-30T23:59:59",
+      "reason": "Science/technology focus, student/teacher fellowship, not social science research"
     },
     "364": {
       "rating": 0,
@@ -4495,6 +4921,12 @@
       "reason": "Animal vaccines",
       "rater": "claude"
     },
+    "254": {
+      "rating": 2,
+      "title": "DBT-BMGF (Bill & Melinda Gates Foundation)",
+      "deadline": null,
+      "reason": "Health‑focused global grant, fits TB drug discovery"
+    },
     "258": {
       "rating": 1,
       "title": "Collaborative Scientific Research Programme",
@@ -4515,6 +4947,12 @@
       "deadline": null,
       "reason": "AMR prize for diagnostics, not drugs",
       "rater": "claude"
+    },
+    "267": {
+      "rating": 1,
+      "title": "Biomedical Device and Technology Development (BDTD)",
+      "deadline": null,
+      "reason": "Focus on devices, not drug discovery"
     },
     "287": {
       "rating": 1,
@@ -4565,6 +5003,12 @@
       "reason": "International biotech collaboration",
       "rater": "claude"
     },
+    "321": {
+      "rating": 0,
+      "title": "Advanced Research Grant (ARG)",
+      "deadline": null,
+      "reason": "Applicant must be PI/Co-PI; not eligible"
+    },
     "322": {
       "rating": 1,
       "title": "Prime Minister Early Career Research Grant",
@@ -4578,6 +5022,12 @@
       "deadline": "2026-10-31T17:30:00",
       "reason": "Translational research for students",
       "rater": "claude"
+    },
+    "341": {
+      "rating": 0,
+      "title": "Indo-German Funding Opportunity for Joint Research Projects in Social Science Research",
+      "deadline": null,
+      "reason": "Social science focus, unrelated field"
     }
   },
   "undergrad-summer-research-in": {
@@ -4587,6 +5037,12 @@
       "deadline": null,
       "reason": "International exposure fellowships",
       "rater": "claude"
+    },
+    "199": {
+      "rating": 0,
+      "title": "Joint Appointment for Exchange of Human Resources between Universities and other Institutions/ Organisations",
+      "deadline": null,
+      "reason": "Targeted at faculty/researchers, not students"
     },
     "205": {
       "rating": 0,
@@ -4630,6 +5086,12 @@
       "reason": "International exposure",
       "rater": "claude"
     },
+    "239": {
+      "rating": 0,
+      "title": "Infosys Prize",
+      "deadline": null,
+      "reason": "Prize for senior researchers, not a student internship"
+    },
     "245": {
       "rating": 0,
       "title": "Bhaskara Advanced Solar Energy (BASE) Fellowship Program",
@@ -4664,6 +5126,18 @@
       "deadline": null,
       "reason": "Research grants",
       "rater": "claude"
+    },
+    "303": {
+      "rating": 0,
+      "title": "CSIR Research Grants",
+      "deadline": null,
+      "reason": "Grants for scientists/faculty, not undergrad research"
+    },
+    "305": {
+      "rating": 0,
+      "title": "Core Research Grant (CRG)",
+      "deadline": null,
+      "reason": "Funding for researchers, not undergraduate internships"
     },
     "313": {
       "rating": 0,
@@ -4751,6 +5225,18 @@
       "reason": "COVID-19 research",
       "rater": "claude"
     },
+    "213": {
+      "rating": 0,
+      "title": "Clean Fuel Research Initiative (CFRI)",
+      "deadline": null,
+      "reason": "Focuses on clean fuel, unrelated to water purification"
+    },
+    "219": {
+      "rating": 1,
+      "title": "S&T Awards - Others",
+      "deadline": null,
+      "reason": "Broad environmental science award, but not specific to groundwater tech"
+    },
     "224": {
       "rating": 0,
       "title": "Biotechnology Career Advancement & Re-orientation Programme (BioCARe)",
@@ -4813,6 +5299,12 @@
       "deadline": null,
       "reason": "SERB core grant; eligible faculty, can fund water treatment research",
       "rater": "claude"
+    },
+    "315": {
+      "rating": 1,
+      "title": "TDB - WWF Partnership",
+      "deadline": null,
+      "reason": "Environmental conservation theme, tangential to water treatment"
     },
     "316": {
       "rating": 0,
@@ -4977,6 +5469,12 @@
       "reason": "India-US fellowship for PhD holders, but building energy efficiency",
       "rater": "claude"
     },
+    "359": {
+      "rating": 0,
+      "title": "IUSSTF-American Physical Society Fellowship",
+      "deadline": null,
+      "reason": "Physics-focused, no engineering or women-specific component"
+    },
     "360": {
       "rating": 3,
       "title": "Indo-U.S. Fellowship for Women in STEMM (WISTEMM)",
@@ -5011,6 +5509,24 @@
       "deadline": null,
       "reason": "Accelerator for crypto/AI startups, not NGOs"
     },
+    "169": {
+      "rating": 0,
+      "title": "Request for Proposals: Interregional Innovation Investments Strand 1",
+      "deadline": "2026-11-12T23:59:59",
+      "reason": "Eligibility limited to EU entities; Colombian NGO not eligible"
+    },
+    "170": {
+      "rating": 0,
+      "title": "Call for Proposals: Interregional Innovation Investments Strand 2a",
+      "deadline": "2026-11-12T23:59:59",
+      "reason": "Eligibility limited to EU/EEA entities; Colombian NGO not eligible"
+    },
+    "194": {
+      "rating": 2,
+      "title": "FID – Fund for Innovation in Development (Innovative Project Funding)",
+      "deadline": null,
+      "reason": "Eligible NGO in LMIC; fields align with poverty alleviation and social innovation, can support women entrepreneurs"
+    },
     "196": {
       "rating": 0,
       "title": "PMS Blackett Memorial Lecture and Jagadis Chandra Bose Memorial Lecture",
@@ -5022,6 +5538,12 @@
       "title": "Jawaharlal Nehru Birth Centenary Medal",
       "deadline": null,
       "reason": "Award/medal, no funding for women‑led businesses"
+    },
+    "220": {
+      "rating": 0,
+      "title": "Streeshakti Science Award",
+      "deadline": null,
+      "reason": "Award for individual women scientists in India; not relevant to NGO project"
     },
     "223": {
       "rating": 0,
@@ -5040,6 +5562,18 @@
       "title": "INSA-Vainu Bappu Memorial Award",
       "deadline": null,
       "reason": "Award for astronomers, unrelated field"
+    },
+    "229": {
+      "rating": 0,
+      "title": "C.V. Raman Fellowship for African Researchers",
+      "deadline": null,
+      "reason": "Only African researchers eligible; not applicable to Colombian NGO"
+    },
+    "239": {
+      "rating": 0,
+      "title": "Infosys Prize",
+      "deadline": null,
+      "reason": "Prize for scientists; does not fund NGO economic empowerment initiatives"
     },
     "254": {
       "rating": 0,
@@ -5070,6 +5604,12 @@
       "title": "CSIR Research Grants",
       "deadline": null,
       "reason": "Research grants for scientists/faculty, not NGOs"
+    },
+    "317": {
+      "rating": 0,
+      "title": "Sun Pharma Science Scholar Awards",
+      "deadline": null,
+      "reason": "Science scholar awards for individuals in medical field; irrelevant to women‑led business support"
     },
     "318": {
       "rating": 0,

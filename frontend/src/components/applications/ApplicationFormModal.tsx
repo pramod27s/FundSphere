@@ -4,12 +4,14 @@ import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { Loader2, Trash2, X } from 'lucide-react';
 import { useDialog } from '../../hooks/useDialog';
+import { useOverdueReports } from '../../hooks/useOverdueReports';
 import {
   createApplication,
   deleteApplication,
   updateApplication,
   type Application,
 } from '../../services/applicationsService';
+import OverdueReportsWarning from './OverdueReportsWarning';
 
 interface ApplicationFormModalProps {
   /** Omit to add a call that isn't in FundSphere; pass to edit its details. */
@@ -36,6 +38,7 @@ export default function ApplicationFormModal({ application, onClose, onSaved, on
   const [notes, setNotes] = useState(application?.notes ?? '');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const overdue = useOverdueReports();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -121,6 +124,7 @@ export default function ApplicationFormModal({ application, onClose, onSaved, on
           </div>
 
           <div className="p-5 flex flex-col gap-4">
+            {!editing && <OverdueReportsWarning overdue={overdue} compact />}
             <div>
               <label htmlFor={`${titleId}-title`} className={LABEL}>Call title *</label>
               <input

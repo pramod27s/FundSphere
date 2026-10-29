@@ -33,6 +33,8 @@ import { ROW_ACTION } from '../common/buttonStyles';
 import { DetailLayout } from '../common/PageLayout';
 import { WhatsAppGlyph } from '../common/WhatsAppShareButton';
 import ApplicationFormModal from './ApplicationFormModal';
+import OverdueReportsWarning from './OverdueReportsWarning';
+import { useOverdueReports } from '../../hooks/useOverdueReports';
 import ChecklistTab from './ChecklistTab';
 import ReadinessTab from './ReadinessTab';
 import ProposalTab from '../proposal-review/ProposalTab';
@@ -55,6 +57,8 @@ export default function ApplicationDetail() {
   const [searchParams] = useSearchParams();
   const [application, setApplication] = useState<Application | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Overdue UCs and final reports on the user's grants, shown while this application is being prepared.
+  const overdueReports = useOverdueReports();
   // ?tab=proposal (or checklist, readiness) opens that tab, e.g. from the Proposals overview.
   const [tab, setTab] = useState<Tab>(() => {
     const requested = searchParams.get('tab') as Tab | null;
@@ -199,6 +203,8 @@ export default function ApplicationDetail() {
         </>
       }
     >
+      {application.status === 'PREPARING' && <OverdueReportsWarning overdue={overdueReports} />}
+
       {application.status === 'AWARDED' && (
         <AwardedBanner
           awardId={application.awardId ?? null}
