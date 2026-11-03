@@ -146,15 +146,15 @@ const PERSONAS: Persona[] = [
   },
 ];
 
+// Opacity and transform only, so the auto-playing swap never forces a repaint mid-scroll.
 const cardVariants = {
-  hidden: { opacity: 0, y: 12, filter: 'blur(4px)' },
+  hidden: { opacity: 0, y: 12 },
   show: {
     opacity: 1,
     y: 0,
-    filter: 'blur(0px)',
     transition: { duration: 0.45, ease: EASE, staggerChildren: 0.06, delayChildren: 0.15 },
   },
-  exit: { opacity: 0, y: -8, filter: 'blur(4px)', transition: { duration: 0.2 } },
+  exit: { opacity: 0, y: -8, transition: { duration: 0.2 } },
 };
 
 const childVariants = {

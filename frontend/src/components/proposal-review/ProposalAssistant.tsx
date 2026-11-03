@@ -23,7 +23,7 @@ import {
   type ProposalReview,
 } from '../../services/proposalReviewService';
 import { daysUntil, deadlineCountdown, formatTimestampDay, TONE_TEXT } from '../../utils/applicationDates';
-import { ListLayout, PanelCard } from '../common/PageLayout';
+import { CARD_GRID, ListLayout, PanelCard } from '../common/PageLayout';
 import { STATUS_META } from '../applications/applicationMeta';
 import DraftUpload from './DraftUpload';
 import { ReviewOutcome, ScoreSparkline } from './reviewDisplay';
@@ -109,6 +109,7 @@ export default function ProposalAssistant() {
       </div>
 
       <ListLayout
+        wide
         panel={rows.length > 0 && (
           <>
             {preparing.length > 1 && <NextSteps rows={preparing} onOpen={open} />}
@@ -339,7 +340,7 @@ function RowGroup({ title, count, children }: { title: string; count: number; ch
       <h2 className="text-sm font-semibold text-brand-700">
         {title} <span className="font-normal text-brand-500 tabular-nums">({count})</span>
       </h2>
-      {children}
+      <div className={`${CARD_GRID} gap-3`}>{children}</div>
     </section>
   );
 }
@@ -362,77 +363,81 @@ function ProposalRowCard({ row, onOpen }: { row: ProposalRow; onOpen: () => void
     <button
       type="button"
       onClick={onOpen}
-      className="text-left w-full bg-white border border-brand-200 rounded-lg p-4 sm:p-5 shadow-xs hover:shadow-elevated hover:border-primary-300 transition-all group"
+      className="text-left w-full h-full flex flex-col bg-white border border-brand-200 rounded-lg p-4 sm:p-5 shadow-xs hover:shadow-elevated hover:border-primary-300 transition-all group"
     >
-      <div className="flex flex-wrap items-center gap-2 mb-2">
-        {application.agency && (
-          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-brand-100 text-brand-700">{application.agency}</span>
-        )}
-        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold border ${meta.chip}`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
-          {meta.label}
-        </span>
-        {preparing && application.deadline && (
-          <span className={`ml-auto text-xs font-medium tabular-nums ${TONE_TEXT[countdown.tone]}`}>{countdown.label}</span>
-        )}
-      </div>
+      {/* Grows, so cards side by side in a row keep their footers level. */}
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-wrap items-center gap-2 mb-2">
+          {application.agency && (
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-brand-100 text-brand-700">{application.agency}</span>
+          )}
+          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold border ${meta.chip}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
+            {meta.label}
+          </span>
+          {preparing && application.deadline && (
+            <span className={`ml-auto text-xs font-medium tabular-nums ${TONE_TEXT[countdown.tone]}`}>{countdown.label}</span>
+          )}
+        </div>
 
-      <h3 className="text-base sm:text-lg font-semibold text-brand-900 group-hover:text-primary-700 transition-colors line-clamp-2 tracking-tight">
-        {application.title}
-      </h3>
+        <h3 className="text-base sm:text-lg font-semibold text-brand-900 group-hover:text-primary-700 transition-colors line-clamp-2 tracking-tight">
+          {application.title}
+        </h3>
 
-      <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-4">
-        <Metric label="Latest score">
-          {latestScore !== null ? (
-            <span className="flex flex-col gap-1">
-              <span className="flex items-baseline gap-1">
-                <span className={`text-xl font-bold tabular-nums leading-none ${scoreTone(latestScore)}`}>{latestScore}</span>
-                <span className="text-xs text-brand-500">/100</span>
+        {/* Four across a full-width card; two by two when cards sit two to a row (xl). */}
+        <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-2 gap-x-4 gap-y-4">
+          <Metric label="Latest score">
+            {latestScore !== null ? (
+              <span className="flex flex-col gap-1">
+                <span className="flex items-baseline gap-1">
+                  <span className={`text-xl font-bold tabular-nums leading-none ${scoreTone(latestScore)}`}>{latestScore}</span>
+                  <span className="text-xs text-brand-500">/100</span>
+                </span>
+                {scoreIsOlder && <span className="text-[11px] text-brand-500">From version {scoredVersion}</span>}
               </span>
-              {scoreIsOlder && <span className="text-[11px] text-brand-500">From version {scoredVersion}</span>}
-            </span>
-          ) : (
-            <span className="text-sm text-brand-500">{latestFinished ? 'Instant check only' : 'Not checked yet'}</span>
-          )}
-        </Metric>
+            ) : (
+              <span className="text-sm text-brand-500">{latestFinished ? 'Instant check only' : 'Not checked yet'}</span>
+            )}
+          </Metric>
 
-        <Metric label="Score trend">
-          {gain !== null ? (
-            <span className="flex flex-col gap-1">
-              <ScoreSparkline scores={scores} />
-              <span className={`text-xs font-semibold tabular-nums ${gain > 0 ? 'text-primary-700' : gain < 0 ? 'text-red-700' : 'text-brand-600'}`}>
-                {gain > 0 ? '+' : ''}{gain} since version {scores[0].versionNo}
+          <Metric label="Score trend">
+            {gain !== null ? (
+              <span className="flex flex-col gap-1">
+                <ScoreSparkline scores={scores} />
+                <span className={`text-xs font-semibold tabular-nums ${gain > 0 ? 'text-primary-700' : gain < 0 ? 'text-red-700' : 'text-brand-600'}`}>
+                  {gain > 0 ? '+' : ''}{gain} since version {scores[0].versionNo}
+                </span>
               </span>
-            </span>
-          ) : (
-            <span className="text-sm text-brand-500">
-              {reviews.length === 0 ? 'No drafts yet' : `${reviews.length} ${reviews.length === 1 ? 'version' : 'versions'}`}
-            </span>
-          )}
-        </Metric>
-
-        <Metric label="Rules met">
-          {latestFinished?.rulesTotal ? (
-            <span className="text-sm font-semibold tabular-nums text-brand-900">
-              {latestFinished.rulesMet ?? 0} of {latestFinished.rulesTotal}
-            </span>
-          ) : (
-            <span className="text-sm text-brand-500">–</span>
-          )}
-        </Metric>
-
-        <Metric label="Checklist">
-          {readiness.percent !== null ? (
-            <span className="flex flex-col gap-1.5">
-              <span className="text-sm font-semibold tabular-nums text-brand-900">{readiness.percent}% ready</span>
-              <span className="block h-1.5 rounded-full bg-brand-100 overflow-hidden" aria-hidden="true">
-                <span className="block h-full rounded-full bg-primary-600" style={{ width: `${readiness.percent}%` }} />
+            ) : (
+              <span className="text-sm text-brand-500">
+                {reviews.length === 0 ? 'No drafts yet' : `${reviews.length} ${reviews.length === 1 ? 'version' : 'versions'}`}
               </span>
-            </span>
-          ) : (
-            <span className="text-sm text-brand-500">No checklist yet</span>
-          )}
-        </Metric>
+            )}
+          </Metric>
+
+          <Metric label="Rules met">
+            {latestFinished?.rulesTotal ? (
+              <span className="text-sm font-semibold tabular-nums text-brand-900">
+                {latestFinished.rulesMet ?? 0} of {latestFinished.rulesTotal}
+              </span>
+            ) : (
+              <span className="text-sm text-brand-500">–</span>
+            )}
+          </Metric>
+
+          <Metric label="Checklist">
+            {readiness.percent !== null ? (
+              <span className="flex flex-col gap-1.5">
+                <span className="text-sm font-semibold tabular-nums text-brand-900">{readiness.percent}% ready</span>
+                <span className="block h-1.5 rounded-full bg-brand-100 overflow-hidden" aria-hidden="true">
+                  <span className="block h-full rounded-full bg-primary-600" style={{ width: `${readiness.percent}%` }} />
+                </span>
+              </span>
+            ) : (
+              <span className="text-sm text-brand-500">No checklist yet</span>
+            )}
+          </Metric>
+        </div>
       </div>
 
       <div className="mt-4 pt-3 border-t border-brand-100 flex items-center justify-between gap-3 text-sm">

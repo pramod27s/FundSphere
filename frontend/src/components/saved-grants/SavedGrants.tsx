@@ -19,7 +19,7 @@ import { deadlineTime, formatRelativeDeadline } from '../../utils/formatDeadline
 import WhatsAppShareButton from '../common/WhatsAppShareButton';
 import StartApplicationButton from '../applications/StartApplicationButton';
 import { STATUS_META } from '../applications/applicationMeta';
-import { ListLayout } from '../common/PageLayout';
+import { CARD_GRID, ListLayout } from '../common/PageLayout';
 import SavedPanel from './SavedPanel';
 import { buttonClasses } from '../common/buttonStyles';
 
@@ -106,6 +106,7 @@ export default function SavedGrants({ onBack }: SavedGrantsProps) {
 
       {/* Content */}
       <ListLayout
+        wide
         panel={total > 0 && (
           <SavedPanel
             entries={savedGrants}
@@ -123,7 +124,7 @@ export default function SavedGrants({ onBack }: SavedGrantsProps) {
         ) : total === 0 ? (
           <EmptyState onBack={onBack} />
         ) : (
-          <div className="flex flex-col gap-4">
+          <div className={`${CARD_GRID} gap-4`}>
             {sorted.map((entry) => (
               <SavedGrantCard
                 key={entry.id}
@@ -185,149 +186,153 @@ function SavedGrantCard({ entry, application, onOpenDetails, onUnsave, onSaveNot
   // or tooltip sits above that (relative z-10). Like the Discovery cards,
   // only "Verified" shows here; the provider's own update date is in the details.
   return (
-    <article className="relative bg-white border border-brand-200 rounded-lg p-5 shadow-xs hover:shadow-elevated hover:border-primary-300 focus-within:ring-2 focus-within:ring-primary-300/40 transition-all duration-200 group cursor-pointer">
-      {/* Top row: funder + actions */}
-      <div className="flex items-start justify-between gap-4 mb-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-brand-100 text-brand-700">
-            {grant.funder}
-          </span>
-          <span className="relative z-10 inline-flex cursor-default">
-            <FreshnessBadge timestamp={grant.lastVerifiedAt ?? grant.lastScrapedAt} />
-          </span>
-        </div>
-        <div className="relative z-10 flex items-center gap-0.5">
-          <WhatsAppShareButton grant={grant} size="sm" />
-          <button
-            type="button"
-            onClick={onUnsave}
-            aria-label={`Unsave ${grant.title}`}
-            aria-pressed={true}
-            className="p-1.5 rounded-lg text-primary-600 bg-primary-50 hover:bg-red-50 hover:text-red-600 transition-colors shrink-0"
-            title="Remove from saved"
-          >
-            <BookmarkCheck className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
-
-      {/* Title */}
-      <button
-        type="button"
-        onClick={onOpenDetails}
-        className="text-left w-full focus-visible:outline-none after:absolute after:inset-0 after:rounded-lg"
-      >
-        <h3 className="text-lg font-semibold text-brand-900 group-hover:text-primary-700 transition-colors line-clamp-2 mb-2 tracking-tight">
-          {grant.title}
-        </h3>
-      </button>
-
-      {/* Tags */}
-      {grant.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {grant.tags.slice(0, 4).map((tag) => (
-            <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-brand-50 text-brand-500 border border-brand-100">
-              {tag}
+    <article className="relative h-full flex flex-col bg-white border border-brand-200 rounded-lg p-5 shadow-xs hover:shadow-elevated hover:border-primary-300 focus-within:ring-2 focus-within:ring-primary-300/40 transition-all duration-200 group cursor-pointer">
+      {/* Grows, so cards side by side in a row keep their bottom rows level. Not
+          `relative`, so the title's click area still covers the whole card. */}
+      <div className="flex-1 min-w-0">
+        {/* Top row: funder + actions */}
+        <div className="flex items-start justify-between gap-4 mb-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-brand-100 text-brand-700">
+              {grant.funder}
             </span>
-          ))}
-        </div>
-      )}
-
-      {/* Application + notes row */}
-      <div className="relative z-10 flex flex-wrap items-center gap-2 mb-3 w-fit">
-        {application ? (
-          <button
-            type="button"
-            onClick={() => navigate(`/applications/${application.id}`)}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border ${STATUS_META[application.status].chip} hover:brightness-95 transition`}
-            title="Open the application"
-          >
-            <span className={`w-1.5 h-1.5 rounded-full ${STATUS_META[application.status].dot}`} />
-            Application: {STATUS_META[application.status].label}
-            <ChevronRight className="w-3 h-3 opacity-60" />
-          </button>
-        ) : (
-          <StartApplicationButton grant={grant} size="sm" />
-        )}
-
-        <button
-          type="button"
-          onClick={() => {
-            setDraftNotes(notes ?? '');
-            setNotesOpen((v) => !v);
-          }}
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border transition ${
-            notes
-              ? 'bg-brand-50 text-brand-700 border-brand-200 hover:bg-brand-100'
-              : 'bg-white text-brand-500 border-brand-200 hover:bg-brand-50'
-          }`}
-          title={notes ? 'Edit your notes' : 'Add notes'}
-        >
-          <StickyNote className="w-3 h-3" />
-          {notes ? 'Notes' : 'Add notes'}
-        </button>
-      </div>
-
-      {/* Notes editor (collapsible) */}
-      {notesOpen && (
-        <div className="relative z-10 mb-3 rounded-lg border border-brand-200 bg-brand-50 p-3 cursor-default">
-          <textarea
-            value={draftNotes}
-            onChange={(e) => setDraftNotes(e.target.value)}
-            placeholder="e.g. Ask Dr. X about co-authorship; deadline conflicts with conference travel."
-            rows={4}
-            maxLength={4000}
-            className="w-full bg-white border border-brand-200 rounded-md p-2 text-sm text-brand-800 placeholder:text-brand-400 focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-200 resize-y"
-          />
-          <div className="flex items-center justify-between mt-2">
-            <span
-              className={`text-[11px] tabular-nums font-medium ${
-                draftNotes.length >= 4000
-                  ? 'text-red-600'
-                  : draftNotes.length >= 3800
-                    ? 'text-amber-600'
-                    : 'text-brand-500'
-              }`}
+            <span className="relative z-10 inline-flex cursor-default">
+              <FreshnessBadge timestamp={grant.lastVerifiedAt ?? grant.lastScrapedAt} />
+            </span>
+          </div>
+          <div className="relative z-10 flex items-center gap-0.5">
+            <WhatsAppShareButton grant={grant} size="sm" />
+            <button
+              type="button"
+              onClick={onUnsave}
+              aria-label={`Unsave ${grant.title}`}
+              aria-pressed={true}
+              className="p-1.5 rounded-lg text-primary-600 bg-primary-50 hover:bg-red-50 hover:text-red-600 transition-colors shrink-0"
+              title="Remove from saved"
             >
-              {draftNotes.length}/4000
-              {draftNotes.length >= 3800 && draftNotes.length < 4000 && (
-                <span className="ml-1 normal-case">· {4000 - draftNotes.length} chars left</span>
-              )}
-              {draftNotes.length >= 4000 && (
-                <span className="ml-1 normal-case">· limit reached</span>
-              )}
-            </span>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setNotesOpen(false);
-                  setDraftNotes(notes ?? '');
-                }}
-                className="px-3 py-1.5 rounded-md text-xs font-medium text-brand-600 hover:bg-brand-100 transition"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveNotes}
-                disabled={savingNotes || draftNotes === (notes ?? '')}
-                className="px-3 py-1.5 rounded-md text-xs font-semibold text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition inline-flex items-center gap-1.5"
-              >
-                {savingNotes && <Loader2 className="w-3 h-3 animate-spin" />}
-                Save notes
-              </button>
-            </div>
+              <BookmarkCheck className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
-      )}
 
-      {/* Inline note preview when collapsed */}
-      {!notesOpen && notes && (
-        <div className="mb-3 text-xs text-brand-600 bg-brand-50 border-l-2 border-brand-300 pl-3 py-1.5 italic line-clamp-2">
-          {notes}
+        {/* Title */}
+        <button
+          type="button"
+          onClick={onOpenDetails}
+          className="text-left w-full focus-visible:outline-none after:absolute after:inset-0 after:rounded-lg"
+        >
+          <h3 className="text-lg font-semibold text-brand-900 group-hover:text-primary-700 transition-colors line-clamp-2 mb-2 tracking-tight">
+            {grant.title}
+          </h3>
+        </button>
+
+        {/* Tags */}
+        {grant.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {grant.tags.slice(0, 4).map((tag) => (
+              <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-brand-50 text-brand-500 border border-brand-100">
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Application + notes row */}
+        <div className="relative z-10 flex flex-wrap items-center gap-2 mb-3 w-fit">
+          {application ? (
+            <button
+              type="button"
+              onClick={() => navigate(`/applications/${application.id}`)}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border ${STATUS_META[application.status].chip} hover:brightness-95 transition`}
+              title="Open the application"
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${STATUS_META[application.status].dot}`} />
+              Application: {STATUS_META[application.status].label}
+              <ChevronRight className="w-3 h-3 opacity-60" />
+            </button>
+          ) : (
+            <StartApplicationButton grant={grant} size="sm" />
+          )}
+
+          <button
+            type="button"
+            onClick={() => {
+              setDraftNotes(notes ?? '');
+              setNotesOpen((v) => !v);
+            }}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border transition ${
+              notes
+                ? 'bg-brand-50 text-brand-700 border-brand-200 hover:bg-brand-100'
+                : 'bg-white text-brand-500 border-brand-200 hover:bg-brand-50'
+            }`}
+            title={notes ? 'Edit your notes' : 'Add notes'}
+          >
+            <StickyNote className="w-3 h-3" />
+            {notes ? 'Notes' : 'Add notes'}
+          </button>
         </div>
-      )}
+
+        {/* Notes editor (collapsible) */}
+        {notesOpen && (
+          <div className="relative z-10 mb-3 rounded-lg border border-brand-200 bg-brand-50 p-3 cursor-default">
+            <textarea
+              value={draftNotes}
+              onChange={(e) => setDraftNotes(e.target.value)}
+              placeholder="e.g. Ask Dr. X about co-authorship; deadline conflicts with conference travel."
+              rows={4}
+              maxLength={4000}
+              className="w-full bg-white border border-brand-200 rounded-md p-2 text-sm text-brand-800 placeholder:text-brand-400 focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-200 resize-y"
+            />
+            <div className="flex items-center justify-between mt-2">
+              <span
+                className={`text-[11px] tabular-nums font-medium ${
+                  draftNotes.length >= 4000
+                    ? 'text-red-600'
+                    : draftNotes.length >= 3800
+                      ? 'text-amber-600'
+                      : 'text-brand-500'
+                }`}
+              >
+                {draftNotes.length}/4000
+                {draftNotes.length >= 3800 && draftNotes.length < 4000 && (
+                  <span className="ml-1 normal-case">· {4000 - draftNotes.length} chars left</span>
+                )}
+                {draftNotes.length >= 4000 && (
+                  <span className="ml-1 normal-case">· limit reached</span>
+                )}
+              </span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNotesOpen(false);
+                    setDraftNotes(notes ?? '');
+                  }}
+                  className="px-3 py-1.5 rounded-md text-xs font-medium text-brand-600 hover:bg-brand-100 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveNotes}
+                  disabled={savingNotes || draftNotes === (notes ?? '')}
+                  className="px-3 py-1.5 rounded-md text-xs font-semibold text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition inline-flex items-center gap-1.5"
+                >
+                  {savingNotes && <Loader2 className="w-3 h-3 animate-spin" />}
+                  Save notes
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Inline note preview when collapsed */}
+        {!notesOpen && notes && (
+          <div className="mb-3 text-xs text-brand-600 bg-brand-50 border-l-2 border-brand-300 pl-3 py-1.5 italic line-clamp-2">
+            {notes}
+          </div>
+        )}
+      </div>
 
       {/* Bottom row: deadline / amount / details link */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-brand-100 text-sm">

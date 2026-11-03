@@ -11,17 +11,20 @@ import {
   User,
   Building2,
   MapPin,
-  Target,
+  Sparkles,
   Wallet,
   CalendarPlus,
   LogOut,
   Camera,
+  Check,
   Edit3,
+  ExternalLink,
+  Plus,
   ShieldCheck,
   Trash2,
 } from 'lucide-react';
 import { buttonClasses } from '../common/buttonStyles';
-import { PAGE_WIDTH } from '../common/PageLayout';
+import { PAGE_WIDTH_WIDE } from '../common/PageLayout';
 import { loadSession } from '../../services/authService';
 import { Link } from 'react-router-dom';
 import { formatFundingRange } from '../../utils/formatFunding';
@@ -75,10 +78,17 @@ const formatBudget = (min: number | null | undefined, max: number | null | undef
 const formatBoolean = (value: boolean | null | undefined): string =>
   value === null || value === undefined ? NOT_PROVIDED : value ? 'Yes' : 'No';
 
+const filled = (value: string | null | undefined): boolean => typeof value === 'string' && value.trim().length > 0;
+
+/** Summaries longer than this start folded, with "Show all". */
+const SUMMARY_FOLD = 420;
+
 function ResearcherProfile({ researcher: initialResearcher, onLogout }: ResearcherProfileProps) {
   const { setResearcher } = useResearcher();
   const [researcher, setLocalResearcher] = useState<ResearcherResponse>(initialResearcher);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const openEditor = () => setIsEditModalOpen(true);
 
   useEffect(() => {
     setLocalResearcher(initialResearcher);
@@ -128,26 +138,28 @@ function ResearcherProfile({ researcher: initialResearcher, onLogout }: Research
     return <div className="p-8 text-center text-brand-500">No profile data found.</div>;
   }
 
-  const completionFields = [
-    researcher.userType,
-    researcher.institutionName,
-    researcher.department,
-    researcher.position,
-    researcher.primaryField,
-    researcher.country,
-    researcher.preferredGrantType,
-    researcher.educationLevel,
-    researcher.keywords?.length ? 'keywords' : '',
+  // What counts toward completeness. Each one still missing is listed under the bar, with a way to add it.
+  const completionChecks: { label: string; done: boolean }[] = [
+    { label: 'Role', done: filled(researcher.userType) },
+    { label: 'Institution', done: filled(researcher.institutionName) },
+    { label: 'Department', done: filled(researcher.department) },
+    { label: 'Position', done: filled(researcher.position) },
+    { label: 'Primary field', done: filled(researcher.primaryField) },
+    { label: 'Country', done: filled(researcher.country) },
+    { label: 'Preferred grant type', done: filled(researcher.preferredGrantType) },
+    { label: 'Education level', done: filled(researcher.educationLevel) },
+    { label: 'Keywords', done: (researcher.keywords?.length ?? 0) > 0 },
     // Eligibility answers decide which calls are hidden, so they count too.
-    researcher.hasCompletedPhd === null ? '' : 'phd',
-    researcher.yearsOfExperience === null ? '' : 'experience',
+    { label: 'PhD completed', done: researcher.hasCompletedPhd !== null },
+    { label: 'Years of experience', done: researcher.yearsOfExperience !== null },
   ];
+  const missingChecks = completionChecks.filter((check) => !check.done);
+  const completionPercent = Math.round(((completionChecks.length - missingChecks.length) / completionChecks.length) * 100);
 
-  const completionPercent = Math.round(
-    (completionFields.filter((field) => typeof field === 'string' && field.trim().length > 0).length /
-      completionFields.length) *
-      100,
-  );
+  const summary = researcher.researchSummary?.trim() ?? '';
+  const summaryFolds = summary.length > SUMMARY_FOLD;
+  const otherFields = (researcher.additionalFields ?? []).filter((field) => field && field !== researcher.primaryField);
+  const orcidId = researcher.orcidId?.trim() ?? '';
 
   const userTypeStr = formatOption(USER_TYPE_OPTIONS, researcher.userType);
   const positionStr = researcher.position ? formatOption(POSITION_OPTIONS, researcher.position) : null;
@@ -193,7 +205,7 @@ function ResearcherProfile({ researcher: initialResearcher, onLogout }: Research
         )}
       </div>
 
-      <div className={`flex-1 ${PAGE_WIDTH} py-6 sm:py-8 space-y-5`}>
+      <div className={`flex-1 ${PAGE_WIDTH_WIDE} py-6 sm:py-8 space-y-5`}>
         {/* Who this is */}
         <section className="rounded-xl border border-brand-200 bg-white p-5 md:p-6 shadow-soft">
           <div className="flex flex-col sm:flex-row sm:items-center gap-5">
@@ -240,7 +252,7 @@ function ResearcherProfile({ researcher: initialResearcher, onLogout }: Research
               {session?.user.email && <p className="text-sm text-brand-500 truncate">{session.user.email}</p>}
               {profileSubtitle && <p className="mt-1.5 text-sm font-medium text-brand-700">{profileSubtitle}</p>}
             </div>
-            <div className="sm:w-56 shrink-0">
+            <div className="sm:w-72 shrink-0">
               <div className="flex items-baseline justify-between text-xs">
                 <span className="font-medium text-brand-600">Profile completeness</span>
                 <span className="font-semibold tabular-nums text-brand-900">{completionPercent}%</span>
@@ -248,54 +260,141 @@ function ResearcherProfile({ researcher: initialResearcher, onLogout }: Research
               <div className="mt-1.5 h-1.5 bg-brand-100 rounded-full overflow-hidden">
                 <div className="h-full bg-primary-600 rounded-full" style={{ width: `${completionPercent}%` }} />
               </div>
-              {completionPercent < 100 && (
-                <p className="mt-1.5 text-xs text-brand-500">A fuller profile gives better matches.</p>
+              {missingChecks.length > 0 ? (
+                <div className="mt-2.5">
+                  <p className="text-xs text-brand-500">Add these for better matches:</p>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {missingChecks.map((check) => (
+                      <button
+                        key={check.label}
+                        type="button"
+                        onClick={openEditor}
+                        className="inline-flex items-center gap-1 rounded-md border border-dashed border-primary-300 bg-primary-50/60 px-2 py-0.5 text-xs font-semibold text-primary-700 transition-colors hover:border-primary-400 hover:bg-primary-50"
+                      >
+                        <Plus className="w-3 h-3" aria-hidden="true" />
+                        {check.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-primary-700">
+                  <Check className="w-3.5 h-3.5" aria-hidden="true" />
+                  Complete
+                </p>
               )}
             </div>
           </div>
         </section>
 
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* What AI Match searches with: the summary leads, then the fields, department and keywords. */}
+        <DetailCard icon={<Sparkles className="w-4 h-4" />} title="Research profile" hint="What AI Match compares with every open call">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-8 gap-y-5">
+            <div className="lg:col-span-2">
+              <p className="text-brand-500 font-medium text-xs mb-1.5">Research summary</p>
+              {summary ? (
+                <>
+                  <p className={`max-w-prose whitespace-pre-line leading-relaxed text-brand-800 ${summaryFolds && !summaryOpen ? 'line-clamp-6' : ''}`}>
+                    {summary}
+                  </p>
+                  {summaryFolds && (
+                    <button
+                      type="button"
+                      onClick={() => setSummaryOpen((open) => !open)}
+                      aria-expanded={summaryOpen}
+                      className="mt-1 text-xs font-semibold text-primary-700 hover:text-primary-800"
+                    >
+                      {summaryOpen ? 'Show less' : 'Show all'}
+                    </button>
+                  )}
+                </>
+              ) : (
+                <div className="rounded-lg border border-dashed border-brand-300 bg-brand-50/60 p-4">
+                  <p className="text-brand-700">
+                    A few sentences on what you work on, in your own words. It's the first thing AI Match reads.
+                  </p>
+                  <div className="mt-2">
+                    <AddLink label="Add a research summary" onClick={openEditor} />
+                  </div>
+                </div>
+              )}
+              <p className="mt-3 text-xs text-brand-500">
+                AI Match searches with this summary, then your department, fields and keywords. Research fit is half of
+                every match score.
+              </p>
+            </div>
+
+            <div className="lg:border-l lg:border-brand-100 lg:pl-8">
+              <ProfileRow label="Primary field" value={formatOption(RESEARCH_FIELD_OPTIONS, researcher.primaryField)} isBadge onAdd={openEditor} />
+              {otherFields.length > 0 && (
+                <div className="py-2 border-b border-brand-100">
+                  <p className="text-brand-500 font-medium text-xs mb-1.5">Other fields</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {otherFields.map((field) => (
+                      <span key={field} className="px-2 py-0.5 rounded-md text-xs font-medium bg-brand-100 text-brand-700">
+                        {formatOption(RESEARCH_FIELD_OPTIONS, field)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <ProfileRow label="Preferred grant type" value={formatOption(GRANT_TYPE_OPTIONS, researcher.preferredGrantType)} isBadge onAdd={openEditor} />
+              <div className="py-2 border-b border-brand-100">
+                <p className="text-brand-500 font-medium text-xs mb-1.5">Keywords</p>
+                {researcher.keywords && researcher.keywords.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {researcher.keywords.map((keyword) => (
+                      <span
+                        key={keyword}
+                        className="px-2.5 py-1 rounded-lg text-xs bg-primary-50 text-primary-800 border border-primary-200 font-semibold"
+                      >
+                        {keyword}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <AddLink label="Add keywords" onClick={openEditor} />
+                )}
+              </div>
+              <div className="flex items-center justify-between gap-4 py-2">
+                <span className="text-brand-500 font-medium text-xs shrink-0">ORCID iD</span>
+                {orcidId ? (
+                  <a
+                    href={`https://orcid.org/${orcidId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-sm font-semibold tabular-nums text-primary-700 hover:text-primary-800"
+                  >
+                    {orcidId}
+                    <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
+                  </a>
+                ) : (
+                  <AddLink label="Add" ariaLabel="Add your ORCID iD" onClick={openEditor} />
+                )}
+              </div>
+            </div>
+          </div>
+        </DetailCard>
+
+        <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           <DetailCard icon={<Building2 className="w-4 h-4" />} title="Background">
-            <ProfileRow label="Institution" value={formatText(researcher.institutionName)} />
-            <ProfileRow label="Department" value={formatText(researcher.department)} />
-            <ProfileRow label="Education level" value={formatOption(EDUCATION_LEVEL_OPTIONS, researcher.educationLevel)} isBadge />
-            <ProfileRow label="Research experience" value={formatYears(researcher.yearsOfExperience)} />
+            <ProfileRow label="Institution" value={formatText(researcher.institutionName)} onAdd={openEditor} />
+            <ProfileRow label="Department" value={formatText(researcher.department)} onAdd={openEditor} />
+            <ProfileRow label="Education level" value={formatOption(EDUCATION_LEVEL_OPTIONS, researcher.educationLevel)} isBadge onAdd={openEditor} />
+            <ProfileRow label="Research experience" value={formatYears(researcher.yearsOfExperience)} onAdd={openEditor} />
           </DetailCard>
 
           <DetailCard icon={<MapPin className="w-4 h-4" />} title="Location">
-            <ProfileRow label="Country" value={formatText(researcher.country)} />
-            <ProfileRow label="State" value={formatText(researcher.state)} />
-            <ProfileRow label="City" value={formatText(researcher.city)} />
-            <ProfileRow label="Citizenship" value={formatText(researcher.citizenship)} />
-          </DetailCard>
-
-          <DetailCard icon={<Target className="w-4 h-4" />} title="Research focus">
-            <ProfileRow label="Primary field" value={formatOption(RESEARCH_FIELD_OPTIONS, researcher.primaryField)} isBadge />
-            <ProfileRow label="Preferred grant type" value={formatOption(GRANT_TYPE_OPTIONS, researcher.preferredGrantType)} isBadge />
-            <div className="pt-2 pb-1">
-              <p className="text-brand-500 font-medium mb-2 text-xs">Keywords</p>
-              {researcher.keywords && researcher.keywords.length > 0 ? (
-                <div className="flex flex-wrap gap-1.5">
-                  {researcher.keywords.map((keyword) => (
-                    <span
-                      key={keyword}
-                      className="px-2.5 py-1 rounded-lg text-xs bg-primary-50 text-primary-800 border border-primary-200 font-semibold"
-                    >
-                      {keyword}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <span className="text-sm font-medium text-brand-500">{NOT_PROVIDED}</span>
-              )}
-            </div>
+            <ProfileRow label="Country" value={formatText(researcher.country)} onAdd={openEditor} />
+            <ProfileRow label="State" value={formatText(researcher.state)} onAdd={openEditor} />
+            <ProfileRow label="City" value={formatText(researcher.city)} onAdd={openEditor} />
+            <ProfileRow label="Citizenship" value={formatText(researcher.citizenship)} onAdd={openEditor} />
           </DetailCard>
 
           <DetailCard icon={<Wallet className="w-4 h-4" />} title="Funding and eligibility">
-            <ProfileRow label="Budget you're looking for" value={formatBudget(researcher.minFundingAmount, researcher.maxFundingAmount)} />
-            <ProfileRow label="PhD completed" value={formatBoolean(researcher.hasCompletedPhd)} />
-            <ProfileRow label="Previous grants received" value={formatBoolean(researcher.previousGrantsReceived)} />
+            <ProfileRow label="Budget you're looking for" value={formatBudget(researcher.minFundingAmount, researcher.maxFundingAmount)} onAdd={openEditor} />
+            <ProfileRow label="PhD completed" value={formatBoolean(researcher.hasCompletedPhd)} onAdd={openEditor} />
+            <ProfileRow label="Previous grants received" value={formatBoolean(researcher.previousGrantsReceived)} onAdd={openEditor} />
           </DetailCard>
         </section>
 
@@ -347,19 +446,40 @@ function DetailCard({ icon, title, hint, children }: DetailCardProps) {
   );
 }
 
+/** Opens Edit profile from an empty field, so a gap is one click from being filled. */
+function AddLink({ label, ariaLabel, onClick }: { label: string; ariaLabel?: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={ariaLabel}
+      className="inline-flex items-center gap-1 text-xs font-semibold text-primary-700 hover:text-primary-800 hover:underline underline-offset-2"
+    >
+      <Plus className="w-3.5 h-3.5" aria-hidden="true" />
+      {label}
+    </button>
+  );
+}
+
 interface ProfileRowProps {
   label: string;
   value: string;
   isBadge?: boolean;
+  /** Shown as "+ Add" in place of "Not provided". */
+  onAdd?: () => void;
 }
 
-function ProfileRow({ label, value, isBadge }: ProfileRowProps) {
+function ProfileRow({ label, value, isBadge, onAdd }: ProfileRowProps) {
   const missing = value === NOT_PROVIDED;
   return (
     <div className="flex items-center justify-between gap-4 py-2 border-b border-brand-100 last:border-b-0">
       <span className="text-brand-500 font-medium text-xs shrink-0">{label}</span>
       {missing ? (
-        <span className="text-sm font-medium text-brand-500">{value}</span>
+        onAdd ? (
+          <AddLink label="Add" ariaLabel={`Add ${label.toLowerCase()}`} onClick={onAdd} />
+        ) : (
+          <span className="text-sm font-medium text-brand-500">{value}</span>
+        )
       ) : isBadge ? (
         <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary-50 text-primary-800 border border-primary-200">
           {value}

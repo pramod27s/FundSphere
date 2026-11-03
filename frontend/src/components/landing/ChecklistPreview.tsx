@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useInView, useReducedMotion } from 'framer-motion';
-import { CalendarPlus, Check, ClipboardCheck, LoaderCircle, MessageCircle } from 'lucide-react';
+import { CalendarPlus, Check, ClipboardCheck, LoaderCircle, MessageCircle, MessageCircleQuestion } from 'lucide-react';
 import { CountUp } from './MotionPrimitives';
 import { EASE, stagger } from './motion';
 
@@ -18,6 +18,11 @@ const ITEMS = [
   { text: 'Three quotations for equipment over ₹10 lakh', category: 'Budget', page: 7, owner: 'PM', done: false, due: 'Due in 9 days' },
   { text: 'Hard copy forwarded by the Registrar', category: 'Submission', page: 8, owner: 'PM', done: false, due: 'Due in 14 days' },
 ];
+
+/** One exchange from the "Ask the guidelines" tab, answered only from the call's text. */
+const QUESTION = 'Can I buy a laptop from this grant?';
+const ANSWER = 'Only if the project needs it. Computers count as equipment and must be justified in the budget.';
+const CITATION = { quote: 'Computers may be purchased only where essential to the project.', page: 7 };
 
 const DONE_COUNT = ITEMS.filter((entry) => entry.done).length;
 const READINESS = Math.round((DONE_COUNT / ITEMS.length) * 100);
@@ -159,6 +164,24 @@ export default function ChecklistPreview() {
           <CalendarPlus className="h-3.5 w-3.5 text-primary-600" />
           Add due dates to calendar
         </span>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={extracted ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+        transition={{ delay: 1.6, duration: 0.6, ease: EASE }}
+        className="mt-4 rounded-xl border border-brand-200 bg-white p-3.5"
+      >
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-500">Ask the guidelines</p>
+        <p className="mt-1.5 flex gap-2 text-sm font-semibold text-brand-900">
+          <MessageCircleQuestion className="mt-0.5 h-4 w-4 shrink-0 text-primary-600" />
+          {QUESTION}
+        </p>
+        <p className="mt-1.5 text-sm leading-relaxed text-brand-700">{ANSWER}</p>
+        <p className="mt-2 rounded-r-md border-l-2 border-primary-300 bg-brand-50 py-1.5 pl-2.5 pr-2 text-xs text-brand-700">
+          “{CITATION.quote}”
+          <span className="mt-0.5 block text-brand-500">Page {CITATION.page} of the guidelines</span>
+        </p>
       </motion.div>
     </div>
   );

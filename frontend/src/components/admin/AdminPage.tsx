@@ -65,7 +65,7 @@ export default function AdminPage() {
         </div>
       </div>
 
-      <div className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col gap-6">
+      <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col gap-6">
         <AddGrant />
         {/* Only the owner sees who the admins are; the server refuses the list to anyone else. */}
         {me.owner && <AdminsSection />}

@@ -227,6 +227,40 @@
   animation: text-shimmer 8s linear infinite;
 }
 
+/* A gentle bob up and down; set --float-distance on the element. */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(calc(var(--float-distance, 8px) * -1)); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* A brief grow-and-settle every few seconds, to draw the eye to one chip. */
+@keyframes nudge {
+  0%, 57%, 100% { transform: scale(1); }
+  28%           { transform: scale(1.08); }
+}
+
+.animate-nudge {
+  animation: nudge 2.8s ease-in-out infinite;
+}
+
+/* Landing page sections scrolled well out of view (usePauseOffscreen)
+   stop their looping animations until they come back. */
+[data-offscreen] *,
+[data-offscreen] *::before,
+[data-offscreen] *::after {
+  animation-play-state: paused !important;
+}
+
+/* Sections focused after an in-page jump (useSmoothScroll) take focus only
+   so keyboard users continue from there; a ring round a whole section is noise. */
+[data-scroll-target]:focus {
+  outline: none;
+}
+
 /* A soft sheen that sweeps across a button on hover. */
 .btn-shine {
   position: relative;

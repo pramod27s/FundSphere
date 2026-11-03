@@ -1,4 +1,5 @@
-import { motion, useReducedMotion } from 'framer-motion';
+import { useRef } from 'react';
+import { motion, useInView, useReducedMotion } from 'framer-motion';
 
 const STAGES = [
   { label: 'Your profile and query', detail: 'Focus, career stage, eligibility facts' },
@@ -18,18 +19,26 @@ const arrival = (index: number) => START + (END - START) * (index / (STAGES.leng
 
 /** The matching pipeline as a vertical diagram, with a pulse running through each stage. */
 export default function MatchPipeline() {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { margin: '100px' });
   const reduceMotion = useReducedMotion();
+  // The loop runs only while the diagram is on screen; it restarts in step when it comes back.
+  const play = inView && !reduceMotion;
 
   return (
-    <div className="relative mt-10">
+    <div ref={ref} className="relative mt-10">
       <span className="absolute left-5 top-6 bottom-6 w-px -translate-x-1/2 bg-white/10" aria-hidden="true" />
-      {!reduceMotion && (
+      {play && (
         <span className="absolute left-5 top-6 bottom-6 w-px -translate-x-1/2" aria-hidden="true">
+          {/* A track-sized carrier slides down by its own height (a transform, not `top`,
+              so no layout per frame), taking the pulse at its top edge along the line. */}
           <motion.span
-            className="absolute left-1/2 h-12 w-[3px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-linear-to-b from-transparent via-primary-300 to-transparent shadow-[0_0_12px_2px_rgba(45,212,191,0.5)]"
-            animate={{ top: ['0%', '0%', '100%', '100%'], opacity: [0, 1, 1, 0] }}
+            className="absolute inset-0"
+            animate={{ y: ['0%', '0%', '100%', '100%'], opacity: [0, 1, 1, 0] }}
             transition={{ duration: CYCLE, times: [0, START, END, 1], ease: 'linear', repeat: Infinity }}
-          />
+          >
+            <span className="absolute left-1/2 top-0 h-12 w-[3px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-linear-to-b from-transparent via-primary-300 to-transparent shadow-[0_0_12px_2px_rgba(45,212,191,0.5)]" />
+          </motion.span>
         </span>
       )}
 
@@ -39,7 +48,7 @@ export default function MatchPipeline() {
           return (
             <li key={stage.label} className="flex h-12 items-center gap-4">
               <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/15 bg-brand-900 text-xs font-bold tabular-nums text-primary-300">
-                {!reduceMotion && (
+                {play && (
                   <motion.span
                     aria-hidden="true"
                     className="absolute -inset-px rounded-full border border-primary-400 bg-primary-500/20 shadow-[0_0_20px_4px_rgba(45,212,191,0.35)]"

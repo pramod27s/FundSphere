@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useMotionValueEvent, useScroll, useSpring } from 'framer-motion';
 import {
@@ -17,6 +17,7 @@ import {
   Flag,
   Landmark,
   MessageCircle,
+  MessageCircleQuestion,
   Microscope,
   Rocket,
   Sparkles,
@@ -37,6 +38,7 @@ import { CountUp, Eyebrow, FeatureList, SectionHeading, SpotlightCard } from './
 import { buttonClasses } from '../common/buttonStyles';
 import { cn } from '../../utils/cn';
 import { fadeUp, inViewOnce, listItem, reveal, stagger } from './motion';
+import { usePauseOffscreen, useSmoothScroll } from './useSmoothScroll';
 import { loadSession } from '../../services/authService';
 
 const NAV_LINKS = [
@@ -47,6 +49,11 @@ const NAV_LINKS = [
   { href: '#faq', label: 'FAQ' },
 ];
 
+/**
+ * Agencies with calls in FundSphere. Most are crawled daily (see the seed list in
+ * ai-service/scraper/smart_scheduler.py); DST, DBT, MeitY and AICTE block or defeat
+ * crawlers, so their calls are added by hand. Hence "includes", not "tracks".
+ */
 const AGENCIES = [
   'ANRF (formerly SERB)',
   'DST',
@@ -54,8 +61,10 @@ const AGENCIES = [
   'ICMR',
   'BIRAC',
   'CSIR',
+  'ICSSR',
   'TDB',
   'DAE',
+  'ISRO',
   'MeitY',
   'UGC',
   'AICTE',
@@ -103,6 +112,11 @@ const APPLY_FEATURES = [
     icon: FileSearch,
     title: 'Six kinds of requirement',
     body: 'Documents and annexures, format limits, eligibility proofs, budget rules, submission details and key dates.',
+  },
+  {
+    icon: MessageCircleQuestion,
+    title: 'Ask the guidelines',
+    body: "Ask \"Can I buy a laptop from this grant?\" and get an answer taken only from the call's guidelines, quoting the sentences and pages it rests on. If they don't settle it, the answer says so.",
   },
   {
     icon: Users,
@@ -176,7 +190,7 @@ const AUDIENCES = [
   {
     icon: Microscope,
     title: 'Early-career researchers',
-    body: 'See only the calls that fit your years since PhD and your position, with a checklist ready for each one.',
+    body: "See the calls that fit your years since PhD and your position, and the ones you'll qualify for soon, with a checklist ready for each.",
   },
   {
     icon: Rocket,
@@ -205,7 +219,7 @@ const TECH_DETAILS = [
   },
   {
     term: 'Documents',
-    detail: 'Guidelines, sanction orders and drafts are read into checklists, deadlines and rubric checks. Format rules are measured from the PDF by code, not guessed.',
+    detail: 'Guidelines, sanction orders and drafts are read into checklists, deadlines and rubric checks. Format rules are measured from the PDF by code, not guessed, and answers about the guidelines quote sentences that are checked against the document.',
   },
   {
     term: 'AI gateway',
@@ -228,15 +242,19 @@ const FAQS = [
   },
   {
     q: 'Which funding agencies does it cover?',
-    a: 'FundSphere is built for researchers in India. It tracks calls from agencies such as ANRF (formerly SERB), DST, DBT, ICMR, BIRAC, CSIR and TDB, and shows amounts in lakh and crore.',
+    a: 'FundSphere is built for researchers in India. It includes calls from agencies such as ANRF (formerly SERB), DST, DBT, ICMR, BIRAC, CSIR and TDB, and shows amounts in lakh and crore. It also lists selected international schemes, such as ERC Starting Grants, Humboldt and EMBO fellowships and US SBIR funding.',
   },
   {
     q: "What happens if I'm not eligible for a grant?",
-    a: 'When FundSphere reads a call it extracts the hard requirements, such as a PhD, years of experience, citizenship or institution type. If you clearly fail a mandatory requirement, the call is left out of your matches. If the call is ambiguous, it is shown with a "Check eligibility" flag and the reason.',
+    a: 'When FundSphere reads a call it extracts the hard requirements, such as a PhD, years of experience, citizenship or institution type. If you clearly fail a mandatory requirement, the call is left out of your matches. If the call is ambiguous, it is shown with a "Check eligibility" flag and the reason. Calls on your topic that you miss only because you need a PhD or up to three more years of experience are listed separately under "Almost eligible", with what it would take to apply.',
   },
   {
     q: 'How does the application checklist work?',
     a: "Start an application from any grant and upload its guidelines. FundSphere lists every document, format limit, eligibility proof, budget rule, submission detail and key date, each with the quote and page it came from. Give items owners and due dates, track readiness, and send the pending list to your team over WhatsApp.",
+  },
+  {
+    q: "Can I ask questions about a call's guidelines?",
+    a: 'Yes. Once an application has its guidelines, ask anything, such as "Can I buy a laptop from this grant?" The answer comes only from the guidelines and quotes the sentences and pages it rests on, each checked against the document. If the guidelines don\'t settle the question, the answer says so instead of guessing.',
   },
   {
     q: 'How does the proposal review work?',
@@ -248,7 +266,7 @@ const FAQS = [
   },
   {
     q: 'How up to date are the deadlines?',
-    a: 'Agency pages are checked daily and re-processed as soon as their content changes. Every call shows when it was last verified, and calls whose deadline has passed are removed from your matches automatically.',
+    a: 'Agency pages that can be crawled are checked daily and re-processed as soon as their content changes. Calls from agencies whose sites block crawlers are added by hand. Every call shows when it was last verified, and calls whose deadline has passed are removed from your matches automatically.',
   },
   {
     q: 'Can I import my profile from ORCID?',
@@ -283,7 +301,8 @@ function NavBar({ isAuthenticated, onPrimary, onSignIn }: { isAuthenticated: boo
     <header
       className={cn(
         'fixed inset-x-0 top-0 z-50 border-b transition-[background-color,border-color,box-shadow] duration-300',
-        scrolled ? 'border-brand-200/80 bg-white/90 shadow-soft backdrop-blur-xl' : 'border-transparent bg-transparent',
+        // A light backdrop blur: the header is redrawn over moving content on every scroll frame.
+        scrolled ? 'border-brand-200/80 bg-white/90 shadow-soft backdrop-blur-md' : 'border-transparent bg-transparent',
       )}
     >
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3 sm:gap-6">
@@ -350,6 +369,9 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const isAuthenticated = !!loadSession();
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
+  const mainRef = useRef<HTMLElement>(null);
+  useSmoothScroll();
+  usePauseOffscreen(mainRef);
 
   // New visitors land on the sign-up form; "Sign in" opens the sign-in form.
   const goToApp = () => navigate(isAuthenticated ? '/discovery' : '/auth?mode=register');
@@ -366,12 +388,12 @@ export default function LandingPage() {
 
       <NavBar isAuthenticated={isAuthenticated} onPrimary={goToApp} onSignIn={() => navigate('/auth')} />
 
-      <main id="main">
+      <main id="main" ref={mainRef}>
         <Hero onPrimary={goToApp} primaryLabel={primaryCtaLabel} />
 
         {/* ── Agency marquee ───────────────────────────────────────── */}
         <section aria-label="Funders covered" className="pb-16">
-          <p className="px-4 text-center text-sm font-medium text-brand-500">Tracks open calls from Indian funding agencies including</p>
+          <p className="px-4 text-center text-sm font-medium text-brand-500">Includes calls from Indian funding agencies such as</p>
           <div className="relative mt-6 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]">
             <ul className="flex w-max animate-marquee">
               {[...AGENCIES, ...AGENCIES].map((agency, index) => (
@@ -385,6 +407,9 @@ export default function LandingPage() {
               ))}
             </ul>
           </div>
+          <p className="mt-6 px-4 text-center text-sm text-brand-500 text-balance">
+            Plus selected international schemes, such as ERC Starting Grants, Humboldt and EMBO fellowships and US SBIR.
+          </p>
         </section>
 
         {/* ── Numbers ──────────────────────────────────────────────── */}
@@ -522,7 +547,7 @@ export default function LandingPage() {
         <section id="technology" className="relative isolate overflow-hidden px-4 sm:px-6 py-24 bg-brand-950 text-white">
           <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
             <div className="absolute inset-0 bg-grid-dark [mask-image:radial-gradient(ellipse_60%_70%_at_20%_40%,black,transparent)]" />
-            <div className="absolute -left-40 top-10 h-[30rem] w-[30rem] rounded-full bg-primary-600/20 blur-[110px] animate-aurora" />
+            <div className="absolute -left-60 -top-10 h-[40rem] w-[40rem] bg-radial from-primary-600/35 via-primary-600/12 to-transparent to-70% animate-aurora" />
           </div>
           <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-5 gap-14">
             <div className="lg:col-span-2">
@@ -605,7 +630,7 @@ export default function LandingPage() {
             className="relative isolate max-w-6xl mx-auto overflow-hidden rounded-3xl bg-brand-950 px-6 py-20 sm:px-16 sm:py-28 text-center"
           >
             <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
-              <div className="absolute left-1/2 top-0 h-[26rem] w-[44rem] max-w-[150%] -translate-x-1/2 -translate-y-1/3 rounded-full bg-primary-500/25 blur-[100px] animate-aurora" />
+              <div className="absolute left-1/2 top-0 h-[34rem] w-[56rem] max-w-[190%] -translate-x-1/2 -translate-y-1/3 bg-radial from-primary-500/40 via-primary-500/15 to-transparent to-70% animate-aurora" />
               <div className="absolute inset-0 bg-grid-dark [mask-image:radial-gradient(ellipse_at_center,black,transparent_70%)]" />
               {ORBITS.map((orbit) => (
                 <div

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { CalendarCheck, Check, GraduationCap, ShieldCheck, TriangleAlert } from 'lucide-react';
+import { CalendarCheck, Check, GraduationCap, Hourglass, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { CountUp, SpotlightCard } from './MotionPrimitives';
 import { EASE, inViewOnce, stagger } from './motion';
 
@@ -13,6 +13,20 @@ const ELIGIBILITY = [
   { label: 'PhD completed', ok: true },
   { label: 'Within 7 years of PhD', ok: true },
   { label: 'Host must be a recognised Indian institution', ok: false },
+];
+
+/** Calls on the researcher's topic held back only by a gap they can close (wording as in AlmostEligible.tsx). */
+const NEAR_MISSES = [
+  {
+    title: 'ICMR Post-Doctoral Fellowship',
+    requirement: 'Needs a completed PhD',
+    howToQualify: 'You can apply once you finish your PhD.',
+  },
+  {
+    title: 'CSIR Extramural Research Scheme',
+    requirement: 'Needs at least 5 years of experience',
+    howToQualify: 'You can apply in about 2 years.',
+  },
 ];
 
 const ORCID_ID = '0000-0002-1825-0097';
@@ -89,6 +103,34 @@ function EligibilityChecks() {
   );
 }
 
+function NearMisses() {
+  return (
+    <motion.ul {...inViewOnce} variants={stagger(0.3, 0.3)} className="mt-6 space-y-2 text-sm" aria-hidden="true">
+      {NEAR_MISSES.map((item) => (
+        <motion.li
+          key={item.title}
+          variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE } } }}
+          className="rounded-lg border border-dashed border-brand-300 bg-white px-3 py-2"
+        >
+          <p className="truncate font-medium text-brand-800">{item.title}</p>
+          <p className="mt-1.5 flex gap-2 rounded-md bg-amber-50 px-2 py-1.5 text-xs leading-snug">
+            <motion.span
+              className="mt-px shrink-0"
+              variants={{ hidden: { rotate: 0 }, show: { rotate: 180, transition: { delay: 0.5, duration: 0.8, ease: EASE } } }}
+            >
+              <Hourglass className="h-3.5 w-3.5 text-amber-700" />
+            </motion.span>
+            <span>
+              <span className="font-semibold text-amber-900">{item.requirement}.</span>{' '}
+              <span className="text-brand-700">{item.howToQualify}</span>
+            </span>
+          </p>
+        </motion.li>
+      ))}
+    </motion.ul>
+  );
+}
+
 function Freshness() {
   return (
     <motion.div {...inViewOnce} className="mt-6 space-y-2 text-sm" aria-hidden="true">
@@ -128,7 +170,7 @@ function OrcidImport() {
   return (
     <motion.div
       {...inViewOnce}
-      className="sm:w-64 shrink-0 rounded-xl bg-white/10 border border-white/20 p-4 text-sm backdrop-blur"
+      className="sm:w-64 lg:w-auto shrink-0 rounded-xl bg-white/10 border border-white/20 p-4 text-sm"
       aria-hidden="true"
     >
       <motion.p variants={stagger(0.035, 0.2)} className="font-mono text-xs text-primary-100">
@@ -163,7 +205,10 @@ function OrcidImport() {
   );
 }
 
-/** The Discover chapter: four cards, each with a small animated preview. */
+/**
+ * The Discover chapter: five cards, each with a small animated preview.
+ * Two wide-and-narrow cards on top, three equal ones below.
+ */
 export default function DiscoverBento() {
   return (
     <div className="mt-14 grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -189,21 +234,37 @@ export default function DiscoverBento() {
 
       <SpotlightCard className="border-brand-200 bg-white p-8">
         <span className="inline-flex w-11 h-11 items-center justify-center rounded-lg bg-primary-100 text-primary-700">
+          <Hourglass className="w-6 h-6" aria-hidden="true" />
+        </span>
+        <h3 className="mt-5 text-xl font-bold">See what you're almost eligible for</h3>
+        <p className="mt-2 text-brand-600 leading-relaxed">
+          Calls on your topic that need a PhD or up to three more years of experience are listed separately, each
+          with what it would take to apply.
+        </p>
+        <NearMisses />
+      </SpotlightCard>
+
+      <SpotlightCard delay={0.1} className="border-brand-200 bg-white p-8">
+        <span className="inline-flex w-11 h-11 items-center justify-center rounded-lg bg-primary-100 text-primary-700">
           <CalendarCheck className="w-6 h-6" aria-hidden="true" />
         </span>
         <h3 className="mt-5 text-xl font-bold">Deadlines you can trust</h3>
         <p className="mt-2 text-brand-600 leading-relaxed">
-          Agency pages are checked daily. Closed calls disappear, and every call shows when it was last verified.
+          Agency pages are checked daily wherever they can be crawled. Closed calls disappear, and every call shows
+          when it was last verified.
         </p>
         <Freshness />
       </SpotlightCard>
 
       <SpotlightCard
-        delay={0.1}
+        delay={0.2}
         glow="rgba(255, 255, 255, 0.12)"
-        className="lg:col-span-2 border-primary-700 bg-primary-700 p-8 text-white flex flex-col sm:flex-row sm:items-center gap-8"
+        className="border-primary-700 bg-primary-700 p-8 text-white flex flex-col sm:flex-row sm:items-center lg:flex-col lg:items-stretch gap-8"
       >
-        <div className="pointer-events-none absolute -right-24 -top-24 -z-10 h-72 w-72 rounded-full bg-primary-400/40 blur-3xl animate-aurora" aria-hidden="true" />
+        <div
+          className="pointer-events-none absolute -right-36 -top-36 -z-10 h-96 w-96 bg-radial from-primary-400/60 via-primary-400/20 to-transparent to-70% animate-aurora"
+          aria-hidden="true"
+        />
         <div className="flex-1">
           <span className="inline-flex w-11 h-11 items-center justify-center rounded-lg bg-white/15">
             <GraduationCap className="w-6 h-6" aria-hidden="true" />

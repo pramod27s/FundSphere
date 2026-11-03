@@ -4,7 +4,7 @@ import { Calendar, ChevronRight, ClipboardCheck, Compass, Loader2, Plus, Triangl
 import { fetchApplications, type Application, type ApplicationStatus } from '../../services/applicationsService';
 import { fetchSavedGrants, type SavedGrantEntry } from '../../services/savedGrantsService';
 import { deadlineCountdown, formatDay, TONE_TEXT } from '../../utils/applicationDates';
-import { ListLayout, PAGE_WIDTH } from '../common/PageLayout';
+import { CARD_GRID, ListLayout, PAGE_WIDTH_WIDE } from '../common/PageLayout';
 import ApplicationFormModal from './ApplicationFormModal';
 import ApplicationsPanel from './ApplicationsPanel';
 import { STATUS_META, STATUS_ORDER } from './applicationMeta';
@@ -90,7 +90,8 @@ export default function Applications() {
 
       {counts.ALL > 0 && (
         <div className="bg-white border-b border-brand-100">
-          <div className={`${PAGE_WIDTH} py-3 flex items-center gap-2 overflow-x-auto`}>
+          {/* The same width as the list below, so the filters line up with the cards. */}
+          <div className={`${PAGE_WIDTH_WIDE} py-3 flex items-center gap-2 overflow-x-auto`}>
             {(['ALL', ...STATUS_ORDER] as StatusFilter[]).map((s) => {
               const active = filter === s;
               return (
@@ -118,6 +119,7 @@ export default function Applications() {
       )}
 
       <ListLayout
+        wide
         panel={applications && applications.length > 0 && (
           <ApplicationsPanel
             applications={applications}
@@ -141,7 +143,7 @@ export default function Applications() {
             No applications are {filter === 'ALL' ? '' : STATUS_META[filter].label.toLowerCase()} right now.
           </div>
         ) : (
-          <div className="flex flex-col gap-4">
+          <div className={`${CARD_GRID} gap-4`}>
             {visible.map((a) => (
               <ApplicationCard key={a.id} application={a} onOpen={() => navigate(`/applications/${a.id}`)} />
             ))}
@@ -169,56 +171,59 @@ function ApplicationCard({ application, onOpen }: { application: Application; on
     <button
       type="button"
       onClick={onOpen}
-      className="text-left w-full bg-white border border-brand-200 rounded-lg p-5 shadow-xs hover:shadow-elevated hover:border-primary-300 transition-all group"
+      className="text-left w-full h-full flex flex-col bg-white border border-brand-200 rounded-lg p-5 shadow-xs hover:shadow-elevated hover:border-primary-300 transition-all group"
     >
-      <div className="flex flex-wrap items-center gap-2 mb-2">
-        {application.agency && (
-          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-brand-100 text-brand-700">
-            {application.agency}
+      {/* Grows, so cards side by side in a row keep their footers level. */}
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-wrap items-center gap-2 mb-2">
+          {application.agency && (
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-brand-100 text-brand-700">
+              {application.agency}
+            </span>
+          )}
+          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold border ${meta.chip}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
+            {meta.label}
           </span>
-        )}
-        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold border ${meta.chip}`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
-          {meta.label}
-        </span>
-        {preparing && readiness.overdue > 0 && (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-red-50 text-red-700 border border-red-200">
-            <TriangleAlert className="w-3 h-3" />
-            {readiness.overdue} overdue
-          </span>
-        )}
-        {preparing && application.callDeadlineMovedTo && (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-sky-50 text-sky-800 border border-sky-200">
-            <Calendar className="w-3 h-3" />
-            Deadline moved
-          </span>
+          {preparing && readiness.overdue > 0 && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-red-50 text-red-700 border border-red-200">
+              <TriangleAlert className="w-3 h-3" />
+              {readiness.overdue} overdue
+            </span>
+          )}
+          {preparing && application.callDeadlineMovedTo && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-sky-50 text-sky-800 border border-sky-200">
+              <Calendar className="w-3 h-3" />
+              Deadline moved
+            </span>
+          )}
+        </div>
+
+        <h3 className="text-lg font-semibold text-brand-900 group-hover:text-primary-700 transition-colors line-clamp-2 mb-3 tracking-tight">
+          {application.title}
+        </h3>
+
+        {preparing && (
+          <div className="mb-3">
+            <div className="flex items-baseline justify-between text-xs mb-1.5">
+              <span className="font-semibold text-brand-700">
+                {readiness.percent === null ? 'No checklist yet' : `${readiness.percent}% ready`}
+              </span>
+              {readiness.percent !== null && (
+                <span className="text-brand-500 tabular-nums">
+                  {readiness.mandatoryDone} of {readiness.mandatoryTotal} required items
+                </span>
+              )}
+            </div>
+            <div className="h-2 rounded-full bg-brand-100 overflow-hidden" aria-hidden="true">
+              <div
+                className={`h-full rounded-full ${readiness.percent === 100 ? 'bg-primary-500' : 'bg-primary-600'}`}
+                style={{ width: `${readiness.percent ?? 0}%` }}
+              />
+            </div>
+          </div>
         )}
       </div>
-
-      <h3 className="text-lg font-semibold text-brand-900 group-hover:text-primary-700 transition-colors line-clamp-2 mb-3 tracking-tight">
-        {application.title}
-      </h3>
-
-      {preparing && (
-        <div className="mb-3">
-          <div className="flex items-baseline justify-between text-xs mb-1.5">
-            <span className="font-semibold text-brand-700">
-              {readiness.percent === null ? 'No checklist yet' : `${readiness.percent}% ready`}
-            </span>
-            {readiness.percent !== null && (
-              <span className="text-brand-500 tabular-nums">
-                {readiness.mandatoryDone} of {readiness.mandatoryTotal} required items
-              </span>
-            )}
-          </div>
-          <div className="h-2 rounded-full bg-brand-100 overflow-hidden" aria-hidden="true">
-            <div
-              className={`h-full rounded-full ${readiness.percent === 100 ? 'bg-primary-500' : 'bg-primary-600'}`}
-              style={{ width: `${readiness.percent ?? 0}%` }}
-            />
-          </div>
-        </div>
-      )}
 
       <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-brand-100 text-sm">
         <span className={`inline-flex items-center gap-1.5 ${preparing ? TONE_TEXT[countdown.tone] : 'text-brand-600'} font-medium`}>

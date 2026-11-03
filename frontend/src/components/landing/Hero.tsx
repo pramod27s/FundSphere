@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import {
   motion,
   useMotionTemplate,
@@ -64,25 +64,24 @@ function FloatingChip({
   title: string;
   detail: string;
 }) {
-  const reduceMotion = useReducedMotion();
   return (
     <motion.div aria-hidden="true" style={{ y: parallax }} className={cn('pointer-events-none absolute z-20 hidden min-[1400px]:block', className)}>
       <motion.div
-        initial={{ opacity: 0, scale: 0.9, filter: 'blur(4px)' }}
-        animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
         transition={{ delay, duration: 0.7, ease: EASE }}
       >
-        <motion.div
-          animate={reduceMotion ? undefined : { y: [0, -drift, 0] }}
-          transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut', delay }}
-          className="flex items-center gap-3 rounded-xl border border-brand-200 bg-white/95 px-4 py-3 shadow-[0_24px_48px_-16px_rgba(2,6,23,0.45)] backdrop-blur"
+        {/* The bob is a CSS animation, so it pauses off screen and stops for reduced motion. */}
+        <div
+          style={{ '--float-distance': `${drift}px`, animationDelay: `${delay}s` } as CSSProperties}
+          className="animate-float flex items-center gap-3 rounded-xl border border-brand-200 bg-white px-4 py-3 shadow-[0_24px_48px_-16px_rgba(2,6,23,0.45)]"
         >
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-50 text-primary-700">{icon}</span>
           <span className="text-left">
             <span className="block text-sm font-semibold text-brand-900">{title}</span>
             <span className="block text-xs text-brand-500">{detail}</span>
           </span>
-        </motion.div>
+        </div>
       </motion.div>
     </motion.div>
   );
@@ -123,9 +122,10 @@ export default function Hero({ onPrimary, primaryLabel }: { onPrimary: () => voi
         <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
           <div className="absolute inset-0 bg-grid-dark [mask-image:radial-gradient(ellipse_70%_65%_at_50%_0%,black,transparent)]" />
           <motion.div className="absolute inset-0 bg-grid-glow" style={{ maskImage: spotlight, WebkitMaskImage: spotlight }} />
-          <div className="absolute -top-48 left-1/2 h-[36rem] w-[60rem] max-w-[160vw] -translate-x-1/2 rounded-full bg-primary-600/25 blur-[120px] animate-aurora" />
-          <div className="absolute top-40 -left-48 h-[28rem] w-[28rem] rounded-full bg-cyan-500/15 blur-[100px] animate-aurora [animation-delay:-7s]" />
-          <div className="absolute top-24 -right-48 h-[30rem] w-[30rem] rounded-full bg-emerald-500/15 blur-[100px] animate-aurora [animation-delay:-13s]" />
+          {/* Glows are radial gradients, not blurred shapes: a large filter: blur() is redrawn every frame it moves. */}
+          <div className="absolute -top-72 left-1/2 h-[48rem] w-[76rem] max-w-[200vw] -translate-x-1/2 bg-radial from-primary-600/40 via-primary-600/15 to-transparent to-70% animate-aurora" />
+          <div className="absolute top-24 -left-64 h-[36rem] w-[36rem] bg-radial from-cyan-500/25 via-cyan-500/10 to-transparent to-70% animate-aurora [animation-delay:-7s]" />
+          <div className="absolute top-8 -right-64 h-[38rem] w-[38rem] bg-radial from-emerald-500/25 via-emerald-500/10 to-transparent to-70% animate-aurora [animation-delay:-13s]" />
           {BEAMS.map((beam) => (
             <span
               key={beam.column}
@@ -185,7 +185,7 @@ export default function Hero({ onPrimary, primaryLabel }: { onPrimary: () => voi
           transition={{ duration: 0.8, delay: 0.75, ease: EASE }}
           className="mt-7 mx-auto max-w-2xl text-lg sm:text-xl text-brand-300 leading-relaxed text-pretty"
         >
-          FundSphere matches you with open calls from ANRF, DST, DBT, ICMR and more, turns the guidelines into a
+          FundSphere matches you with open calls from ANRF, ICMR, BIRAC, CSIR and more, turns the guidelines into a
           checklist, checks your draft against the call's rules, and tracks every report and rupee once you're funded.
         </motion.p>
 
@@ -197,11 +197,7 @@ export default function Hero({ onPrimary, primaryLabel }: { onPrimary: () => voi
         >
           <button
             onClick={onPrimary}
-            className={buttonClasses(
-              'primary',
-              'lg',
-              'btn-shine group w-full sm:w-auto px-8 bg-primary-500 hover:bg-primary-400 text-brand-950 shadow-[0_0_0_1px_rgba(45,212,191,0.4),0_12px_32px_-8px_rgba(20,184,166,0.6)]',
-            )}
+            className={buttonClasses('primary', 'lg', 'btn-shine group w-full sm:w-auto px-8')}
           >
             {primaryLabel}
             <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" aria-hidden="true" />
@@ -270,7 +266,9 @@ export default function Hero({ onPrimary, primaryLabel }: { onPrimary: () => voi
             initial={{ opacity: 0, y: 80 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1.1, delay: 0.95, ease: EASE }}
-            style={{ rotateX: reduceMotion ? 0 : tilt, scale: reduceMotion ? 1 : settle, transformOrigin: '50% 100%' }}
+            // will-change keeps the frame on its own layer at a fixed raster scale, so the
+            // scroll-linked tilt moves pixels instead of repainting the whole demo each frame.
+            style={{ rotateX: reduceMotion ? 0 : tilt, scale: reduceMotion ? 1 : settle, transformOrigin: '50% 100%', willChange: 'transform' }}
             className="relative"
           >
             {/* A light that runs around the frame's border */}

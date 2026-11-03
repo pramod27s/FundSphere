@@ -6,10 +6,15 @@
 /** Fast start, long soft landing ("expo out"). */
 export const EASE = [0.22, 1, 0.36, 1] as const;
 
-/** Fade, lift and un-blur into place the first time an element scrolls into view. */
+/**
+ * Fade and lift into place the first time an element scrolls into view.
+ * Only opacity and transform are animated: both run on the compositor, so
+ * reveals don't make the browser repaint while the page is scrolling (an
+ * animated `filter: blur()` did, on every card and heading).
+ */
 export const fadeUp = {
-  initial: { opacity: 0, y: 24, filter: 'blur(6px)' },
-  whileInView: { opacity: 1, y: 0, filter: 'blur(0px)' },
+  initial: { opacity: 0, y: 24 },
+  whileInView: { opacity: 1, y: 0 },
   viewport: { once: true, margin: '-80px' },
   transition: { duration: 0.8, ease: EASE },
 } as const;

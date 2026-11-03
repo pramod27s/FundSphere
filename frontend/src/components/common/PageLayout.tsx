@@ -4,6 +4,16 @@ import { formatDay } from '../../utils/applicationDates';
 /** The width the workspace pages share, so switching tabs or opening an item doesn't move the content. */
 export const PAGE_WIDTH = 'w-full max-w-6xl 2xl:max-w-7xl mx-auto px-4 sm:px-6';
 
+/**
+ * The width of the list pages that go two cards to a row on big screens (My grants,
+ * Apply, Proposals). From xl up the page is wider, but no card is: each card is
+ * half the list's width, and the side panel takes the rest.
+ */
+export const PAGE_WIDTH_WIDE = 'w-full max-w-6xl xl:max-w-[84rem] 2xl:max-w-[90rem] mx-auto px-4 sm:px-6';
+
+/** The card list on those pages: one card per row, two from xl up. Add the page's own gap. */
+export const CARD_GRID = 'grid grid-cols-1 xl:grid-cols-2';
+
 /** Where the scroll-to-top button sits on signed-in pages: above the phone tab bar, beside the desktop rail. */
 export const RAIL_SCROLL_TOP_POSITION = 'fixed bottom-[calc(var(--mobile-tab-bar)_+_1rem)] right-4 md:bottom-6 md:right-26';
 
@@ -41,14 +51,20 @@ function SingleColumn({ children }: { children: ReactNode }) {
 
 /**
  * A list page's body: the list on the left and an "at a glance" panel on
- * the right from lg up; below lg the panel follows the list.
+ * the right from lg up; below lg the panel follows the list. `wide` pages
+ * (with their cards in CARD_GRID) use more of a big screen: from xl up the
+ * page is PAGE_WIDTH_WIDE and the panel 22rem (26rem from 2xl) instead of 20rem.
  */
-export function ListLayout({ children, panel }: { children: ReactNode; panel?: ReactNode }) {
+export function ListLayout({ children, panel, wide = false }: { children: ReactNode; panel?: ReactNode; wide?: boolean }) {
   const [panelRef, fits] = useFitsViewport();
   if (!panel) return <SingleColumn>{children}</SingleColumn>;
   return (
-    <div className={`flex-1 ${PAGE_WIDTH} py-6 sm:py-8`}>
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_20rem] gap-6 items-start">
+    <div className={`flex-1 ${wide ? PAGE_WIDTH_WIDE : PAGE_WIDTH} py-6 sm:py-8`}>
+      <div
+        className={`grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_20rem] ${
+          wide ? 'xl:grid-cols-[minmax(0,1fr)_22rem] 2xl:grid-cols-[minmax(0,1fr)_26rem]' : ''
+        } gap-6 items-start`}
+      >
         <div className="min-w-0 flex flex-col gap-6">{children}</div>
         <aside ref={panelRef} aria-label="At a glance" className={`min-w-0 flex flex-col gap-4 ${fits ? 'lg:sticky lg:top-22' : ''}`}>
           {panel}
@@ -64,14 +80,19 @@ export function ListLayout({ children, panel }: { children: ReactNode; panel?: R
  * xl the panel comes first, where a summary card would sit, so it leads
  * the page in reading order too.
  */
-export function DetailLayout({ children, panel }: { children: ReactNode; panel?: ReactNode }) {
+export function DetailLayout({ children, panel, wide = false }: { children: ReactNode; panel?: ReactNode; wide?: boolean }) {
   const [panelRef, fits] = useFitsViewport();
   if (!panel) return <SingleColumn>{children}</SingleColumn>;
   // The content comes first, so on narrow screens the page opens on it and
   // the panel follows below; from xl up the panel sits in its own column.
+  // `wide` pages (a grant, an application) give the extra width of a big
+  // screen mostly to the panel, so the work column barely changes.
+  const columns = wide
+    ? 'xl:grid-cols-[minmax(0,1fr)_24rem] 2xl:grid-cols-[minmax(0,1fr)_26rem]'
+    : 'xl:grid-cols-[minmax(0,1fr)_20rem]';
   return (
-    <div className={`flex-1 ${PAGE_WIDTH} py-6 sm:py-8`}>
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_20rem] gap-6 items-start">
+    <div className={`flex-1 ${wide ? PAGE_WIDTH_WIDE : PAGE_WIDTH} py-6 sm:py-8`}>
+      <div className={`grid grid-cols-1 ${columns} gap-6 items-start`}>
         <div className="min-w-0 xl:col-start-1 xl:row-start-1">{children}</div>
         <aside
           ref={panelRef}

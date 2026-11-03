@@ -4,7 +4,7 @@ import { CalendarDays, CalendarPlus, ChevronRight, Landmark, Loader2, Plus, Tria
 import { fetchAwards, type Award, type ComplianceEvent } from '../../services/awardsService';
 import { formatDay } from '../../utils/applicationDates';
 import { formatInr } from '../../utils/formatFunding';
-import { ListLayout } from '../common/PageLayout';
+import { CARD_GRID, ListLayout } from '../common/PageLayout';
 import AwardFormModal from './AwardFormModal';
 import AwardsPanel from './AwardsPanel';
 import CalendarSyncModal from './CalendarSyncModal';
@@ -77,6 +77,7 @@ export default function Awards() {
       </div>
 
       <ListLayout
+        wide
         panel={awards && awards.length > 0 && (
           <AwardsPanel awards={awards} onOpen={(id) => navigate(`/my-grants/${id}`)} onSync={() => setSyncing(true)} />
         )}
@@ -91,7 +92,7 @@ export default function Awards() {
         ) : awards.length === 0 ? (
           <EmptyState onAdd={() => setAdding(true)} onApplications={() => navigate('/applications')} />
         ) : (
-          <div className="flex flex-col gap-4">
+          <div className={`${CARD_GRID} gap-4`}>
             {sorted.map((award) => (
               <AwardCard key={award.id} award={award} onOpen={() => navigate(`/my-grants/${award.id}`)} />
             ))}
@@ -118,38 +119,41 @@ function AwardCard({ award, onOpen }: { award: Award; onOpen: () => void }) {
     <button
       type="button"
       onClick={onOpen}
-      className="text-left w-full bg-white border border-brand-200 rounded-lg p-5 shadow-xs hover:shadow-elevated hover:border-primary-300 transition-all group"
+      className="text-left w-full h-full flex flex-col bg-white border border-brand-200 rounded-lg p-5 shadow-xs hover:shadow-elevated hover:border-primary-300 transition-all group"
     >
-      <div className="flex flex-wrap items-center gap-2 mb-2">
-        {award.agency && (
-          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-brand-100 text-brand-700">{award.agency}</span>
-        )}
-        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold border ${meta.chip}`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
-          {meta.label}
-        </span>
-        {award.overdueCount > 0 && (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-red-50 text-red-700 border border-red-200">
-            <TriangleAlert className="w-3 h-3" />
-            {award.overdueCount} overdue
+      {/* Grows, so cards side by side in a row keep their footers level. */}
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-wrap items-center gap-2 mb-2">
+          {award.agency && (
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-brand-100 text-brand-700">{award.agency}</span>
+          )}
+          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold border ${meta.chip}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
+            {meta.label}
           </span>
-        )}
+          {award.overdueCount > 0 && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-red-50 text-red-700 border border-red-200">
+              <TriangleAlert className="w-3 h-3" />
+              {award.overdueCount} overdue
+            </span>
+          )}
+          {award.spendWarnings.length > 0 && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+              <TriangleAlert className="w-3 h-3" />
+              {award.spendWarnings.length} spending {award.spendWarnings.length === 1 ? 'warning' : 'warnings'}
+            </span>
+          )}
+        </div>
+
+        <h3 className="text-lg font-semibold text-brand-900 group-hover:text-primary-700 transition-colors line-clamp-2 tracking-tight">
+          {award.projectTitle}
+        </h3>
+        {award.scheme && <p className="text-sm text-brand-600 mt-0.5 line-clamp-1">{award.scheme}</p>}
+        {award.nextEvent && <NextDeadline event={award.nextEvent} />}
         {award.spendWarnings.length > 0 && (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
-            <TriangleAlert className="w-3 h-3" />
-            {award.spendWarnings.length} spending {award.spendWarnings.length === 1 ? 'warning' : 'warnings'}
-          </span>
+          <p className="mt-2 text-xs text-amber-800 line-clamp-2">{award.spendWarnings[0]}</p>
         )}
       </div>
-
-      <h3 className="text-lg font-semibold text-brand-900 group-hover:text-primary-700 transition-colors line-clamp-2 tracking-tight">
-        {award.projectTitle}
-      </h3>
-      {award.scheme && <p className="text-sm text-brand-600 mt-0.5 line-clamp-1">{award.scheme}</p>}
-      {award.nextEvent && <NextDeadline event={award.nextEvent} />}
-      {award.spendWarnings.length > 0 && (
-        <p className="mt-2 text-xs text-amber-800 line-clamp-2">{award.spendWarnings[0]}</p>
-      )}
 
       <div className="flex flex-wrap items-center justify-between gap-3 pt-3 mt-3 border-t border-brand-100 text-sm">
         <span className="inline-flex items-center gap-1.5 text-brand-600 font-medium">

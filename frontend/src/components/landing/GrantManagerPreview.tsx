@@ -1,4 +1,4 @@
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { CalendarCheck, FilePenLine, Landmark, TriangleAlert } from 'lucide-react';
 import { EASE, inViewOnce, stagger } from './motion';
 
@@ -32,9 +32,6 @@ const rowVariants = {
 
 /** The Manage chapter's preview: an awarded grant's deadlines, spending and report draft. */
 export default function GrantManagerPreview() {
-  const reduceMotion = useReducedMotion();
-  const pulseFirst = (index: number) => index === 0 && !reduceMotion;
-
   return (
     <motion.div
       {...inViewOnce}
@@ -67,13 +64,12 @@ export default function GrantManagerPreview() {
                 <p className="text-sm font-medium text-brand-900 leading-snug">{deadline.label}</p>
                 <div className="mt-1 flex items-center justify-between gap-2">
                   <span className="text-xs text-brand-500">{deadline.detail}</span>
-                  <motion.span
-                    className={`rounded px-1.5 py-0.5 text-[11px] font-semibold ring-1 ${TONE_CHIP[deadline.tone]}`}
-                    animate={pulseFirst(index) ? { scale: [1, 1.08, 1] } : undefined}
-                    transition={pulseFirst(index) ? { duration: 1.6, repeat: Infinity, repeatDelay: 1.2 } : undefined}
+                  {/* The most urgent deadline nudges; a CSS loop, so it pauses off screen and for reduced motion. */}
+                  <span
+                    className={`rounded px-1.5 py-0.5 text-[11px] font-semibold ring-1 ${TONE_CHIP[deadline.tone]} ${index === 0 ? 'animate-nudge' : ''}`}
                   >
                     {deadline.due}
-                  </motion.span>
+                  </span>
                 </div>
               </motion.li>
             ))}

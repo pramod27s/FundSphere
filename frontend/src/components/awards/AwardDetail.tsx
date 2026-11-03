@@ -352,7 +352,7 @@ function PageFrame({
         </div>
         {actions}
       </div>
-      <DetailLayout panel={panel}>{children}</DetailLayout>
+      <DetailLayout wide panel={panel}>{children}</DetailLayout>
     </div>
   );
 }

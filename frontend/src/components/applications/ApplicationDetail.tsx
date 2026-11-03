@@ -42,7 +42,7 @@ import AskGuidelinesTab, { type AskEntry } from './AskGuidelinesTab';
 import ProposalTab from '../proposal-review/ProposalTab';
 import VersionHistory from '../proposal-review/VersionHistory';
 import { useApplicationReviews } from '../proposal-review/useApplicationReviews';
-import { CategoryProgress, OwnerLoad } from './WorkspacePanels';
+import { OwnerLoad } from './WorkspacePanels';
 import AwardFormModal from '../awards/AwardFormModal';
 import { guessPortal, guessProfile } from '../awards/awardMeta';
 import { STATUS_META, STATUS_ORDER } from './applicationMeta';
@@ -214,7 +214,7 @@ export default function ApplicationDetail() {
       panel={
         <>
           <Summary application={application} onEdit={() => setEditing(true)} />
-          {tab === 'checklist' && <CategoryProgress items={items} />}
+          {/* The checklist's own category chips show its progress, so it has no side card. */}
           {tab === 'readiness' && <OwnerLoad items={items} />}
           {tab === 'proposal' && application.guidelineExtractionId !== null && <VersionHistory versions={versions} />}
         </>
@@ -380,7 +380,7 @@ function PageFrame({
         </div>
         {actions}
       </div>
-      <DetailLayout panel={panel}>{children}</DetailLayout>
+      <DetailLayout wide panel={panel}>{children}</DetailLayout>
     </div>
   );
 }

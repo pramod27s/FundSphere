@@ -280,71 +280,74 @@ export default function AddGrant() {
       </div>
 
       <div className="px-5 py-4 flex flex-col gap-3 border-b border-brand-100">
-        <div role="tablist" aria-label="How to give the call" className="inline-flex rounded-lg border border-brand-200 bg-brand-50 p-0.5 self-start">
-          {TABS.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              aria-selected={tab === id}
-              onClick={() => {
-                setTab(id);
-                setReadError(null);
-              }}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                tab === id ? 'bg-white text-brand-900 shadow-xs' : 'text-brand-600 hover:text-brand-900'
-              }`}
-            >
-              <Icon className="w-4 h-4" aria-hidden="true" />
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {tab === 'pdf' && (
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="application/pdf,.pdf"
-              onChange={handleFile}
-              aria-label="The call's PDF"
-              className="text-sm text-brand-700 file:mr-3 file:px-3 file:py-1.5 file:rounded-md file:border file:border-brand-300 file:bg-white file:text-sm file:font-medium file:text-brand-800 hover:file:bg-brand-50"
-            />
+        {/* From lg up: how to give the call, the call itself and the Read button on one row. */}
+        <div className="flex flex-col lg:flex-row lg:items-start gap-3">
+          <div role="tablist" aria-label="How to give the call" className="inline-flex rounded-lg border border-brand-200 bg-brand-50 p-0.5 self-start shrink-0">
+            {TABS.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={tab === id}
+                onClick={() => {
+                  setTab(id);
+                  setReadError(null);
+                }}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  tab === id ? 'bg-white text-brand-900 shadow-xs' : 'text-brand-600 hover:text-brand-900'
+                }`}
+              >
+                <Icon className="w-4 h-4" aria-hidden="true" />
+                {label}
+              </button>
+            ))}
           </div>
-        )}
-        {tab === 'url' && (
-          <input
-            type="url"
-            className={INPUT}
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="https://… the call's page or PDF"
-            aria-label="Link to the call"
-          />
-        )}
-        {tab === 'text' && (
-          <textarea
-            className={`${INPUT} min-h-32`}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Copy the call's text from the agency's site and paste it here"
-            aria-label="The call's text"
-          />
-        )}
-        <p className="text-xs text-brand-500">
-          {tab === 'url'
-            ? 'If the site blocks FundSphere, open it in your browser and upload the PDF or paste the text instead.'
-            : 'Use this for sites that block FundSphere: your browser can open them.'}
-        </p>
 
-        <div className="flex items-center gap-3">
-          <button type="button" onClick={handleRead} disabled={reading} className={buttonClasses('primary', 'sm')}>
+          <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+            {tab === 'pdf' && (
+              <div className="flex min-h-9 items-center">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/pdf,.pdf"
+                  onChange={handleFile}
+                  aria-label="The call's PDF"
+                  className="text-sm text-brand-700 file:mr-3 file:px-3 file:py-1.5 file:rounded-md file:border file:border-brand-300 file:bg-white file:text-sm file:font-medium file:text-brand-800 hover:file:bg-brand-50"
+                />
+              </div>
+            )}
+            {tab === 'url' && (
+              <input
+                type="url"
+                className={INPUT}
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="https://… the call's page or PDF"
+                aria-label="Link to the call"
+              />
+            )}
+            {tab === 'text' && (
+              <textarea
+                className={`${INPUT} min-h-32`}
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="Copy the call's text from the agency's site and paste it here"
+                aria-label="The call's text"
+              />
+            )}
+            <p className="text-xs text-brand-500">
+              {tab === 'url'
+                ? 'If the site blocks FundSphere, open it in your browser and upload the PDF or paste the text instead.'
+                : 'Use this for sites that block FundSphere: your browser can open them.'}
+            </p>
+          </div>
+
+          <button type="button" onClick={handleRead} disabled={reading} className={buttonClasses('primary', 'sm', 'self-start shrink-0')}>
             {reading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
             {reading ? 'Reading… about 15 seconds' : 'Read the call'}
           </button>
-          {readError && <p className="text-sm text-red-700" role="alert">{readError}</p>}
         </div>
+        {readError && <p className="text-sm text-red-700" role="alert">{readError}</p>}
 
         {summary && (
           <div className="rounded-lg border border-primary-200 bg-primary-50 px-4 py-3 text-sm text-primary-900" role="status">
@@ -370,107 +373,128 @@ export default function AddGrant() {
       </div>
 
       <form onSubmit={handleSave} className="px-5 py-5 flex flex-col gap-6" noValidate>
-        <Group title="The call">
-          <Field id={`${formId}-title`} label="Title *" source={sources.title}>
-            <input
-              id={`${formId}-title`}
-              className={INPUT}
-              value={form.title}
-              onChange={(e) => update('title', e.target.value)}
-              onBlur={() => void checkDuplicates(form)}
-              maxLength={500}
-            />
-          </Field>
-          <Field id={`${formId}-url`} label="Link to the call's page or PDF *">
-            <input
-              id={`${formId}-url`}
-              type="url"
-              className={INPUT}
-              value={form.grantUrl}
-              onChange={(e) => update('grantUrl', e.target.value)}
-              onBlur={() => void checkDuplicates(form)}
-              placeholder="https://… where researchers can read the call"
-            />
-          </Field>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field id={`${formId}-agency`} label="Agency" source={sources.agency}>
-              <input id={`${formId}-agency`} className={INPUT} value={form.agency} onChange={(e) => update('agency', e.target.value)} maxLength={300} />
-            </Field>
-            <Field id={`${formId}-programme`} label="Programme or scheme" source={sources.programme}>
-              <input id={`${formId}-programme`} className={INPUT} value={form.programme} onChange={(e) => update('programme', e.target.value)} maxLength={300} />
-            </Field>
-            <Field id={`${formId}-type`} label="Grant type" source={sources.grantType}>
-              <select id={`${formId}-type`} className={INPUT} value={form.grantType} onChange={(e) => update('grantType', e.target.value)}>
-                <option value="">Not stated</option>
-                {GRANT_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
-              </select>
-            </Field>
-            <Field id={`${formId}-duration`} label="Duration" source={sources.duration}>
-              <input id={`${formId}-duration`} className={INPUT} value={form.duration} onChange={(e) => update('duration', e.target.value)} placeholder="e.g. 3 years" maxLength={200} />
-            </Field>
-          </div>
-          <Field id={`${formId}-purpose`} label="What it funds" source={sources.purpose}>
-            <textarea id={`${formId}-purpose`} className={`${INPUT} min-h-20`} value={form.purpose} onChange={(e) => update('purpose', e.target.value)} maxLength={2000} />
-          </Field>
-          <Field id={`${formId}-themes`} label="Research areas" source={sources.themes}>
-            <input id={`${formId}-themes`} className={INPUT} value={form.themes} onChange={(e) => update('themes', e.target.value)} maxLength={2000} />
-          </Field>
-        </Group>
+        {/*
+          Wide screens (xl): the call on the left, dates, money and eligibility on the right.
+          Medium screens (lg): one column, but each row holds more fields.
+        */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-10 gap-y-6 items-start">
+          <Group title="The call">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-1 gap-4">
+              <Field id={`${formId}-title`} label="Title *" source={sources.title}>
+                <input
+                  id={`${formId}-title`}
+                  className={INPUT}
+                  value={form.title}
+                  onChange={(e) => update('title', e.target.value)}
+                  onBlur={() => void checkDuplicates(form)}
+                  maxLength={500}
+                />
+              </Field>
+              <Field id={`${formId}-url`} label="Link to the call's page or PDF *">
+                <input
+                  id={`${formId}-url`}
+                  type="url"
+                  className={INPUT}
+                  value={form.grantUrl}
+                  onChange={(e) => update('grantUrl', e.target.value)}
+                  onBlur={() => void checkDuplicates(form)}
+                  placeholder="https://… where researchers can read the call"
+                />
+              </Field>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-2 gap-4">
+              <Field id={`${formId}-agency`} label="Agency" source={sources.agency}>
+                <input id={`${formId}-agency`} className={INPUT} value={form.agency} onChange={(e) => update('agency', e.target.value)} maxLength={300} />
+              </Field>
+              <Field id={`${formId}-programme`} label="Programme or scheme" source={sources.programme}>
+                <input id={`${formId}-programme`} className={INPUT} value={form.programme} onChange={(e) => update('programme', e.target.value)} maxLength={300} />
+              </Field>
+              <Field id={`${formId}-type`} label="Grant type" source={sources.grantType}>
+                <select id={`${formId}-type`} className={INPUT} value={form.grantType} onChange={(e) => update('grantType', e.target.value)}>
+                  <option value="">Not stated</option>
+                  {GRANT_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
+                </select>
+              </Field>
+              <Field id={`${formId}-duration`} label="Duration" source={sources.duration}>
+                <input id={`${formId}-duration`} className={INPUT} value={form.duration} onChange={(e) => update('duration', e.target.value)} placeholder="e.g. 3 years" maxLength={200} />
+              </Field>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-1 gap-4">
+              <Field id={`${formId}-purpose`} label="What it funds" source={sources.purpose}>
+                <textarea id={`${formId}-purpose`} className={`${INPUT} min-h-20`} value={form.purpose} onChange={(e) => update('purpose', e.target.value)} maxLength={2000} />
+              </Field>
+              <Field id={`${formId}-themes`} label="Research areas" source={sources.themes}>
+                <input id={`${formId}-themes`} className={INPUT} value={form.themes} onChange={(e) => update('themes', e.target.value)} maxLength={2000} />
+              </Field>
+            </div>
+          </Group>
 
-        <Group title="Dates">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Field id={`${formId}-deadline`} label="Last date to apply" source={sources.deadline}>
-              <input id={`${formId}-deadline`} type="date" className={INPUT} value={form.deadline} onChange={(e) => update('deadline', e.target.value)} />
-            </Field>
-            <Field id={`${formId}-deadline-type`} label="If there's no date" source={sources.deadlineType}>
-              <select
-                id={`${formId}-deadline-type`}
-                className={INPUT}
-                value={form.deadline ? 'FIXED' : form.deadlineType}
-                onChange={(e) => update('deadlineType', e.target.value as FormState['deadlineType'])}
-                disabled={Boolean(form.deadline)}
-              >
-                {form.deadline && <option value="FIXED">Fixed date</option>}
-                <option value="ROLLING">Open all year</option>
-                <option value="CALL_BASED">Opens through calls</option>
-                <option value="UNKNOWN">Not stated</option>
-              </select>
-            </Field>
-            <Field id={`${formId}-opening`} label="Applications open" source={sources.openingDate}>
-              <input id={`${formId}-opening`} type="date" className={INPUT} value={form.openingDate} onChange={(e) => update('openingDate', e.target.value)} />
-            </Field>
-          </div>
-        </Group>
+          <div className="flex flex-col gap-6">
+            {/* Dates beside money on medium screens; stacked in the right-hand column on wide ones. */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 xl:grid-cols-1 gap-6">
+              <div className="lg:col-span-3 xl:col-span-1">
+                <Group title="Dates">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <Field id={`${formId}-deadline`} label="Last date to apply" source={sources.deadline}>
+                      <input id={`${formId}-deadline`} type="date" className={INPUT} value={form.deadline} onChange={(e) => update('deadline', e.target.value)} />
+                    </Field>
+                    <Field id={`${formId}-deadline-type`} label="If there's no date" source={sources.deadlineType}>
+                      <select
+                        id={`${formId}-deadline-type`}
+                        className={INPUT}
+                        value={form.deadline ? 'FIXED' : form.deadlineType}
+                        onChange={(e) => update('deadlineType', e.target.value as FormState['deadlineType'])}
+                        disabled={Boolean(form.deadline)}
+                      >
+                        {form.deadline && <option value="FIXED">Fixed date</option>}
+                        <option value="ROLLING">Open all year</option>
+                        <option value="CALL_BASED">Opens through calls</option>
+                        <option value="UNKNOWN">Not stated</option>
+                      </select>
+                    </Field>
+                    <Field id={`${formId}-opening`} label="Applications open" source={sources.openingDate}>
+                      <input id={`${formId}-opening`} type="date" className={INPUT} value={form.openingDate} onChange={(e) => update('openingDate', e.target.value)} />
+                    </Field>
+                  </div>
+                </Group>
+              </div>
 
-        <Group title="Money (in lakh)">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <LakhField id={`${formId}-min`} label="Smallest amount" value={form.amountMin} parsed={amountMin}
-              onChange={(v) => update('amountMin', v)} source={sources.amountMin} />
-            <LakhField id={`${formId}-max`} label="Largest amount" value={form.amountMax} parsed={amountMax}
-              onChange={(v) => update('amountMax', v)} source={sources.amountMax} />
-          </div>
-        </Group>
+              <div className="lg:col-span-2 xl:col-span-1">
+                <Group title="Money (in lakh)">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <LakhField id={`${formId}-min`} label="Smallest amount" value={form.amountMin} parsed={amountMin}
+                      onChange={(v) => update('amountMin', v)} source={sources.amountMin} />
+                    <LakhField id={`${formId}-max`} label="Largest amount" value={form.amountMax} parsed={amountMax}
+                      onChange={(v) => update('amountMax', v)} source={sources.amountMax} />
+                  </div>
+                </Group>
+              </div>
+            </div>
 
-        <Group title="Who can apply">
-          <Field id={`${formId}-eligibility`} label="Eligibility" source={sources.eligibility}>
-            <textarea id={`${formId}-eligibility`} className={`${INPUT} min-h-20`} value={form.eligibility} onChange={(e) => update('eligibility', e.target.value)} maxLength={2000} />
-          </Field>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field id={`${formId}-phd`} label="PhD required" source={sources.requiresPhd}>
-              <select id={`${formId}-phd`} className={INPUT} value={form.requiresPhd} onChange={(e) => update('requiresPhd', e.target.value as FormState['requiresPhd'])}>
-                <option value="">Not stated</option>
-                <option value="YES">Yes</option>
-                <option value="NO">No</option>
-              </select>
-            </Field>
-            <Field id={`${formId}-citizenship`} label="Citizenship" source={sources.citizenship}>
-              <input id={`${formId}-citizenship`} className={INPUT} value={form.citizenship} onChange={(e) => update('citizenship', e.target.value)} placeholder="e.g. Indian" maxLength={200} />
-            </Field>
+            <Group title="Who can apply">
+              <Field id={`${formId}-eligibility`} label="Eligibility" source={sources.eligibility}>
+                <textarea id={`${formId}-eligibility`} className={`${INPUT} min-h-20`} value={form.eligibility} onChange={(e) => update('eligibility', e.target.value)} maxLength={2000} />
+              </Field>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-2 gap-4">
+                <Field id={`${formId}-phd`} label="PhD required" source={sources.requiresPhd}>
+                  <select id={`${formId}-phd`} className={INPUT} value={form.requiresPhd} onChange={(e) => update('requiresPhd', e.target.value as FormState['requiresPhd'])}>
+                    <option value="">Not stated</option>
+                    <option value="YES">Yes</option>
+                    <option value="NO">No</option>
+                  </select>
+                </Field>
+                <Field id={`${formId}-citizenship`} label="Citizenship" source={sources.citizenship}>
+                  <input id={`${formId}-citizenship`} className={INPUT} value={form.citizenship} onChange={(e) => update('citizenship', e.target.value)} placeholder="e.g. Indian" maxLength={200} />
+                </Field>
+                <div className="sm:col-span-2">
+                  <Field id={`${formId}-apply`} label="Where to apply" source={sources.applicationLink}>
+                    <input id={`${formId}-apply`} type="url" className={INPUT} value={form.applicationLink} onChange={(e) => update('applicationLink', e.target.value)} placeholder="https://… the application portal" />
+                  </Field>
+                </div>
+              </div>
+            </Group>
           </div>
-          <Field id={`${formId}-apply`} label="Where to apply" source={sources.applicationLink}>
-            <input id={`${formId}-apply`} type="url" className={INPUT} value={form.applicationLink} onChange={(e) => update('applicationLink', e.target.value)} placeholder="https://… the application portal" />
-          </Field>
-        </Group>
+        </div>
 
         {duplicates.length > 0 && (
           <div className={`rounded-lg border px-4 py-3 text-sm ${knownLink ? 'border-red-200 bg-red-50 text-red-900' : 'border-amber-200 bg-amber-50 text-amber-900'}`} role="status">

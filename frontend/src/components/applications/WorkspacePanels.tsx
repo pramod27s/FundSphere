@@ -2,41 +2,12 @@ import { User } from 'lucide-react';
 import type { ChecklistItem } from '../../services/applicationsService';
 import { formatDay, todayIso } from '../../utils/applicationDates';
 import { PanelCard, PanelNote } from '../common/PageLayout';
-import { CATEGORY_META, CATEGORY_ORDER } from './applicationMeta';
 
 /*
  * Side cards for an application's tabs (xl up). They summarise what the
  * tab lists, so below xl, where the tab has the full width, they're left out.
+ * (The checklist's progress by category is on its filter chips, in ChecklistTab.)
  */
-
-/** Checklist tab: how far each kind of requirement has got. Items marked not applicable don't count. */
-export function CategoryProgress({ items }: { items: ChecklistItem[] }) {
-  const rows = CATEGORY_ORDER.flatMap((category) => {
-    const counted = items.filter((i) => i.category === category && i.status !== 'NA');
-    return counted.length === 0 ? [] : [{ category, total: counted.length, done: counted.filter((i) => i.status === 'DONE').length }];
-  });
-  if (rows.length === 0) return null;
-  const done = rows.reduce((n, r) => n + r.done, 0);
-  const total = rows.reduce((n, r) => n + r.total, 0);
-
-  return (
-    <PanelCard title="By category" detail={`${done} of ${total} done`} className="hidden xl:block">
-      <ul className="flex flex-col gap-3">
-        {rows.map((row) => (
-          <li key={row.category}>
-            <div className="flex items-baseline justify-between gap-3 text-xs">
-              <span className="font-medium text-brand-800 truncate">{CATEGORY_META[row.category].label}</span>
-              <span className="shrink-0 tabular-nums text-brand-500">{row.done}/{row.total}</span>
-            </div>
-            <span className="mt-1 block h-1.5 rounded-full bg-brand-100 overflow-hidden" aria-hidden="true">
-              <span className="block h-full rounded-full bg-primary-500" style={{ width: `${(row.done / row.total) * 100}%` }} />
-            </span>
-          </li>
-        ))}
-      </ul>
-    </PanelCard>
-  );
-}
 
 /** Tracker tab: who has what left, overdue first, with the unassigned items last. */
 export function OwnerLoad({ items }: { items: ChecklistItem[] }) {
