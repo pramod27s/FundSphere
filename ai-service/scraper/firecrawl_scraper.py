@@ -42,6 +42,22 @@ FIRECRAWL_CREDIT_USAGE_URL = "https://api.firecrawl.dev/v1/team/credit-usage"
 # Our scrape uses JSON (LLM) extraction: 1 credit + 4 for the JSON format.
 CREDITS_PER_EXTRACTION = 5
 
+# --- Link discovery on listing pages -----------------------------------------
+# A listing seed whose plain HTML has no grant links is usually built by
+# JavaScript (DST, MeitY). Discovery then asks Firecrawl for the page after its
+# script has run: a plain scrape, 1 credit. Capped per seed, so a site whose
+# listing is simply empty costs at most this much a day.
+DISCOVERY_RENDER = os.getenv("DISCOVERY_RENDER", "true").strip().lower() not in ("false", "0", "no")
+CREDITS_PER_RENDER = 1
+MAX_RENDERS_PER_SEED = int(os.getenv("DISCOVERY_MAX_RENDERS", "2"))
+# A listing's next pages followed (page 1 counts), and category pages
+# ("Schemes", "Fellowships") opened from a seed.
+MAX_LISTING_PAGES = int(os.getenv("DISCOVERY_MAX_PAGES", "3"))
+MAX_CATEGORY_PAGES = int(os.getenv("DISCOVERY_MAX_CATEGORIES", "8"))
+# Pause between page fetches during discovery, so a seed's pages aren't
+# requested back to back.
+DISCOVERY_DELAY_SECONDS = float(os.getenv("DISCOVERY_DELAY_SECONDS", "1.0"))
+
 
 class FirecrawlCreditsExhausted(RuntimeError):
     """Every configured Firecrawl key is out of credits."""
@@ -411,12 +427,52 @@ GRANT_LINK_KEYWORDS = [
 GENERIC_LINK_TEXT = re.compile(r"^(view|download|open document|click here|here|read more|more|details|pdf)\b", re.I)
 
 # Notices that are not open calls: results and selection lists, amendments,
-# administrative circulars, tenders and job adverts (UGC's notices are mostly these).
+# administrative circulars, tenders and job adverts (UGC's notices are mostly
+# these), plus the committee, report and media pages that the broader grant
+# words below ("scheme", "programme", "fund") would otherwise let through.
 NON_GRANT_LINK_TEXT = re.compile(
     r"\b(results?|list of selected|selected (candidates|proposals)|shortlisted|corrigendum|addendum|"
-    r"circular|tender|vacanc(y|ies)|recruitment|dearness)\b",
+    r"circular|tender|vacanc(y|ies)|recruitment|dearness|committees?|minutes|annual reports?|"
+    r"newsletters?|press releases?|gallery|user manual|manual for|regulations|list of eligible|"
+    r"rti|right to information)\b",
     re.I,
 )
+
+# Link text that marks a likely call. Whole words, so "fund" doesn't match
+# "refund" or "fundamental", and "award" doesn't match "awardees".
+# Strong words name a call outright ("Call for Proposals", "Travel Grant",
+# "Senior Fellowship"). Weak ones also name calls ("Seed Grant Scheme",
+# "Startup Seed Fund", "Young Scientist Programme") but just as often a
+# programme's general page, so their links rank after the strong ones: a
+# seed's link budget goes to the clearest calls first.
+STRONG_GRANT_LINK_TEXT = re.compile(
+    r"\b(grants?|fellowships?|awards?|scholarships?|funding|"
+    r"calls? for (research )?proposals?|calls? for applications?|calls? for nominations?|special calls?|"
+    r"proposals invited|expression of interest)\b",
+    re.I,
+)
+
+
+def _url_words(url: str) -> str:
+    """A URL's path as words: "/pdf/User manual for new user registration.pdf",
+    "/pdfnews/0064351_CIRCULAR_003.pdf", "/subpage/RTI-Act.aspx". Noise is
+    often named only in the file name, behind a "Download" link."""
+    from urllib.parse import unquote, urlparse
+    return re.sub(r"[-_./]+", " ", unquote(urlparse(url).path))
+WEAK_GRANT_LINK_TEXT = re.compile(r"\b(schemes?|programmes?|programs?|funds?)\b", re.I)
+
+# Link text of a section worth opening from a seed to look for calls in.
+CATEGORY_LINK_TEXT = re.compile(
+    r"\b(grants?|fellowships?|scholarships?|schemes?|programmes?|programs?|funding|"
+    r"opportunit(y|ies)|calls? for proposals?)\b",
+    re.I,
+)
+
+# "Next" controls of a paginated listing: "Next", "Next »", "›", "Older posts".
+# A doubled arrow ("»»") is usually "last page", so it isn't followed.
+NEXT_LINK_TEXT = re.compile(r"^(next( page)?(\s*[»›>])?|[»›>]|older( posts| entries)?)$", re.I)
+# Where a numbered page link carries its page number.
+PAGE_IN_URL = re.compile(r"[?&](page|pg|p|paged|pageno|page_no|start|offset)=\d+|/page/\d+/?$", re.I)
 
 
 # Pages that never hold a single grant: site chrome, machine endpoints
@@ -440,10 +496,13 @@ NON_GRANT_HOSTS = {
     "linkedin.com", "instagram.com", "wa.me", "t.me",
     # UGC links its bank's fellowship disbursement portal (payments, not a grant).
     "scholarship.canarabank.bank.in", "scholarship.canarabank.in",
+    # Fee payment (INSA) and government press releases (PIB): never a call.
+    "onlinesbi.sbi.bank.in", "onlinesbi.sbi", "pib.gov.in",
 }
-# Words inside a segment that mark announcements of winners, not open calls
-# (e.g. "SF-Result-2026-27.pdf", "/result/announcement-award-...").
-NON_GRANT_SEGMENT_WORDS = {"result", "results", "awardee", "awardees", "shortlisted"}
+# Words inside a segment that mark announcements of winners, circulars or
+# photo pages, not open calls (e.g. "SF-Result-2026-27.pdf",
+# "/result/announcement-award-...", "0064351_CIRCULAR_003.pdf", "/photo-gallery/...").
+NON_GRANT_SEGMENT_WORDS = {"result", "results", "awardee", "awardees", "shortlisted", "circular", "gallery"}
 
 
 def _is_non_grant_url(url: str) -> bool:
@@ -488,135 +547,241 @@ def _selectors_for(url: str) -> list[str]:
     return selectors
 
 
-def crawl_for_grants(start_url, max_required=8):
+def _safe_print(*args):
+    """print() that survives Windows terminals without UTF-8."""
+    try:
+        print(*args)
+    except UnicodeEncodeError:
+        print(" ".join(str(a) for a in args).encode("utf-8", "ignore").decode("utf-8"))
+
+
+_BINARY_EXTENSIONS = (".zip", ".doc", ".docx", ".xls", ".xlsx", ".jpg", ".jpeg", ".png", ".gif")
+
+
+def _grant_links_on_page(soup, current_url: str, known: set[str]) -> tuple[list[str], list[str]]:
+    """Links on one page that look like single calls, in page order, as
+    (strong, weak) by how clearly their text names a call. Anything in
+    `known` (already found or already visited) is left out."""
+    strong: list[str] = []
+    weak: list[str] = []
+
+    def keep(link: str | None, bucket: list[str]) -> bool:
+        if link and link != current_url and link not in known and link not in strong and link not in weak:
+            bucket.append(link)
+            return True
+        return False
+
+    # Site-specific structured links (configured per domain). On sites with no
+    # registered selectors this is skipped and the text scan below finds the links.
+    for selector in _selectors_for(current_url):
+        for a in soup.select(selector):
+            # Title text: prefer a nested <div class="link"> (SERB-style
+            # accordion), else fall back to the anchor's own text.
+            link_div = a.find("div", class_="link")
+            title_source = link_div if link_div is not None else a
+            grant_title = title_source.get_text(strip=True).lower()
+            if not grant_title or not any(kw in grant_title for kw in GRANT_LINK_KEYWORDS):
+                continue
+            href = a.get("href")
+            # Same-page anchors ("#accordion") can't be scraped as their own
+            # grant: the #fragment never reaches the server, so Firecrawl sees
+            # the whole page and extracts its FIRST grant.
+            if not href or href.startswith("#"):
+                continue
+            link = _join_link(current_url, href)
+            if keep(link, strong):
+                _safe_print(f"       Found structured grant target: {title_source.get_text(strip=True)} -> {link}")
+
+    # Any link whose text names a call, with at least two words so bare menu
+    # items ("Schemes", "Funding") aren't taken for one.
+    for a in soup.find_all("a", href=True):
+        if a["href"].startswith("#"):
+            continue
+        link = _join_link(current_url, a["href"])
+        # javascript:, mailto: and tel: links can't be fetched
+        if not link or not link.startswith(("http://", "https://")):
+            continue
+        if _is_non_grant_url(link) or link.lower().endswith(_BINARY_EXTENSIONS):
+            continue  # PDFs are kept: many calls are PDF-only
+        text = " ".join(a.get_text(" ", strip=True).split()).lower()
+        if not text:
+            continue
+        if GENERIC_LINK_TEXT.match(text):
+            # "View", "Download": the call's name is in the table row or list item.
+            row = a.find_parent(["tr", "li"])
+            if row is not None:
+                text = " ".join(row.get_text(" ", strip=True).split())[:300].lower()
+        if NON_GRANT_LINK_TEXT.search(text) or NON_GRANT_LINK_TEXT.search(_url_words(link)) or len(text.split()) < 2:
+            continue
+        if STRONG_GRANT_LINK_TEXT.search(text):
+            bucket = strong
+        elif WEAK_GRANT_LINK_TEXT.search(text):
+            bucket = weak
+        else:
+            continue
+        if keep(link, bucket):
+            _safe_print(f"       Found explicit grant link: {text} -> {link}")
+
+    return strong, weak
+
+
+def _category_links(soup, current_url: str) -> list[str]:
+    """Sections of a seed worth opening to look for calls in ("Schemes", "Fellowships")."""
+    links: list[str] = []
+    for a in soup.find_all("a", href=True):
+        if a["href"].startswith("#"):
+            continue
+        link = _join_link(current_url, a["href"])
+        text = " ".join(a.get_text(" ", strip=True).split())
+        if (link and link.startswith("http") and link != current_url and link not in links
+                and CATEGORY_LINK_TEXT.search(text) and not NON_GRANT_LINK_TEXT.search(text)
+                and not _is_non_grant_url(link)):
+            links.append(link)
+    return links
+
+
+def _next_page_url(soup, current_url: str, page_no: int) -> str | None:
+    """The listing's next page on the same site: rel="next", a "Next" control,
+    or the link numbered page_no + 1. None when there isn't one."""
+    from urllib.parse import urldefrag, urlparse
+    host = urlparse(current_url).netloc.lower()
+    hrefs: list[str] = [tag.get("href") for tag in soup.select('a[rel~="next"], link[rel~="next"]')]
+    for a in soup.find_all("a", href=True):
+        text = " ".join(a.get_text(" ", strip=True).split()).lower()
+        label = (a.get("aria-label") or a.get("title") or "").strip().lower()
+        if NEXT_LINK_TEXT.match(text) or label.startswith("next"):
+            hrefs.append(a["href"])
+        elif text == str(page_no + 1) and PAGE_IN_URL.search(a["href"]):
+            hrefs.append(a["href"])
+    for href in hrefs:
+        if not href or href.startswith(("#", "javascript:")):
+            continue
+        link = _join_link(current_url, href)
+        if not link:
+            continue
+        link = urldefrag(link)[0]
+        if urlparse(link).netloc.lower() == host and link != urldefrag(current_url)[0]:
+            return link
+    return None
+
+
+def _render_html_with_firecrawl(url: str) -> str | None:
+    """The page's HTML after its JavaScript has run, from a plain Firecrawl
+    scrape (1 credit, no extraction). None if it can't be had."""
+    try:
+        response = _firecrawl_post(url, {"url": url, "formats": ["rawHtml"], "waitFor": 3000})
+    except FirecrawlCreditsExhausted:
+        print("       No Firecrawl credits left to render this page.")
+        return None
+    except RuntimeError as exc:  # no Firecrawl key configured
+        print(f"       Can't render this page: {exc}")
+        return None
+    if response is None or response.status_code != 200:
+        print(f"       Firecrawl couldn't render the page ({getattr(response, 'status_code', 'no response')}).")
+        return None
+    try:
+        data = response.json().get("data", {})
+    except ValueError:
+        return None
+    return data.get("rawHtml") or data.get("html")
+
+
+def crawl_for_grants(start_url, max_required=8, render=True, stats=None):
+    """Find single-call pages linked from a listing seed.
+
+    Scans each page's links for call-like text, opens the seed's category links
+    one level down ("Schemes", "Fellowships"), and follows each listing's next
+    pages up to MAX_LISTING_PAGES. Links whose text clearly names a call come
+    first; ones named only "Scheme", "Programme" or "Fund" fill what's left of
+    the max_required * 2 budget. When the seed's plain HTML has no grant
+    links, the page is probably built by JavaScript: it's fetched again through
+    Firecrawl, which runs the script first (CREDITS_PER_RENDER each). Its
+    category pages then get the same treatment, within MAX_RENDERS_PER_SEED.
+
+    `render=False` (dry runs) spends nothing and only counts, in
+    stats["would_render"], the pages a paid run would render; stats["renders"]
+    counts the ones rendered.
+    """
     print(f"[*] Crawling {start_url} to discover up to {max_required} valid grant pages...")
-    visited = set()
-    # queue stores tuples of (url, depth)
-    queue = [(start_url, 0)]
-    valid_candidates = []
+    render = render and DISCOVERY_RENDER
+    stats = stats if stats is not None else {}
+    visited: set[str] = set()
+    queue = [(start_url, 0, 1)]  # (url, depth, page number within its listing)
+    strong_links: list[str] = []
+    weak_links: list[str] = []
+    budget = max_required * 2
+    categories_queued = 0
+    renders = 0
+    site_needs_render = False
     try:
         from bs4 import BeautifulSoup
 
-        while queue and len(valid_candidates) < max_required * 2:
-            current_url, depth = queue.pop(0)
+        # Keep looking until there are enough clear calls; weak links only fill in.
+        while queue and len(strong_links) < budget:
+            current_url, depth, page_no = queue.pop(0)
             if current_url in visited:
                 continue
-
+            if visited and DISCOVERY_DELAY_SECONDS > 0:
+                time.sleep(DISCOVERY_DELAY_SECONDS)
             visited.add(current_url)
-            print(f"    -> Fetching {current_url} (Depth: {depth})")
+            print(f"    -> Fetching {current_url} (Depth: {depth}, page {page_no})")
 
             page_html = _fetch_html(current_url)
             if not page_html:
+                # Not rendered either: a site that refuses us is left alone.
                 print(f"       Could not fetch {current_url} (skipping).")
                 continue
 
             soup = BeautifulSoup(page_html, "lxml")
+            known = set(strong_links) | set(weak_links) | visited
+            strong, weak = _grant_links_on_page(soup, current_url, known)
 
-            # For printing safely on Windows terminals
-            def safe_print(*args):
-                try:
-                    print(*args)
-                except UnicodeEncodeError:
-                    print(" ".join(str(a) for a in args).encode("utf-8", "ignore").decode("utf-8"))
+            # No grant links in the plain HTML: on the seed, or on a site whose
+            # seed needed it, look at the page once its JavaScript has run.
+            is_seed = depth == 0 and page_no == 1
+            if not (strong or weak) and (is_seed or site_needs_render):
+                if not render:
+                    stats["would_render"] = stats.get("would_render", 0) + 1
+                    print(f"       No grant links in the plain HTML; a paid run would render it ({CREDITS_PER_RENDER} credit).")
+                elif renders < MAX_RENDERS_PER_SEED:
+                    renders += 1
+                    print("       No grant links in the plain HTML; rendering it with Firecrawl...")
+                    rendered = _render_html_with_firecrawl(current_url)
+                    if rendered:
+                        stats["renders"] = stats.get("renders", 0) + 1
+                        soup = BeautifulSoup(rendered, "lxml")
+                        strong, weak = _grant_links_on_page(soup, current_url, known)
+                        site_needs_render = site_needs_render or is_seed
+                        print(f"       Rendered: {len(strong) + len(weak)} grant links.")
 
-            # Site-specific structured links (configured per domain). On sites
-            # with no registered selectors this loop is simply skipped and the
-            # generic keyword scan below handles discovery.
-            for selector in _selectors_for(current_url):
-                for a in soup.select(selector):
-                    # Title text: prefer a nested <div class="link"> (SERB-style
-                    # accordion), else fall back to the anchor's own text.
-                    link_div = a.find("div", class_="link")
-                    title_source = link_div if link_div is not None else a
-                    grant_title = title_source.get_text(strip=True).lower()
-                    if not grant_title:
-                        continue
+            strong_links.extend(strong)
+            weak_links.extend(weak)
 
-                    if not any(kw in grant_title for kw in GRANT_LINK_KEYWORDS):
-                        continue
-
-                    href = a.get("href")
-                    # Same-page anchors ("#accordion") can't be scraped as their
-                    # own grant: the #fragment never reaches the server, so
-                    # Firecrawl sees the whole page and extracts its FIRST grant.
-                    if not href or href.startswith("#"):
-                        continue
-                    l = _join_link(current_url, href)
-
-                    if l and l not in valid_candidates and l not in visited:
-                        valid_candidates.append(l)
-                        try:
-                            safe_print(f"       Found structured grant target: {title_source.get_text(strip=True)} -> {l}")
-                        except Exception:
-                            pass
-
-            # Catch standard href links that explicitly mention grant keywords in text
-            # but only if they are clearly grants (avoid menu items)
-            for a in soup.find_all("a", href=True):
-                l = _join_link(current_url, a["href"])
-
-                # Ignore fragment-only links unless we want the current page
-                if a["href"].startswith("#"):
-                    continue
-                # javascript:, mailto: and tel: links can't be fetched
-                if not l or not l.startswith(("http://", "https://")):
-                    continue
-
-                if _is_non_grant_url(l):
-                    continue
-                # Skip non-PDF binary asset extensions; PDFs are handled.
-                lower_l = l.lower()
-                if any(lower_l.endswith(ext) for ext in (".zip", ".doc", ".docx", ".xls", ".xlsx", ".jpg", ".jpeg", ".png", ".gif")):
-                    continue
-                
-                try:
-                    text = " ".join(a.get_text(" ", strip=True).split()).lower()
-                except Exception:
-                    text = ""
-
-                if not text:
-                    continue
-
-                if GENERIC_LINK_TEXT.match(text):
-                    row = a.find_parent(["tr", "li"])
-                    if row is not None:
-                        text = " ".join(row.get_text(" ", strip=True).split())[:300].lower()
-
-                if NON_GRANT_LINK_TEXT.search(text):
-                    continue
-
-                is_grant = False
-                grant_keywords = ["fellowship", "research grant", "award", "scholarship", "funding", "call for proposal",
-                                  "call for research proposal", "call for application", "call for nomination",
-                                  "special call", "proposals invited", "expression of interest",
-                                  "grants for artificial intelligence", "grants for conference"]
-                for kw in grant_keywords:
-                    # Require the keyword and at least 2 words to avoid generic links
-                    if kw in text and len(text.split()) > 1: 
-                        is_grant = True
+            if is_seed:
+                # A link can be both a candidate and a section to open ("Senior
+                # Fellowships" may list several calls), so candidates are opened too.
+                for link in _category_links(soup, current_url):
+                    if categories_queued >= MAX_CATEGORY_PAGES:
                         break
-                
-                if is_grant and l not in valid_candidates and l not in visited and l != current_url:
-                    valid_candidates.append(l)
-                    safe_print(f"       Found explicit grant link: {text} -> {l}")
-                    if len(valid_candidates) >= max_required * 2:
-                        break
+                    if link not in visited and not any(q[0] == link for q in queue):
+                        queue.append((link, 1, 1))
+                        categories_queued += 1
 
-            # If depth 0, look for category links to crawl further
-            if depth == 0:
-                for a in soup.find_all("a", href=True):
-                    l = _join_link(current_url, a["href"])
-                    if l and l.startswith("http") and ("grant" in a.text.lower() or "fellowship" in a.text.lower()):
-                         if l not in visited and not any(q[0] == l for q in queue) and l != current_url and not a["href"].startswith("#"):
-                             queue.append((l, depth + 1))
-                            
-        print(f"[+] Crawler discovered {len(valid_candidates)} candidate grant URLs.")
-        return valid_candidates[:max_required * 2]
-        
+            if page_no < MAX_LISTING_PAGES:
+                next_url = _next_page_url(soup, current_url, page_no)
+                if next_url and next_url not in visited and not any(q[0] == next_url for q in queue):
+                    print(f"       Next page: {next_url}")
+                    queue.append((next_url, depth, page_no + 1))
+
+        found = (strong_links + weak_links)[:budget]
+        print(f"[+] Crawler discovered {len(found)} candidate grant URLs "
+              f"({len(strong_links)} clearly named, {len(weak_links)} scheme/programme/fund links).")
+        return found
+
     except Exception as e:
         # Keep what was found before the error rather than losing the whole seed.
         print(f"[-] Local crawler encountered an error: {str(e)}")
-        return valid_candidates[:max_required * 2]
+        return (strong_links + weak_links)[:budget]
 
 import argparse
 

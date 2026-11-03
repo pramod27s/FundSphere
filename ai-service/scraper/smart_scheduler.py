@@ -705,6 +705,10 @@ def run_smart_scraper(seed_urls, max_per_seed=8, dry_run=False, grant_pages=()):
         "fragment_url_changed": 0,
         "frozen_source_changed": 0,
         "skipped_no_credits": 0,
+        # Listing pages built by JavaScript, rendered through Firecrawl to find
+        # their links (1 credit each); in a dry run, the ones that would be.
+        "discovery_renders": 0,
+        "discovery_would_render": 0,
         "firecrawl_keys": [],
         "dry_run": dry_run,
         "would_extract": 0,
@@ -782,7 +786,13 @@ def run_smart_scraper(seed_urls, max_per_seed=8, dry_run=False, grant_pages=()):
 
         # If it's a known list/category page, discover child grants using your existing crawler logic
         if seed.count("/") <= 3 or "/type/" in seed.lower() or "/industry/" in seed.lower() or "page" in seed.lower():
-            discovered = _clean_discovered(crawl_for_grants(seed, max_required=max_per_seed))
+            # A dry run never pays Firecrawl, so pages needing a render are only counted.
+            discovery_stats: dict = {}
+            discovered = _clean_discovered(crawl_for_grants(
+                seed, max_required=max_per_seed, render=not dry_run, stats=discovery_stats,
+            ))
+            summary["discovery_renders"] += discovery_stats.get("renders", 0)
+            summary["discovery_would_render"] += discovery_stats.get("would_render", 0)
             if discovered:
                 candidates.extend(discovered)
             else:
@@ -1070,13 +1080,18 @@ if __name__ == "__main__":
         # UGC fellowships (JRF, Savitribai Phule), research awards and cooperation calls; about
         # half its notices are scholarships abroad or prizes, which extraction marks not-a-grant.
         "https://www.ugc.gov.in/",
+        # MeitY's site is built by JavaScript: its plain HTML has no links, so discovery
+        # renders it through Firecrawl (1 credit, up to 2 a run). Checked 3 Nov 2026: the
+        # render found its open call for Grant Challenges in next-generation electronics.
+        "https://www.meity.gov.in/",
         # Not seeded (checked 26 Oct 2026), so these calls are added by hand:
         # - dbtindia.gov.in doesn't resolve from our network; dbtepromis.nic.in has a broken
         #   certificate chain (DBT calls also come through BIRAC, seeded above).
         # - aicte-india.org resets the connection and vgst.karnataka.gov.in answers 403:
         #   both block crawlers, which we respect.
-        # - dst.gov.in, moes.gov.in and meity.gov.in are JavaScript apps; DST's call list
-        #   renders only in a browser and was empty ("No Data Available").
+        # - dst.gov.in and moes.gov.in are JavaScript apps. Discovery can render them now,
+        #   but dst.gov.in/call-for-proposals rendered (3 Nov 2026) with no calls on it: find
+        #   DST's current call-list address in a browser before seeding it.
         # - online-inspire.gov.in didn't resolve; indiaalliance.org, msh.meity.gov.in and
         #   nidhi.dst.gov.in expose no grant links.
         # Dropped Oct 2026: startupgrantsindia.com (startup accelerators, junk pages) and
