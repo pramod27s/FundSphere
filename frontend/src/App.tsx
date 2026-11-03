@@ -235,7 +235,8 @@ function AppShell() {
   const { researcher } = useResearcher();
   return (
     <>
-      <div className="pb-[var(--mobile-tab-bar)] md:pb-0 md:pr-20">
+      {/* The canvas is a step darker than the white cards, so cards stand out on every signed-in page. */}
+      <div className="min-h-screen bg-canvas pb-[var(--mobile-tab-bar)] md:pb-0 md:pr-20">
         {/* Own boundary so switching tabs keeps the rail mounted while the next screen's chunk loads. */}
         <Suspense fallback={<TopLoadingBar visible />}>
           <Outlet />

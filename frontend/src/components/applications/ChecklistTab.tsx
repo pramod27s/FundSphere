@@ -99,7 +99,7 @@ export default function ChecklistTab({ application, items, onApplication, onPatc
       )}
 
       {shown.map(({ category, items: groupItems }) => (
-        <section key={category} className="bg-white border border-brand-200 rounded-lg overflow-hidden">
+        <section key={category} className="bg-white border border-brand-200 rounded-lg overflow-hidden shadow-card">
           <header className="px-4 py-3 border-b border-brand-100 bg-brand-50 flex items-baseline justify-between gap-3">
             <div>
               <h3 className="text-sm font-bold text-brand-900">{CATEGORY_META[category].label}</h3>

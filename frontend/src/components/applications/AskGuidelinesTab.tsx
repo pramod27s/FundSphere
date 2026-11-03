@@ -77,7 +77,7 @@ export default function AskGuidelinesTab({ application, entries, onEntries, onOp
 
   return (
     <div className="flex flex-col gap-4">
-      <form onSubmit={submit} className="rounded-xl border border-brand-200 bg-white p-4 shadow-xs">
+      <form onSubmit={submit} className="rounded-xl border border-brand-200 bg-white p-4 shadow-card">
         <label htmlFor="guidelines-question" className="block text-sm font-semibold text-brand-900">
           Ask about this call's guidelines
         </label>
@@ -121,7 +121,7 @@ export default function AskGuidelinesTab({ application, entries, onEntries, onOp
 
       <ul className="flex flex-col gap-3" aria-live="polite">
         {entries.map((entry) => (
-          <li key={entry.id} className="rounded-xl border border-brand-200 bg-white p-4">
+          <li key={entry.id} className="rounded-xl border border-brand-200 bg-white p-4 shadow-card">
             <p className="flex gap-2 text-sm font-semibold text-brand-900">
               <MessageCircleQuestion className="w-4 h-4 text-primary-600 shrink-0 mt-0.5" aria-hidden="true" />
               {entry.question}

@@ -83,7 +83,7 @@ export default function ReviewReport({ review, previous, onRunFull, runningFull 
       )}
 
       {(result.summary || result.top_fixes.length > 0) && (
-        <section className="bg-white border border-brand-200 rounded-xl p-5">
+        <section className="bg-white border border-brand-200 rounded-xl p-5 shadow-card">
           {result.summary && <p className="text-sm text-brand-800 leading-relaxed">{result.summary}</p>}
           {result.top_fixes.length > 0 && (
             <>
@@ -200,7 +200,7 @@ function ScoreHeader({ review, result, previous, verifiedCritical, outOfScope }:
   const { document } = result;
 
   return (
-    <section className="bg-white border border-brand-200 rounded-xl p-5 shadow-xs">
+    <section className="bg-white border border-brand-200 rounded-xl p-5 shadow-card">
       <div className="flex flex-col sm:flex-row sm:items-center gap-5">
         <div className="flex items-baseline gap-2 shrink-0">
           {score !== null ? (
@@ -322,7 +322,7 @@ function Panel({ title, count, icon, defaultOpen = false, children }: {
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <section className="bg-white border border-brand-200 rounded-xl overflow-hidden">
+    <section className="bg-white border border-brand-200 rounded-xl overflow-hidden shadow-card">
       <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open}
         className="w-full px-4 py-3 flex items-center gap-2 text-left bg-brand-50 hover:bg-brand-100/70">
         {icon}

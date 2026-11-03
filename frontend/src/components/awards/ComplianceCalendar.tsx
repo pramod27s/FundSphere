@@ -127,7 +127,7 @@ export default function ComplianceCalendar({ award, onAward, onDraftReport }: Co
   );
 
   return (
-    <section className="bg-white border border-brand-200 rounded-xl p-5 sm:p-6 shadow-xs mt-6">
+    <section className="bg-white border border-brand-200 rounded-xl p-5 sm:p-6 shadow-card mt-6">
       <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
         <div>
           <h2 className="text-base font-bold text-brand-900 tracking-tight">Reporting deadlines</h2>

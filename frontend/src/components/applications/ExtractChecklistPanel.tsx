@@ -76,7 +76,7 @@ export default function ExtractChecklistPanel({ application, onExtracted, onCanc
   const progress = [...PROGRESS].reverse().find((p) => elapsed >= p.after)?.text ?? PROGRESS[0].text;
 
   return (
-    <div className="rounded-xl border border-primary-200 bg-white p-5 sm:p-6 shadow-xs">
+    <div className="rounded-xl border border-primary-200 bg-white p-5 sm:p-6 shadow-card">
       <div className="flex items-start gap-3 mb-4">
         <div className="w-9 h-9 rounded-lg bg-primary-50 border border-primary-200 flex items-center justify-center shrink-0">
           <Sparkles className="w-4 h-4 text-primary-600" />

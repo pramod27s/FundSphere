@@ -41,7 +41,7 @@ export default function DraftUpload({ withGuidelines = false, busy = false, onSt
   };
 
   return (
-    <form onSubmit={submit} className="bg-white border border-brand-200 rounded-xl p-5 flex flex-col gap-4">
+    <form onSubmit={submit} className="bg-white border border-brand-200 rounded-xl p-5 flex flex-col gap-4 shadow-card">
       <div className={`grid gap-3 ${withGuidelines ? 'sm:grid-cols-2' : ''}`}>
         <FilePicker label="Proposal draft (PDF)" file={proposal} onPick={pick(setProposal)} />
         {withGuidelines && <FilePicker label="Call guidelines (PDF)" file={guidelines} onPick={pick(setGuidelines)} />}

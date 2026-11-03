@@ -93,7 +93,7 @@ export default function SpendCheckCard({ award, onEdit }: { award: Award; onEdit
   const nothingRecorded = check !== null && check.heads.every((head) => head.spent === null);
 
   return (
-    <section className="bg-white border border-brand-200 rounded-xl p-5 sm:p-6 shadow-xs mt-6">
+    <section className="bg-white border border-brand-200 rounded-xl p-5 sm:p-6 shadow-card mt-6">
       <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
         <div>
           <h2 className="text-base font-bold text-brand-900 tracking-tight">Budget and spending</h2>

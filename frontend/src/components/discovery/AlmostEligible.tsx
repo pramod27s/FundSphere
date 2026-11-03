@@ -38,7 +38,7 @@ export default function AlmostEligible({ items, profile }: AlmostEligibleProps) 
           const fixable = gaps.filter((gap) => gap.requirement);
           return (
             <li key={grant.id}>
-              <article className="group relative bg-white border border-brand-200 border-dashed rounded-xl p-4 sm:p-5 hover:border-primary-300 has-[.card-link:focus-visible]:ring-2 has-[.card-link:focus-visible]:ring-primary-500 transition-colors">
+              <article className="group relative bg-white border border-brand-200 border-dashed rounded-xl p-4 sm:p-5 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 hover:border-primary-300 has-[.card-link:focus-visible]:ring-2 has-[.card-link:focus-visible]:ring-primary-500 transition-[box-shadow,border-color,translate] duration-200">
                 <p className="text-sm text-brand-600 truncate">
                   <span className="font-semibold text-brand-700">{grant.funder}</span>
                 </p>

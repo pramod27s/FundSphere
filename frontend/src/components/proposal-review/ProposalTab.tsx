@@ -98,7 +98,7 @@ export default function ProposalTab({ application, versions, onOpenChecklist }: 
       {uploadOpen || reviews?.length === 0 ? (
         <DraftUpload busy={starting} onStart={start} />
       ) : reviews !== null && (
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl border border-brand-200 bg-white px-4 py-3">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl border border-brand-200 bg-white px-4 py-3 shadow-card">
           <p className="flex-1 text-sm text-brand-700">Revised your draft? Check the new version against the same rules.</p>
           <button type="button" onClick={() => setUploadOpen(true)} className={buttonClasses('secondary', 'sm', 'shrink-0')}>
             <Upload className="w-4 h-4" aria-hidden="true" />

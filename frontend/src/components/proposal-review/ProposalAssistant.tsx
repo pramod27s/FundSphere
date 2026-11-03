@@ -320,7 +320,7 @@ function StatTile({ label, value, suffix, detail, valueClass, icon }: {
   label: string; value: string; suffix?: string; detail: string; valueClass?: string; icon?: ReactNode;
 }) {
   return (
-    <div className="bg-white border border-brand-200 rounded-lg p-4 shadow-xs min-w-0">
+    <div className="bg-white border border-brand-200 rounded-lg p-4 shadow-card min-w-0">
       <p className="flex items-center gap-1.5 text-xs font-medium text-brand-600">
         {icon}
         <span className="truncate">{label}</span>
@@ -363,7 +363,7 @@ function ProposalRowCard({ row, onOpen }: { row: ProposalRow; onOpen: () => void
     <button
       type="button"
       onClick={onOpen}
-      className="text-left w-full h-full flex flex-col bg-white border border-brand-200 rounded-lg p-4 sm:p-5 shadow-xs hover:shadow-elevated hover:border-primary-300 transition-all group"
+      className="text-left w-full h-full flex flex-col bg-white border border-brand-200 rounded-lg p-4 sm:p-5 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 hover:border-primary-300 transition-all duration-200 group"
     >
       {/* Grows, so cards side by side in a row keep their footers level. */}
       <div className="flex-1 min-w-0">

@@ -253,7 +253,7 @@ export default function AddGrant() {
 
   if (saved) {
     return (
-      <section className="bg-white border border-brand-200 rounded-lg shadow-xs p-5 flex flex-col gap-3" aria-live="polite">
+      <section className="bg-white border border-brand-200 rounded-lg shadow-card p-5 flex flex-col gap-3" aria-live="polite">
         <p className="flex items-start gap-2 text-sm text-brand-900">
           <CircleCheck className="w-5 h-5 text-primary-600 shrink-0" aria-hidden="true" />
           <span>
@@ -270,7 +270,7 @@ export default function AddGrant() {
   }
 
   return (
-    <section aria-labelledby={`${formId}-heading`} className="bg-white border border-brand-200 rounded-lg shadow-xs">
+    <section aria-labelledby={`${formId}-heading`} className="bg-white border border-brand-200 rounded-lg shadow-card">
       <div className="px-5 pt-5 pb-4 border-b border-brand-100">
         <h2 id={`${formId}-heading`} className="text-base font-bold text-brand-900 tracking-tight">Add a grant</h2>
         <p className="text-sm text-brand-600 mt-1">

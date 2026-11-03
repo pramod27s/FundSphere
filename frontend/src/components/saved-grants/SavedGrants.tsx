@@ -186,7 +186,7 @@ function SavedGrantCard({ entry, application, onOpenDetails, onUnsave, onSaveNot
   // or tooltip sits above that (relative z-10). Like the Discovery cards,
   // only "Verified" shows here; the provider's own update date is in the details.
   return (
-    <article className="relative h-full flex flex-col bg-white border border-brand-200 rounded-lg p-5 shadow-xs hover:shadow-elevated hover:border-primary-300 focus-within:ring-2 focus-within:ring-primary-300/40 transition-all duration-200 group cursor-pointer">
+    <article className="relative h-full flex flex-col bg-white border border-brand-200 rounded-lg p-5 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 hover:border-primary-300 focus-within:ring-2 focus-within:ring-primary-300/40 transition-all duration-200 group cursor-pointer">
       {/* Grows, so cards side by side in a row keep their bottom rows level. Not
           `relative`, so the title's click area still covers the whole card. */}
       <div className="flex-1 min-w-0">

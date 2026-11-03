@@ -426,7 +426,7 @@ function Summary({ application, onEdit }: { application: Application; onEdit: ()
   const history = application.statusHistory ?? [];
 
   return (
-    <section aria-label="Readiness" className="bg-white border border-brand-200 rounded-xl xl:rounded-lg p-5 sm:p-6 xl:p-4 shadow-xs">
+    <section aria-label="Readiness" className="bg-white border border-brand-200 rounded-xl xl:rounded-lg p-5 sm:p-6 xl:p-4 shadow-card">
       <div className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-6 xl:gap-4 items-center">
         <ReadinessRing percent={readiness.percent} />
 

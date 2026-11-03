@@ -171,7 +171,7 @@ function ApplicationCard({ application, onOpen }: { application: Application; on
     <button
       type="button"
       onClick={onOpen}
-      className="text-left w-full h-full flex flex-col bg-white border border-brand-200 rounded-lg p-5 shadow-xs hover:shadow-elevated hover:border-primary-300 transition-all group"
+      className="text-left w-full h-full flex flex-col bg-white border border-brand-200 rounded-lg p-5 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 hover:border-primary-300 transition-all duration-200 group"
     >
       {/* Grows, so cards side by side in a row keep their footers level. */}
       <div className="flex-1 min-w-0">

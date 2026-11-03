@@ -117,7 +117,7 @@ export function PanelCard({ title, detail, footer, className = '', children }: {
 }) {
   const headingId = useId();
   return (
-    <section aria-labelledby={headingId} className={`bg-white border border-brand-200 rounded-lg p-4 shadow-xs ${className}`}>
+    <section aria-labelledby={headingId} className={`bg-white border border-brand-200 rounded-lg p-4 shadow-card ${className}`}>
       <div className="flex items-baseline justify-between gap-2 mb-3">
         <h2 id={headingId} className="text-sm font-bold text-brand-900 tracking-tight">{title}</h2>
         {detail && <span className="text-xs text-brand-500 tabular-nums shrink-0">{detail}</span>}

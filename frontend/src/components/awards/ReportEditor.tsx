@@ -261,7 +261,7 @@ export default function ReportEditor() {
         <p className="text-xs text-brand-500">Click any sentence to see the records it comes from, or to edit it.</p>
       </div>
 
-      <article className="bg-white border border-brand-200 rounded-xl p-6 sm:p-10 shadow-xs">
+      <article className="bg-white border border-brand-200 rounded-xl p-6 sm:p-10 shadow-card">
         <p className="text-[11px] font-bold tracking-widest text-amber-700 uppercase">Draft</p>
         <h2 className="text-2xl font-bold text-brand-900 tracking-tight mt-1">{content.title}</h2>
 

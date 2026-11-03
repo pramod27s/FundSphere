@@ -18,7 +18,7 @@ interface GrantListProps {
 
 export function GrantSkeleton() {
   return (
-    <div aria-hidden="true" className="bg-white border border-brand-200 rounded-xl p-4 sm:p-5 shadow-soft">
+    <div aria-hidden="true" className="bg-white border border-brand-200 rounded-xl p-4 sm:p-5 shadow-card">
       <div className="flex gap-4">
         <div className="flex-1">
           <div className="h-4 w-40 skeleton-shimmer rounded-md mb-3"></div>
@@ -202,7 +202,7 @@ function GrantCard({
   const grantType = formatGrantType(grant.grantType);
 
   return (
-    <article className="group relative bg-white border border-brand-200 rounded-xl p-4 sm:p-5 shadow-soft hover:shadow-hover hover:border-primary-300 has-[.card-link:focus-visible]:ring-2 has-[.card-link:focus-visible]:ring-primary-500 transition-[box-shadow,border-color] duration-200">
+    <article className="group relative bg-white border border-brand-200 rounded-xl p-4 sm:p-5 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 hover:border-primary-300 has-[.card-link:focus-visible]:ring-2 has-[.card-link:focus-visible]:ring-primary-500 transition-[box-shadow,border-color,translate] duration-200">
       <div className="flex items-start gap-4">
         <div className="flex-1 min-w-0">
           <p className="text-sm text-brand-600 truncate">

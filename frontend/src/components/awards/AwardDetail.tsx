@@ -138,7 +138,7 @@ function GrantFacts({ award }: { award: Award }) {
   const meta = AWARD_STATUS_META[award.status];
   const time = timeUsed(award);
   return (
-    <section aria-label="Grant details" className="bg-white border border-brand-200 rounded-xl xl:rounded-lg p-5 sm:p-6 xl:p-4 shadow-xs flex flex-col gap-4">
+    <section aria-label="Grant details" className="bg-white border border-brand-200 rounded-xl xl:rounded-lg p-5 sm:p-6 xl:p-4 shadow-card flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
         <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold border ${meta.chip}`}>
           <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />

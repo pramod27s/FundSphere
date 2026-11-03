@@ -272,7 +272,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
   };
 
   return (
-    <div className="flex h-[calc(100vh_-_var(--mobile-tab-bar))] md:h-screen w-full overflow-hidden relative bg-brand-50">
+    <div className="flex h-[calc(100vh_-_var(--mobile-tab-bar))] md:h-screen w-full overflow-hidden relative bg-canvas">
       <TopLoadingBar visible={isLoading} />
 
       {/* Pinned to viewport but listens to main's internal scroll. The
@@ -530,7 +530,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
             <GrantList grants={displayedGrants} isLoading={isLoading} source={dataSource} profile={researcher} />
 
             {dataSource === 'core' && pagination.totalPages > 1 && (
-              <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-lg border border-brand-200 bg-white px-4 py-3 shadow-xs">
+              <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-lg border border-brand-200 bg-white px-4 py-3 shadow-card">
                 <p className="text-sm text-brand-500 tabular-nums">
                   Page <span className="font-semibold text-brand-800">{page + 1}</span> of{' '}
                   <span className="font-semibold text-brand-800">{pagination.totalPages}</span>

@@ -207,7 +207,7 @@ function ResearcherProfile({ researcher: initialResearcher, onLogout }: Research
 
       <div className={`flex-1 ${PAGE_WIDTH_WIDE} py-6 sm:py-8 space-y-5`}>
         {/* Who this is */}
-        <section className="rounded-xl border border-brand-200 bg-white p-5 md:p-6 shadow-soft">
+        <section className="rounded-xl border border-brand-200 bg-white p-5 md:p-6 shadow-card">
           <div className="flex flex-col sm:flex-row sm:items-center gap-5">
             <div className="relative shrink-0 self-start sm:self-auto">
               <div className="h-16 w-16 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center overflow-hidden border border-primary-200">
@@ -431,7 +431,7 @@ interface DetailCardProps {
 
 function DetailCard({ icon, title, hint, children }: DetailCardProps) {
   return (
-    <section className="rounded-xl border border-brand-200 bg-white p-5 shadow-soft">
+    <section className="rounded-xl border border-brand-200 bg-white p-5 shadow-card">
       <div className="flex items-center gap-2.5 mb-3 pb-3 border-b border-brand-100">
         <div className="w-8 h-8 rounded-lg bg-primary-50 border border-primary-200 flex items-center justify-center text-primary-600 shrink-0">
           {icon}

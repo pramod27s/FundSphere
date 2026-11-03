@@ -86,7 +86,7 @@ export default function ReadinessTab({ application, items, onPatchItem, onEditDe
         ))}
       </datalist>
 
-      <section className="bg-white border border-brand-200 rounded-lg overflow-hidden">
+      <section className="bg-white border border-brand-200 rounded-lg overflow-hidden shadow-card">
         <header className="px-4 py-3 border-b border-brand-100 bg-brand-50 flex items-center justify-between">
           <h3 className="text-sm font-bold text-brand-900">To do</h3>
           <span className="text-xs text-brand-500 tabular-nums">{open.length}</span>
@@ -104,7 +104,7 @@ export default function ReadinessTab({ application, items, onPatchItem, onEditDe
       </section>
 
       {closed.length > 0 && (
-        <section className="bg-white border border-brand-200 rounded-lg overflow-hidden">
+        <section className="bg-white border border-brand-200 rounded-lg overflow-hidden shadow-card">
           <button
             type="button"
             onClick={() => setShowClosed((v) => !v)}

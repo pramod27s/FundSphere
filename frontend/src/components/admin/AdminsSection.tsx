@@ -73,7 +73,7 @@ export default function AdminsSection() {
   };
 
   return (
-    <section aria-labelledby={`${emailId}-heading`} className="bg-white border border-brand-200 rounded-lg shadow-xs">
+    <section aria-labelledby={`${emailId}-heading`} className="bg-white border border-brand-200 rounded-lg shadow-card">
       <div className="px-5 pt-5 pb-4 border-b border-brand-100">
         <div className="flex items-baseline justify-between gap-2">
           <h2 id={`${emailId}-heading`} className="text-base font-bold text-brand-900 tracking-tight">Admins</h2>

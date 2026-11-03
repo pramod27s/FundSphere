@@ -60,7 +60,7 @@ function Progress({ review }: { review: ProposalReview }) {
   }, [review.id]);
   const key = review.stage === 'READING_GUIDELINES' ? 'READING_GUIDELINES' : `REVIEWING_${review.level}`;
   return (
-    <div className="rounded-xl border border-primary-200 bg-white p-6 flex items-center gap-3" aria-live="polite">
+    <div className="rounded-xl border border-primary-200 bg-white p-6 shadow-card flex items-center gap-3" aria-live="polite">
       <Loader2 className="w-5 h-5 text-primary-600 animate-spin shrink-0" />
       <p className="flex-1 text-sm text-brand-800">{STAGES[key]}</p>
       <span className="text-xs text-brand-500 tabular-nums">{elapsed}s</span>
