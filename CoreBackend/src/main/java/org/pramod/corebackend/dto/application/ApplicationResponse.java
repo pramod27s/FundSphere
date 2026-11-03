@@ -28,6 +28,12 @@ public class ApplicationResponse {
     private String agency;
     private String callUrl;
     private LocalDate deadline;
+    /**
+     * The linked call's current deadline when it no longer matches this
+     * application's (the agency extended or moved it), so the page can offer
+     * to follow it. Null when they match or the user chose to keep their date.
+     */
+    private LocalDate callDeadlineMovedTo;
     private ApplicationStatus status;
     private LocalDateTime statusChangedAt;
     private String notes;

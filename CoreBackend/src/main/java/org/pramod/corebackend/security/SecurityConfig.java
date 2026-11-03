@@ -60,7 +60,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/grants/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/grants/**").hasRole("ADMIN")
                         .requestMatchers("/api/grants/**").authenticated()
-                        .requestMatchers("/api/researchers/**").authenticated()
+                        // Users reach their own profile only through /me (and create it with POST).
+                        // Everything else here (listing, searching, or reading, editing or deleting a
+                        // profile by id) is an admin task, so new endpoints are admin-only by default.
+                        .requestMatchers(HttpMethod.POST, "/api/researchers").authenticated()
+                        .requestMatchers("/api/researchers/me", "/api/researchers/me/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/researchers/enrich/orcid").authenticated()
+                        .requestMatchers("/api/researchers/**").hasRole("ADMIN")
                         .requestMatchers("/api/saved-grants/**").authenticated()
                         .requestMatchers("/api/applications/**").authenticated()
                         .requestMatchers("/api/awards/**").authenticated()
@@ -68,6 +74,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/calendar/feed/*").permitAll()
                         .requestMatchers("/api/calendar/**").authenticated()
                         .requestMatchers("/api/proposal-reviews/**").authenticated()
+                        .requestMatchers("/api/account/**").authenticated()
                         // The admin area (2nd.md). Adding or removing admins also needs the owner (AdminUserService).
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/error").permitAll()

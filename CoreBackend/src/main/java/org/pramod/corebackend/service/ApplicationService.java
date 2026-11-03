@@ -208,6 +208,9 @@ public class ApplicationService {
             application.setDeadline(newDeadline);
             ChecklistDueDates.onDeadlineChanged(application.getItems(), newDeadline);
         }
+        if (Boolean.TRUE.equals(request.getKeepOwnDeadline())) {
+            application.setIgnoredCallDeadline(callDeadlineMovedTo(application));
+        }
 
         if (request.getStatus() != null && request.getStatus() != application.getStatus()) {
             LocalDateTime now = LocalDateTime.now();
@@ -482,6 +485,7 @@ public class ApplicationService {
                 .agency(application.getAgency())
                 .callUrl(application.getCallUrl())
                 .deadline(application.getDeadline())
+                .callDeadlineMovedTo(callDeadlineMovedTo(application))
                 .status(application.getStatus())
                 .statusChangedAt(application.getStatusChangedAt())
                 .notes(application.getNotes())
@@ -503,6 +507,25 @@ public class ApplicationService {
                             .toList());
         }
         return builder.build();
+    }
+
+    /**
+     * The linked call's current deadline when it differs from the
+     * application's: the application copied the date when it was started, and
+     * the scraper has since seen the agency extend or move it. Null when they
+     * match, when the call has no fixed deadline, or when the user chose to
+     * keep their own date for this one.
+     */
+    static LocalDate callDeadlineMovedTo(Application application) {
+        Grant grant = application.getGrant();
+        if (grant == null || grant.getApplicationDeadline() == null) {
+            return null;
+        }
+        LocalDate callDeadline = grant.getApplicationDeadline().toLocalDate();
+        if (callDeadline.equals(application.getDeadline()) || callDeadline.equals(application.getIgnoredCallDeadline())) {
+            return null;
+        }
+        return callDeadline;
     }
 
     private static ChecklistItemResponse toItemResponse(ChecklistItem item) {

@@ -248,6 +248,7 @@ Every setting has a default in [`rag/config.py`](ai-service/rag/config.py) and [
 | `WEIGHT_SEMANTIC` … `WEIGHT_FRESHNESS` | `0.50`, `0.20`, `0.10`, `0.10`, `0.10` | Match score weights |
 | `ENABLE_QUERY_CACHE` | `true` | Cache match results (`QUERY_CACHE_TTL_SECONDS`, default 1800) |
 | `LLM_MAX_CONCURRENCY` | `3` | Parallel AI calls per process |
+| `LOG_LEVEL` | `INFO` | How much the service logs (`DEBUG`, `INFO`, `WARNING`, `ERROR`) |
 
 ## Testing
 

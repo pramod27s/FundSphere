@@ -14,14 +14,21 @@ import java.util.Optional;
 
 public interface ApplicationRepository extends JpaRepository<Application, Long> {
 
-    /** The user's applications with their items, so the list can show readiness without N+1 queries. */
+    /**
+     * The user's applications with their items and call, so the list can show
+     * readiness and a moved deadline without N+1 queries.
+     */
     @Query("select distinct a from Application a " +
             "left join fetch a.items " +
+            "left join fetch a.grant " +
             "where a.owner.id = :ownerId " +
             "order by a.updatedAt desc")
     List<Application> findAllByOwnerIdWithItems(@Param("ownerId") Long ownerId);
 
     Optional<Application> findByIdAndOwnerId(Long id, Long ownerId);
+
+    /** Removes all of a user's applications (and, by cascade, their checklists and status history) when they delete their account. */
+    long deleteByOwnerId(Long ownerId);
 
     Optional<Application> findFirstByOwnerIdAndGrantIdOrderByCreatedAtDesc(Long ownerId, Long grantId);
 

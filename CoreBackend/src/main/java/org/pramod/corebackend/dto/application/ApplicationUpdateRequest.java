@@ -26,4 +26,6 @@ public class ApplicationUpdateRequest {
     private Boolean clearDeadline;
     private String notes;
     private ApplicationStatus status;
+    /** True: keep this application's deadline and stop offering the call's moved one. */
+    private Boolean keepOwnDeadline;
 }

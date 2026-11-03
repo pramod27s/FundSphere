@@ -53,6 +53,8 @@ export interface Application {
   callUrl: string | null;
   /** YYYY-MM-DD */
   deadline: string | null;
+  /** YYYY-MM-DD: the call's deadline when the agency has moved it since this application copied it; else null. */
+  callDeadlineMovedTo: string | null;
   status: ApplicationStatus;
   statusChangedAt: string;
   notes: string | null;
@@ -90,6 +92,8 @@ export interface ApplicationChanges {
   clearDeadline?: boolean;
   notes?: string;
   status?: ApplicationStatus;
+  /** Keep this application's deadline and stop offering the call's moved one. */
+  keepOwnDeadline?: boolean;
 }
 
 export interface ChecklistItemChanges {

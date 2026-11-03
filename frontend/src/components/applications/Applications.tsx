@@ -187,6 +187,12 @@ function ApplicationCard({ application, onOpen }: { application: Application; on
             {readiness.overdue} overdue
           </span>
         )}
+        {preparing && application.callDeadlineMovedTo && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-sky-50 text-sky-800 border border-sky-200">
+            <Calendar className="w-3 h-3" />
+            Deadline moved
+          </span>
+        )}
       </div>
 
       <h3 className="text-lg font-semibold text-brand-900 group-hover:text-primary-700 transition-colors line-clamp-2 mb-3 tracking-tight">

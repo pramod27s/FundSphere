@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
 import asyncio
+import logging
 from .indexer import GrantIndexer
 from .pinecone_client import PineconeService
 from .recommender import RecommenderService
@@ -11,6 +12,11 @@ from .schemas import (
 from .springboot_client import SpringBootClient
 
 router = APIRouter(prefix="/rag", tags=["rag"])
+logger = logging.getLogger("rag.routes")
+
+# An unexpected failure is logged in full here; the reply gives no exception
+# text, which can include internal hosts or library details.
+UNEXPECTED_ERROR = "Something went wrong in the AI service. Please try again."
 
 spring_client = SpringBootClient()
 pinecone_service = PineconeService()
@@ -32,7 +38,8 @@ async def index_grant(request: IndexGrantRequest) -> dict:
     except Exception as exc:
         if "embedding" in str(exc).lower() and ("empty" in str(exc).lower() or "none" in str(exc).lower()):
             raise HTTPException(status_code=422, detail="Embedding failure missing dense or sparse vector generation.")
-        raise HTTPException(status_code=500, detail=str(exc))
+        logger.exception("Indexing grant %s failed", request.grantId)
+        raise HTTPException(status_code=500, detail=UNEXPECTED_ERROR)
 
 
 @router.post("/index-grants")
@@ -44,7 +51,8 @@ async def index_grants(request: IndexBatchRequest) -> dict:
     except Exception as exc:
         if "embedding" in str(exc).lower() and ("empty" in str(exc).lower() or "none" in str(exc).lower()):
             raise HTTPException(status_code=422, detail="Embedding failure missing dense or sparse vector generation.")
-        raise HTTPException(status_code=500, detail=str(exc))
+        logger.exception("Indexing a batch of %d grants failed", len(request.grantIds))
+        raise HTTPException(status_code=500, detail=UNEXPECTED_ERROR)
 
 
 @router.delete("/grant/{grant_id}")
@@ -53,8 +61,9 @@ async def delete_grant(grant_id: int) -> dict:
         return await asyncio.to_thread(indexer.delete_grant, grant_id)
     except TimeoutError as exc:
         raise HTTPException(status_code=504, detail="Pinecone deletion timed out.")
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+    except Exception:
+        logger.exception("Removing grant %s from the index failed", grant_id)
+        raise HTTPException(status_code=500, detail=UNEXPECTED_ERROR)
 
 
 @router.post("/recommend")
@@ -69,4 +78,5 @@ async def recommend(request: RecommendationRequest):
     except Exception as exc:
         if "embedding" in str(exc).lower() and ("empty" in str(exc).lower() or "none" in str(exc).lower()):
             raise HTTPException(status_code=422, detail="Embedding extraction failed.")
-        raise HTTPException(status_code=500, detail=str(exc))
+        logger.exception("Finding matches failed")
+        raise HTTPException(status_code=500, detail=UNEXPECTED_ERROR)

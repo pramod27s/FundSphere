@@ -143,6 +143,14 @@ public class ProposalReviewService {
                 .toList();
     }
 
+    /** Every review the user has run, with its full result, for "Download my data". */
+    @Transactional(readOnly = true)
+    public List<ProposalReviewResponse> listAllForExport(Long userId) {
+        return reviewRepository.findAllByOwnerIdOrderByCreatedAtDesc(userId).stream()
+                .map(r -> toResponse(r, true))
+                .toList();
+    }
+
     @Transactional
     public ProposalReviewResponse get(Long userId, Long reviewId) {
         failStaleRuns();

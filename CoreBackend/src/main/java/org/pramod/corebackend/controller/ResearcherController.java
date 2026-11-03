@@ -16,11 +16,17 @@ import org.pramod.corebackend.service.GrantService;
 import org.pramod.corebackend.service.ResearcherService;
 import org.pramod.corebackend.service.OrcidEnrichmentService;
 import org.pramod.corebackend.service.AiProfileMapper;
+import org.pramod.corebackend.service.ResearcherPhotoService;
 import org.pramod.corebackend.dto.ai.AiUserProfileResponse;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -36,6 +42,7 @@ public class ResearcherController {
     private final GrantService grantService;
     private final AiProfileMapper aiProfileMapper;
     private final OrcidEnrichmentService orcidEnrichmentService;
+    private final ResearcherPhotoService researcherPhotoService;
 
     /**
      * Creates or updates the researcher profile for the currently authenticated user.
@@ -85,6 +92,50 @@ public class ResearcherController {
     public ResponseEntity<ResearcherResponse> getMyResearcher(@AuthenticationPrincipal UserPrincipal principal) {
         ResearcherResponse response = researcherService.getResearcherByUserId(principal.getId());
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Saves or replaces the current user's profile photo (multipart field "photo").
+     * @param principal The security principal of the logged-in user.
+     * @param photo A JPEG, PNG or WebP image up to 2 MB.
+     * @return 204 No Content once stored.
+     */
+    @PostMapping(value = "/me/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Void> uploadMyPhoto(@AuthenticationPrincipal UserPrincipal principal,
+                                              @RequestParam("photo") MultipartFile photo) {
+        byte[] bytes;
+        try {
+            bytes = photo.getBytes();
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Could not read the uploaded photo");
+        }
+        researcherPhotoService.savePhoto(principal.getId(), bytes);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Returns the current user's profile photo.
+     * @param principal The security principal of the logged-in user.
+     * @return The image bytes, or 204 No Content when there is no photo.
+     */
+    @GetMapping("/me/photo")
+    public ResponseEntity<byte[]> getMyPhoto(@AuthenticationPrincipal UserPrincipal principal) {
+        return researcherPhotoService.findPhoto(principal.getId())
+                .map(photo -> ResponseEntity.ok()
+                        .contentType(MediaType.parseMediaType(photo.getContentType()))
+                        .body(photo.getData()))
+                .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    /**
+     * Removes the current user's profile photo.
+     * @param principal The security principal of the logged-in user.
+     * @return 204 No Content.
+     */
+    @DeleteMapping("/me/photo")
+    public ResponseEntity<Void> deleteMyPhoto(@AuthenticationPrincipal UserPrincipal principal) {
+        researcherPhotoService.deletePhoto(principal.getId());
+        return ResponseEntity.noContent().build();
     }
 
     /**

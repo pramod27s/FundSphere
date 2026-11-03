@@ -26,6 +26,9 @@ public interface SavedGrantRepository extends JpaRepository<SavedGrant, Long> {
 
     long deleteByUserIdAndGrantId(Long userId, Long grantId);
 
+    /** Removes all of a user's saved grants when they delete their account. */
+    long deleteByUserId(Long userId);
+
     /** Clears every user's bookmark of a grant so the grant row itself can be deleted. */
     @Modifying
     @Query("delete from SavedGrant sg where sg.grant.id = :grantId")

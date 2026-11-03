@@ -23,6 +23,9 @@ public interface AwardRepository extends JpaRepository<Award, Long> {
 
     Optional<Award> findByIdAndOwnerId(Long id, Long ownerId);
 
+    /** Removes all of a user's grants (and, by cascade, their deadlines, outputs, spending and drafts) when they delete their account. */
+    long deleteByOwnerId(Long ownerId);
+
     Optional<Award> findFirstByOwnerIdAndApplicationId(Long ownerId, Long applicationId);
 
     /** The grant set up from an application, so the application page can link to it. */

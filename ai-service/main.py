@@ -1,4 +1,6 @@
 import hmac
+import logging
+import os
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -14,6 +16,14 @@ from workspace.routes import router as workspace_router
 from award.routes import router as award_router
 from intake.routes import router as intake_router
 from rag.m2m_auth import verify_m2m_token
+
+# Show the service's own log lines with time, level and source. Without a
+# handler, Python prints only warnings and errors, and every logger.info in the
+# modules is lost. LOG_LEVEL=DEBUG in .env shows more; WARNING shows less.
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO").upper(),
+    format="%(asctime)s %(levelname)-7s %(name)s: %(message)s",
+)
 
 app = FastAPI(title="FundSphere AI Service")
 

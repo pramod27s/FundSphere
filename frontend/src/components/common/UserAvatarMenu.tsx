@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect, useSyncExternalStore } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, LogOut } from 'lucide-react';
 import { loadSession, signOut } from '../../services/authService';
 import { useResearcher } from '../../context/useResearcher';
+import { useProfilePhoto } from '../../hooks/useProfilePhoto';
 
 interface UserAvatarMenuProps {
   researcherId?: number;
@@ -18,19 +19,6 @@ function getInitials(fullName: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-/**
- * The avatar photo lives in localStorage; re-read it when another tab changes
- * storage or the profile page announces a new photo.
- */
-function subscribeToProfileImage(onChange: () => void) {
-  window.addEventListener('storage', onChange);
-  window.addEventListener('profile:image-updated', onChange);
-  return () => {
-    window.removeEventListener('storage', onChange);
-    window.removeEventListener('profile:image-updated', onChange);
-  };
-}
-
 export default function UserAvatarMenu({ researcherId, placement = 'below', size = 'md' }: UserAvatarMenuProps) {
   const navigate = useNavigate();
   const { setResearcher } = useResearcher();
@@ -40,9 +28,7 @@ export default function UserAvatarMenu({ researcherId, placement = 'below', size
   const session = loadSession();
   const initials = session ? getInitials(session.user.fullName) : '?';
 
-  const profileImage = useSyncExternalStore(subscribeToProfileImage, () =>
-    researcherId ? localStorage.getItem(`profile_image_${researcherId}`) : null,
-  );
+  const profileImage = useProfilePhoto(researcherId);
 
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {

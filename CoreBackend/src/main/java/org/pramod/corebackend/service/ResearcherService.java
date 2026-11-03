@@ -75,7 +75,7 @@ public class ResearcherService {
     @Transactional
     public void deleteResearcher(Long id) {
         if (!researcherRepository.existsById(id)) {
-            throw new RuntimeException("Researcher not found with id: " + id);
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Researcher not found with id: " + id);
         }
         researcherRepository.deleteById(id);
     }

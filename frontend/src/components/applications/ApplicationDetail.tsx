@@ -34,6 +34,7 @@ import { DetailLayout } from '../common/PageLayout';
 import { WhatsAppGlyph } from '../common/WhatsAppShareButton';
 import ApplicationFormModal from './ApplicationFormModal';
 import OverdueReportsWarning from './OverdueReportsWarning';
+import DeadlineMovedBanner from './DeadlineMovedBanner';
 import { useOverdueReports } from '../../hooks/useOverdueReports';
 import ChecklistTab from './ChecklistTab';
 import ReadinessTab from './ReadinessTab';
@@ -169,6 +170,19 @@ export default function ApplicationDetail() {
     }
   };
 
+  /** Follow the call's moved deadline, or keep this application's own date. */
+  const answerMovedDeadline = async (changes: { deadline: string } | { keepOwnDeadline: true }, done: string) => {
+    if (!application) return;
+    try {
+      const updated = await updateApplication(application.id, changes);
+      mutationSeq.current += 1;
+      setApplication(updated);
+      toast.success(done);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not update the deadline');
+    }
+  };
+
   if (!validId || error) {
     return (
       <PageFrame onBack={() => navigate('/applications')} title="Application">
@@ -207,6 +221,15 @@ export default function ApplicationDetail() {
       }
     >
       {application.status === 'PREPARING' && <OverdueReportsWarning overdue={overdueReports} />}
+
+      {application.status === 'PREPARING' && (
+        <DeadlineMovedBanner
+          deadline={application.deadline}
+          movedTo={application.callDeadlineMovedTo}
+          onFollow={(movedTo) => answerMovedDeadline({ deadline: movedTo }, 'Deadline and due dates updated')}
+          onKeep={() => answerMovedDeadline({ keepOwnDeadline: true }, 'Keeping your deadline')}
+        />
+      )}
 
       {application.status === 'AWARDED' && (
         <AwardedBanner

@@ -4,6 +4,7 @@
  */
 package org.pramod.corebackend.service;
 
+import lombok.extern.slf4j.Slf4j;
 import tools.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
@@ -29,8 +30,16 @@ import java.util.Map;
 import static org.springframework.http.HttpStatus.BAD_GATEWAY;
 import static org.springframework.http.HttpStatus.GATEWAY_TIMEOUT;
 
+/**
+ * Calls the ai-service. Failures are logged here in full; the message passed
+ * on to the browser never includes exception text, which can carry internal
+ * addresses or library details.
+ */
+@Slf4j
 @Service
 public class AiServiceClient {
+
+    private static final String UNREADABLE_PDF = "Could not read the uploaded PDF. Try uploading it again.";
 
     private final RestClient restClient;
     private final String apiKey;
@@ -102,8 +111,8 @@ public class AiServiceClient {
             try {
                 body.add("guidelines_pdf", buildPdfPart(guidelinesPdf, "guidelines.pdf"));
             } catch (IOException ex) {
-                throw new ResponseStatusException(BAD_GATEWAY,
-                        "Could not read uploaded PDF: " + ex.getMessage(), ex);
+                log.warn("Could not read the uploaded guidelines PDF", ex);
+                throw new ResponseStatusException(BAD_GATEWAY, UNREADABLE_PDF, ex);
             }
         } else {
             body.add("url", url == null ? "" : url);
@@ -139,8 +148,8 @@ public class AiServiceClient {
         try {
             body.add("sanction_order_pdf", buildPdfPart(sanctionOrderPdf, "sanction-order.pdf"));
         } catch (IOException ex) {
-            throw new ResponseStatusException(BAD_GATEWAY,
-                    "Could not read uploaded PDF: " + ex.getMessage(), ex);
+            log.warn("Could not read the uploaded sanction order PDF", ex);
+            throw new ResponseStatusException(BAD_GATEWAY, UNREADABLE_PDF, ex);
         }
         return postMultipart("/award/read-sanction-order", body, "sanction order reading",
                 "Reading the sanction order took longer than the configured timeout. Please try again.");
@@ -157,8 +166,8 @@ public class AiServiceClient {
             try {
                 body.add("call_pdf", buildPdfPart(callPdf, "call.pdf"));
             } catch (IOException ex) {
-                throw new ResponseStatusException(BAD_GATEWAY,
-                        "Could not read uploaded PDF: " + ex.getMessage(), ex);
+                log.warn("Could not read the uploaded call PDF", ex);
+                throw new ResponseStatusException(BAD_GATEWAY, UNREADABLE_PDF, ex);
             }
         }
         body.add("url", url == null ? "" : url);
@@ -260,27 +269,33 @@ public class AiServiceClient {
                     .body(String.class);
 
             if (raw == null || raw.isBlank()) {
+                log.warn("AI service sent an empty reply for {}", what);
                 throw new ResponseStatusException(BAD_GATEWAY,
-                        "AI service returned empty body for " + what);
+                        "The AI service sent an empty reply. Please try again.");
             }
 
             @SuppressWarnings("unchecked")
             Map<String, Object> parsed = objectMapper.readValue(raw, Map.class);
             return parsed;
+        } catch (ResponseStatusException ex) {
+            throw ex;
         } catch (RestClientResponseException ex) {
-            ex.printStackTrace();
             // Forward the upstream status (e.g. 503 rate-limited, 400 invalid input)
             // so the frontend sees a meaningful message instead of generic "Bad
             // Gateway." Wrapping every upstream error as 502 hides the real cause.
             org.springframework.http.HttpStatusCode upstream = ex.getStatusCode();
-            String detail = extractDetail(ex.getResponseBodyAsString(), upstream.value());
-            throw new ResponseStatusException(upstream, detail, ex);
+            log.warn("AI service answered {} for {}: {}", upstream.value(), what, ex.getResponseBodyAsString());
+            // A 401/403 here means the two services' keys don't match, not that
+            // the user's session ended; passed on, it would send the browser
+            // into refreshing its sign-in.
+            org.springframework.http.HttpStatusCode status = isServiceAuthFailure(ex) ? BAD_GATEWAY : upstream;
+            throw new ResponseStatusException(status, upstreamMessage(ex), ex);
         } catch (ResourceAccessException ex) {
-            ex.printStackTrace();
+            log.warn("AI service unreachable or too slow for {}", what, ex);
             throw new ResponseStatusException(GATEWAY_TIMEOUT,
-                    "AI service timed out or is unreachable: " + ex.getMessage(), ex);
+                    isTimeoutCause(ex) ? timeoutMessage : "The AI service isn't reachable right now. Please try again in a minute.", ex);
         } catch (RestClientException ex) {
-            ex.printStackTrace();
+            log.warn("AI service call failed for {}", what, ex);
             // The newer RestClient API can wrap a SocketTimeoutException as a
             // generic RestClientException (not ResourceAccessException), so we
             // walk the cause chain to detect timeouts and surface them as 504
@@ -288,17 +303,35 @@ public class AiServiceClient {
             if (isTimeoutCause(ex)) {
                 throw new ResponseStatusException(GATEWAY_TIMEOUT, timeoutMessage, ex);
             }
-            throw new ResponseStatusException(BAD_GATEWAY,
-                    "AI service response could not be read: " + ex.getMessage(), ex);
+            throw new ResponseStatusException(BAD_GATEWAY, "The AI service's reply couldn't be read. Please try again.", ex);
         } catch (tools.jackson.core.JacksonException ex) {
-            ex.printStackTrace();
-            throw new ResponseStatusException(BAD_GATEWAY,
-                    "AI service returned non-JSON body: " + ex.getMessage(), ex);
+            log.warn("AI service sent a reply that isn't JSON for {}", what, ex);
+            throw new ResponseStatusException(BAD_GATEWAY, "The AI service's reply couldn't be read. Please try again.", ex);
         } catch (RuntimeException ex) {
-            ex.printStackTrace();
-            throw new ResponseStatusException(BAD_GATEWAY,
-                    "AI service call failed: " + ex.getMessage(), ex);
+            log.warn("AI service call failed for {}", what, ex);
+            throw new ResponseStatusException(BAD_GATEWAY, "The AI service call failed. Please try again.", ex);
         }
+    }
+
+    /**
+     * The message to show for an error the ai-service answered with. Its
+     * 4xx, 502, 503 and 504 details are written for users ("busy, try again in
+     * a minute"); a 500 is an unexpected failure whose detail may be raw
+     * exception text, so it's replaced.
+     */
+    private String upstreamMessage(RestClientResponseException ex) {
+        if (isServiceAuthFailure(ex)) {
+            return "The AI service isn't available right now. Please try again later.";
+        }
+        if (ex.getStatusCode().value() == 500) {
+            return "The AI service hit an error. Please try again.";
+        }
+        return extractDetail(ex.getResponseBodyAsString(), ex.getStatusCode().value());
+    }
+
+    private static boolean isServiceAuthFailure(RestClientResponseException ex) {
+        int status = ex.getStatusCode().value();
+        return status == 401 || status == 403;
     }
 
     /**
@@ -337,11 +370,10 @@ public class AiServiceClient {
                 return s;
             }
         } catch (Exception ignore) {
-            // not JSON — fall through to raw body below
+            // not JSON — fall through to the generic message below
         }
-        // Truncate so we don't echo huge bodies into a single header/line.
-        String trimmed = body.length() > 500 ? body.substring(0, 497) + "..." : body;
-        return "AI service returned status " + status + ": " + trimmed;
+        // The raw body is logged by the caller, never sent to the browser.
+        return "The AI service returned an error (status " + status + "). Please try again.";
     }
 
     private static HttpEntity<ByteArrayResource> buildPdfPart(MultipartFile file, String fallbackName)
@@ -414,17 +446,18 @@ public class AiServiceClient {
             }
             return body;
         } catch (RestClientResponseException ex) {
-            throw new ResponseStatusException(BAD_GATEWAY,
-                    "AI service returned " + ex.getStatusCode().value() + ": " + ex.getResponseBodyAsString(), ex);
+            log.warn("AI service answered {} for {}: {}", ex.getStatusCode().value(), path, ex.getResponseBodyAsString());
+            throw new ResponseStatusException(BAD_GATEWAY, upstreamMessage(ex), ex);
         } catch (ResourceAccessException ex) {
+            log.warn("AI service unreachable or too slow for {}", path, ex);
             throw new ResponseStatusException(GATEWAY_TIMEOUT,
-                    "AI service timed out or is unreachable", ex);
+                    "The AI service timed out or isn't reachable. Please try again in a minute.", ex);
         } catch (RestClientException ex) {
-            throw new ResponseStatusException(BAD_GATEWAY,
-                    "AI service response could not be read: " + ex.getMessage(), ex);
+            log.warn("AI service call failed for {}", path, ex);
+            throw new ResponseStatusException(BAD_GATEWAY, "The AI service's reply couldn't be read. Please try again.", ex);
         } catch (tools.jackson.core.JacksonException ex) {
-            throw new ResponseStatusException(BAD_GATEWAY,
-                    "AI service returned non-JSON body: " + ex.getMessage(), ex);
+            log.warn("AI service sent a reply that isn't JSON for {}", path, ex);
+            throw new ResponseStatusException(BAD_GATEWAY, "The AI service's reply couldn't be read. Please try again.", ex);
         }
     }
 }

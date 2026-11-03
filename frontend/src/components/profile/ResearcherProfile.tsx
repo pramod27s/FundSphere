@@ -3,7 +3,9 @@ import type { ReactNode } from 'react';
 import type { ResearcherResponse, ResearcherRequest } from '../../services/researcherService';
 import { updateMyResearcher } from '../../services/researcherService';
 import { useResearcher } from '../../context/useResearcher';
+import { changeProfilePhoto, removeProfilePhoto, useProfilePhoto } from '../../hooks/useProfilePhoto';
 import ResearcherEditModal from './ResearcherEditModal';
+import AccountSettings from './AccountSettings';
 import { toast } from 'react-hot-toast';
 import {
   User,
@@ -15,6 +17,8 @@ import {
   LogOut,
   Camera,
   Edit3,
+  ShieldCheck,
+  Trash2,
 } from 'lucide-react';
 import { buttonClasses } from '../common/buttonStyles';
 import { PAGE_WIDTH } from '../common/PageLayout';
@@ -80,12 +84,8 @@ function ResearcherProfile({ researcher: initialResearcher, onLogout }: Research
     setLocalResearcher(initialResearcher);
   }, [initialResearcher]);
 
-  const [profileImage, setProfileImage] = useState<string | null>(() => {
-    if (researcher?.id) {
-      return localStorage.getItem(`profile_image_${researcher.id}`);
-    }
-    return null;
-  });
+  const profileImage = useProfilePhoto(researcher?.id);
+  const [isSavingPhoto, setIsSavingPhoto] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSaveProfile = async (updatedData: ResearcherRequest) => {
@@ -95,19 +95,32 @@ function ResearcherProfile({ researcher: initialResearcher, onLogout }: Research
     toast.success('Profile updated successfully!');
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        setProfileImage(base64String);
-        if (researcher?.id) {
-          localStorage.setItem(`profile_image_${researcher.id}`, base64String);
-          window.dispatchEvent(new Event('profile:image-updated'));
-        }
-      };
-      reader.readAsDataURL(file);
+    // Clear the input so picking the same file again still fires a change.
+    e.target.value = '';
+    if (!file || !researcher?.id) return;
+    setIsSavingPhoto(true);
+    try {
+      await changeProfilePhoto(researcher.id, file);
+      toast.success('Profile photo updated');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not save your photo');
+    } finally {
+      setIsSavingPhoto(false);
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    if (!researcher?.id || !window.confirm('Remove your profile photo?')) return;
+    setIsSavingPhoto(true);
+    try {
+      await removeProfilePhoto(researcher.id);
+      toast.success('Profile photo removed');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not remove your photo');
+    } finally {
+      setIsSavingPhoto(false);
     }
   };
 
@@ -195,12 +208,25 @@ function ResearcherProfile({ researcher: initialResearcher, onLogout }: Research
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="absolute -bottom-1.5 -right-1.5 bg-white p-1.5 rounded-full border border-brand-200 shadow-xs text-brand-600 hover:text-primary-600 hover:border-primary-300 transition-colors cursor-pointer"
-                title="Change profile picture"
+                disabled={isSavingPhoto}
+                className="absolute -bottom-1.5 -right-1.5 bg-white p-1.5 rounded-full border border-brand-200 shadow-xs text-brand-600 hover:text-primary-600 hover:border-primary-300 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+                title={isSavingPhoto ? 'Saving photo…' : 'Change profile picture'}
                 aria-label="Change profile picture"
               >
                 <Camera className="w-3.5 h-3.5" />
               </button>
+              {profileImage && (
+                <button
+                  type="button"
+                  onClick={handleRemovePhoto}
+                  disabled={isSavingPhoto}
+                  className="absolute -top-1.5 -right-1.5 bg-white p-1.5 rounded-full border border-brand-200 shadow-xs text-brand-600 hover:text-red-600 hover:border-red-300 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+                  title="Remove profile picture"
+                  aria-label="Remove profile picture"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
               <input
                 type="file"
                 accept="image/*"
@@ -280,6 +306,10 @@ function ResearcherProfile({ researcher: initialResearcher, onLogout }: Research
             <Link to="/my-grants" className="font-semibold text-primary-700 hover:text-primary-800 hover:underline">My grants</Link>
             {' '}or from any application.
           </p>
+        </DetailCard>
+
+        <DetailCard icon={<ShieldCheck className="w-4 h-4" />} title="Account" hint="Your password, a copy of your data, or deleting your account">
+          <AccountSettings />
         </DetailCard>
 
         <ResearcherEditModal

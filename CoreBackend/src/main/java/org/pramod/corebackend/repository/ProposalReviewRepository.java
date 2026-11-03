@@ -24,6 +24,12 @@ public interface ProposalReviewRepository extends JpaRepository<ProposalReview, 
 
     List<ProposalReview> findTop20ByOwnerIdAndApplicationIsNullOrderByCreatedAtDesc(Long ownerId);
 
+    /** Every review the user has run, for "Download my data". */
+    List<ProposalReview> findAllByOwnerIdOrderByCreatedAtDesc(Long ownerId);
+
+    /** Removes all of a user's reviews when they delete their account. */
+    long deleteByOwnerId(Long ownerId);
+
     @Query("select coalesce(max(r.versionNo), 0) from ProposalReview r where r.application.id = :applicationId")
     int maxVersionNo(@Param("applicationId") Long applicationId);
 

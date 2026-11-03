@@ -56,6 +56,13 @@ public class Application {
     /** The call's submission deadline. Checklist due dates are counted back from it. */
     private LocalDate deadline;
 
+    /**
+     * A date the call's deadline moved to that the user chose not to follow
+     * (say they keep the institute's earlier internal date). The page stops
+     * offering that date; if the call moves again, it offers the new one.
+     */
+    private LocalDate ignoredCallDeadline;
+
     @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

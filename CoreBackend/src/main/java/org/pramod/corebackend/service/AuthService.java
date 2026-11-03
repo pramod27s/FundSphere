@@ -112,11 +112,44 @@ public class AuthService {
         });
     }
 
+    /**
+     * Changes the signed-in user's password. Their other devices are signed
+     * out (issueTokens deletes every refresh token they hold); this one gets
+     * new tokens so it stays signed in.
+     *
+     * A wrong current password is a 400, not a 401/403: the frontend treats
+     * those as an expired session and would sign the user out.
+     */
+    @Transactional
+    public AuthResponse changePassword(Long userId, ChangePasswordRequest request) {
+        if (request == null || !StringUtils.hasText(request.getCurrentPassword())
+                || !StringUtils.hasText(request.getNewPassword())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Enter your current password and a new one");
+        }
+        AppUser user = appUserRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Account not found"));
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPasswordHash())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Your current password is incorrect");
+        }
+        checkPasswordLength(request.getNewPassword());
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPasswordHash())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Choose a password different from your current one");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        appUserRepository.save(user);
+        return issueTokens(user);
+    }
+
     private void validateRegisterRequest(RegisterRequest request) {
         if (!StringUtils.hasText(request.getFullName()) || !StringUtils.hasText(request.getEmail()) || !StringUtils.hasText(request.getPassword())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fullName, email and password are required");
         }
-        if (request.getPassword().length() < 8) {
+        checkPasswordLength(request.getPassword());
+    }
+
+    private static void checkPasswordLength(String password) {
+        if (password.length() < 8) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password must be at least 8 characters");
         }
     }
