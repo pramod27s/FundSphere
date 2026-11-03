@@ -18,7 +18,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-/** AI results carry Pinecone's copies of the timestamps; the live ones replace them. */
+/** AI results carry Pinecone's copies of the timestamps and search text; the live details replace them. */
 @ExtendWith(MockitoExtension.class)
 class GrantLiveTimestampsTest {
 
@@ -56,7 +56,7 @@ class GrantLiveTimestampsTest {
         Map<String, Object> fields = new HashMap<>(Map.of("last_scraped_at", "2026-10-05T09:00", "grant_title", "CRG"));
         Map<String, Object> body = Map.of("results", List.of(item(39, fields)));
 
-        service.applyLiveTimestamps(body);
+        service.applyLiveDetails(body);
 
         assertEquals(created.toString(), fields.get("created_at"));
         assertEquals(scraped.toString(), fields.get("last_scraped_at"));
@@ -65,20 +65,47 @@ class GrantLiveTimestampsTest {
     }
 
     @Test
+    void addsTheRealDescriptionInPlaceOfTheSearchText() {
+        Grant grant = Grant.builder().id(39L).description("Supports early-career faculty.").objectives(" ").build();
+        when(grantRepository.findAllById(List.of(39L))).thenReturn(List.of(grant));
+        Map<String, Object> fields = new HashMap<>(Map.of("chunk_text", "Title: CRG. Agency: ANRF"));
+
+        service.applyLiveDetails(Map.of("results", List.of(item(39, fields))));
+
+        assertEquals("Supports early-career faculty.", fields.get("description"));
+        assertFalse(fields.containsKey("objectives"));  // blank text isn't copied
+    }
+
+    @Test
+    void alsoUpdatesTheAlmostEligibleGrants() {
+        LocalDateTime verified = LocalDateTime.of(2026, 11, 1, 6, 0);
+        Grant grant = Grant.builder().id(42L).build();
+        grant.setLastVerifiedAt(verified);
+        when(grantRepository.findAllById(List.of(39L, 42L))).thenReturn(List.of(grant));
+        Map<String, Object> nearMiss = new HashMap<>();
+
+        service.applyLiveDetails(Map.of(
+                "results", List.of(item(39, new HashMap<>())),
+                "almostEligible", List.of(item(42, nearMiss))));
+
+        assertEquals(verified.toString(), nearMiss.get("last_verified_at"));
+    }
+
+    @Test
     void leavesGrantsMissingFromTheDatabaseAlone() {
         when(grantRepository.findAllById(List.of(7L))).thenReturn(List.of());
         Map<String, Object> fields = new HashMap<>(Map.of("last_scraped_at", "2026-10-05T09:00"));
 
-        service.applyLiveTimestamps(Map.of("results", List.of(item(7, fields))));
+        service.applyLiveDetails(Map.of("results", List.of(item(7, fields))));
 
         assertEquals(Map.of("last_scraped_at", "2026-10-05T09:00"), fields);
     }
 
     @Test
     void ignoresAnEmptyOrMalformedResponse() {
-        service.applyLiveTimestamps(Map.of("results", List.of(), "no_results", true));
-        service.applyLiveTimestamps("not a map");
-        service.applyLiveTimestamps(null);
+        service.applyLiveDetails(Map.of("results", List.of(), "no_results", true));
+        service.applyLiveDetails("not a map");
+        service.applyLiveDetails(null);
 
         verify(grantRepository, never()).findAllById(any());
     }

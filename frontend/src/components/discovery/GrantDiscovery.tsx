@@ -2,13 +2,14 @@ import { Search, Menu, SlidersHorizontal, X, ChevronLeft, ChevronRight, Loader2,
 import { useEffect, useMemo, useRef, useState } from 'react';
 import GrantList from './GrantList.tsx';
 import FilterSidebar from './FilterSidebar.tsx';
+import AlmostEligible from './AlmostEligible.tsx';
 import AnimatedLogo from '../common/AnimatedLogo.tsx';
 import CustomSelect from '../common/CustomSelect.tsx';
 import ScrollToTopButton from '../common/ScrollToTopButton.tsx';
 import TopLoadingBar from '../common/TopLoadingBar.tsx';
 import { RAIL_SCROLL_TOP_POSITION } from '../common/PageLayout.tsx';
 import type { ResearcherResponse } from '../../services/researcherService';
-import { fetchGrantAgencies, getDiscoveryGrants, type DiscoveryGrant } from '../../services/discoveryService';
+import { fetchGrantAgencies, getDiscoveryGrants, type AlmostEligibleGrant, type DiscoveryGrant } from '../../services/discoveryService';
 import { applyFilters, countActiveFilters, EMPTY_FILTERS, grantInrAmount, type FilterState } from '../../utils/grantFilters';
 import { deadlineTime } from '../../utils/formatDeadline';
 
@@ -18,6 +19,10 @@ import { deadlineTime } from '../../utils/formatDeadline';
  * future ones so the user always sees actionable rows first. The server
  * sorts the browse list the same way.
  */
+/** Strong, partial, weak, then unrated: the order of the AI's fit labels. */
+const FIT_ORDER = { strong: 0, partial: 1, weak: 2 } as const;
+const fitRank = (g: DiscoveryGrant) => (g.fit ? FIT_ORDER[g.fit] : 3);
+
 function deadlineMs(g: DiscoveryGrant): number {
   const t = deadlineTime(g.deadlineRaw);
   if (Number.isNaN(t)) return Number.POSITIVE_INFINITY;
@@ -45,6 +50,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
   const mainScrollRef = useRef<HTMLElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [grants, setGrants] = useState<DiscoveryGrant[]>([]);
+  const [almostEligible, setAlmostEligible] = useState<AlmostEligibleGrant[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
@@ -69,7 +75,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
     setWarningMessage(null);
 
     try {
-      const { grants: fetchedGrants, source, aiError, pagination: fetchedPagination } = await getDiscoveryGrants({
+      const { grants: fetchedGrants, almostEligible: fetchedAlmost, source, aiError, pagination: fetchedPagination } = await getDiscoveryGrants({
         userQuery: queryOverride ?? searchQuery,
         topK: aiTopK,
         useRerank,
@@ -81,6 +87,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
       });
       if (seq !== loadSeq.current) return;
       setGrants(fetchedGrants);
+      setAlmostEligible(fetchedAlmost ?? []);
       setDataSource(source);
       setPagination(fetchedPagination ?? {
         page: 0,
@@ -98,6 +105,7 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
     } catch (error) {
       if (seq !== loadSeq.current) return;
       setGrants([]);
+      setAlmostEligible([]);
       setDataSource(null);
       setErrorMessage(error instanceof Error ? error.message : 'Failed to load grants.');
     } finally {
@@ -211,7 +219,14 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
     } else if (sortBy === 'recent') {
       copy.sort((a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''));
     } else {
-      copy.sort((a, b) => b.matchScore - a.matchScore);
+      // Topic matches come first, by match score. Broader schemes show no
+      // score, so they follow the fit label each card shows, then the score:
+      // a "Strong fit" never sits below a "Weak fit".
+      const broad = (g: DiscoveryGrant) => (g.matchType === 'broad' ? 1 : 0);
+      copy.sort((a, b) =>
+        broad(a) - broad(b)
+        || (broad(a) ? fitRank(a) - fitRank(b) : 0)
+        || b.matchScore - a.matchScore);
     }
     return copy;
   }, [grants, sortBy, dataSource]);
@@ -570,6 +585,10 @@ export default function GrantDiscovery({ researcher }: GrantDiscoveryProps) {
                   void loadGrants(sug, true, 0);
                 }}
               />
+            )}
+
+            {dataSource === 'ai' && !isLoading && !errorMessage && (
+              <AlmostEligible items={almostEligible} profile={researcher} />
             )}
           </div>
         </main>

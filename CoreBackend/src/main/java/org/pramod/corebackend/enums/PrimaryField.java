@@ -12,7 +12,18 @@ public enum PrimaryField {
     AGRICULTURE,
     ROBOTICS,
     DATA_SCIENCE,
-    SOCIAL_IMPACT
+    SOCIAL_IMPACT,
+    // Added Nov 2026 so core sciences have a home (see PrimaryFieldCheckMigration).
+    COMPUTER_SCIENCE,
+    ENGINEERING,
+    PHYSICS,
+    CHEMISTRY,
+    MATERIALS_SCIENCE,
+    MATHEMATICS,
+    LIFE_SCIENCES,
+    ENERGY,
+    EARTH_SCIENCES,
+    SOCIAL_SCIENCES
 }
 
 

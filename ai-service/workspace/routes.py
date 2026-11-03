@@ -11,7 +11,8 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from proposal.pdf_extractor import extract_pages
 
 from .extractor import extract_checklist, summarise
-from .schemas import ChecklistExtractionResponse
+from .qa import answer_question
+from .schemas import AskGuidelinesRequest, ChecklistExtractionResponse, GuidelineAnswer
 from .source_fetch import SourceFetchError, fetch_source
 
 logger = logging.getLogger("workspace.routes")
@@ -90,6 +91,30 @@ async def extract_checklist_route(
         time.monotonic() - started, source_kind, len(pages), summarise(result),
     )
     return result
+
+
+@router.post("/ask-guidelines", response_model=GuidelineAnswer)
+async def ask_guidelines_route(request: AskGuidelinesRequest):
+    """Answer a question about a call's guidelines from their stored text.
+
+    The answer quotes the sentences it rests on, each checked against the
+    text, or says the guidelines don't cover the question.
+    """
+    if sum(len(p.strip()) for p in request.pages) < MIN_TEXT_CHARS:
+        raise HTTPException(status_code=422, detail="There's no guideline text to answer from.")
+    try:
+        return await answer_question(
+            request.pages, request.question, title=request.grant_title, source_kind=request.source_kind,
+        )
+    except Exception as exc:
+        logger.exception("Guidelines question failed")
+        msg = str(exc).lower()
+        if "exhausted" in msg or "resource_exhausted" in msg or "429" in msg or "503" in msg:
+            raise HTTPException(
+                status_code=503,
+                detail="The AI service is busy right now (rate limit). Please try again in a minute.",
+            )
+        raise HTTPException(status_code=502, detail="The AI couldn't answer that just now. Please try again.")
 
 
 async def _read_pdf_upload(upload: UploadFile) -> bytes:

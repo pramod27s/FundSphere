@@ -13,7 +13,7 @@ const CRORE = 10_000_000;
 /**
  * Format a single INR amount in Lakh/Crore.
  * - < 1 Lakh  → "₹50,000"
- * - < 1 Crore → "₹5 Lakh" or "₹5.5 Lakh"
+ * - < 1 Crore → "₹5 lakh" or "₹5.5 lakh"
  * - >= 1 Cr   → "₹2 Cr" or "₹2.5 Cr"
  *
  * @param compact if true, uses short suffix "L" / "Cr" (good for ranges and small chips)
@@ -27,7 +27,7 @@ export function formatInr(amount: number, compact = false): string {
 
   if (amount < CRORE) {
     const lakhs = amount / LAKH;
-    return `₹${trimDecimal(lakhs)} ${compact ? 'L' : 'Lakh'}`;
+    return `₹${trimDecimal(lakhs)} ${compact ? 'L' : 'lakh'}`;
   }
 
   const crores = amount / CRORE;

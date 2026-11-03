@@ -64,10 +64,15 @@ function Deadlines({ awards, onOpen, onSync }: { awards: Award[]; onOpen: (award
   const daysInMonth = new Date(y, m, 0).getDate();
   const cells = [...Array<null>(lead).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => `${month}-${String(i + 1).padStart(2, '0')}`)];
 
+  const dueSoon = pending.filter(({ event }) => daysUntil(event.dueDate, today) <= DUE_SOON_DAYS);
+  // The "next 30 days" list also holds anything already overdue, so the heading says so.
+  const dueSoonHeading = dueSoon.some(({ event }) => event.dueDate < today)
+    ? `Overdue, and due in the next ${DUE_SOON_DAYS} days`
+    : `Due in the next ${DUE_SOON_DAYS} days`;
   const list = day !== null
     ? { heading: `Due on ${formatDay(day)}`, rows: byDay.get(day) ?? [] }
     : month === thisMonth
-      ? { heading: `Due in the next ${DUE_SOON_DAYS} days`, rows: pending.filter(({ event }) => daysUntil(event.dueDate, today) <= DUE_SOON_DAYS) }
+      ? { heading: dueSoonHeading, rows: dueSoon }
       : { heading: `Due in ${MONTH_NAMES[m - 1]}`, rows: inMonth };
   const overdue = list.rows.filter(({ event }) => event.dueDate < today).length;
   const next = pending.find(({ event }) => event.dueDate >= today) ?? null;
@@ -102,7 +107,7 @@ function Deadlines({ awards, onOpen, onSync }: { awards: Award[]; onOpen: (award
           const dues = byDay.get(iso);
           const isToday = iso === today;
           const base = `h-9 flex flex-col items-center justify-center gap-0.5 rounded-md text-xs tabular-nums ${
-            isToday ? 'ring-1 ring-inset ring-primary-500 font-bold text-primary-700' : iso < today ? 'text-brand-400' : 'text-brand-700'
+            isToday ? 'ring-1 ring-inset ring-primary-500 font-bold text-primary-700' : iso < today ? 'text-brand-500' : 'text-brand-700'
           }`;
           const dayNo = Number(iso.slice(8));
           if (!dues) return <span key={iso} className={base}>{dayNo}</span>;

@@ -67,9 +67,12 @@ export function ListLayout({ children, panel }: { children: ReactNode; panel?: R
 export function DetailLayout({ children, panel }: { children: ReactNode; panel?: ReactNode }) {
   const [panelRef, fits] = useFitsViewport();
   if (!panel) return <SingleColumn>{children}</SingleColumn>;
+  // The content comes first, so on narrow screens the page opens on it and
+  // the panel follows below; from xl up the panel sits in its own column.
   return (
     <div className={`flex-1 ${PAGE_WIDTH} py-6 sm:py-8`}>
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_20rem] gap-6 items-start">
+        <div className="min-w-0 xl:col-start-1 xl:row-start-1">{children}</div>
         <aside
           ref={panelRef}
           aria-label="Summary"
@@ -77,7 +80,6 @@ export function DetailLayout({ children, panel }: { children: ReactNode; panel?:
         >
           {panel}
         </aside>
-        <div className="min-w-0 xl:col-start-1 xl:row-start-1">{children}</div>
       </div>
     </div>
   );

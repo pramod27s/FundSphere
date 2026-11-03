@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
-import { Check, ChevronDown, FileSearch, FileText, Loader2, Pencil, Plus, RefreshCw, RotateCcw, Trash2, TriangleAlert } from 'lucide-react';
+import { Check, ChevronDown, FileSearch, FileText, Loader2, Plus, RefreshCw, TriangleAlert } from 'lucide-react';
 import { ROW_ACTION } from '../common/buttonStyles';
+import MoreActions from '../common/MoreActions';
 import type {
   Application,
   ChecklistCategory,
@@ -173,7 +174,7 @@ function ChecklistRow({
       </button>
 
       <div className="flex-1 min-w-0">
-        <p className={`text-sm leading-snug ${na ? 'text-brand-400 line-through' : done ? 'text-brand-500' : 'text-brand-900'}`}>
+        <p className={`text-sm leading-snug ${na ? 'text-brand-500 line-through' : done ? 'text-brand-500' : 'text-brand-900'}`}>
           {item.text}
         </p>
         <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
@@ -209,37 +210,18 @@ function ChecklistRow({
         )}
       </div>
 
-      <div className="flex items-start gap-1.5 shrink-0">
-        <button
-          type="button"
-          onClick={() => onPatch(item.id, { status: na ? 'TODO' : 'NA' })}
-          className={ROW_ACTION.secondary}
-          title={na ? 'This applies to us after all' : "Doesn't apply to this application"}
-        >
-          {na ? (
-            <>
-              <RotateCcw className="w-3.5 h-3.5" />
-              It applies
-            </>
-          ) : (
-            <>
-              <span className="hidden sm:inline">Not applicable</span>
-              <span className="sm:hidden">N/A</span>
-            </>
-          )}
-        </button>
-        <button type="button" onClick={startEditing} className={ROW_ACTION.icon} aria-label={`Edit "${item.text}"`} title="Edit">
-          <Pencil className="w-3.5 h-3.5" />
-        </button>
-        <button
-          type="button"
-          onClick={() => window.confirm(`Delete "${item.text}"?`) && onDelete(item.id)}
-          className={ROW_ACTION.iconDanger}
-          aria-label={`Delete "${item.text}"`}
-          title="Delete"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
+      {/* One menu instead of three buttons per row, so a long checklist stays easy to scan. */}
+      <div className="shrink-0">
+        <MoreActions
+          label={`Actions for "${item.text}"`}
+          items={[
+            na
+              ? { label: 'It applies after all', onSelect: () => onPatch(item.id, { status: 'TODO' }) }
+              : { label: 'Not applicable', onSelect: () => onPatch(item.id, { status: 'NA' }) },
+            { label: 'Edit', onSelect: startEditing },
+            { label: 'Delete', danger: true, onSelect: () => window.confirm(`Delete "${item.text}"?`) && onDelete(item.id) },
+          ]}
+        />
       </div>
     </li>
   );

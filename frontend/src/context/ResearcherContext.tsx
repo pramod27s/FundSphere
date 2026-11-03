@@ -25,7 +25,7 @@ export function ResearcherProvider({ children }: { children: ReactNode }) {
     const onUnauthorized = () => {
       setResearcherState(null);
       if (location.pathname !== '/auth') {
-        toast.error('Your session has expired. Please log in again.');
+        toast.error('Your session has expired. Please sign in again.');
         navigate('/auth', { replace: true });
       }
     };

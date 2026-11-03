@@ -14,7 +14,8 @@ from .filters import (
     keyword_overlap_score,
     grant_type_fit,
     career_stage_fit,
-    is_strictly_disqualified,
+    eligibility_gaps,
+    is_almost_eligible,
     _match_strength,
     _norm,
     _norm_set,
@@ -32,6 +33,8 @@ from .profile_builder import (
 )
 from .query_expander import expand_queries
 from .schemas import (
+    AlmostEligibleItem,
+    EligibilityGap,
     RecommendationItem,
     RecommendationRequest,
     RecommendationResponse,
@@ -202,17 +205,22 @@ class RecommenderService:
         fused = [h for h in fused if h.fields.get("grant_title") or h.fields.get("chunk_text")]
 
         # Drop expired and ineligible grants BEFORE reranking, so they neither
-        # take rerank slots nor come back as results.
-        candidates = self._drop_ineligible(profile, fused)[: settings.rrf_pool_size]
+        # take rerank slots nor come back as results. Those ruled out only by
+        # a PhD or a few years of experience are kept aside as near misses.
+        candidates, near_misses = self._drop_ineligible(profile, fused)
+        candidates = candidates[: settings.rrf_pool_size]
+
+        rerank_query = (request.userQuery or "").strip() if settings.enable_structured_rerank_prompt else query_text
+        if not rerank_query:
+            rerank_query = query_text
+        almost_eligible = self._almost_eligible(rerank_query, near_misses) if use_rerank else []
+
         if not candidates:
-            resp = RecommendationResponse(queryText=query_text, results=[])
+            resp = RecommendationResponse(queryText=query_text, results=[], almostEligible=almost_eligible)
             query_cache.set(cache_key, resp)
             return resp
 
         # Stage 4 — reranker (Pinecone bge-reranker-v2-m3)
-        rerank_query = (request.userQuery or "").strip() if settings.enable_structured_rerank_prompt else query_text
-        if not rerank_query:
-            rerank_query = query_text
         reranked = self._rerank_stage(rerank_query, candidates, top_k=settings.rerank_top_k) if use_rerank else candidates[: settings.rerank_top_k]
         ranked = time.perf_counter()
 
@@ -236,7 +244,7 @@ class RecommenderService:
             (finished - ranked) * 1000,
         )
 
-        response = RecommendationResponse(queryText=query_text, results=top_items)
+        response = RecommendationResponse(queryText=query_text, results=top_items, almostEligible=almost_eligible)
         query_cache.set(cache_key, response)
         return response
 
@@ -505,25 +513,62 @@ class RecommenderService:
         return hydrated
 
     @staticmethod
-    def _drop_ineligible(profile: UserProfile, hits: List[SemanticHit]) -> List[SemanticHit]:
+    def _drop_ineligible(
+        profile: UserProfile, hits: List[SemanticHit]
+    ) -> Tuple[List[SemanticHit], List[Tuple[SemanticHit, List[EligibilityGap]]]]:
         """Remove candidates the user can't act on: deadline passed, or a hard
         eligibility conflict (PhD, citizenship, country, experience). If every
         candidate goes, the result is empty — grants the user is known to be
-        ineligible for are never shown as matches."""
+        ineligible for are never shown as matches.
+
+        Returns (kept, near_misses): near misses are open grants dropped only
+        for rules the user can meet later (see is_almost_eligible), each with
+        its gaps, in the order they came in."""
         kept: List[SemanticHit] = []
+        near_misses: List[Tuple[SemanticHit, List[EligibilityGap]]] = []
         for hit in hits:
             fields = hit.fields or {}
             if settings.exclude_expired_grants and not deadline_is_open(fields.get("application_deadline")):
                 continue
             if settings.enable_hard_eligibility_filter:
-                disqualified, reason = is_strictly_disqualified(profile, fields)
-                if disqualified:
-                    logger.debug("Grant %d disqualified: %s", hit.grantId, reason)
+                gaps = eligibility_gaps(profile, fields)
+                if gaps:
+                    logger.debug("Grant %d disqualified: %s", hit.grantId, gaps[0].reason)
+                    if is_almost_eligible(gaps):
+                        near_misses.append((hit, gaps))
                     continue
             kept.append(hit)
         if len(kept) != len(hits):
             logger.debug("Dropped %d expired/ineligible candidate(s) before reranking.", len(hits) - len(kept))
-        return kept
+        return kept, near_misses
+
+    def _almost_eligible(
+        self, query: str, near_misses: List[Tuple[SemanticHit, List[EligibilityGap]]]
+    ) -> List[AlmostEligibleItem]:
+        """The near misses worth showing: those the reranker finds about the
+        user's research (a "topic" score), best first. A grant the user can't
+        apply for yet is only useful if it's one they'd want."""
+        if not settings.enable_almost_eligible or not near_misses:
+            return []
+        pool = near_misses[: max(settings.almost_eligible_top_k * 3, 6)]
+        gaps_by_id = {hit.grantId: gaps for hit, gaps in pool}
+        ranked = self._rerank_stage(query, [hit for hit, _ in pool], top_k=len(pool))
+
+        items: List[AlmostEligibleItem] = []
+        for hit in ranked:
+            score = hit.fields.get("_rerank_score")
+            if score is None or float(score) < settings.topic_match_min_score:
+                continue
+            items.append(AlmostEligibleItem(
+                grantId=hit.grantId,
+                title=hit.fields.get("grant_title"),
+                fundingAgency=hit.fields.get("funding_agency"),
+                gaps=gaps_by_id[hit.grantId],
+                fields=hit.fields,
+            ))
+            if len(items) >= settings.almost_eligible_top_k:
+                break
+        return items
 
     @staticmethod
     def _merge_hits(primary: List[SemanticHit], extra: List[SemanticHit]) -> List[SemanticHit]:
@@ -621,8 +666,12 @@ class RecommenderService:
             if hit is None:
                 continue
             new_fields = dict(hit.fields or {})
-            new_fields["_rerank_score"] = doc.get("_rerank_score", 0.0)
-            new_fields["_rerank_rank"] = doc.get("_rerank_rank")
+            # When the reranker failed, Pinecone returns the documents unscored.
+            # Leave the score out so scoring falls back to the RRF signal; a 0.0
+            # here would label every result "broad" with a 0% match.
+            if doc.get("_rerank_score") is not None:
+                new_fields["_rerank_score"] = doc["_rerank_score"]
+                new_fields["_rerank_rank"] = doc.get("_rerank_rank")
             out.append(SemanticHit(grantId=gid, semanticScore=hit.semanticScore, fields=new_fields))
         return out
 

@@ -41,12 +41,14 @@ It is built for researchers in India. It indexes Indian funding agencies, shows 
 - **Browse** every indexed call, with filters for agency, grant type, applicant type, funding range and closing date, and sorting by recency, deadline or amount.
 - **AI Match** ranks calls against the researcher's profile and an optional free-text query. Each result has a match score that breaks down into semantic fit, eligibility, keywords, funding fit and deadline, plus a short explanation.
 - **Hard eligibility rules** remove calls the researcher can't apply for, such as those requiring a PhD, a citizenship or years of experience they don't have. Closed calls are left out.
+- **Almost eligible**: calls about the researcher's topic that were removed only because they need a PhD or up to 3 more years of experience are listed separately, each with what it takes to qualify.
 - **Saved grants** keep a shortlist with private notes, showing what closes soonest and which saved calls already have an application.
 - **Freshness**: each call shows when its source page was last verified.
 
 ### Prepare applications
 
 - **Checklist from the guidelines**: upload a call's guidelines and FundSphere lists every document, format limit, eligibility proof, budget rule, submission detail and key date. Each item comes with the quote and page it was taken from.
+- **Ask the guidelines**: ask a question such as "Can I buy a laptop from this grant?" and get an answer taken only from the call's guidelines, with the sentences and pages it rests on, each checked against the document. When the guidelines don't settle it, the answer says so.
 - **Readiness tracker**: give each item an owner and a due date counted back from the call deadline, and see readiness as a percentage of required items done.
 - **Sharing and reminders**: send the pending list, grouped by person, over WhatsApp, and add the deadline and due dates to a calendar (`.ics` download or Google Calendar).
 - **Status tracking** from Preparing through Submitted to Awarded or Not funded, including calls found outside FundSphere.

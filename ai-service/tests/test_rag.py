@@ -15,10 +15,13 @@ from rag.config import settings
 from rag.countries import UNRESOLVED_GROUP, canonical_country, country_allows, country_keys
 from rag.document_builder import build_pinecone_records, chunk_text, estimate_tokens
 from rag.filters import (
+    eligibility_gaps,
+    is_almost_eligible,
     APPLICANT_ALIASES,
     INSTITUTION_ALIASES,
     _match_strength,
     eligibility_score,
+    funding_fit,
     is_strictly_disqualified,
     keyword_overlap_score,
 )
@@ -148,6 +151,60 @@ class PipelineTests(unittest.TestCase):
 
         self.assertEqual(pinecone.reranked_ids, [1])
         self.assertEqual([r.grantId for r in resp.results], [1])
+
+    def test_on_topic_near_misses_come_back_as_almost_eligible(self):
+        profile = PROFILE.model_copy(update={"yearsOfExperience": 3})
+        pinecone = FakePinecone(
+            [
+                grant(1, "Open grant"),
+                grant(3, "US-only grant", eligible_countries=["United States"]),
+                grant(4, "PhD-only solar grant", requires_phd=True),
+                grant(5, "Five-years solar grant", min_experience_years=5),
+                grant(6, "Ten-years solar grant", min_experience_years=10),
+                grant(7, "PhD-only off-topic grant", requires_phd=True),
+                grant(8, "PhD-only expired grant", deadline=PAST, requires_phd=True),
+            ],
+            rerank_scores={1: 0.6, 3: 0.9, 4: 0.5, 5: 0.8, 6: 0.9, 7: 0.01, 8: 0.9},
+        )
+
+        resp = self.recommend(pinecone, profile=profile)
+
+        self.assertEqual([r.grantId for r in resp.results], [1])
+        self.assertEqual([a.grantId for a in resp.almostEligible], [5, 4])
+        five_years = resp.almostEligible[0].gaps[0]
+        self.assertEqual((five_years.kind, five_years.yearsShort), ("experience", 2))
+        self.assertIn("about 2 years", five_years.howToQualify)
+        self.assertEqual(resp.almostEligible[1].gaps[0].kind, "phd")
+
+    def test_almost_eligible_is_capped_and_needs_rerank_scores(self):
+        near = [grant(gid, f"PhD-only grant {gid}", requires_phd=True) for gid in range(10, 15)]
+        pinecone = FakePinecone([grant(1, "Open grant"), *near], {gid: 0.5 for gid in range(1, 15)})
+
+        with mock.patch.object(settings, "almost_eligible_top_k", 2):
+            self.assertEqual(len(self.recommend(pinecone).almostEligible), 2)
+        with mock.patch.object(settings, "use_rerank", False):
+            self.assertEqual(self.recommend(pinecone).almostEligible, [])
+
+    def test_almost_eligible_shows_even_when_no_grant_is_eligible(self):
+        pinecone = FakePinecone([grant(4, "PhD-only solar grant", requires_phd=True)], {4: 0.5})
+
+        resp = self.recommend(pinecone)
+
+        self.assertEqual(resp.results, [])
+        self.assertEqual([a.grantId for a in resp.almostEligible], [4])
+
+    def test_a_failed_rerank_falls_back_to_rrf_instead_of_zero_scores(self):
+        class FailingRerank(FakePinecone):
+            def rerank(self, query, documents, top_n, text_field="text"):
+                return documents[:top_n]  # what PineconeService returns when the API call fails
+
+        pinecone = FailingRerank([grant(1, "Solar cells"), grant(2, "Any science")], {})
+
+        resp = self.recommend(pinecone)
+
+        self.assertEqual([r.matchType for r in resp.results], [None, None])  # not every grant "broad"
+        self.assertGreater(resp.results[0].semanticScore, 0.0)
+        self.assertNotIn("_rerank_score", resp.results[0].fields)
 
     def test_keyword_only_candidates_are_hydrated_then_filtered(self):
         pinecone = FakePinecone(
@@ -519,6 +576,48 @@ class PhdRequirementTests(unittest.TestCase):
     def test_a_grant_for_phd_holders_still_excludes_students(self):
         for applicants in (["Researchers with Ph.D."], ["Postdocs", "Scientists with PhDs"], []):
             self.assertTrue(self.disqualified(applicants), applicants)
+
+
+class FundingFitTests(unittest.TestCase):
+    GRANT = {"funding_amount_min": 3_500_000, "funding_amount_max": 3_500_000}
+
+    def test_a_zero_budget_is_no_preference(self):
+        self.assertEqual(funding_fit(UserProfile(preferredMinAmount=0, preferredMaxAmount=0), self.GRANT), 0.5)
+
+    def test_a_real_budget_still_scores_the_overlap(self):
+        self.assertEqual(funding_fit(UserProfile(preferredMinAmount=1_000_000, preferredMaxAmount=5_000_000), self.GRANT), 1.0)
+        self.assertEqual(funding_fit(UserProfile(preferredMinAmount=10_000, preferredMaxAmount=500_000), self.GRANT), 0.0)
+
+
+class AlmostEligibleTests(unittest.TestCase):
+    PROFILE = UserProfile(hasPhd=False, yearsOfExperience=2, country="India", citizenship="India")
+
+    def gaps(self, **fields):
+        return eligibility_gaps(self.PROFILE, fields)
+
+    def test_every_broken_rule_is_listed(self):
+        gaps = self.gaps(requires_phd=True, min_experience_years=4, eligible_countries=["Kenya"])
+
+        self.assertEqual([g.kind for g in gaps], ["phd", "country", "experience"])
+
+    def test_a_phd_or_a_few_years_short_is_almost_eligible(self):
+        self.assertTrue(is_almost_eligible(self.gaps(requires_phd=True)))
+        self.assertTrue(is_almost_eligible(self.gaps(min_experience_years=5)))  # 3 years short
+        self.assertTrue(is_almost_eligible(self.gaps(requires_phd=True, min_experience_years=3)))
+
+    def test_rules_the_user_cant_change_or_far_off_are_not(self):
+        self.assertFalse(is_almost_eligible(self.gaps()))
+        self.assertFalse(is_almost_eligible(self.gaps(min_experience_years=6)))  # 4 years short
+        self.assertFalse(is_almost_eligible(self.gaps(requires_phd=True, citizenship_required=["Kenya"])))
+
+    def test_unknown_profile_values_never_create_a_gap(self):
+        self.assertEqual(eligibility_gaps(UserProfile(), {"requires_phd": True, "min_experience_years": 5}), [])
+
+    def test_disqualified_reason_is_the_first_gap(self):
+        fields = {"requires_phd": True, "min_experience_years": 5}
+
+        self.assertEqual(is_strictly_disqualified(self.PROFILE, fields),
+                         (True, "Grant requires PhD, but applicant does not have PhD"))
 
 
 class ExplanationTests(unittest.TestCase):

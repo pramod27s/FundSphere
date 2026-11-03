@@ -207,15 +207,24 @@ public class GrantService {
     }
 
     /**
-     * Writes each grant's live timestamps into the "fields" of AI recommendation
-     * results. Pinecone metadata is only rewritten when a grant is re-indexed
-     * (its page changed), so its copies go stale between scraper runs, and it
-     * never held last_verified_at at all.
+     * Writes each grant's live details into the "fields" of AI recommendation
+     * results: its timestamps, and the full description and other long text
+     * the grant details show. Pinecone metadata is only rewritten when a grant
+     * is re-indexed (its page changed), so its copies go stale between scraper
+     * runs; it never held last_verified_at, and it holds the search text
+     * ("Title: ... Agency: ...") rather than the description itself.
      */
     @Transactional(readOnly = true)
-    public void applyLiveTimestamps(Object recommendation) {
-        if (!(recommendation instanceof Map<?, ?> body) || !(body.get("results") instanceof List<?> results)) {
+    public void applyLiveDetails(Object recommendation) {
+        if (!(recommendation instanceof Map<?, ?> body)) {
             return;
+        }
+        // The matches and the "almost eligible" grants both carry fields.
+        List<Object> results = new ArrayList<>();
+        for (String key : List.of("results", "almostEligible")) {
+            if (body.get(key) instanceof List<?> list) {
+                results.addAll(list);
+            }
         }
         List<Long> ids = results.stream()
                 .filter(item -> item instanceof Map<?, ?> map && map.get("grantId") instanceof Number)
@@ -242,6 +251,19 @@ public class GrantService {
             fields.put("updated_at", isoOrNull(grant.getUpdatedAt()));
             fields.put("last_scraped_at", isoOrNull(grant.getLastScrapedAt()));
             fields.put("last_verified_at", isoOrNull(grant.getLastVerifiedAt()));
+            putIfText(fields, "description", grant.getDescription());
+            putIfText(fields, "objectives", grant.getObjectives());
+            putIfText(fields, "funding_scope", grant.getFundingScope());
+            putIfText(fields, "eligibility_criteria", grant.getEligibilityCriteria());
+            putIfText(fields, "selection_criteria", grant.getSelectionCriteria());
+            putIfText(fields, "grant_duration", grant.getGrantDuration());
+            putIfText(fields, "research_themes", grant.getResearchThemes());
+        }
+    }
+
+    private static void putIfText(Map<String, Object> fields, String key, String value) {
+        if (value != null && !value.isBlank()) {
+            fields.put(key, value);
         }
     }
 

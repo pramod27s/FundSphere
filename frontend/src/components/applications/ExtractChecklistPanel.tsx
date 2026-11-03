@@ -209,7 +209,7 @@ export default function ExtractChecklistPanel({ application, onExtracted, onCanc
         </button>
         {running && (
           <p className="text-sm text-brand-600" aria-live="polite">
-            {progress} <span className="tabular-nums text-brand-400">{elapsed}s</span>
+            {progress} <span className="tabular-nums text-brand-500">{elapsed}s</span>
           </p>
         )}
       </div>

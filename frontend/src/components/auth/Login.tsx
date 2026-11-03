@@ -52,7 +52,7 @@ export default function Login({ onLoginSuccess, onNavigateToRegister }: LoginPro
             <Lock size={32} />
           </div>
           <h2 className="font-display text-3xl font-semibold text-brand-900 tracking-[-0.015em]">Welcome back</h2>
-          <p className="text-brand-800/60 mt-2 font-medium">Log in to access your FundSphere account</p>
+          <p className="text-brand-600 mt-2 font-medium">Sign in to your FundSphere account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -116,12 +116,12 @@ export default function Login({ onLoginSuccess, onNavigateToRegister }: LoginPro
           </button>
         </form>
 
-        <div className="mt-8 text-center text-sm font-medium text-brand-800/60 flex items-center justify-center gap-2">
+        <div className="mt-8 text-center text-sm font-medium text-brand-600 flex items-center justify-center gap-2">
           <span>Don't have an account?</span>
           <button 
             type="button"
             onClick={onNavigateToRegister}
-            className="text-primary-600 inline-flex items-center hover:text-primary-700 hover:underline transition-all"
+            className="text-primary-700 inline-flex items-center hover:text-primary-800 hover:underline transition-all"
           >
             Create one <UserPlus size={16} className="ml-1" />
           </button>

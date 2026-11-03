@@ -18,6 +18,7 @@
  */
 import { Check, AlertTriangle, X, Minus } from 'lucide-react';
 import type { DiscoveryGrant } from '../../services/discoveryService';
+import { RESEARCH_FIELD_OPTIONS, optionLabel } from '../../utils/profileOptions';
 import type { ResearcherResponse } from '../../services/researcherService';
 
 interface MatchBreakdownProps {
@@ -102,9 +103,14 @@ function buildCriteria(grant: DiscoveryGrant, profile: ResearcherResponse): Crit
     .join(' ')
     .toLowerCase();
 
-  const profileFieldTerms = [profile.primaryField, ...(profile.keywords ?? [])]
-    .filter(Boolean)
-    .map((s) => s.toLowerCase().trim())
+  // The field's readable name ("Environment & Climate" → Environment, Climate),
+  // not its stored value: "ENVIRONMENT" read as "environment", and
+  // "ARTIFICIAL_INTELLIGENCE" never matched anything.
+  const fieldNames = (optionLabel(RESEARCH_FIELD_OPTIONS, profile.primaryField) ?? '')
+    .split(/\s*[&,]\s*/)
+    .filter((part) => part.length > 2);
+  const profileFieldTerms = [...fieldNames, ...(profile.keywords ?? [])]
+    .map((s) => s.trim())
     .filter(Boolean);
 
   if (profileFieldTerms.length === 0) {
@@ -114,7 +120,7 @@ function buildCriteria(grant: DiscoveryGrant, profile: ResearcherResponse): Crit
       detail: 'Add keywords to your profile to enable field matching.',
     });
   } else {
-    const hits = profileFieldTerms.filter((term) => fieldText.includes(term));
+    const hits = profileFieldTerms.filter((term) => fieldText.includes(term.toLowerCase()));
     if (hits.length > 0) {
       out.push({
         label: 'Research field',

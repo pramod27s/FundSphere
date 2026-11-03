@@ -18,6 +18,7 @@ import org.pramod.corebackend.entity.Application;
 import org.pramod.corebackend.entity.ApplicationStatusChange;
 import org.pramod.corebackend.entity.ChecklistItem;
 import org.pramod.corebackend.entity.Grant;
+import org.pramod.corebackend.entity.GuidelineExtraction;
 import org.pramod.corebackend.enums.ApplicationStatus;
 import org.pramod.corebackend.enums.ChecklistCategory;
 import org.pramod.corebackend.enums.ChecklistItemOrigin;
@@ -47,6 +48,7 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Service
@@ -254,6 +256,40 @@ public class ApplicationService {
                 hasFile ? guidelinesPdf : null, hasUrl ? url.strip() : null, title);
 
         return transactionTemplate.execute(status -> applyExtraction(requireOwned(userId, applicationId), result));
+    }
+
+    /** Reads a question's input inside a transaction; the AI call happens after it ends. */
+    private record QuestionInput(List<String> pages, String sourceKind, String title) {}
+
+    /**
+     * Answers a question about the application's guidelines from the text
+     * stored when they were read, with the sentences the answer rests on.
+     * Nothing is stored. Not @Transactional, for the same reason as extractChecklist.
+     */
+    public Map<String, Object> askGuidelines(Long userId, Long applicationId, String question) {
+        String trimmed = question == null ? "" : question.strip();
+        if (trimmed.length() < 3) {
+            throw new ResponseStatusException(BAD_REQUEST, "Type a question about the guidelines");
+        }
+        if (trimmed.length() > 500) {
+            throw new ResponseStatusException(BAD_REQUEST, "Keep the question under 500 characters");
+        }
+
+        QuestionInput input = transactionTemplate.execute(status -> {
+            Application application = requireOwned(userId, applicationId);
+            GuidelineExtraction extraction = application.getGuidelineExtraction();
+            if (extraction == null) {
+                throw new ResponseStatusException(CONFLICT, "Read the call's guidelines in the Checklist tab first");
+            }
+            List<String> pages = guidelineExtractionService.pages(extraction);
+            if (pages == null) {
+                throw new ResponseStatusException(CONFLICT,
+                        "These guidelines were read before questions were possible. "
+                                + "Read them again in the Checklist tab, then ask your question.");
+            }
+            return new QuestionInput(pages, guidelineExtractionService.sourceKind(extraction), application.getTitle());
+        });
+        return aiServiceClient.askGuidelines(input.pages(), input.sourceKind(), trimmed, input.title());
     }
 
     private ApplicationResponse applyExtraction(Application application, Map<String, Object> result) {

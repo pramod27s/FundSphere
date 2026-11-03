@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { Beaker, GraduationCap, Building2, Briefcase, BookOpen } from 'lucide-react';
 
 export type StageIdentityProps = {
@@ -20,31 +21,31 @@ const userTypes = [
     id: 'Researcher',
     label: 'Researcher',
     icon: Beaker,
-    desc: 'Independent or institutional researcher conducting scientific inquiry',
+    desc: 'Scientist or research staff at an institute or lab',
   },
   {
     id: 'Student',
     label: 'Student / Scholar',
     icon: GraduationCap,
-    desc: 'Undergraduate, graduate, or doctoral candidate seeking grant support',
+    desc: 'UG, PG or PhD student looking for fellowships',
   },
   {
     id: 'Professor / Faculty',
     label: 'Professor / Faculty',
     icon: BookOpen,
-    desc: 'Academic faculty leading lab groups, teaching, or departmental research',
+    desc: 'Faculty member leading a lab or research group',
   },
   {
     id: 'Startup / Company',
     label: 'Startup / Founder',
     icon: Briefcase,
-    desc: 'Commercial venture, spin-off, or deep-tech startup pursuing R&D capital',
+    desc: 'Startup or spin-off seeking R&D funding',
   },
   {
     id: 'Nonprofit Organization',
     label: 'Non-profit / NGO',
     icon: Building2,
-    desc: 'Charitable foundation, civil society org, or public-benefit institution',
+    desc: 'Foundation, trust or civil society organisation',
   },
 ];
 
@@ -80,6 +81,7 @@ export default function StageIdentity({
   const inputClass =
     'w-full px-4 py-2.5 rounded-lg border border-brand-200 bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all text-sm text-brand-900 placeholder:text-brand-400';
   const labelClass = 'block text-sm font-medium text-brand-700 mb-1.5';
+  const id = useId();
 
   return (
     <div className="space-y-6">
@@ -88,7 +90,7 @@ export default function StageIdentity({
           Select your profile type <span className="text-primary-600">*</span>
         </h3>
         <p className="text-xs text-brand-500 mb-3">
-          This tunes recommendation filters for eligibility gates (e.g. faculty-only grants, student fellowships).
+          This helps hide calls you can't apply for, such as faculty-only grants or student fellowships.
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -119,7 +121,7 @@ export default function StageIdentity({
                     {t.label}
                   </span>
                 </div>
-                <p className="text-xs text-brand-500 line-clamp-2">{t.desc}</p>
+                <p className="text-xs text-brand-500">{t.desc}</p>
               </button>
             );
           })}
@@ -136,10 +138,11 @@ export default function StageIdentity({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className={labelClass}>
+            <label htmlFor={`${id}-org`} className={labelClass}>
               Institution or organization name <span className="text-primary-600">*</span>
             </label>
             <input
+              id={`${id}-org`}
               type="text"
               required
               placeholder="e.g. IISc Bengaluru or IIT Bombay"
@@ -150,8 +153,9 @@ export default function StageIdentity({
           </div>
 
           <div>
-            <label className={labelClass}>Department or centre</label>
+            <label htmlFor={`${id}-dept`} className={labelClass}>Department or centre</label>
             <input
+              id={`${id}-dept`}
               type="text"
               placeholder="e.g. Department of Biotechnology"
               value={department}
@@ -161,10 +165,11 @@ export default function StageIdentity({
           </div>
 
           <div>
-            <label className={labelClass}>
+            <label htmlFor={`${id}-role`} className={labelClass}>
               Your position or role <span className="text-primary-600">*</span>
             </label>
             <select
+              id={`${id}-role`}
               value={role}
               onChange={(e) => updateFields({ role: e.target.value })}
               className={inputClass}
@@ -181,8 +186,9 @@ export default function StageIdentity({
           </div>
 
           <div>
-            <label className={labelClass}>Institution type</label>
+            <label htmlFor={`${id}-type`} className={labelClass}>Institution type</label>
             <select
+              id={`${id}-type`}
               value={institutionType}
               onChange={(e) => updateFields({ institutionType: e.target.value })}
               className={inputClass}

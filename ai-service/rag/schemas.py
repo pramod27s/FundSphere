@@ -1,4 +1,4 @@
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Literal
 from pydantic import BaseModel, Field, ConfigDict
 
 
@@ -118,7 +118,36 @@ class RecommendationItem(BaseModel):
     matchType: Optional[str] = None
 
 
+class EligibilityGap(BaseModel):
+    """One hard eligibility rule the user's profile breaks.
+
+    `requirement` and `howToQualify` are set only for rules the user can meet
+    later (a PhD, years of experience); citizenship and country carry just
+    the `reason` used in logs.
+    """
+    model_config = ConfigDict(extra='forbid')
+    kind: Literal["phd", "citizenship", "country", "experience"]
+    reason: str
+    requirement: Optional[str] = None
+    howToQualify: Optional[str] = None
+    yearsShort: Optional[int] = None
+
+
+class AlmostEligibleItem(BaseModel):
+    """A grant about the user's research that they can't apply for yet, with
+    what stands in the way and how to get past it."""
+    model_config = ConfigDict(extra='forbid')
+    grantId: int
+    title: Optional[str] = Field(default=None, max_length=500)
+    fundingAgency: Optional[str] = Field(default=None, max_length=500)
+    gaps: List[EligibilityGap]
+    fields: Dict[str, Any] = Field(default_factory=dict)
+
+
 class RecommendationResponse(BaseModel):
     model_config = ConfigDict(extra='forbid')
     queryText: str = Field(..., max_length=2000)
     results: List[RecommendationItem]
+    # Open grants on the user's topic that a PhD or a few more years of
+    # experience would open up. Never part of `results`.
+    almostEligible: List[AlmostEligibleItem] = Field(default_factory=list)

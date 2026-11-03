@@ -224,6 +224,31 @@ export function computeReadiness(items: ChecklistItem[], today: string): Readine
   };
 }
 
+/** A sentence from the guidelines behind an answer; verified when it was found in the text. */
+export interface AnswerCitation {
+  quote: string;
+  page: number | null;
+  verified: boolean;
+}
+
+export interface GuidelineAnswer {
+  /** "partial": related rules, but they don't settle it; "not_stated": the guidelines don't cover it. */
+  status: 'answered' | 'partial' | 'not_stated';
+  answer: string;
+  citations: AnswerCitation[];
+  warnings: string[];
+}
+
+/** Answers a question from the application's guidelines, quoting the sentences it rests on. */
+export async function askGuidelines(id: number, question: string): Promise<GuidelineAnswer> {
+  const response = await apiFetch(`/api/applications/${id}/guidelines/ask`, {
+    method: 'POST',
+    body: JSON.stringify({ question }),
+  });
+  await ensureOk(response, 'Could not answer that question');
+  return (await response.json()) as GuidelineAnswer;
+}
+
 async function ensureOk(response: Response, fallback: string): Promise<void> {
   if (response.ok) return;
   let message = `${fallback} (${response.status})`;

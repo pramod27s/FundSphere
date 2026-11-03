@@ -7,10 +7,13 @@
   --color-primary-300: #5eead4;
   --color-primary-400: #2dd4bf;
   --color-primary-500: #14b8a6;
-  --color-primary-600: #0d9488;
-  --color-primary-700: #0f766e;
-  --color-primary-800: #115e59;
-  --color-primary-900: #134e4a;
+  /* 600 and up are one Tailwind teal step darker than stock, so white text
+     on primary buttons and primary text on light surfaces pass WCAG AA
+     (#0f766e: 5.5:1 on white). */
+  --color-primary-600: #0f766e;
+  --color-primary-700: #115e59;
+  --color-primary-800: #134e4a;
+  --color-primary-900: #0f3f3c;
   --color-primary-950: #042f2e;
 
   --color-brand-50: #f8fafc;

@@ -35,7 +35,8 @@ export const ROW_ACTION = {
   danger: `${ROW_BUTTON} border-red-200 bg-white text-red-700 hover:bg-red-50`,
   /** Square, icon-only (Edit, Delete). Give it an aria-label and a title. */
   icon: `${ROW_ICON_BUTTON} border-brand-300 bg-white text-brand-700 hover:bg-brand-50 hover:text-brand-900`,
-  iconDanger: `${ROW_ICON_BUTTON} border-red-200 bg-white text-red-600 hover:bg-red-50`,
+  /** Turns red only on hover, so a list of rows isn't a column of red icons. */
+  iconDanger: `${ROW_ICON_BUTTON} border-brand-300 bg-white text-brand-600 hover:border-red-200 hover:bg-red-50 hover:text-red-700`,
   link: 'inline-flex items-center gap-1 text-xs font-semibold text-primary-700 hover:text-primary-800 hover:underline underline-offset-2',
 };
 

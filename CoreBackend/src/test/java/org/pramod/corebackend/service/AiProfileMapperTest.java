@@ -5,6 +5,7 @@ import org.pramod.corebackend.dto.ResearcherResponse;
 import org.pramod.corebackend.enums.Position;
 import org.pramod.corebackend.enums.PrimaryField;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -31,6 +32,30 @@ class AiProfileMapperTest {
 
         assertEquals("I study perovskite solar cell stability. Department of Materials Science. "
                 + "Research focus: Healthcare. Keywords: perovskite, photovoltaics.", bio);
+    }
+
+    @Test
+    void aZeroOrMissingBudgetIsNoPreference() {
+        ResearcherResponse zero = researcher();
+        zero.setMinFundingAmount(BigDecimal.ZERO);
+        zero.setMaxFundingAmount(BigDecimal.ZERO);
+        var profile = mapper.mapToAiUserProfile(zero);
+
+        assertNull(profile.getPreferredMinAmount());
+        assertNull(profile.getPreferredMaxAmount());
+        assertNull(mapper.mapToAiUserProfile(researcher()).getPreferredMaxAmount());
+    }
+
+    @Test
+    void aRealBudgetIsSentInRupees() {
+        ResearcherResponse set = researcher();
+        set.setMinFundingAmount(new BigDecimal("500000"));
+        set.setMaxFundingAmount(new BigDecimal("5000000"));
+        var profile = mapper.mapToAiUserProfile(set);
+
+        assertEquals(new BigDecimal("500000"), profile.getPreferredMinAmount());
+        assertEquals(new BigDecimal("5000000"), profile.getPreferredMaxAmount());
+        assertEquals("INR", profile.getPreferredCurrency());
     }
 
     @Test

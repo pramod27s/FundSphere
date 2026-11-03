@@ -115,6 +115,21 @@ public class AiServiceClient {
     }
 
     /**
+     * Asks a question about a call's guidelines (their stored page text) and
+     * returns the answer with the sentences it rests on, each checked against
+     * the text. Nothing is stored.
+     */
+    public Map<String, Object> askGuidelines(List<String> pages, String sourceKind, String question, String grantTitle) {
+        Map<String, Object> body = new java.util.LinkedHashMap<>();
+        body.put("pages", pages);
+        body.put("source_kind", sourceKind);
+        body.put("question", question);
+        body.put("grant_title", grantTitle == null ? "" : grantTitle);
+        return postJson("/workspace/ask-guidelines", body, "guidelines question",
+                "Answering took longer than the configured timeout. Please try again.");
+    }
+
+    /**
      * Sends a sanction order PDF to the ai-service reader (Objective 4, 4.5)
      * and returns the parsed JSON: each "Add my grant" value with the
      * sentence it came from, the budget heads, and warnings. Nothing is stored.

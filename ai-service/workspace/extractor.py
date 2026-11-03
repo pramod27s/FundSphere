@@ -38,7 +38,7 @@ logger = logging.getLogger("workspace.extractor")
 
 # Bump when the prompt or post-processing changes so old cached results
 # aren't served for the new logic.
-_CACHE_VERSION = "guidelines-v7"
+_CACHE_VERSION = "guidelines-v8"
 # ~40k tokens. Guideline documents rarely come close; anything beyond is
 # cut and the user is warned.
 MAX_PROMPT_CHARS = 160_000
@@ -177,6 +177,7 @@ async def extract_checklist(
         cached = analysis_cache.get(key)
         if cached is not None:
             cached["source_name"] = source_name
+            cached["pages"] = list(pages)
             return ChecklistExtractionResponse(**cached)
 
     text, truncated = build_page_text(pages, has_page_numbers)
@@ -217,7 +218,8 @@ async def extract_checklist(
             "They're marked \"Unverified source\" — check them against the guidelines."
         )
 
-    analysis_cache.put(key, result.model_dump())
+    analysis_cache.put(key, result.model_dump(exclude={"pages"}))
+    result.pages = list(pages)
     return result
 
 
@@ -253,6 +255,11 @@ def clean_items(
             continue
         seen.add(dedupe_key)
 
+        # "Prepare the 'Abstract' section" is part of writing the proposal, not
+        # a document to attach; the model files these under documents anyway.
+        if category == "documents" and _SECTION_ITEM.search(text):
+            category = "format"
+
         quote = str(entry.get("source_quote") or "").strip()
         cited_page = _int_or_none(entry.get("source_page")) if has_page_numbers else None
         verified, page = locator.locate(quote, cited_page)
@@ -274,6 +281,9 @@ def clean_items(
     items.sort(key=lambda item: CATEGORY_ORDER.index(item.category))
     return items
 
+
+# An item about writing a section of the proposal, e.g. "Prepare the 'Work plan' section".
+_SECTION_ITEM = re.compile(r"^(prepare|write|include|add|provide|give|draft|describe)\b[^.]*\bsections?\b", re.IGNORECASE)
 
 _RULE_KINDS = {"limit", "forbidden_item", "needs_evidence", "judgement"}
 _METRICS = {"pages", "words", "font_size", "font_family", "paper_size", "line_spacing", "budget_total",

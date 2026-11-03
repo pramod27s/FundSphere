@@ -115,7 +115,7 @@ public class ResearcherController {
         requestToAi.put("userQuery", userQuery);
 
         Object recommendation = aiServiceClient.recommend(requestToAi);
-        grantService.applyLiveTimestamps(recommendation);
+        grantService.applyLiveDetails(recommendation);
         return ResponseEntity.ok(recommendation);
     }
 

@@ -3,7 +3,7 @@ from datetime import datetime, time as day_time, timezone
 from dateutil import parser as date_parser
 from .config import settings
 from .countries import COUNTRY_ALIASES, OPEN_TO_ALL, UNRESOLVED_GROUP, country_allows, country_keys, names_country
-from .schemas import UserProfile
+from .schemas import EligibilityGap, UserProfile
 
 
 # Score for an eligibility component when the grant or the profile doesn't say:
@@ -223,8 +223,10 @@ def funding_fit(profile: UserProfile, grant_fields: dict) -> float:
     Range-overlap percentage. Returns 1.0 for perfect fit, 0.0 for no overlap,
     0.5 when either side is unspecified (neutral).
     """
-    user_min = profile.preferredMinAmount
-    user_max = profile.preferredMaxAmount
+    # A zero or negative budget is "no preference": profiles once stored 0 for
+    # an empty field, and a 0 maximum would rule out every stated amount.
+    user_min = profile.preferredMinAmount if (profile.preferredMinAmount or 0) > 0 else None
+    user_max = profile.preferredMaxAmount if (profile.preferredMaxAmount or 0) > 0 else None
     grant_min = grant_fields.get("funding_amount_min")
     grant_max = grant_fields.get("funding_amount_max")
 
@@ -237,6 +239,11 @@ def funding_fit(profile: UserProfile, grant_fields: dict) -> float:
     g_hi = grant_max if grant_max is not None else max(g_lo, (user_max or 0.0)) * 2 or 1.0
     u_lo = user_min if user_min is not None else 0.0
     u_hi = user_max if user_max is not None else max(u_lo, g_hi)
+
+    # One fixed amount (min == max, e.g. "₹35 lakh") fits when it's inside the
+    # user's range; the overlap of a single point is 0 and scored it 0.0.
+    if g_hi <= g_lo:
+        return 1.0 if u_lo <= g_lo <= u_hi else 0.0
 
     overlap = min(g_hi, u_hi) - max(g_lo, u_lo)
     if overlap <= 0:
@@ -357,38 +364,85 @@ def eligibility_score(profile: UserProfile, grant_fields: dict) -> float:
     return min(score, 1.0)
 
 
+def eligibility_gaps(profile: UserProfile, grant_fields: dict) -> list[EligibilityGap]:
+    """
+    Every non-negotiable rule the profile breaks, in the order PhD,
+    citizenship, country, experience. Empty when nothing rules the user out.
+
+    Safety guard: a rule only counts when the profile EXPLICITLY conflicts
+    with it. Missing or null profile fields never produce a gap.
+    """
+    gaps: list[EligibilityGap] = []
+
+    # 1. PhD requirement
+    if requires_completed_phd(grant_fields) and getattr(profile, "hasPhd", None) is False:
+        gaps.append(EligibilityGap(
+            kind="phd",
+            reason="Grant requires PhD, but applicant does not have PhD",
+            requirement="Needs a completed PhD",
+            howToQualify=(
+                "You can apply once you finish your PhD. Until then, you could join a colleague's "
+                "proposal as Co-PI, if the call allows Co-PIs."
+            ),
+        ))
+
+    # 2. Citizenship (same canonical names as the country guard)
+    citizenship_required = grant_fields.get("citizenship_required")
+    if not country_allows(citizenship_required, getattr(profile, "citizenship", None)):
+        gaps.append(EligibilityGap(
+            kind="citizenship",
+            reason=f"Citizenship restriction: requires {', '.join(country_keys(citizenship_required))}",
+        ))
+
+    # 3. Country
+    grant_countries = grant_fields.get("eligible_countries")
+    if not country_allows(grant_countries, getattr(profile, "country", None)):
+        gaps.append(EligibilityGap(
+            kind="country",
+            reason=f"Geographic restriction: grant limited to {', '.join(country_keys(grant_countries))}",
+        ))
+
+    # 4. Minimum experience
+    min_exp = grant_fields.get("min_experience_years")
+    yrs = getattr(profile, "yearsOfExperience", None)
+    if min_exp is not None and min_exp > 0 and yrs is not None and yrs < min_exp:
+        short_by = min_exp - yrs
+        gaps.append(EligibilityGap(
+            kind="experience",
+            reason=f"Requires minimum {min_exp} years experience (applicant has {yrs})",
+            requirement=f"Needs at least {min_exp} years of experience (your profile says {yrs})",
+            howToQualify=f"You can apply in about {short_by} year{'s' if short_by != 1 else ''}.",
+            yearsShort=short_by,
+        ))
+
+    return gaps
+
+
+def is_almost_eligible(gaps: list[EligibilityGap]) -> bool:
+    """True when the user is ruled out only by rules they can meet later: a
+    PhD they haven't finished, or a few years of experience. Citizenship and
+    country can't change, so a grant with either is not shown."""
+    if not gaps:
+        return False
+    for gap in gaps:
+        if gap.kind == "phd":
+            continue
+        if gap.kind == "experience" and (gap.yearsShort or 0) <= settings.almost_eligible_max_years_short:
+            continue
+        return False
+    return True
+
+
 def is_strictly_disqualified(profile: UserProfile, grant_fields: dict) -> tuple[bool, str | None]:
     """
     Evaluates whether a candidate strictly violates non-negotiable hard constraints.
-    Returns (True, reason) if strictly disqualified, else (False, None).
+    Returns (True, reason) for the first rule broken, else (False, None).
 
     Safety guard: Only disqualifies if profile data is EXPLICITLY known and conflicts.
     Never disqualifies on missing or null profile fields.
     """
-    # 1. PhD requirement guard
-    if requires_completed_phd(grant_fields):
-        has_phd = getattr(profile, "hasPhd", None)
-        if has_phd is False:
-            return True, "Grant requires PhD, but applicant does not have PhD"
-
-    # 2. Strict citizenship guard (same canonical names as the country guard)
-    citizenship_required = grant_fields.get("citizenship_required")
-    if not country_allows(citizenship_required, getattr(profile, "citizenship", None)):
-        return True, f"Citizenship restriction: requires {', '.join(country_keys(citizenship_required))}"
-
-    # 3. Strict country eligibility guard
-    grant_countries = grant_fields.get("eligible_countries")
-    if not country_allows(grant_countries, getattr(profile, "country", None)):
-        return True, f"Geographic restriction: grant limited to {', '.join(country_keys(grant_countries))}"
-
-    # 4. Mandatory minimum experience guard
-    min_exp = grant_fields.get("min_experience_years")
-    if min_exp is not None and min_exp > 0:
-        yrs = getattr(profile, "yearsOfExperience", None)
-        if yrs is not None and yrs < min_exp:
-            return True, f"Requires minimum {min_exp} years experience (applicant has {yrs})"
-
-    return False, None
+    gaps = eligibility_gaps(profile, grant_fields)
+    return (True, gaps[0].reason) if gaps else (False, None)
 
 
 def keyword_overlap_score(profile: UserProfile, query: str | None, grant_fields: dict) -> float:

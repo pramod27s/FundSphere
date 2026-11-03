@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from 'react';
-import { CircleAlert, Info, Loader2, TriangleAlert } from 'lucide-react';
+import { CircleAlert, Info, Loader2, TriangleAlert, Wallet } from 'lucide-react';
 import { fetchSpending, type Award, type SpendCheck, type SpendHead } from '../../services/awardsService';
 import { formatDay } from '../../utils/applicationDates';
 import { formatInr } from '../../utils/formatFunding';
@@ -36,6 +36,8 @@ export default function SpendCheckCard({ award, onEdit }: { award: Award; onEdit
   const gap = award.totalSanctioned !== null && award.allocatedTotal > 0 ? award.totalSanctioned - award.allocatedTotal : 0;
   const money = check?.warnings.filter((w) => !w.notice) ?? [];
   const notices = check?.warnings.filter((w) => w.notice) ?? [];
+  // Until a statement is copied in, bars would all be empty: show the budget and one clear next step instead.
+  const nothingRecorded = check !== null && check.heads.every((head) => head.spent === null);
 
   return (
     <section className="bg-white border border-brand-200 rounded-xl p-5 sm:p-6 shadow-xs mt-6">
@@ -91,6 +93,43 @@ export default function SpendCheckCard({ award, onEdit }: { award: Award; onEdit
             Add them from your sanction order
           </button>
         </div>
+      ) : nothingRecorded ? (
+        <>
+          <div className="flex items-start gap-3 rounded-lg border border-primary-200 bg-primary-50 px-4 py-3 mb-4">
+            <Wallet className="w-5 h-5 text-primary-700 mt-0.5 shrink-0" aria-hidden="true" />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-brand-900">No spending recorded for {check.label} yet</p>
+              <p className="text-xs text-brand-700 mt-0.5">
+                Copy the totals per head from your institute's statement. FundSphere then shows which heads are slow to
+                spend before 31 March, when unspent money can lapse.
+              </p>
+            </div>
+          </div>
+          <p className="text-xs font-semibold text-brand-700 mb-2">Budget for {check.label}</p>
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
+            {check.heads.map((head) => (
+              <div key={head.head} className="flex items-baseline justify-between gap-3 py-1.5 border-b border-brand-100 text-sm">
+                <dt className="text-brand-700">{HEAD_LABEL[head.head]}</dt>
+                <dd className="tabular-nums font-semibold text-brand-900">{formatInr(head.budget)}</dd>
+              </div>
+            ))}
+          </dl>
+          <div className="flex items-baseline justify-between gap-3 text-sm pt-3">
+            <span className="font-semibold text-brand-900">Total this year</span>
+            <span className="tabular-nums font-bold text-brand-900">{formatInr(check.totalBudget)}</span>
+          </div>
+          {/* The prompt above already says nothing is recorded, so that notice isn't repeated. */}
+          {notices.some((notice) => notice.kind !== 'NO_SPENDING') && (
+            <ul className="mt-3 flex flex-col gap-1">
+              {notices.filter((notice) => notice.kind !== 'NO_SPENDING').map((notice) => (
+                <li key={notice.message} className="flex items-start gap-1.5 text-xs text-brand-600">
+                  <Info className="w-3.5 h-3.5 mt-px shrink-0 text-brand-400" aria-hidden="true" />
+                  {notice.message}
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
       ) : (
         <>
           <p className="text-xs text-brand-600 mb-3">

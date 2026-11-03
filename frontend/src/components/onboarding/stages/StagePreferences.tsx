@@ -1,22 +1,16 @@
-import type { LucideIcon } from 'lucide-react';
-import { Bell, Clock, Calendar, Globe2, Sparkles } from 'lucide-react';
+import { useId } from 'react';
+import { CalendarPlus, Globe2, Sparkles } from 'lucide-react';
 
 export type StagePreferencesProps = {
   country: string;
   state: string;
   city: string;
   citizenship: string;
-  notifyNewGrants: boolean;
-  notifyDeadlines: boolean;
-  notifyWeekly: boolean;
   updateFields: (fields: Partial<{
     country: string;
     state: string;
     city: string;
     citizenship: string;
-    notifyNewGrants: boolean;
-    notifyDeadlines: boolean;
-    notifyWeekly: boolean;
   }>) => void;
 };
 
@@ -34,84 +28,44 @@ const countryOptions = [
   'Other',
 ];
 
-type ToggleRowProps = {
-  checked: boolean;
-  onChange: () => void;
-  label: string;
-  sublabel: string;
-  icon: LucideIcon;
-};
-
-function ToggleRow({ checked, onChange, label, sublabel, icon: Icon }: ToggleRowProps) {
-  return (
-    <div className="flex items-center justify-between p-3.5 rounded-lg border border-brand-200 bg-white hover:border-primary-300 transition-all">
-      <div className="flex gap-3 items-center">
-        <div className="p-2 rounded-lg bg-brand-50 text-brand-600">
-          <Icon className="w-4 h-4" />
-        </div>
-        <div>
-          <h4 className="text-xs font-semibold text-brand-900">{label}</h4>
-          <p className="text-[11px] text-brand-500">{sublabel}</p>
-        </div>
-      </div>
-
-      <button
-        type="button"
-        onClick={onChange}
-        className={`relative inline-flex h-5 w-10 shrink-0 items-center rounded-full transition-colors cursor-pointer ${
-          checked ? 'bg-primary-600' : 'bg-brand-200'
-        }`}
-      >
-        <span
-          className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-            checked ? 'translate-x-5' : 'translate-x-1'
-          }`}
-        />
-      </button>
-    </div>
-  );
-}
-
 export default function StagePreferences({
   country,
   state,
   city,
   citizenship,
-  notifyNewGrants,
-  notifyDeadlines,
-  notifyWeekly,
   updateFields,
 }: StagePreferencesProps) {
+  const id = useId();
   const inputClass =
     'w-full px-4 py-2.5 rounded-lg border border-brand-200 bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all text-sm text-brand-900 placeholder:text-brand-400';
   const labelClass = 'block text-sm font-medium text-brand-700 mb-1.5';
 
   return (
     <div className="space-y-6">
-      {/* Location Section */}
       <div>
         <div className="flex items-center gap-1.5 mb-1">
           <Globe2 className="w-4 h-4 text-primary-600" />
           <h3 className="text-base font-semibold text-brand-900">
-            Geographic Eligibility & Residency
+            Where you work
           </h3>
         </div>
         <p className="text-xs text-brand-500 mb-4">
-          Many funding bodies restrict eligibility based on current host country or legal citizenship.
+          Many funding bodies only fund researchers in a particular country, or of a particular citizenship.
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className={labelClass}>
+            <label htmlFor={`${id}-country`} className={labelClass}>
               Country of residence or lab location <span className="text-primary-600">*</span>
             </label>
             <select
+              id={`${id}-country`}
               value={country}
               onChange={(e) => updateFields({ country: e.target.value })}
               className={inputClass}
             >
               <option value="" disabled>
-                Select your host country
+                Select your country
               </option>
               {countryOptions.map((c) => (
                 <option key={c} value={c}>
@@ -122,27 +76,26 @@ export default function StagePreferences({
           </div>
 
           <div>
-            <label className={labelClass}>Citizenship or nationality</label>
+            <label htmlFor={`${id}-citizenship`} className={labelClass}>Citizenship or nationality</label>
             <select
+              id={`${id}-citizenship`}
               value={citizenship}
               onChange={(e) => updateFields({ citizenship: e.target.value })}
               className={inputClass}
             >
-              <option value="">Same as host country</option>
+              <option value="">Same as country of residence</option>
               {countryOptions.map((c) => (
                 <option key={c} value={c}>
                   {c}
                 </option>
               ))}
             </select>
-            <span className="text-[11px] text-brand-500 mt-1 block">
-              Leave blank if same as country of residence.
-            </span>
           </div>
 
           <div>
-            <label className={labelClass}>State / Province / Region</label>
+            <label htmlFor={`${id}-state`} className={labelClass}>State or region</label>
             <input
+              id={`${id}-state`}
               type="text"
               placeholder="e.g. Karnataka or Maharashtra"
               value={state}
@@ -152,8 +105,9 @@ export default function StagePreferences({
           </div>
 
           <div>
-            <label className={labelClass}>City</label>
+            <label htmlFor={`${id}-city`} className={labelClass}>City</label>
             <input
+              id={`${id}-city`}
               type="text"
               placeholder="e.g. Bengaluru or Pune"
               value={city}
@@ -164,51 +118,26 @@ export default function StagePreferences({
         </div>
       </div>
 
-      {/* Notification Preferences */}
+      {/* FundSphere sends no emails; deadline reminders come from the calendar feed. */}
       <div className="pt-2 border-t border-brand-100">
-        <h3 className="text-base font-semibold text-brand-900 mb-1">
-          Notifications & alerts
-        </h3>
-        <p className="text-xs text-brand-500 mb-4">
-          Manage how and when FundSphere alerts you to relevant opportunities.
-        </p>
-
-        <div className="space-y-2.5">
-          <ToggleRow
-            checked={notifyNewGrants}
-            onChange={() => updateFields({ notifyNewGrants: !notifyNewGrants })}
-            label="Instant email alerts for top grant matches"
-            sublabel="Get notified when newly published grants match your research profile."
-            icon={Bell}
-          />
-
-          <ToggleRow
-            checked={notifyDeadlines}
-            onChange={() => updateFields({ notifyDeadlines: !notifyDeadlines })}
-            label="Application deadline reminders"
-            sublabel="Receive automated alerts 30, 14, and 7 days before RFPs close."
-            icon={Clock}
-          />
-
-          <ToggleRow
-            checked={notifyWeekly}
-            onChange={() => updateFields({ notifyWeekly: !notifyWeekly })}
-            label="Weekly curated grant digest"
-            sublabel="A weekly summary of high-affinity opportunities tailored to your domain."
-            icon={Calendar}
-          />
+        <div className="flex items-center gap-1.5 mb-1">
+          <CalendarPlus className="w-4 h-4 text-primary-600" />
+          <h3 className="text-base font-semibold text-brand-900">Reminders</h3>
         </div>
+        <p className="text-xs text-brand-500">
+          FundSphere doesn't send emails. Once you start an application or add a grant you hold, you can put its
+          deadlines in Google Calendar, so reminders reach your phone.
+        </p>
       </div>
 
-      {/* Completion Banner */}
       <div className="p-4 rounded-lg border border-primary-200 bg-primary-50 flex items-start gap-3 text-xs text-brand-700">
         <div className="p-1.5 rounded-lg bg-primary-600 text-white shrink-0 mt-0.5">
           <Sparkles className="w-4 h-4" />
         </div>
         <div>
-          <h5 className="font-semibold text-brand-900">Ready to discover grants</h5>
+          <h4 className="font-semibold text-brand-900">Ready to find grants</h4>
           <p className="text-brand-600 mt-0.5">
-            Once you click Complete Setup, FundSphere's AI indexing engine will immediately personalize your recommendations and match you with active grant opportunities.
+            Next, describe your research in the search box and press AI Match to see the calls that fit you best.
           </p>
         </div>
       </div>

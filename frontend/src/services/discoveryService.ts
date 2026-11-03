@@ -65,8 +65,23 @@ export interface DiscoveryGrant {
   deadlineType?: string;
 }
 
+/** A hard eligibility rule the researcher doesn't meet yet, and how to meet it. */
+export interface EligibilityGap {
+  kind: 'phd' | 'experience' | 'citizenship' | 'country';
+  requirement?: string | null;
+  howToQualify?: string | null;
+}
+
+/** An open grant on the researcher's topic that a PhD or more experience would open up. */
+export interface AlmostEligibleGrant {
+  grant: DiscoveryGrant;
+  gaps: EligibilityGap[];
+}
+
 export interface DiscoveryResult {
   grants: DiscoveryGrant[];
+  /** AI results only: grants the researcher can't apply for yet. */
+  almostEligible?: AlmostEligibleGrant[];
   source: 'ai' | 'core';
   aiError?: string;
   pagination?: DiscoveryPagination;
@@ -95,6 +110,15 @@ interface RecommendationRequest {
 interface RecommendationResponse {
   queryText: string;
   results: RecommendationItem[];
+  almostEligible?: AlmostEligibleItem[];
+}
+
+interface AlmostEligibleItem {
+  grantId: number;
+  title?: string;
+  fundingAgency?: string;
+  gaps: EligibilityGap[];
+  fields?: Record<string, unknown>;
 }
 
 interface RecommendationItem {
@@ -162,9 +186,9 @@ export async function getDiscoveryGrants(request: RecommendationRequest): Promis
   let aiError: string | undefined;
 
   try {
-    const aiGrants = await fetchAiRecommendations(request);
-    if (aiGrants.length > 0) {
-      return { grants: aiGrants, source: 'ai' };
+    const { grants: aiGrants, almostEligible } = await fetchAiRecommendations(request);
+    if (aiGrants.length > 0 || almostEligible.length > 0) {
+      return { grants: aiGrants, almostEligible, source: 'ai' };
     }
   } catch (error) {
     aiError = error instanceof Error ? error.message : 'Unknown AI recommendation error';
@@ -180,7 +204,9 @@ export async function getDiscoveryGrants(request: RecommendationRequest): Promis
   };
 }
 
-async function fetchAiRecommendations(request: RecommendationRequest): Promise<DiscoveryGrant[]> {
+async function fetchAiRecommendations(
+  request: RecommendationRequest,
+): Promise<{ grants: DiscoveryGrant[]; almostEligible: AlmostEligibleGrant[] }> {
   const response = await apiFetch('/api/researchers/me/matches', {
     method: 'POST',
     headers: {
@@ -204,7 +230,13 @@ async function fetchAiRecommendations(request: RecommendationRequest): Promise<D
   }
 
   const payload: RecommendationResponse = await response.json();
-  return payload.results.map(mapRecommendationToGrant);
+  return {
+    grants: payload.results.map(mapRecommendationToGrant),
+    almostEligible: (payload.almostEligible ?? []).map((item) => ({
+      grant: mapRecommendationToGrant({ ...item, finalScore: 0, eligibilityScore: 0, reason: '' }),
+      gaps: item.gaps ?? [],
+    })),
+  };
 }
 
 async function fetchCoreGrantPage(request: RecommendationRequest): Promise<CoreGrantPageResponse> {
@@ -274,13 +306,19 @@ function mapRecommendationToGrant(item: RecommendationItem): DiscoveryGrant {
     // "Eligible" needs positive evidence (e.g. the user's country is listed).
     eligibility: item.eligibilityScore >= 0.55 ? 'Eligible' : 'Warning',
     rationale: item.reason ?? 'Matched by semantic and keyword relevance to your profile.',
-    description: asString(fields.chunk_text) ?? `No detailed description available for ${title}.`,
+    // CoreBackend fills in the stored description; the search chunk is a fallback.
+    description: asString(fields.description)
+      ?? descriptionFromSearchText(asString(fields.chunk_text))
+      ?? `No detailed description available for ${title}.`,
     objectives: asString(fields.objectives),
     fundingScope: asString(fields.funding_scope),
     eligibilityCriteria: asString(fields.eligibility_criteria),
     selectionCriteria: asString(fields.selection_criteria),
     grantDuration: asString(fields.grant_duration),
-    researchThemes: asStringArray(fields.research_themes),
+    // A list from the search index, or the stored text CoreBackend fills in.
+    researchThemes: Array.isArray(fields.research_themes)
+      ? asStringArray(fields.research_themes)
+      : splitTextList(asString(fields.research_themes)),
     grantType: asString(fields.grant_type),
     targetCareerStages: asStringArray(fields.target_career_stages),
     applicationLink: asString(fields.application_link) ?? '',
@@ -379,6 +417,17 @@ function formatDate(value?: string): string {
 
 function formatFunding(min?: number, max?: number, currency?: string): string {
   return formatFundingRange(min, max, currency);
+}
+
+/**
+ * The description inside a search-index chunk ("Title: …\nAgency: …\nDescription: …\nGrant Type: …").
+ * Chunks that are only the header give nothing, so the card says no description is available.
+ */
+function descriptionFromSearchText(chunk?: string): string | undefined {
+  if (!chunk) return undefined;
+  const match = chunk.match(/(?:^|\n)Description:\s*([\s\S]*?)(?=\n[A-Z][A-Za-z /&()-]{1,40}:\s|$)/);
+  if (match) return match[1].trim() || undefined;
+  return chunk.startsWith('Title:') ? undefined : chunk.trim() || undefined;
 }
 
 function asString(value: unknown): string | undefined {

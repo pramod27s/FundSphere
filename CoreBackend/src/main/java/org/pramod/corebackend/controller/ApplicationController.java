@@ -10,6 +10,7 @@
  * POST   /api/applications/{id}/checklist/items          -> add an item by hand
  * PATCH  /api/applications/{id}/checklist/items/{itemId} -> edit an item (owner, due date, status, ...)
  * DELETE /api/applications/{id}/checklist/items/{itemId} -> remove an item
+ * POST   /api/applications/{id}/guidelines/ask           -> answer a question from the guidelines, with quotes
  * GET    /api/applications/{id}/calendar.ics             -> deadline and due dates as a calendar file
  */
 package org.pramod.corebackend.controller;
@@ -19,6 +20,7 @@ import org.pramod.corebackend.dto.application.ApplicationCreateRequest;
 import org.pramod.corebackend.dto.application.ApplicationResponse;
 import org.pramod.corebackend.dto.application.ApplicationUpdateRequest;
 import org.pramod.corebackend.dto.application.ChecklistItemRequest;
+import org.pramod.corebackend.dto.application.GuidelineQuestionRequest;
 import org.pramod.corebackend.security.UserPrincipal;
 import org.pramod.corebackend.service.ApplicationService;
 import org.springframework.http.ContentDisposition;
@@ -41,6 +43,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONTENT_TOO_LARGE;
@@ -126,6 +129,13 @@ public class ApplicationController {
                                                           @PathVariable Long id,
                                                           @PathVariable Long itemId) {
         return ResponseEntity.ok(applicationService.deleteItem(requireUserId(principal), id, itemId));
+    }
+
+    @PostMapping("/{id}/guidelines/ask")
+    public ResponseEntity<Map<String, Object>> askGuidelines(@AuthenticationPrincipal UserPrincipal principal,
+                                                             @PathVariable Long id,
+                                                             @RequestBody GuidelineQuestionRequest body) {
+        return ResponseEntity.ok(applicationService.askGuidelines(requireUserId(principal), id, body.getQuestion()));
     }
 
     @GetMapping("/{id}/calendar.ics")

@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import {
-  ArrowLeft,
   ArrowRight,
   CheckCircle2,
   ChevronDown,
@@ -98,12 +97,6 @@ export default function ProposalAssistant() {
   return (
     <div className="min-h-screen flex flex-col">
       <div className="bg-white border-b border-brand-200 px-4 sm:px-6 h-16 flex items-center gap-4 sticky top-0 z-30">
-        <button onClick={() => navigate('/discovery')}
-          className="hidden md:flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-900 px-2 py-1.5 -ml-2 rounded-lg hover:bg-brand-100">
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back</span>
-        </button>
-        <div className="hidden md:block h-5 w-px bg-brand-200" />
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
           <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center shadow-xs shrink-0">
             <FileText className="w-4 h-4 text-white" />
@@ -135,6 +128,9 @@ export default function ProposalAssistant() {
           <EmptyState onDiscover={() => navigate('/discovery')} onApplications={() => navigate('/applications')} />
         ) : (
           <>
+            {stats.draftsChecked === 0 ? (
+              <FirstDraftPrompt onStart={() => open(preparing[0] ?? rows[0], 'proposal')} />
+            ) : (
             <section aria-label="Proposal stats" className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <StatTile
                 label="Drafts checked"
@@ -169,6 +165,7 @@ export default function ProposalAssistant() {
                   : 'None in your latest drafts'}
               />
             </section>
+            )}
 
             {preparing.length > 0 && (
               <RowGroup title="In preparation" count={preparing.length}>
@@ -299,6 +296,25 @@ function average(values: number[]): number | null {
 // Pieces
 // ----------------------------------------------------------------------
 
+/** Before any draft is checked, the stats would all read 0 or "–": say what to do first instead. */
+function FirstDraftPrompt({ onStart }: { onStart: () => void }) {
+  return (
+    <section aria-label="Get started" className="rounded-xl border border-primary-200 bg-primary-50 p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+      <div className="flex-1 min-w-0">
+        <h2 className="text-base font-bold text-brand-900">Check your first draft</h2>
+        <p className="text-sm text-brand-700 mt-1">
+          Upload a draft in an application's Proposal tab. FundSphere checks it against that call's own rules: an instant
+          check of pages, fonts and limits in seconds, or a full AI review with a score. Your scores appear here.
+        </p>
+      </div>
+      <button type="button" onClick={onStart} className={buttonClasses('primary', 'md', 'shrink-0')}>
+        <FileText className="w-4 h-4" aria-hidden="true" />
+        Check a draft
+      </button>
+    </section>
+  );
+}
+
 function StatTile({ label, value, suffix, detail, valueClass, icon }: {
   label: string; value: string; suffix?: string; detail: string; valueClass?: string; icon?: ReactNode;
 }) {
@@ -409,7 +425,7 @@ function ProposalRowCard({ row, onOpen }: { row: ProposalRow; onOpen: () => void
           {readiness.percent !== null ? (
             <span className="flex flex-col gap-1.5">
               <span className="text-sm font-semibold tabular-nums text-brand-900">{readiness.percent}% ready</span>
-              <span className="block h-1.5 rounded-full bg-primary-100 overflow-hidden" aria-hidden="true">
+              <span className="block h-1.5 rounded-full bg-brand-100 overflow-hidden" aria-hidden="true">
                 <span className="block h-full rounded-full bg-primary-600" style={{ width: `${readiness.percent}%` }} />
               </span>
             </span>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import Login from './Login';
 import Register from './Register';
@@ -16,8 +17,16 @@ interface AuthPageProps {
   onAuthenticated: (session?: AuthSession) => void | Promise<void>;
 }
 
+type AuthMode = 'login' | 'register';
+
 export default function AuthPage({ onAuthenticated }: AuthPageProps) {
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  // ?mode=register opens the sign-up form, e.g. from "Get started" on the landing page.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [mode, setModeState] = useState<AuthMode>(searchParams.get('mode') === 'register' ? 'register' : 'login');
+  const setMode = (next: AuthMode) => {
+    setModeState(next);
+    setSearchParams(next === 'register' ? { mode: 'register' } : {}, { replace: true });
+  };
 
   return (
     <div className="w-full max-w-md mx-auto flex flex-col items-center gap-6">

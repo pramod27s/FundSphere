@@ -8,6 +8,8 @@ interface WhatsAppShareButtonProps {
   size?: 'sm' | 'md';
   /** Optional override; default is icon-only. */
   showLabel?: boolean;
+  /** Classes for the label, e.g. "hidden sm:inline" to show it only on wider screens. */
+  labelClassName?: string;
 }
 
 /**
@@ -19,7 +21,7 @@ interface WhatsAppShareButtonProps {
  * Tries navigator.share first (mobile share-sheet → any installed
  * target), falls back to wa.me on desktop. See utils/shareGrant.ts.
  */
-export default function WhatsAppShareButton({ grant, size = 'md', showLabel = false }: WhatsAppShareButtonProps) {
+export default function WhatsAppShareButton({ grant, size = 'md', showLabel = false, labelClassName = '' }: WhatsAppShareButtonProps) {
   const iconSize = size === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4';
   const padding = size === 'sm' ? 'p-1.5' : 'p-2';
 
@@ -38,7 +40,7 @@ export default function WhatsAppShareButton({ grant, size = 'md', showLabel = fa
       className={`${padding} ${showLabel ? 'inline-flex items-center gap-1.5 px-3 rounded-lg' : 'rounded-lg'} text-brand-500 hover:bg-[#25D366]/10 hover:text-[#1ebe5d] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366]/40 transition-colors shrink-0`}
     >
       <WhatsAppGlyph className={iconSize} />
-      {showLabel && <span className="text-sm font-medium">Share</span>}
+      {showLabel && <span className={`text-sm font-medium ${labelClassName}`}>Share</span>}
     </button>
   );
 }

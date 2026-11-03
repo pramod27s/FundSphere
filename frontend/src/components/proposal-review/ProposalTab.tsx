@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
-import { FileSearch, Loader2 } from 'lucide-react';
+import { FileSearch, Loader2, Upload } from 'lucide-react';
+import { buttonClasses } from '../common/buttonStyles';
 import type { Application } from '../../services/applicationsService';
 import {
   fetchReview,
@@ -29,6 +30,7 @@ export default function ProposalTab({ application, versions, onOpenChecklist }: 
   const { reviews, selectedId, select, reload: reloadList, add } = versions;
   const [starting, setStarting] = useState(false);
   const [startingFull, setStartingFull] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
   const [previous, setPrevious] = useState<ProposalReview | null>(null);
   const { review, error, reload } = useReview(selectedId);
 
@@ -69,6 +71,7 @@ export default function ProposalTab({ application, versions, onOpenChecklist }: 
     setStarting(true);
     try {
       add(await reviewDraftForApplication(application.id, proposal, level));
+      setUploadOpen(false);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Could not start the review');
     } finally {
@@ -91,7 +94,18 @@ export default function ProposalTab({ application, versions, onOpenChecklist }: 
 
   return (
     <div className="flex flex-col gap-5">
-      <DraftUpload busy={starting} onStart={start} />
+      {/* Once a draft has been checked, its results come first; a new version is one click away. */}
+      {uploadOpen || reviews?.length === 0 ? (
+        <DraftUpload busy={starting} onStart={start} />
+      ) : reviews !== null && (
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl border border-brand-200 bg-white px-4 py-3">
+          <p className="flex-1 text-sm text-brand-700">Revised your draft? Check the new version against the same rules.</p>
+          <button type="button" onClick={() => setUploadOpen(true)} className={buttonClasses('secondary', 'sm', 'shrink-0')}>
+            <Upload className="w-4 h-4" aria-hidden="true" />
+            Check a new version
+          </button>
+        </div>
+      )}
 
       {reviews === null ? (
         <div className="flex items-center justify-center py-10 text-brand-500">

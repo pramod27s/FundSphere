@@ -37,6 +37,14 @@ public class GuidelineExtraction {
     @Column(name = "extraction_json", nullable = false, columnDefinition = "TEXT")
     private String extractionJson;
 
+    /**
+     * The guidelines' text as a JSON array, one string per page, kept so the
+     * PI can ask questions about them later. Null for readings stored before
+     * questions were added; reading the guidelines again fills it in.
+     */
+    @Column(name = "pages_json", columnDefinition = "TEXT")
+    private String pagesJson;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

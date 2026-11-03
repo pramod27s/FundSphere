@@ -1,14 +1,15 @@
-import { useId, useMemo, useState } from 'react';
-import { CalendarClock, Check, ChevronDown, RotateCcw, User } from 'lucide-react';
-import type { Application, ChecklistItem, ChecklistItemChanges } from '../../services/applicationsService';
+import { useId, useMemo, useState, type FormEvent } from 'react';
+import { CalendarClock, Check, ChevronDown, RotateCcw, User, Users } from 'lucide-react';
+import type { Application, ChecklistCategory, ChecklistItem, ChecklistItemChanges } from '../../services/applicationsService';
 import { dueDefaults, dueHint } from './dueDefaults';
 import { dueLabel, TONE_TEXT } from '../../utils/applicationDates';
-import { CATEGORY_META } from './applicationMeta';
+import { CATEGORY_META, CATEGORY_ORDER } from './applicationMeta';
+import { ROW_ACTION } from '../common/buttonStyles';
 
 interface ReadinessTabProps {
   application: Application;
   items: ChecklistItem[];
-  onPatchItem: (itemId: number, changes: ChecklistItemChanges) => void;
+  onPatchItem: (itemId: number, changes: ChecklistItemChanges) => void | Promise<void>;
   onEditDetails: () => void;
 }
 
@@ -33,6 +34,13 @@ export default function ReadinessTab({ application, items, onPatchItem, onEditDe
     .filter((i) => i.status === 'TODO' && matchesOwner(i))
     .sort((a, b) => (a.dueDate ?? '9999-12-31').localeCompare(b.dueDate ?? '9999-12-31') || Number(b.mandatory) - Number(a.mandatory));
   const closed = items.filter((i) => i.status !== 'TODO' && matchesOwner(i));
+
+  // One request at a time, so each response includes the owners set before it.
+  const assignAll = async (targets: ChecklistItem[], owner: string) => {
+    for (const item of targets) {
+      if ((item.ownerName ?? '') !== owner) await onPatchItem(item.id, { ownerName: owner });
+    }
+  };
 
   if (items.length === 0) {
     return (
@@ -83,6 +91,7 @@ export default function ReadinessTab({ application, items, onPatchItem, onEditDe
           <h3 className="text-sm font-bold text-brand-900">To do</h3>
           <span className="text-xs text-brand-500 tabular-nums">{open.length}</span>
         </header>
+        {open.length > 1 && <BulkAssign items={open} ownersListId={listId} onAssign={assignAll} />}
         {open.length === 0 ? (
           <p className="px-4 py-6 text-sm text-brand-500 text-center">Nothing left to do here.</p>
         ) : (
@@ -118,6 +127,69 @@ export default function ReadinessTab({ application, items, onPatchItem, onEditDe
         </section>
       )}
     </div>
+  );
+}
+
+/**
+ * "Give [Documents & annexures] to [Ravi (JRF)]": sets the owner on every
+ * to-do item shown in that group, instead of typing the name on each row.
+ */
+function BulkAssign({ items, ownersListId, onAssign }: {
+  items: ChecklistItem[];
+  ownersListId: string;
+  onAssign: (items: ChecklistItem[], owner: string) => Promise<void>;
+}) {
+  const id = useId();
+  const [group, setGroup] = useState<'ALL' | ChecklistCategory>('ALL');
+  const [owner, setOwner] = useState('');
+  const [busy, setBusy] = useState(false);
+  const groups = CATEGORY_ORDER.filter((c) => items.some((i) => i.category === c));
+  const targets = items.filter((i) => group === 'ALL' || i.category === group);
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    const name = owner.trim();
+    if (!name || targets.length === 0) return;
+    setBusy(true);
+    try {
+      await onAssign(targets, name);
+      setOwner('');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const control =
+    'bg-white border border-brand-200 rounded-md px-2 py-1.5 text-xs text-brand-900 focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-200';
+  return (
+    <form onSubmit={submit} className="px-4 py-3 border-b border-brand-100 flex flex-wrap items-center gap-2 text-xs">
+      <Users className="w-3.5 h-3.5 text-brand-500" aria-hidden="true" />
+      <label htmlFor={`${id}-group`} className="font-semibold text-brand-700">Give</label>
+      <select
+        id={`${id}-group`}
+        value={group}
+        onChange={(e) => setGroup(e.target.value as 'ALL' | ChecklistCategory)}
+        className={control}
+      >
+        <option value="ALL">all these items</option>
+        {groups.map((c) => (
+          <option key={c} value={c}>{CATEGORY_META[c].label}</option>
+        ))}
+      </select>
+      <label htmlFor={`${id}-owner`} className="font-semibold text-brand-700">to</label>
+      <input
+        id={`${id}-owner`}
+        value={owner}
+        onChange={(e) => setOwner(e.target.value)}
+        list={ownersListId}
+        maxLength={120}
+        placeholder="e.g. Ravi (JRF)"
+        className={`${control} flex-1 min-w-[9rem] placeholder:text-brand-400`}
+      />
+      <button type="submit" disabled={busy || !owner.trim()} className={ROW_ACTION.secondary}>
+        {busy ? 'Assigning…' : `Assign ${targets.length}`}
+      </button>
+    </form>
   );
 }
 
@@ -168,7 +240,7 @@ function TrackerRow({
           {done && <Check className="w-3.5 h-3.5" />}
         </button>
         <div className="min-w-0">
-          <p className={`text-sm leading-snug ${na ? 'text-brand-400 line-through' : done ? 'text-brand-500' : 'text-brand-900'}`}>
+          <p className={`text-sm leading-snug ${na ? 'text-brand-500 line-through' : done ? 'text-brand-500' : 'text-brand-900'}`}>
             {item.text}
           </p>
           <p className="text-[11px] text-brand-500 mt-0.5">

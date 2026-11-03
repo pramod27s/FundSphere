@@ -5,6 +5,7 @@ import org.pramod.corebackend.dto.ai.AiUserProfileResponse;
 import org.pramod.corebackend.enums.EducationLevel;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,9 +23,10 @@ public class AiProfileMapper {
                 .researchBio(buildResearchBio(researcher))
                 .researchInterests(buildResearchInterests(researcher))
                 .keywords(researcher.getKeywords() == null ? List.of() : researcher.getKeywords())
-                .preferredMinAmount(researcher.getMinFundingAmount())
-                .preferredMaxAmount(researcher.getMaxFundingAmount())
-                .preferredCurrency("USD")
+                .preferredMinAmount(positiveOrNull(researcher.getMinFundingAmount()))
+                .preferredMaxAmount(positiveOrNull(researcher.getMaxFundingAmount()))
+                // Profile amounts are entered in rupees.
+                .preferredCurrency("INR")
                 // Eligibility signals. Prefer the explicit onboarding fields;
                 // fall back to derivations for researchers created before these
                 // columns existed.
@@ -165,6 +167,15 @@ public class AiProfileMapper {
             }
         }
         return interests;
+    }
+
+    /**
+     * A blank or zero budget means "no preference", not "₹0": onboarding used to
+     * save 0 for an empty field, and a ₹0 maximum would rule out every grant
+     * that states an amount.
+     */
+    private static BigDecimal positiveOrNull(BigDecimal amount) {
+        return amount != null && amount.signum() > 0 ? amount : null;
     }
 
     private String humanizeEnum(String enumName) {

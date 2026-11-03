@@ -96,3 +96,33 @@ class ChecklistExtractionResponse(BaseModel):
     source_name: str = ""
     page_count: int = 0
     warnings: List[str] = Field(default_factory=list)
+    # The text the checklist was read from, one entry per page (one entry per
+    # web page for links). CoreBackend stores it so questions about the
+    # guidelines can be answered later without uploading them again. Not cached.
+    pages: List[str] = Field(default_factory=list)
+
+
+class AskGuidelinesRequest(BaseModel):
+    pages: List[str] = Field(min_length=1)
+    question: str = Field(min_length=3, max_length=500)
+    source_kind: Literal["pdf", "web"] = "pdf"
+    grant_title: str = Field(default="", max_length=500)
+
+
+class AnswerCitation(BaseModel):
+    """A sentence from the guidelines that supports the answer. As for
+    checklist items, `verified` is set by code: true only when the quote was
+    found in the text, and `page` is where it was found."""
+    quote: str
+    page: Optional[int] = None
+    verified: bool = False
+
+
+class GuidelineAnswer(BaseModel):
+    # "answered": the guidelines say; "partial": they have related rules but
+    # don't settle it; "not_stated": they don't say, so the PI should ask the
+    # agency rather than guess.
+    status: Literal["answered", "partial", "not_stated"]
+    answer: str
+    citations: List[AnswerCitation] = Field(default_factory=list)
+    warnings: List[str] = Field(default_factory=list)

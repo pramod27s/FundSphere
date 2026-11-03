@@ -4,6 +4,8 @@ import { ChevronRight, ChevronLeft, Check, Sparkles, Loader2 } from 'lucide-reac
 import { toast } from 'react-hot-toast';
 import AnimatedLogo from '../common/AnimatedLogo';
 import { createResearcher, type ResearcherRequest, type ResearcherResponse } from '../../services/researcherService';
+import { parseLakhInput } from '../awards/awardMeta';
+import { RESEARCH_FIELD_OPTIONS } from '../../utils/profileOptions';
 
 import StageIdentity from './stages/StageIdentity';
 import StageResearch from './stages/StageResearch';
@@ -25,7 +27,7 @@ export type OnboardingFormData = {
   researchSummary: string;
   orcidId: string;
 
-  // Stage 3: Funding & Eligibility
+  // Stage 3: Funding & Eligibility (budgets in lakh, as typed; '' = no preference)
   minFunding: string;
   maxFunding: string;
   grantType: string;
@@ -34,14 +36,11 @@ export type OnboardingFormData = {
   hasCompletedPhd: string;
   previousGrants: string;
 
-  // Stage 4: Location & Preferences
+  // Stage 4: Location
   country: string;
   state: string;
   city: string;
   citizenship: string;
-  notifyNewGrants: boolean;
-  notifyDeadlines: boolean;
-  notifyWeekly: boolean;
 };
 
 const initialData: OnboardingFormData = {
@@ -60,25 +59,24 @@ const initialData: OnboardingFormData = {
   minFunding: '',
   maxFunding: '',
   grantType: 'Research grant',
-  yearsExperience: '0-2',
-  educationLevel: 'Masters',
-  hasCompletedPhd: 'No',
-  previousGrants: 'No',
+  // Unanswered until the user picks: a pre-filled "No PhD" or "0-2 years"
+  // would hide calls from everyone who clicks through without changing them.
+  yearsExperience: '',
+  educationLevel: '',
+  hasCompletedPhd: '',
+  previousGrants: '',
 
   country: 'India',
   state: '',
   city: '',
   citizenship: '',
-  notifyNewGrants: true,
-  notifyDeadlines: true,
-  notifyWeekly: true,
 };
 
 const stagesConfig = [
   { id: 'identity', title: 'Identity & role', subtitle: 'Who you are & your affiliation' },
   { id: 'research', title: 'Research focus', subtitle: 'Your domains, bio & keywords' },
   { id: 'funding', title: 'Funding & eligibility', subtitle: 'Target grants & career background' },
-  { id: 'preferences', title: 'Location & alerts', subtitle: 'Residency & notification settings' },
+  { id: 'preferences', title: 'Location', subtitle: 'Where you work, and reminders' },
 ];
 
 const userTypeMap: Record<string, string> = {
@@ -106,16 +104,7 @@ const grantTypeMap: Record<string, string> = {
   'NGO funding': 'NGO_FUNDING',
 };
 
-const validFields = [
-  'ARTIFICIAL_INTELLIGENCE',
-  'DATA_SCIENCE',
-  'HEALTHCARE',
-  'ENVIRONMENT',
-  'AGRICULTURE',
-  'ROBOTICS',
-  'EDUCATION',
-  'SOCIAL_IMPACT',
-];
+const validFields = RESEARCH_FIELD_OPTIONS.map((f) => f.value);
 
 export default function OnboardingWizard({ onComplete }: { onComplete: (data: ResearcherResponse) => void }) {
   const [currentStage, setCurrentStage] = useState(0);
@@ -137,12 +126,15 @@ export default function OnboardingWizard({ onComplete }: { onComplete: (data: Re
         return !!formData.userType && !!formData.orgName.trim() && !!formData.role;
       case 1: // Research Focus
         return !!formData.primaryField;
-      case 2: // Funding & Eligibility
-        if (formData.minFunding && formData.maxFunding && Number(formData.minFunding) > Number(formData.maxFunding)) {
+      case 2: { // Funding & Eligibility
+        const min = parseLakhInput(formData.minFunding);
+        const max = parseLakhInput(formData.maxFunding);
+        if (min === 'invalid' || max === 'invalid' || (min !== null && max !== null && min > max)) {
           return false;
         }
         return !!formData.grantType;
-      case 3: // Location & Alerts
+      }
+      case 3: // Location
         return !!formData.country;
       default:
         return true;
@@ -151,16 +143,26 @@ export default function OnboardingWizard({ onComplete }: { onComplete: (data: Re
 
   const canProceed = validateCurrentStage();
 
-  const mapEducationLevel = (lvl: string): 'UNDERGRADUATE' | 'MASTERS' | 'PHD' => {
+  const mapEducationLevel = (lvl: string): 'UNDERGRADUATE' | 'MASTERS' | 'PHD' | null => {
+    if (lvl === 'Undergraduate') return 'UNDERGRADUATE';
     if (lvl === 'Masters') return 'MASTERS';
     if (lvl === 'PhD' || lvl === 'Postdoc') return 'PHD';
-    return 'UNDERGRADUATE';
+    return null;
+  };
+
+  /** A budget typed in lakh, in rupees; blank (or not a number) is no preference. */
+  const lakhToRupees = (text: string): number | null => {
+    const parsed = parseLakhInput(text);
+    return parsed === 'invalid' || parsed === null || parsed === 0 ? null : parsed;
   };
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      const yearsExp = parseInt(formData.yearsExperience.split('-')[0].replace('+', '')) || 0;
+      // The bottom of the chosen range; null when the question was skipped.
+      const yearsExp = formData.yearsExperience
+        ? parseInt(formData.yearsExperience.split('-')[0].replace('+', ''), 10)
+        : null;
       const eduLevel = mapEducationLevel(formData.educationLevel);
       const position = positionMap[formData.role] || 'RESEARCH_ASSISTANT';
 
@@ -190,16 +192,17 @@ export default function OnboardingWizard({ onComplete }: { onComplete: (data: Re
         state: formData.state.trim(),
         city: formData.city.trim(),
         citizenship: formData.citizenship.trim() || formData.country,
-        minFundingAmount: Number(formData.minFunding) || 0,
-        maxFundingAmount: Number(formData.maxFunding) || 0,
+        minFundingAmount: lakhToRupees(formData.minFunding),
+        maxFundingAmount: lakhToRupees(formData.maxFunding),
         preferredGrantType: grantTypeMap[formData.grantType] || 'RESEARCH_GRANT',
         yearsOfExperience: yearsExp,
         educationLevel: eduLevel,
         hasCompletedPhd: hasCompletedPhd,
         previousGrantsReceived: formData.previousGrants === 'Yes',
-        emailNotifications: formData.notifyNewGrants,
-        deadlineReminders: formData.notifyDeadlines,
-        weeklyGrantRecommendations: formData.notifyWeekly,
+        // FundSphere sends no emails, so nothing is switched on.
+        emailNotifications: false,
+        deadlineReminders: false,
+        weeklyGrantRecommendations: false,
       };
 
       const response = await createResearcher(payload);
@@ -239,16 +242,16 @@ export default function OnboardingWizard({ onComplete }: { onComplete: (data: Re
         state: formData.state.trim() || '',
         city: formData.city.trim() || '',
         citizenship: formData.citizenship.trim() || formData.country || 'India',
-        minFundingAmount: Number(formData.minFunding) || 10000,
-        maxFundingAmount: Number(formData.maxFunding) || 500000,
+        minFundingAmount: lakhToRupees(formData.minFunding),
+        maxFundingAmount: lakhToRupees(formData.maxFunding),
         preferredGrantType: grantTypeMap[formData.grantType] || 'RESEARCH_GRANT',
         yearsOfExperience: null,
         educationLevel: null,
         hasCompletedPhd: null,
         previousGrantsReceived: false,
-        emailNotifications: true,
-        deadlineReminders: true,
-        weeklyGrantRecommendations: true,
+        emailNotifications: false,
+        deadlineReminders: false,
+        weeklyGrantRecommendations: false,
       };
 
       const response = await createResearcher(payload);
@@ -425,7 +428,6 @@ export default function OnboardingWizard({ onComplete }: { onComplete: (data: Re
             )}
             {currentStage === 2 && (
               <StageFundingEligibility
-                country={formData.country}
                 minFunding={formData.minFunding}
                 maxFunding={formData.maxFunding}
                 grantType={formData.grantType}
@@ -442,9 +444,6 @@ export default function OnboardingWizard({ onComplete }: { onComplete: (data: Re
                 state={formData.state}
                 city={formData.city}
                 citizenship={formData.citizenship}
-                notifyNewGrants={formData.notifyNewGrants}
-                notifyDeadlines={formData.notifyDeadlines}
-                notifyWeekly={formData.notifyWeekly}
                 updateFields={updateFields}
               />
             )}

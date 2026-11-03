@@ -13,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.springframework.http.HttpStatus.BAD_GATEWAY;
@@ -24,20 +26,43 @@ public class GuidelineExtractionService {
     private final GuidelineExtractionRepository repository;
     private final ObjectMapper objectMapper;
 
-    /** Saves (or refreshes) the extraction returned by the ai-service. */
+    /**
+     * Saves (or refreshes) the extraction returned by the ai-service. Its page
+     * text goes in its own column, so the extraction JSON stays small.
+     */
     @Transactional
     public GuidelineExtraction store(Map<String, Object> extraction) {
         Object hash = extraction.get("content_hash");
         if (!(hash instanceof String contentHash) || contentHash.isBlank()) {
             throw new ResponseStatusException(BAD_GATEWAY, "The AI service didn't identify the guidelines document");
         }
-        String json = objectMapper.writeValueAsString(extraction);
+        Map<String, Object> withoutPages = new LinkedHashMap<>(extraction);
+        Object pages = withoutPages.remove("pages");
+        String json = objectMapper.writeValueAsString(withoutPages);
         String sourceName = extraction.get("source_name") instanceof String s ? s : null;
         GuidelineExtraction row = repository.findByContentHash(contentHash)
                 .orElseGet(() -> GuidelineExtraction.builder().contentHash(contentHash).build());
         row.setExtractionJson(json);
         row.setSourceName(sourceName);
+        if (pages instanceof List<?> list && !list.isEmpty()) {
+            row.setPagesJson(objectMapper.writeValueAsString(list));
+        }
         return repository.save(row);
+    }
+
+    /** The guidelines' text, one entry per page, or null if it wasn't kept. */
+    public List<String> pages(GuidelineExtraction extraction) {
+        if (extraction.getPagesJson() == null) {
+            return null;
+        }
+        List<?> parsed = objectMapper.readValue(extraction.getPagesJson(), List.class);
+        return parsed.stream().map(page -> page == null ? "" : page.toString()).toList();
+    }
+
+    /** "pdf" or "web": whether the text has page numbers to cite. */
+    public String sourceKind(GuidelineExtraction extraction) {
+        Map<?, ?> parsed = objectMapper.readValue(extraction.getExtractionJson(), Map.class);
+        return "web".equals(parsed.get("source_kind")) ? "web" : "pdf";
     }
 
     /** The "proposal" part (required sections, criteria, rules) as JSON for the ai-service. */

@@ -6,7 +6,6 @@ import {
   Target,
   MapPin,
   Wallet,
-  Bell,
   Check,
   Plus,
   Loader2,
@@ -17,6 +16,15 @@ import type { ResearcherResponse, ResearcherRequest } from '../../services/resea
 import { enrichFromOrcid } from '../../services/researcherService';
 import { toast } from 'react-hot-toast';
 import { useDialog } from '../../hooks/useDialog';
+import { parseLakhInput, rupeesToLakhInput } from '../awards/awardMeta';
+import {
+  EDUCATION_LEVEL_OPTIONS,
+  GRANT_TYPE_OPTIONS,
+  INSTITUTION_TYPE_OPTIONS,
+  POSITION_OPTIONS,
+  RESEARCH_FIELD_OPTIONS,
+  USER_TYPE_OPTIONS,
+} from '../../utils/profileOptions';
 
 interface ResearcherEditModalProps {
   isOpen: boolean;
@@ -25,58 +33,7 @@ interface ResearcherEditModalProps {
   onSave: (updated: ResearcherRequest) => Promise<void>;
 }
 
-type TabType = 'organization' | 'research' | 'location' | 'funding' | 'notifications';
-
-const USER_TYPES = [
-  { value: 'ACADEMIC', label: 'Academic / Professor' },
-  { value: 'STUDENT', label: 'Student / Scholar' },
-  { value: 'STARTUP', label: 'Startup / Entrepreneur' },
-  { value: 'NON_PROFIT', label: 'Non-Profit / NGO' },
-  { value: 'INDIVIDUAL', label: 'Independent Researcher' },
-];
-
-const POSITIONS = [
-  { value: 'STUDENT', label: 'Student' },
-  { value: 'RESEARCH_ASSISTANT', label: 'Research Assistant' },
-  { value: 'PROFESSOR', label: 'Professor / Faculty' },
-  { value: 'FOUNDER', label: 'Founder / Co-founder' },
-  { value: 'NGO_MEMBER', label: 'NGO Member' },
-];
-
-const INSTITUTION_TYPES = [
-  { value: 'UNIVERSITY', label: 'University' },
-  { value: 'RESEARCH_INSTITUTE', label: 'Research Institute' },
-  { value: 'PRIVATE_LAB', label: 'Private Lab / Company' },
-  { value: 'NON_PROFIT', label: 'Non-Profit Organization' },
-  { value: 'STARTUP', label: 'Startup Incubator / Entity' },
-];
-
-const EDUCATION_LEVELS = [
-  { value: 'UNDERGRADUATE', label: 'Undergraduate' },
-  { value: 'MASTERS', label: 'Master\'s Degree' },
-  { value: 'PHD', label: 'Doctorate (PhD)' },
-  { value: 'POSTDOC', label: 'Postdoctoral' },
-];
-
-const PRIMARY_FIELDS = [
-  { value: 'COMPUTER_SCIENCE', label: 'Computer Science & AI' },
-  { value: 'BIOTECHNOLOGY', label: 'Biotechnology & Life Sciences' },
-  { value: 'HEALTHCARE', label: 'Healthcare & Medicine' },
-  { value: 'AGRICULTURE', label: 'Agriculture & Food Sciences' },
-  { value: 'ENVIRONMENTAL_SCIENCE', label: 'Environmental & Climate' },
-  { value: 'PHYSICS', label: 'Physics & Astronomy' },
-  { value: 'CHEMISTRY', label: 'Chemistry & Materials' },
-  { value: 'ENGINEERING', label: 'Engineering & Robotics' },
-  { value: 'SOCIAL_SCIENCES', label: 'Social Sciences & Humanities' },
-];
-
-const GRANT_TYPES = [
-  { value: 'RESEARCH_GRANT', label: 'Research Grant' },
-  { value: 'FELLOWSHIP', label: 'Fellowship / Scholarship' },
-  { value: 'TRAVEL_GRANT', label: 'Travel & Conference Grant' },
-  { value: 'STARTUP_SEED', label: 'Startup Seed / Innovation Grant' },
-  { value: 'EQUIPMENT_GRANT', label: 'Equipment & Infrastructure' },
-];
+type TabType = 'organization' | 'research' | 'location' | 'funding';
 
 export default function ResearcherEditModal({
   isOpen,
@@ -87,6 +44,7 @@ export default function ResearcherEditModal({
   const [activeTab, setActiveTab] = useState<TabType>('organization');
   const dialogRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
+  const fid = useId();
   useDialog(dialogRef, onClose, isOpen);
   const [isSaving, setIsSaving] = useState(false);
   const [isEnriching, setIsEnriching] = useState(false);
@@ -95,12 +53,12 @@ export default function ResearcherEditModal({
 
   // Form state initialized from researcher props
   const [formData, setFormData] = useState<ResearcherRequest>({
-    userType: researcher.userType || 'ACADEMIC',
+    userType: researcher.userType || 'RESEARCHER',
     institutionName: researcher.institutionName || '',
     department: researcher.department || '',
     position: researcher.position || 'PROFESSOR',
     institutionType: researcher.institutionType || 'UNIVERSITY',
-    primaryField: researcher.primaryField || 'COMPUTER_SCIENCE',
+    primaryField: researcher.primaryField || 'ARTIFICIAL_INTELLIGENCE',
     additionalFields: researcher.additionalFields || [],
     keywords: researcher.keywords || [],
     researchSummary: researcher.researchSummary || '',
@@ -109,8 +67,8 @@ export default function ResearcherEditModal({
     state: researcher.state || '',
     city: researcher.city || '',
     citizenship: researcher.citizenship || researcher.country || '',
-    minFundingAmount: researcher.minFundingAmount ?? 100000,
-    maxFundingAmount: researcher.maxFundingAmount ?? 5000000,
+    minFundingAmount: researcher.minFundingAmount ?? null,
+    maxFundingAmount: researcher.maxFundingAmount ?? null,
     preferredGrantType: researcher.preferredGrantType || 'RESEARCH_GRANT',
     // Unknown stays unknown: a guessed level or PhD flag would change which calls match.
     yearsOfExperience: researcher.yearsOfExperience ?? null,
@@ -118,10 +76,14 @@ export default function ResearcherEditModal({
     hasCompletedPhd: researcher.hasCompletedPhd
       ?? (researcher.educationLevel ? researcher.educationLevel === 'PHD' || researcher.educationLevel === 'POSTDOC' : null),
     previousGrantsReceived: researcher.previousGrantsReceived ?? false,
-    emailNotifications: researcher.emailNotifications ?? true,
-    deadlineReminders: researcher.deadlineReminders ?? true,
-    weeklyGrantRecommendations: researcher.weeklyGrantRecommendations ?? true,
+    // FundSphere sends no emails yet, so these aren't offered; kept as stored.
+    emailNotifications: researcher.emailNotifications ?? false,
+    deadlineReminders: researcher.deadlineReminders ?? false,
+    weeklyGrantRecommendations: researcher.weeklyGrantRecommendations ?? false,
   });
+  // Budgets are typed in lakh, like every other amount in FundSphere. Blank means no preference.
+  const [minLakh, setMinLakh] = useState(rupeesToLakhInput(researcher.minFundingAmount));
+  const [maxLakh, setMaxLakh] = useState(rupeesToLakhInput(researcher.maxFundingAmount));
 
   if (!isOpen) return null;
 
@@ -184,8 +146,15 @@ export default function ResearcherEditModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.minFundingAmount > formData.maxFundingAmount) {
-      setErrorMessage('Minimum funding amount cannot exceed maximum funding amount.');
+    const min = parseLakhInput(minLakh);
+    const max = parseLakhInput(maxLakh);
+    if (min === 'invalid' || max === 'invalid') {
+      setErrorMessage('Type budgets as a number of lakh, for example 12.5.');
+      setActiveTab('funding');
+      return;
+    }
+    if (min !== null && max !== null && min > max) {
+      setErrorMessage('The smallest amount is more than the largest.');
       setActiveTab('funding');
       return;
     }
@@ -194,7 +163,7 @@ export default function ResearcherEditModal({
     setErrorMessage(null);
 
     try {
-      await onSave(formData);
+      await onSave({ ...formData, minFundingAmount: min, maxFundingAmount: max });
       onClose();
     } catch (err) {
       setErrorMessage(err instanceof Error && err.message ? err.message : 'Failed to update researcher profile.');
@@ -208,7 +177,6 @@ export default function ResearcherEditModal({
     { id: 'research' as TabType, label: 'Research focus', icon: Target },
     { id: 'location' as TabType, label: 'Location', icon: MapPin },
     { id: 'funding' as TabType, label: 'Funding & background', icon: Wallet },
-    { id: 'notifications' as TabType, label: 'Notifications', icon: Bell },
   ];
 
   return (
@@ -231,7 +199,7 @@ export default function ResearcherEditModal({
               Edit researcher profile
             </h2>
             <p className="text-xs text-brand-500 mt-0.5">
-              Update your research profile to improve grant discovery and matching accuracy
+              Keep your profile current: AI Match uses it to find and rank calls
             </p>
           </div>
           <button
@@ -288,31 +256,33 @@ export default function ResearcherEditModal({
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-brand-700 mb-1.5">
+                    <label htmlFor={`${fid}-user-type`} className="block text-sm font-medium text-brand-700 mb-1.5">
                       User type *
                     </label>
                     <select
+                      id={`${fid}-user-type`}
                       value={formData.userType}
                       onChange={(e) => handleFieldChange('userType', e.target.value)}
                       className="w-full px-3.5 py-2.5 rounded-lg border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white"
                       required
                     >
-                      {USER_TYPES.map((t) => (
+                      {USER_TYPE_OPTIONS.map((t) => (
                         <option key={t.value} value={t.value}>{t.label}</option>
                       ))}
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-brand-700 mb-1.5">
+                    <label htmlFor={`${fid}-position`} className="block text-sm font-medium text-brand-700 mb-1.5">
                       Position or role *
                     </label>
                     <select
+                      id={`${fid}-position`}
                       value={formData.position || 'PROFESSOR'}
                       onChange={(e) => handleFieldChange('position', e.target.value)}
                       className="w-full px-3.5 py-2.5 rounded-lg border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white"
                     >
-                      {POSITIONS.map((p) => (
+                      {POSITION_OPTIONS.map((p) => (
                         <option key={p.value} value={p.value}>{p.label}</option>
                       ))}
                     </select>
@@ -321,10 +291,11 @@ export default function ResearcherEditModal({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-brand-700 mb-1.5">
+                    <label htmlFor={`${fid}-institution`} className="block text-sm font-medium text-brand-700 mb-1.5">
                       Institution or university name *
                     </label>
                     <input
+                      id={`${fid}-institution`}
                       type="text"
                       value={formData.institutionName}
                       onChange={(e) => handleFieldChange('institutionName', e.target.value)}
@@ -335,10 +306,11 @@ export default function ResearcherEditModal({
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-brand-700 mb-1.5">
+                    <label htmlFor={`${fid}-department`} className="block text-sm font-medium text-brand-700 mb-1.5">
                       Department or school
                     </label>
                     <input
+                      id={`${fid}-department`}
                       type="text"
                       value={formData.department}
                       onChange={(e) => handleFieldChange('department', e.target.value)}
@@ -350,31 +322,33 @@ export default function ResearcherEditModal({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-brand-700 mb-1.5">
+                    <label htmlFor={`${fid}-institution-type`} className="block text-sm font-medium text-brand-700 mb-1.5">
                       Institution type
                     </label>
                     <select
+                      id={`${fid}-institution-type`}
                       value={formData.institutionType || 'UNIVERSITY'}
                       onChange={(e) => handleFieldChange('institutionType', e.target.value)}
                       className="w-full px-3.5 py-2.5 rounded-lg border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white"
                     >
-                      {INSTITUTION_TYPES.map((it) => (
+                      {INSTITUTION_TYPE_OPTIONS.map((it) => (
                         <option key={it.value} value={it.value}>{it.label}</option>
                       ))}
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-brand-700 mb-1.5">
+                    <label htmlFor={`${fid}-education`} className="block text-sm font-medium text-brand-700 mb-1.5">
                       Education level
                     </label>
                     <select
+                      id={`${fid}-education`}
                       value={formData.educationLevel ?? ''}
                       onChange={(e) => handleFieldChange('educationLevel', e.target.value || null)}
                       className="w-full px-3.5 py-2.5 rounded-lg border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white"
                     >
                       <option value="">Not specified</option>
-                      {EDUCATION_LEVELS.map((el) => (
+                      {EDUCATION_LEVEL_OPTIONS.map((el) => (
                         <option key={el.value} value={el.value}>{el.label}</option>
                       ))}
                     </select>
@@ -392,16 +366,17 @@ export default function ResearcherEditModal({
                 className="space-y-4"
               >
                 <div>
-                  <label className="block text-sm font-medium text-brand-700 mb-1.5">
-                    Primary Domain / Field *
+                  <label htmlFor={`${fid}-field`} className="block text-sm font-medium text-brand-700 mb-1.5">
+                    Primary research field *
                   </label>
                   <select
+                    id={`${fid}-field`}
                     value={formData.primaryField}
                     onChange={(e) => handleFieldChange('primaryField', e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-lg border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white"
                     required
                   >
-                    {PRIMARY_FIELDS.map((f) => (
+                    {RESEARCH_FIELD_OPTIONS.map((f) => (
                       <option key={f.value} value={f.value}>{f.label}</option>
                     ))}
                   </select>
@@ -409,8 +384,8 @@ export default function ResearcherEditModal({
 
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-sm font-medium text-brand-700">
-                      ORCID iD (Optional)
+                    <label htmlFor={`${fid}-orcid`} className="block text-sm font-medium text-brand-700">
+                      ORCID iD (optional)
                     </label>
                     <button
                       type="button"
@@ -423,6 +398,7 @@ export default function ResearcherEditModal({
                     </button>
                   </div>
                   <input
+                    id={`${fid}-orcid`}
                     type="text"
                     value={formData.orcidId}
                     onChange={(e) => handleFieldChange('orcidId', e.target.value)}
@@ -432,10 +408,11 @@ export default function ResearcherEditModal({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-brand-700 mb-1.5">
-                    Research Summary & Focus
+                  <label htmlFor={`${fid}-summary`} className="block text-sm font-medium text-brand-700 mb-1.5">
+                    Research summary
                   </label>
                   <textarea
+                    id={`${fid}-summary`}
                     rows={3}
                     value={formData.researchSummary}
                     onChange={(e) => handleFieldChange('researchSummary', e.target.value)}
@@ -445,11 +422,12 @@ export default function ResearcherEditModal({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-brand-700 mb-1.5">
-                    Research Keywords & Tags
+                  <label htmlFor={`${fid}-keyword`} className="block text-sm font-medium text-brand-700 mb-1.5">
+                    Research keywords
                   </label>
                   <div className="flex gap-2 mb-2.5">
                     <input
+                      id={`${fid}-keyword`}
                       type="text"
                       value={keywordInput}
                       onChange={(e) => setKeywordInput(e.target.value)}
@@ -483,6 +461,7 @@ export default function ResearcherEditModal({
                           <button
                             type="button"
                             onClick={() => handleRemoveKeyword(idx)}
+                            aria-label={`Remove ${kw}`}
                             className="text-brand-500 hover:text-red-500 transition-colors"
                           >
                             <X className="w-3 h-3" />
@@ -507,10 +486,11 @@ export default function ResearcherEditModal({
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-brand-700 mb-1.5">
+                    <label htmlFor={`${fid}-country`} className="block text-sm font-medium text-brand-700 mb-1.5">
                       Country *
                     </label>
                     <input
+                      id={`${fid}-country`}
                       type="text"
                       value={formData.country}
                       onChange={(e) => handleFieldChange('country', e.target.value)}
@@ -521,10 +501,11 @@ export default function ResearcherEditModal({
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-brand-700 mb-1.5">
+                    <label htmlFor={`${fid}-citizenship`} className="block text-sm font-medium text-brand-700 mb-1.5">
                       Citizenship or nationality
                     </label>
                     <input
+                      id={`${fid}-citizenship`}
                       type="text"
                       value={formData.citizenship}
                       onChange={(e) => handleFieldChange('citizenship', e.target.value)}
@@ -536,10 +517,11 @@ export default function ResearcherEditModal({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-brand-700 mb-1.5">
+                    <label htmlFor={`${fid}-state`} className="block text-sm font-medium text-brand-700 mb-1.5">
                       State or province
                     </label>
                     <input
+                      id={`${fid}-state`}
                       type="text"
                       value={formData.state}
                       onChange={(e) => handleFieldChange('state', e.target.value)}
@@ -549,10 +531,11 @@ export default function ResearcherEditModal({
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-brand-700 mb-1.5">
+                    <label htmlFor={`${fid}-city`} className="block text-sm font-medium text-brand-700 mb-1.5">
                       City
                     </label>
                     <input
+                      id={`${fid}-city`}
                       type="text"
                       value={formData.city}
                       onChange={(e) => handleFieldChange('city', e.target.value)}
@@ -573,56 +556,37 @@ export default function ResearcherEditModal({
                 className="space-y-4"
               >
                 <div>
-                  <label className="block text-sm font-medium text-brand-700 mb-1.5">
+                  <label htmlFor={`${fid}-grant-type`} className="block text-sm font-medium text-brand-700 mb-1.5">
                     Preferred grant type
                   </label>
                   <select
+                    id={`${fid}-grant-type`}
                     value={formData.preferredGrantType}
                     onChange={(e) => handleFieldChange('preferredGrantType', e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-lg border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white"
                   >
-                    {GRANT_TYPES.map((gt) => (
+                    {GRANT_TYPE_OPTIONS.map((gt) => (
                       <option key={gt.value} value={gt.value}>{gt.label}</option>
                     ))}
                   </select>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-brand-700 mb-1.5">
-                      Minimum amount (₹)
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      step={50000}
-                      value={formData.minFundingAmount}
-                      onChange={(e) => handleFieldChange('minFundingAmount', Number(e.target.value))}
-                      className="w-full px-3.5 py-2.5 rounded-lg border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-brand-700 mb-1.5">
-                      Maximum amount (₹)
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      step={50000}
-                      value={formData.maxFundingAmount}
-                      onChange={(e) => handleFieldChange('maxFundingAmount', Number(e.target.value))}
-                      className="w-full px-3.5 py-2.5 rounded-lg border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-                    />
+                <div>
+                  <p className="text-sm font-medium text-brand-700">Budget you're looking for</p>
+                  <p className="text-xs text-brand-500 mt-0.5 mb-2">In lakh: type 12.5 for ₹12.5 lakh. Leave both blank if any amount is fine.</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <LakhInput id={`${fid}-min`} label="Smallest amount" value={minLakh} onChange={setMinLakh} placeholder="e.g. 5" />
+                    <LakhInput id={`${fid}-max`} label="Largest amount" value={maxLakh} onChange={setMaxLakh} placeholder="e.g. 50" />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                   <div>
-                    <label className="block text-sm font-medium text-brand-700 mb-1.5">
+                    <label htmlFor={`${fid}-years`} className="block text-sm font-medium text-brand-700 mb-1.5">
                       Years of research experience
                     </label>
                     <input
+                      id={`${fid}-years`}
                       type="number"
                       min={0}
                       max={50}
@@ -632,7 +596,24 @@ export default function ResearcherEditModal({
                     />
                   </div>
 
-                  <div className="flex items-center pt-6">
+                  <div>
+                    <label htmlFor={`${fid}-phd`} className="block text-sm font-medium text-brand-700 mb-1.5">
+                      Completed a PhD?
+                    </label>
+                    <select
+                      id={`${fid}-phd`}
+                      value={formData.hasCompletedPhd === null ? '' : formData.hasCompletedPhd ? 'yes' : 'no'}
+                      onChange={(e) => handleFieldChange('hasCompletedPhd', e.target.value === '' ? null : e.target.value === 'yes')}
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white"
+                    >
+                      <option value="">Not specified</option>
+                      <option value="yes">Yes</option>
+                      <option value="no">No</option>
+                    </select>
+                    <p className="text-xs text-brand-500 mt-1">Calls that need a completed PhD are hidden while this says No.</p>
+                  </div>
+
+                  <div className="flex items-center md:col-span-2">
                     <label className="flex items-center gap-3 cursor-pointer">
                       <input
                         type="checkbox"
@@ -649,60 +630,6 @@ export default function ResearcherEditModal({
               </motion.div>
             )}
 
-            {activeTab === 'notifications' && (
-              <motion.div
-                key="notifications"
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 10 }}
-                className="space-y-3"
-              >
-                <div className="p-4 rounded-xl border border-brand-200 bg-brand-50 space-y-3">
-                  <label className="flex items-center justify-between cursor-pointer py-1">
-                    <div>
-                      <span className="text-sm font-semibold text-brand-900 block">New grant emails</span>
-                      <span className="text-xs text-brand-500 block">Get notified when new grants matching your field are indexed</span>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={formData.emailNotifications}
-                      onChange={(e) => handleFieldChange('emailNotifications', e.target.checked)}
-                      className="w-4 h-4 text-primary-600 rounded border-brand-300 focus:ring-primary-500"
-                    />
-                  </label>
-
-                  <div className="border-t border-brand-100" />
-
-                  <label className="flex items-center justify-between cursor-pointer py-1">
-                    <div>
-                      <span className="text-sm font-semibold text-brand-900 block">Deadline reminders</span>
-                      <span className="text-xs text-brand-500 block">Receive reminders 14 and 3 days before saved grant deadlines</span>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={formData.deadlineReminders}
-                      onChange={(e) => handleFieldChange('deadlineReminders', e.target.checked)}
-                      className="w-4 h-4 text-primary-600 rounded border-brand-300 focus:ring-primary-500"
-                    />
-                  </label>
-
-                  <div className="border-t border-brand-100" />
-
-                  <label className="flex items-center justify-between cursor-pointer py-1">
-                    <div>
-                      <span className="text-sm font-semibold text-brand-900 block">Weekly recommendations</span>
-                      <span className="text-xs text-brand-500 block">Weekly curated summary of top grants scored for your profile</span>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={formData.weeklyGrantRecommendations}
-                      onChange={(e) => handleFieldChange('weeklyGrantRecommendations', e.target.checked)}
-                      className="w-4 h-4 text-primary-600 rounded border-brand-300 focus:ring-primary-500"
-                    />
-                  </label>
-                </div>
-              </motion.div>
-            )}
           </AnimatePresence>
 
           {/* Modal Footer */}
@@ -735,6 +662,32 @@ export default function ResearcherEditModal({
           </div>
         </form>
       </motion.div>
+    </div>
+  );
+}
+
+function LakhInput({ id, label, value, onChange, placeholder }: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <div>
+      <label htmlFor={id} className="block text-sm font-medium text-brand-700 mb-1.5">{label}</label>
+      <div className="relative">
+        <input
+          id={id}
+          type="text"
+          inputMode="decimal"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="w-full pl-3.5 pr-14 py-2.5 rounded-lg border border-brand-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+        />
+        <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-brand-500 pointer-events-none">lakh</span>
+      </div>
     </div>
   );
 }

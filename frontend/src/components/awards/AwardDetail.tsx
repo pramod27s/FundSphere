@@ -300,7 +300,7 @@ function Detail({ label, children }: { label: string; children: ReactNode }) {
 }
 
 function Missing() {
-  return <span className="text-brand-400">Not added</span>;
+  return <span className="text-brand-500">Not added</span>;
 }
 
 /** "https://onlinedst.gov.in/projects" → "onlinedst.gov.in"; the link itself if it doesn't parse. */
@@ -332,6 +332,7 @@ function PageFrame({
       <div className="bg-white border-b border-brand-200 px-4 sm:px-6 h-16 flex items-center gap-4 sticky top-0 z-30">
         <button
           onClick={onBack}
+          aria-label="Back to My grants"
           className="flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-900 transition-colors px-2 py-1.5 -ml-2 rounded-lg hover:bg-brand-100"
         >
           <ArrowLeft className="w-4 h-4" />

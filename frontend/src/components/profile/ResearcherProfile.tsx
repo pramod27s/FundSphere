@@ -11,7 +11,7 @@ import {
   MapPin,
   Target,
   Wallet,
-  Bell,
+  CalendarPlus,
   LogOut,
   Camera,
   Edit3,
@@ -19,6 +19,17 @@ import {
 import { buttonClasses } from '../common/buttonStyles';
 import { PAGE_WIDTH } from '../common/PageLayout';
 import { loadSession } from '../../services/authService';
+import { Link } from 'react-router-dom';
+import { formatFundingRange } from '../../utils/formatFunding';
+import {
+  EDUCATION_LEVEL_OPTIONS,
+  GRANT_TYPE_OPTIONS,
+  POSITION_OPTIONS,
+  RESEARCH_FIELD_OPTIONS,
+  USER_TYPE_OPTIONS,
+  optionLabel,
+  type ProfileOption,
+} from '../../utils/profileOptions';
 
 interface ResearcherProfileProps {
   researcher: ResearcherResponse;
@@ -26,22 +37,6 @@ interface ResearcherProfileProps {
 }
 
 const NOT_PROVIDED = 'Not provided';
-
-const capitalizeWords = (str: string | null | undefined): string => {
-  if (!str || !str.trim()) return NOT_PROVIDED;
-  return str
-    .trim()
-    .split(/\s+/)
-    .map((word) => {
-      if (!word) return '';
-      // Keep acronyms like "B.M.S." or uppercase intact
-      if (word.includes('.') || word.length <= 3 && word === word.toUpperCase()) {
-        return word.toUpperCase();
-      }
-      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-    })
-    .join(' ');
-};
 
 const formatEnum = (value: string | null | undefined): string => {
   if (!value) return NOT_PROVIDED;
@@ -57,17 +52,20 @@ const formatYears = (years: number | null | undefined): string => {
   return `${years} ${years === 1 ? 'year' : 'years'}`;
 };
 
+/** What the researcher typed, unchanged. */
 const formatText = (value: string | null | undefined): string => {
-  return value && value.trim().length > 0 ? capitalizeWords(value) : NOT_PROVIDED;
+  return value && value.trim().length > 0 ? value.trim() : NOT_PROVIDED;
 };
 
-const formatCurrency = (value: number | null | undefined): string => {
-  if (typeof value !== 'number' || Number.isNaN(value)) return NOT_PROVIDED;
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    maximumFractionDigits: 0,
-  }).format(value);
+/** The same label onboarding and Edit profile show for a choice. */
+const formatOption = (options: ProfileOption[], value: string | null | undefined): string =>
+  optionLabel(options, value) ?? formatEnum(value);
+
+/** "₹5 lakh – ₹50 lakh", "Up to ₹50 lakh", or "Any amount" when no budget was given (0 counts as none). */
+const formatBudget = (min: number | null | undefined, max: number | null | undefined): string => {
+  const lo = typeof min === 'number' && min > 0 ? min : undefined;
+  const hi = typeof max === 'number' && max > 0 ? max : undefined;
+  return lo === undefined && hi === undefined ? 'Any amount' : formatFundingRange(lo, hi, 'INR');
 };
 
 const formatBoolean = (value: boolean | null | undefined): string =>
@@ -127,6 +125,9 @@ function ResearcherProfile({ researcher: initialResearcher, onLogout }: Research
     researcher.preferredGrantType,
     researcher.educationLevel,
     researcher.keywords?.length ? 'keywords' : '',
+    // Eligibility answers decide which calls are hidden, so they count too.
+    researcher.hasCompletedPhd === null ? '' : 'phd',
+    researcher.yearsOfExperience === null ? '' : 'experience',
   ];
 
   const completionPercent = Math.round(
@@ -135,10 +136,10 @@ function ResearcherProfile({ researcher: initialResearcher, onLogout }: Research
       100,
   );
 
-  const userTypeStr = formatEnum(researcher.userType);
-  const positionStr = researcher.position ? formatEnum(researcher.position) : null;
+  const userTypeStr = formatOption(USER_TYPE_OPTIONS, researcher.userType);
+  const positionStr = researcher.position ? formatOption(POSITION_OPTIONS, researcher.position) : null;
   const isDuplicateRole = positionStr && positionStr.toLowerCase() === userTypeStr.toLowerCase();
-  const affiliationStr = researcher.institutionName ? capitalizeWords(researcher.institutionName) : null;
+  const affiliationStr = researcher.institutionName?.trim() || null;
   const profileSubtitle = [
     userTypeStr,
     !isDuplicateRole && positionStr ? positionStr : null,
@@ -232,7 +233,7 @@ function ResearcherProfile({ researcher: initialResearcher, onLogout }: Research
           <DetailCard icon={<Building2 className="w-4 h-4" />} title="Background">
             <ProfileRow label="Institution" value={formatText(researcher.institutionName)} />
             <ProfileRow label="Department" value={formatText(researcher.department)} />
-            <ProfileRow label="Education level" value={formatEnum(researcher.educationLevel)} isBadge />
+            <ProfileRow label="Education level" value={formatOption(EDUCATION_LEVEL_OPTIONS, researcher.educationLevel)} isBadge />
             <ProfileRow label="Research experience" value={formatYears(researcher.yearsOfExperience)} />
           </DetailCard>
 
@@ -244,8 +245,8 @@ function ResearcherProfile({ researcher: initialResearcher, onLogout }: Research
           </DetailCard>
 
           <DetailCard icon={<Target className="w-4 h-4" />} title="Research focus">
-            <ProfileRow label="Primary field" value={formatEnum(researcher.primaryField)} isBadge />
-            <ProfileRow label="Preferred grant type" value={formatEnum(researcher.preferredGrantType)} isBadge />
+            <ProfileRow label="Primary field" value={formatOption(RESEARCH_FIELD_OPTIONS, researcher.primaryField)} isBadge />
+            <ProfileRow label="Preferred grant type" value={formatOption(GRANT_TYPE_OPTIONS, researcher.preferredGrantType)} isBadge />
             <div className="pt-2 pb-1">
               <p className="text-brand-500 font-medium mb-2 text-xs">Keywords</p>
               {researcher.keywords && researcher.keywords.length > 0 ? (
@@ -260,25 +261,25 @@ function ResearcherProfile({ researcher: initialResearcher, onLogout }: Research
                   ))}
                 </div>
               ) : (
-                <span className="text-sm font-medium text-brand-400">{NOT_PROVIDED}</span>
+                <span className="text-sm font-medium text-brand-500">{NOT_PROVIDED}</span>
               )}
             </div>
           </DetailCard>
 
           <DetailCard icon={<Wallet className="w-4 h-4" />} title="Funding and eligibility">
-            <ProfileRow label="Minimum amount" value={formatCurrency(researcher.minFundingAmount)} />
-            <ProfileRow label="Maximum amount" value={formatCurrency(researcher.maxFundingAmount)} />
+            <ProfileRow label="Budget you're looking for" value={formatBudget(researcher.minFundingAmount, researcher.maxFundingAmount)} />
             <ProfileRow label="PhD completed" value={formatBoolean(researcher.hasCompletedPhd)} />
             <ProfileRow label="Previous grants received" value={formatBoolean(researcher.previousGrantsReceived)} />
           </DetailCard>
         </section>
 
-        <DetailCard icon={<Bell className="w-4 h-4" />} title="Notifications" hint="Change these with Edit profile.">
-          <div className="grid grid-cols-1 md:grid-cols-3 md:gap-x-8">
-            <NotificationRow label="New grant emails" enabled={researcher.emailNotifications} />
-            <NotificationRow label="Deadline reminders" enabled={researcher.deadlineReminders} />
-            <NotificationRow label="Weekly recommendations" enabled={researcher.weeklyGrantRecommendations} />
-          </div>
+        {/* FundSphere sends no emails, so reminders come from the calendar feed. */}
+        <DetailCard icon={<CalendarPlus className="w-4 h-4" />} title="Reminders">
+          <p className="text-brand-700 leading-relaxed">
+            FundSphere doesn't send emails. To get reminders on your phone, add your deadlines to Google Calendar from{' '}
+            <Link to="/my-grants" className="font-semibold text-primary-700 hover:text-primary-800 hover:underline">My grants</Link>
+            {' '}or from any application.
+          </p>
         </DetailCard>
 
         <ResearcherEditModal
@@ -328,7 +329,7 @@ function ProfileRow({ label, value, isBadge }: ProfileRowProps) {
     <div className="flex items-center justify-between gap-4 py-2 border-b border-brand-100 last:border-b-0">
       <span className="text-brand-500 font-medium text-xs shrink-0">{label}</span>
       {missing ? (
-        <span className="text-sm font-medium text-brand-400">{value}</span>
+        <span className="text-sm font-medium text-brand-500">{value}</span>
       ) : isBadge ? (
         <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary-50 text-primary-800 border border-primary-200">
           {value}
@@ -336,19 +337,6 @@ function ProfileRow({ label, value, isBadge }: ProfileRowProps) {
       ) : (
         <span className="text-brand-900 font-semibold text-right text-sm">{value}</span>
       )}
-    </div>
-  );
-}
-
-/** A notification setting as read-only text, so it doesn't look like a toggle. */
-function NotificationRow({ label, enabled }: { label: string; enabled: boolean }) {
-  return (
-    <div className="flex items-center justify-between gap-4 py-2 border-b border-brand-100 last:border-b-0 md:border-b-0">
-      <span className="text-brand-700 text-sm">{label}</span>
-      <span className={`inline-flex items-center gap-1.5 text-sm font-semibold ${enabled ? 'text-primary-700' : 'text-brand-400'}`}>
-        <span className={`h-1.5 w-1.5 rounded-full ${enabled ? 'bg-primary-500' : 'bg-brand-300'}`} aria-hidden="true" />
-        {enabled ? 'On' : 'Off'}
-      </span>
     </div>
   );
 }

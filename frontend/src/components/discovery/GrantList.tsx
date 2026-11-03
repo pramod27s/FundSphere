@@ -95,8 +95,8 @@ export default function GrantList({ grants, isLoading, source, profile }: GrantL
               </h2>
               <p className="mt-1 mb-3 text-sm text-brand-600 text-pretty">
                 {topicGrants.length > 0
-                  ? 'Not about your topic specifically. Check that your work fits their scope.'
-                  : 'Nothing we have is about your topic specifically yet. These wider schemes don’t rule you out; check that your work fits their scope.'}
+                  ? 'Wider schemes that don’t rule you out. The fit rating on each says how well it suits your work, best first.'
+                  : 'None of these is a close match for your search, but they don’t rule you out. The fit rating on each says how well it suits your work, best first.'}
               </p>
               {renderCards(broadGrants)}
             </section>

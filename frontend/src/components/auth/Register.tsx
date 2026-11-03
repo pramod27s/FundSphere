@@ -65,7 +65,7 @@ export default function Register({ onRegisterSuccess, onNavigateToLogin }: Regis
             <UserPlus size={32} />
           </div>
           <h2 className="font-display text-3xl font-semibold text-brand-900 tracking-[-0.015em]">Create your account</h2>
-          <p className="text-brand-800/60 mt-2 font-medium">Join FundSphere and discover opportunities</p>
+          <p className="text-brand-600 mt-2 font-medium">Join FundSphere and find calls you can apply for</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -153,14 +153,14 @@ export default function Register({ onRegisterSuccess, onNavigateToLogin }: Regis
           </button>
         </form>
 
-        <div className="mt-8 text-center text-sm font-medium text-brand-800/60 flex items-center justify-center gap-2">
+        <div className="mt-8 text-center text-sm font-medium text-brand-600 flex items-center justify-center gap-2">
           <span>Already have an account?</span>
           <button 
             type="button"
             onClick={onNavigateToLogin}
-            className="text-brand-900 inline-flex items-center hover:text-black hover:underline transition-all"
+            className="text-primary-700 inline-flex items-center hover:text-primary-800 hover:underline transition-all"
           >
-            Log in <LogIn size={16} className="ml-1" />
+            Sign in <LogIn size={16} className="ml-1" />
           </button>
         </div>
       </motion.div>

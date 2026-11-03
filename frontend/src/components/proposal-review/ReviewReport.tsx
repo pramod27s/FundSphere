@@ -16,6 +16,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import type { ProposalReview, ReviewResult, RuleResult, Severity } from '../../services/proposalReviewService';
+import { loadSession } from '../../services/authService';
 
 interface ReviewReportProps {
   review: ProposalReview;
@@ -63,9 +64,10 @@ export default function ReviewReport({ review, previous, onRunFull, runningFull 
       {isInstant && onRunFull && (
         <div className="rounded-xl border border-primary-200 bg-primary-50/60 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="flex-1 text-sm text-primary-900">
-            <p className="font-semibold">This was the Instant check: the rules code can measure.</p>
+            <p className="font-semibold">This was the instant check: only the rules that can be measured from the PDF.</p>
             <p className="text-primary-800/80 mt-0.5">
-              Run the AI review for the quality score (marked like the committee), the judgement rules and contradictions between sections.
+              Run the AI review for a quality score marked like the committee's, plus the rules that need judgement and any
+              contradictions between sections.
             </p>
           </div>
           <button
@@ -182,7 +184,8 @@ export default function ReviewReport({ review, previous, onRunFull, runningFull 
         </ul>
       </Panel>
 
-      <UsageFooter review={review} result={result} />
+      {/* AI calls and tokens are for the team running FundSphere, not for researchers. */}
+      {loadSession()?.user.role === 'ADMIN' && <UsageFooter review={review} result={result} />}
     </div>
   );
 }
@@ -303,7 +306,7 @@ function CheckedBy({ by }: { by: 'code' | 'ai' }) {
 }
 
 function ScoreDots({ score }: { score: number | null }) {
-  if (score === null) return <span className="text-xs text-brand-400">not scored</span>;
+  if (score === null) return <span className="text-xs text-brand-500">not scored</span>;
   return (
     <span className="inline-flex items-center gap-1" aria-label={`${score} out of 5`}>
       {[1, 2, 3, 4, 5].map((n) => (
@@ -354,7 +357,7 @@ function UsageFooter({ review, result }: { review: ProposalReview; result: Revie
     reused.facts && 'reused the budget facts',
   ].filter(Boolean);
   return (
-    <p className="text-[11px] text-brand-400 text-right">
+    <p className="text-[11px] text-brand-500 text-right">
       {review.aiCalls ?? 0} AI {review.aiCalls === 1 ? 'call' : 'calls'} · {(review.tokensIn ?? 0).toLocaleString('en-IN')} input /{' '}
       {(review.tokensOut ?? 0).toLocaleString('en-IN')} output tokens{notes.length ? ` · ${notes.join(', ')}` : ''}
     </p>

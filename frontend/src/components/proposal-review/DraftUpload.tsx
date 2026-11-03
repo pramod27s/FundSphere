@@ -62,7 +62,7 @@ export default function DraftUpload({ withGuidelines = false, busy = false, onSt
         <LevelOption
           active={level === 'INSTANT'} onSelect={() => setLevel('INSTANT')}
           icon={<Zap className="w-4 h-4" />} title="Instant check"
-          text="Pages, words, fonts, sections and budget rules, measured from the PDF. Quick and almost free."
+          text="Pages, words, fonts, sections and budget rules, measured from the PDF. Ready in seconds."
         />
         <LevelOption
           active={level === 'FULL'} onSelect={() => setLevel('FULL')}

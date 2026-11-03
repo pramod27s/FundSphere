@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, ChevronRight, ClipboardCheck, Compass, Loader2, Plus, TriangleAlert } from 'lucide-react';
+import { Calendar, ChevronRight, ClipboardCheck, Compass, Loader2, Plus, TriangleAlert } from 'lucide-react';
 import { fetchApplications, type Application, type ApplicationStatus } from '../../services/applicationsService';
 import { fetchSavedGrants, type SavedGrantEntry } from '../../services/savedGrantsService';
 import { deadlineCountdown, formatDay, TONE_TEXT } from '../../utils/applicationDates';
@@ -62,14 +62,6 @@ export default function Applications() {
   return (
     <div className="min-h-screen flex flex-col">
       <div className="bg-white border-b border-brand-200 px-4 sm:px-6 h-16 flex items-center gap-4 sticky top-0 z-30">
-        <button
-          onClick={() => navigate('/discovery')}
-          className="hidden md:flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-900 transition-colors px-2 py-1.5 -ml-2 rounded-lg hover:bg-brand-100"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back</span>
-        </button>
-        <div className="hidden md:block h-5 w-px bg-brand-200" />
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
           <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center shadow-xs shrink-0">
             <ClipboardCheck className="w-4 h-4 text-white" />

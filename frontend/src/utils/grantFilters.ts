@@ -55,7 +55,7 @@ export const APPLICANT_TYPE_OPTIONS: KeywordOption[] = [
 
 /** The larger amount in rupees; grants with no amount or an unknown currency don't match. */
 export const FUNDING_RANGE_OPTIONS: RangeOption[] = [
-  { label: '< ₹5 Lakh', key: 'UNDER_5_LAKH' },
+  { label: '< ₹5 lakh', key: 'UNDER_5_LAKH' },
   { label: '₹5L - ₹25L', key: 'FROM_5_TO_25_LAKH' },
   { label: '₹25L - ₹1 Cr', key: 'FROM_25_LAKH_TO_1_CRORE' },
   { label: '> ₹1 Cr', key: 'OVER_1_CRORE' },

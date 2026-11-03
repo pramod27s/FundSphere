@@ -133,12 +133,12 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
               <div className="relative p-4 bg-white rounded-lg border border-brand-200 overflow-hidden">
                   <div className="flex items-center gap-2 text-brand-500 mb-1.5">
                       <TrendingUp className="w-3.5 h-3.5" />
-                      <span className="text-xs font-medium">Match score</span>
+                      <span className="text-xs font-medium">{grant.matchType === 'broad' ? 'Match' : 'Match score'}</span>
                   </div>
                   {grant.matchType === 'broad' ? (
                     <>
-                      <div className="text-xl font-bold text-brand-900">Broad scheme</div>
-                      <div className="text-[11px] text-brand-500 mt-0.5">Not about your topic specifically</div>
+                      <div className="text-xl font-bold text-brand-900">{grant.fit ? FIT_LABELS[grant.fit] : 'Broader scheme'}</div>
+                      <div className="text-[11px] text-brand-500 mt-0.5">A wider scheme: check that your work fits its scope</div>
                     </>
                   ) : (
                     <div className={`text-2xl font-bold tabular-nums text-primary-700`}>
@@ -155,7 +155,8 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
                       <span className="text-xs font-medium">Deadline</span>
                   </div>
                   <div className={`text-xl font-bold tabular-nums ${deadlineTone}`}>
-                      {deadline.label}
+                      {/* The card is already labelled "Deadline". */}
+                      {deadline.label === 'Deadline TBD' ? 'Not announced' : deadline.label}
                   </div>
                   {deadline.tooltip && (
                     <div className="text-[11px] text-brand-500 mt-0.5 tabular-nums">
@@ -179,8 +180,8 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
                   <div className="flex items-center gap-2 text-brand-500 mb-1.5">
                     <span className="text-xs font-medium">Funding</span>
                   </div>
-                  <div className="text-base font-semibold text-brand-600 tabular-nums break-words">
-                    Funding amount not specified
+                  <div className="text-xl font-bold text-brand-500">
+                    Not specified
                   </div>
                 </div>
               )}
@@ -342,13 +343,18 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
             )}
         </div>
 
-        {/* Footer actions */}
-        <div className="p-4 sm:p-5 border-t border-brand-100 bg-white flex flex-col-reverse sm:flex-row gap-3 justify-end items-center">
-            <WhatsAppShareButton grant={grant} size="md" showLabel />
-            <StartApplicationButton grant={grant} />
+        {/* Footer actions. On phones: Apply on top, the other three in one row below, so the
+            footer doesn't take half the screen. */}
+        <div className="p-4 sm:p-5 border-t border-brand-100 bg-white flex flex-col sm:flex-row gap-2 sm:gap-3 sm:justify-end sm:items-center">
+          <div className="order-2 sm:order-1 flex items-center gap-2 sm:gap-3">
+            <WhatsAppShareButton grant={grant} size="md" showLabel labelClassName="hidden sm:inline" />
+            <div className="flex-1 sm:flex-none">
+              <StartApplicationButton grant={grant} />
+            </div>
             <button
                 onClick={() => onToggleSave?.(grant)}
-                className={`w-full sm:w-auto px-5 py-2.5 rounded-lg text-sm font-semibold border transition-all flex items-center justify-center gap-2 active:scale-[0.98] ${
+                aria-pressed={isSaved}
+                className={`shrink-0 px-4 sm:px-5 py-2.5 rounded-lg text-sm font-semibold border transition-all flex items-center justify-center gap-2 active:scale-[0.98] ${
                   isSaved
                     ? 'text-primary-700 bg-primary-50 border-primary-200 hover:bg-primary-100 shadow-sm'
                     : 'text-brand-700 bg-white border-brand-200 hover:bg-brand-50 hover:border-brand-300 shadow-xs'
@@ -359,6 +365,7 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
                   : <><BookmarkPlus className="w-4 h-4" /> Save</>
                 }
             </button>
+          </div>
             {(() => {
               const target = grant.applicationLink || grant.grantUrl;
               const disabled = !target;
@@ -369,7 +376,7 @@ export default function GrantDetailsModal({ grant, onClose, source, isSaved = fa
                   }}
                   disabled={disabled}
                   title={disabled ? 'Provider did not publish an application link' : undefined}
-                  className={`w-full sm:w-auto px-6 py-2.5 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
+                  className={`order-1 sm:order-2 w-full sm:w-auto px-6 py-2.5 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
                     disabled
                       ? 'bg-brand-100 text-brand-500 cursor-not-allowed border border-brand-200'
                       : 'text-white bg-primary-600 hover:bg-primary-700 shadow-xs active:scale-[0.98]'

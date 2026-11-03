@@ -100,11 +100,13 @@ export function OwnerLoad({ items }: { items: ChecklistItem[] }) {
 }
 
 /** "Priya Sharma" → "PS"; "lab office" → "LO". */
+/** "Ravi (JRF)" → "RJ": the first letter of each word, skipping brackets and punctuation. */
 function initials(name: string): string {
   return name
     .split(/\s+/)
+    .map((word) => word.match(/\p{L}|\p{N}/u)?.[0] ?? '')
     .filter(Boolean)
     .slice(0, 2)
-    .map((word) => word[0].toUpperCase())
-    .join('');
+    .join('')
+    .toUpperCase();
 }

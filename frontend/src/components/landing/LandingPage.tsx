@@ -286,7 +286,7 @@ function NavBar({ isAuthenticated, onPrimary, onSignIn }: { isAuthenticated: boo
         scrolled ? 'border-brand-200/80 bg-white/90 shadow-soft backdrop-blur-xl' : 'border-transparent bg-transparent',
       )}
     >
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3 sm:gap-6">
         <a href="#top" className="flex items-center gap-2.5 rounded-lg" aria-label="FundSphere home">
           <AnimatedLogo className="w-8 h-8" onDark={onDark} />
           <Wordmark onDark={onDark} />
@@ -307,18 +307,19 @@ function NavBar({ isAuthenticated, onPrimary, onSignIn }: { isAuthenticated: boo
           ))}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
+          {/* Shown on phones too: returning users need it as much as new ones need Get started. */}
           {!isAuthenticated && (
             <button
               onClick={onSignIn}
-              className={buttonClasses('ghost', 'sm', cn('hidden sm:inline-flex', onDark && 'text-brand-200 hover:text-white hover:bg-white/10'))}
+              className={buttonClasses('ghost', 'sm', cn('px-2.5 sm:px-3.5', onDark && 'text-brand-200 hover:text-white hover:bg-white/10'))}
             >
               Sign in
             </button>
           )}
-          <button onClick={onPrimary} className={buttonClasses('primary', 'sm', 'btn-shine group')}>
+          <button onClick={onPrimary} className={buttonClasses('primary', 'sm', 'btn-shine group px-3 sm:px-3.5')}>
             {isAuthenticated ? 'Dashboard' : 'Get started'}
-            <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true" />
+            <ArrowRight className="hidden min-[400px]:block w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -350,7 +351,8 @@ export default function LandingPage() {
   const isAuthenticated = !!loadSession();
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
 
-  const goToApp = () => navigate(isAuthenticated ? '/discovery' : '/auth');
+  // New visitors land on the sign-up form; "Sign in" opens the sign-in form.
+  const goToApp = () => navigate(isAuthenticated ? '/discovery' : '/auth?mode=register');
   const primaryCtaLabel = isAuthenticated ? 'Open your matches' : 'Find my grants';
 
   return (
@@ -376,7 +378,7 @@ export default function LandingPage() {
                 <li
                   key={`${agency}-${index}`}
                   aria-hidden={index >= AGENCIES.length || undefined}
-                  className="pr-12 sm:pr-16 text-lg font-bold tracking-tight text-brand-400 whitespace-nowrap transition-colors hover:text-brand-700"
+                  className="pr-12 sm:pr-16 text-lg font-bold tracking-tight text-brand-500 whitespace-nowrap transition-colors hover:text-brand-700"
                 >
                   {agency}
                 </li>

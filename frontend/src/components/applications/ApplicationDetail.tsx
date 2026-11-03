@@ -37,6 +37,7 @@ import OverdueReportsWarning from './OverdueReportsWarning';
 import { useOverdueReports } from '../../hooks/useOverdueReports';
 import ChecklistTab from './ChecklistTab';
 import ReadinessTab from './ReadinessTab';
+import AskGuidelinesTab, { type AskEntry } from './AskGuidelinesTab';
 import ProposalTab from '../proposal-review/ProposalTab';
 import VersionHistory from '../proposal-review/VersionHistory';
 import { useApplicationReviews } from '../proposal-review/useApplicationReviews';
@@ -45,8 +46,8 @@ import AwardFormModal from '../awards/AwardFormModal';
 import { guessPortal, guessProfile } from '../awards/awardMeta';
 import { STATUS_META, STATUS_ORDER } from './applicationMeta';
 
-type Tab = 'checklist' | 'readiness' | 'proposal';
-const TABS: Tab[] = ['checklist', 'readiness', 'proposal'];
+type Tab = 'checklist' | 'readiness' | 'proposal' | 'ask';
+const TABS: Tab[] = ['checklist', 'readiness', 'proposal', 'ask'];
 
 /** One application's workspace: checklist (3.2), readiness tracker (3.3), share and remind (3.4). */
 export default function ApplicationDetail() {
@@ -67,6 +68,8 @@ export default function ApplicationDetail() {
   // The Proposal tab's draft versions, kept here so the side panel can list them too.
   const versions = useApplicationReviews(applicationId, tab === 'proposal');
   const [editing, setEditing] = useState(false);
+  // Questions asked about the guidelines this visit, kept here so switching tabs doesn't lose them.
+  const [askEntries, setAskEntries] = useState<AskEntry[]>([]);
   // The "Add my grant" form (Objective 4), opened when the application is marked Awarded.
   const [settingUpGrant, setSettingUpGrant] = useState(false);
   // Only the newest item mutation's response is applied, so quick taps
@@ -213,10 +216,14 @@ export default function ApplicationDetail() {
         />
       )}
 
+      {/* On narrow screens the summary panel is below the tabs; this line keeps readiness in view. */}
+      <CompactReadiness application={application} />
+
       <div className="flex items-center gap-1 border-b border-brand-200 mb-5 overflow-x-auto" role="tablist">
         <TabButton active={tab === 'checklist'} onClick={() => setTab('checklist')} label="Checklist" count={items.length} />
         <TabButton active={tab === 'readiness'} onClick={() => setTab('readiness')} label="Readiness tracker" shortLabel="Tracker" count={pendingCount} countLabel="to do" />
         <TabButton active={tab === 'proposal'} onClick={() => setTab('proposal')} label="Proposal" />
+        <TabButton active={tab === 'ask'} onClick={() => setTab('ask')} label="Ask the guidelines" shortLabel="Ask" />
       </div>
 
       {tab === 'checklist' ? (
@@ -226,6 +233,8 @@ export default function ApplicationDetail() {
           onApplication={(updated) => {
             mutationSeq.current += 1;
             setApplication(updated);
+            // Answers about the old guidelines no longer apply.
+            setAskEntries([]);
             toast.success(`${updated.items?.filter((i) => i.origin === 'AI').length ?? 0} requirements found`);
           }}
           onPatchItem={patchItem}
@@ -234,8 +243,15 @@ export default function ApplicationDetail() {
         />
       ) : tab === 'readiness' ? (
         <ReadinessTab application={application} items={items} onPatchItem={patchItem} onEditDetails={() => setEditing(true)} />
-      ) : (
+      ) : tab === 'proposal' ? (
         <ProposalTab application={application} versions={versions} onOpenChecklist={() => setTab('checklist')} />
+      ) : (
+        <AskGuidelinesTab
+          application={application}
+          entries={askEntries}
+          onEntries={setAskEntries}
+          onOpenChecklist={() => setTab('checklist')}
+        />
       )}
 
       {editing && (
@@ -321,6 +337,7 @@ function PageFrame({
       <div className="bg-white border-b border-brand-200 px-4 sm:px-6 h-16 flex items-center gap-4 sticky top-0 z-30">
         <button
           onClick={onBack}
+          aria-label="Back to applications"
           className="flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-900 transition-colors px-2 py-1.5 -ml-2 rounded-lg hover:bg-brand-100"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -350,6 +367,33 @@ function PageFrame({
  * card with the ring beside everything; in the xl side panel the ring sits
  * beside the headline and the rest stacks under them.
  */
+/** One line of readiness and deadline above the tabs, for screens where the summary panel is at the bottom. */
+function CompactReadiness({ application }: { application: Application }) {
+  const { readiness } = application;
+  const countdown = deadlineCountdown(application.deadline);
+  return (
+    <p className="xl:hidden mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+      <span className="font-bold text-brand-900 tabular-nums">
+        {readiness.percent === null ? 'No required items yet' : `${readiness.percent}% ready`}
+      </span>
+      {readiness.percent !== null && (
+        <span className="text-brand-600 tabular-nums">
+          {readiness.mandatoryDone} of {readiness.mandatoryTotal} done
+        </span>
+      )}
+      <span className={application.deadline ? `font-semibold ${TONE_TEXT[countdown.tone]}` : 'text-brand-600'}>
+        {application.deadline ? `Deadline ${formatDay(application.deadline)}` : 'No deadline set'}
+      </span>
+      {readiness.overdue > 0 && (
+        <span className="inline-flex items-center gap-1 font-semibold text-red-700">
+          <TriangleAlert className="w-3.5 h-3.5" />
+          {readiness.overdue} overdue
+        </span>
+      )}
+    </p>
+  );
+}
+
 function Summary({ application, onEdit }: { application: Application; onEdit: () => void }) {
   const { readiness } = application;
   const countdown = deadlineCountdown(application.deadline);
@@ -399,7 +443,7 @@ function Summary({ application, onEdit }: { application: Application; onEdit: ()
               type="button"
               onClick={() => sendPendingListToWhatsApp(application, items)}
               disabled={items.length === 0}
-              className="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold text-white bg-[#1fa855] hover:bg-[#1a9049] disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
+              className="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold text-white bg-[#15803d] hover:bg-[#166534] disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
               title={items.length === 0 ? 'Build the checklist first' : 'Pending items grouped by owner, ready to send to your lab group'}
             >
               <WhatsAppGlyph className="w-4 h-4" />
@@ -625,7 +669,8 @@ function TabButton({
       role="tab"
       aria-selected={active}
       onClick={onClick}
-      className={`-mb-px px-3 sm:px-4 py-2.5 text-sm font-semibold border-b-2 transition whitespace-nowrap shrink-0 ${
+      // Tighter padding on phones so all four tabs fit on a typical phone; the bar still scrolls on narrower ones.
+      className={`-mb-px px-2.5 sm:px-4 py-2.5 text-sm font-semibold border-b-2 transition whitespace-nowrap shrink-0 ${
         active ? 'border-primary-600 text-primary-800' : 'border-transparent text-brand-500 hover:text-brand-800'
       }`}
     >
@@ -636,7 +681,7 @@ function TabButton({
         </>
       ) : label}
       {count !== undefined && (
-        <span className={`ml-2 px-1.5 py-0.5 rounded-full text-[11px] tabular-nums ${active ? 'bg-primary-100 text-primary-800' : 'bg-brand-100 text-brand-600'}`}>
+        <span className={`ml-1.5 sm:ml-2 px-1.5 py-0.5 rounded-full text-[11px] tabular-nums ${active ? 'bg-primary-100 text-primary-800' : 'bg-brand-100 text-brand-600'}`}>
           {count}
           {countLabel && <span className="hidden sm:inline"> {countLabel}</span>}
         </span>

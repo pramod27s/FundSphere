@@ -52,7 +52,7 @@ export default function MatchPipeline() {
               </span>
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-white">{stage.label}</p>
-                <p className="truncate text-xs text-brand-400">{stage.detail}</p>
+                <p className="truncate text-xs text-brand-500">{stage.detail}</p>
               </div>
             </li>
           );

@@ -16,8 +16,9 @@ export interface ResearcherRequest {
   state: string;
   city: string;
   citizenship: string;
-  minFundingAmount: number;
-  maxFundingAmount: number;
+  /** Rupees; null when no budget was given. */
+  minFundingAmount: number | null;
+  maxFundingAmount: number | null;
   preferredGrantType: string;
   yearsOfExperience: number | null;
   educationLevel: string | null;
@@ -52,8 +53,9 @@ export interface ResearcherResponse {
   state: string;
   city: string;
   citizenship: string;
-  minFundingAmount: number;
-  maxFundingAmount: number;
+  /** Rupees; null when no budget was given. */
+  minFundingAmount: number | null;
+  maxFundingAmount: number | null;
   preferredGrantType: string;
   yearsOfExperience: number | null;
   educationLevel: string | null;

@@ -13,7 +13,7 @@ export const CATEGORY_ORDER: ChecklistCategory[] = ['DOCUMENTS', 'FORMAT', 'ELIG
 
 export const CATEGORY_META: Record<ChecklistCategory, { label: string; hint: string }> = {
   DOCUMENTS: { label: 'Documents & annexures', hint: 'Letters, certificates, CVs and undertakings to attach' },
-  FORMAT: { label: 'Format limits', hint: 'Pages, fonts, word counts, file type and size' },
+  FORMAT: { label: 'Sections and format', hint: 'Required sections, page and word limits, fonts and file type' },
   ELIGIBILITY: { label: 'Eligibility proofs', hint: 'Who can apply, and the proof needed' },
   BUDGET: { label: 'Budget rules', hint: 'Caps, allowed items and overhead' },
   SUBMISSION: { label: 'Submission details', hint: 'Portal, hard copies and forwarding' },

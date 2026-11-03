@@ -11,7 +11,7 @@ from unittest import mock
 
 from proposal import analysis_cache
 from proposal.pdf_extractor import extract_pages
-from workspace import extractor
+from workspace import extractor, qa
 from workspace.quote_check import QuoteLocator, locate_quote, normalise
 from workspace.source_fetch import SourceFetchError, _check_public_host, _find_guidelines_pdf
 
@@ -150,6 +150,22 @@ class CleanItemsTests(unittest.TestCase):
         self.assertIsNone(item.source_page)
         self.assertTrue(item.source_verified)
 
+    def test_proposal_sections_are_format_items_not_documents(self):
+        raw = {"items": [
+            {"category": "documents", "text": "Prepare the 'Work plan' section with a year-wise timeline."},
+            {"category": "documents", "text": "Include a References section"},
+            {"category": "documents", "text": "Attach the HoI endorsement certificate (Annexure-II)"},
+            {"category": "documents", "text": "Attach documents listed in section 5"},
+        ]}
+
+        items = extractor.clean_items(raw, PAGES, has_page_numbers=True)
+
+        by_text = {i.text: i.category for i in items}
+        self.assertEqual(by_text["Prepare the 'Work plan' section with a year-wise timeline."], "format")
+        self.assertEqual(by_text["Include a References section"], "format")
+        self.assertEqual(by_text["Attach the HoI endorsement certificate (Annexure-II)"], "documents")
+        self.assertEqual(by_text["Attach documents listed in section 5"], "documents")
+
     def test_rejects_output_without_items(self):
         with self.assertRaises(ValueError):
             extractor.clean_items({"something": "else"}, PAGES, has_page_numbers=True)
@@ -188,6 +204,95 @@ class ExtractChecklistTests(unittest.TestCase):
         text, truncated = extractor.build_page_text(["x" * 100_000, "y" * 100_000], has_page_numbers=True)
         self.assertTrue(truncated)
         self.assertLessEqual(len(text), extractor.MAX_PROMPT_CHARS + 10)
+
+
+class ExtractChecklistPagesTests(unittest.TestCase):
+    def setUp(self):
+        analysis_cache.clear()
+
+    def test_pages_are_returned_every_time_but_never_cached(self):
+        llm = mock.AsyncMock(return_value={"items": []})
+        with mock.patch.object(extractor, "generate_json", llm):
+            first = asyncio.run(extractor.extract_checklist(PAGES))
+            second = asyncio.run(extractor.extract_checklist(PAGES))
+
+        self.assertEqual(first.pages, PAGES)
+        self.assertEqual(second.pages, PAGES)
+        self.assertNotIn("pages", analysis_cache.get(extractor.cache_key(PAGES, "")))
+
+
+class AskGuidelinesTests(unittest.TestCase):
+    def setUp(self):
+        analysis_cache.clear()
+
+    def ask(self, canned, question="Is overhead allowed?", **kwargs):
+        llm = mock.AsyncMock(return_value=canned)
+        with mock.patch.object(qa, "generate_json", llm):
+            answer = asyncio.run(qa.answer_question(PAGES, question, **kwargs))
+        return answer, llm
+
+    def test_quotes_are_checked_and_pages_corrected(self):
+        answer, llm = self.ask({
+            "status": "answered",
+            "answer": "Yes, 10% of the project cost, up to Rs. 5 lakh.",
+            "citations": [
+                {"quote": "Overhead charges shall be 10% of the total project cost, subject to a maximum of Rs. 5.0 lakh.",
+                 "page": 2},
+                {"quote": "Overhead may also be used for laptops.", "page": 4},
+            ],
+        })
+
+        self.assertEqual(answer.status, "answered")
+        self.assertEqual([(c.verified, c.page) for c in answer.citations], [(True, 4), (False, 4)])
+        self.assertEqual(answer.warnings, [])
+        prompt = llm.await_args.args[0]
+        self.assertIn("Question: Is overhead allowed?", prompt)
+        self.assertIn("[Page 4]", prompt)
+
+    def test_an_answer_with_no_verified_quote_carries_a_warning(self):
+        answer, _ = self.ask({"status": "answered", "answer": "Yes.", "citations": [{"quote": "Laptops are allowed.", "page": 1}]})
+
+        self.assertFalse(answer.citations[0].verified)
+        self.assertTrue(any("couldn't find" in w for w in answer.warnings))
+
+    def test_not_stated_drops_any_citations(self):
+        answer, _ = self.ask({
+            "status": "not_stated",
+            "answer": "The guidelines don't say. Ask the agency.",
+            "citations": [{"quote": "Biodata of the PI not exceeding two pages should be attached.", "page": 3}],
+        }, question="Is there an age limit?")
+
+        self.assertEqual((answer.status, answer.citations, answer.warnings), ("not_stated", [], []))
+
+    def test_a_partial_answer_keeps_its_quotes(self):
+        answer, _ = self.ask({
+            "status": "partial",
+            "answer": "The guidelines don't mention laptops. Overhead is 10% of the project cost.",
+            "citations": [{"quote": "Overhead charges shall be 10% of the total project cost", "page": 4}],
+        }, question="Can I buy a laptop?")
+
+        self.assertEqual(answer.status, "partial")
+        self.assertTrue(answer.citations[0].verified)
+
+    def test_same_question_is_served_from_the_cache(self):
+        canned = {"status": "not_stated", "answer": "The guidelines don't say."}
+        self.ask(canned, question="Can I buy a laptop?")
+        _, llm = self.ask(canned, question="  can I buy a LAPTOP? ")
+
+        self.assertEqual(llm.await_count, 0)
+
+    def test_web_pages_have_no_page_numbers(self):
+        answer, llm = self.ask({
+            "status": "answered", "answer": "Yes.",
+            "citations": [{"quote": "Biodata of the PI not exceeding two pages should be attached.", "page": 3}],
+        }, source_kind="web")
+
+        self.assertEqual((answer.citations[0].verified, answer.citations[0].page), (True, None))
+        self.assertIn("no page markers", llm.await_args.args[0])
+
+    def test_rejects_an_empty_answer(self):
+        with self.assertRaises(ValueError):
+            qa.clean_answer({"status": "answered", "answer": " "}, qa.QuoteLocator(PAGES), True)
 
 
 class PdfPagesTests(unittest.TestCase):

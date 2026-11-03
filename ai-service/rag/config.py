@@ -113,6 +113,15 @@ class Settings:
     # it remains as a fallback if this is disabled.
     exclude_expired_grants: bool = _as_bool(os.getenv("EXCLUDE_EXPIRED_GRANTS"), True)
 
+    # "Almost eligible": open grants about the user's research (reranker score
+    # at least topic_match_min_score) that the hard filter dropped only for a
+    # PhD the user hasn't finished or experience they're a few years short of.
+    # Shown apart from the matches, with what it takes to qualify.
+    enable_almost_eligible: bool = _as_bool(os.getenv("ENABLE_ALMOST_ELIGIBLE"), True)
+    almost_eligible_top_k: int = int(os.getenv("ALMOST_ELIGIBLE_TOP_K", "3"))
+    # Further than this many years short of the experience rule isn't "almost".
+    almost_eligible_max_years_short: int = int(os.getenv("ALMOST_ELIGIBLE_MAX_YEARS_SHORT", "3"))
+
     # Positive-only preference nudges, applied on top of the normalized 5-signal
     # sum (final score is clamped to [0,1]). They reward grants matching the
     # researcher's preferred funding mechanism / career stage without penalizing
